@@ -1,5 +1,6 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Package, Palette, ShoppingCart, Store } from "lucide-react";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { LayoutDashboard, Package, Palette, ShoppingCart } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,18 +18,27 @@ const navigation = [
 
 function AdminLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("activePanel", "admin");
+      if (!sessionStorage.getItem("userName")) sessionStorage.setItem("userName", "Administrador");
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   return (
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
       <div className="relative flex min-h-screen">
         <aside className="hidden w-64 shrink-0 border-r border-border/60 bg-surface/40 lg:block">
           <div className="sticky top-0 flex h-screen flex-col p-5">
-            <Link to="/">
-              <BrandMark />
+            {/* 'Inicio' link removed per request */}
+            <Link to="/" className="mb-4 mt-2 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+              <BrandMark compact brandSlug="store-shop" />
+              LRG Store Shop
             </Link>
-            <p className="mt-6 px-3 text-xs tracking-[0.16em] text-muted-foreground uppercase">
-              Administración
-            </p>
             <nav className="mt-3 space-y-1">
               {navigation.map((item) => {
                 const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
@@ -49,11 +59,25 @@ function AdminLayout() {
                 );
               })}
             </nav>
-            <Button asChild variant="secondary" size="sm" className="mt-auto gap-2">
-              <Link to="/sectores">
-                <Store className="size-4" /> Ver tienda
-              </Link>
-            </Button>
+            <div className="mt-auto flex gap-2">
+              <Button asChild variant="secondary" size="sm" className="gap-2">
+                  <Link to="/">Inicio</Link>
+                </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.localStorage.clear();
+                    window.sessionStorage.clear();
+                  }
+                  navigate({ to: "/" });
+                }}
+              >
+                Cerrar sesión
+              </Button>
+            </div>
           </div>
         </aside>
 
@@ -61,7 +85,7 @@ function AdminLayout() {
           <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:hidden">
             <div className="flex items-center justify-between">
               <Link to="/">
-                <BrandMark compact />
+                <BrandMark compact brandSlug="store-shop" />
               </Link>
               <nav className="flex gap-1 overflow-x-auto">
                 {navigation.map((item) => (

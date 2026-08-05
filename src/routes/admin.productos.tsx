@@ -134,7 +134,7 @@ function AdminProducts() {
                   </div>
                 </TableCell>
                 <TableCell>{brands[product.brand].shortName}</TableCell>
-                <TableCell className="text-muted-foreground">{product.category}</TableCell>
+                <TableCell className="text-muted-foreground uppercase">{product.category}</TableCell>
                 <TableCell>{formatPrice(product.price)}</TableCell>
                 <TableCell>
                   <Badge

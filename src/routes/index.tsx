@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { ArrowRight, Boxes, Layers, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { motion } from "motion/react";
 import { BrandMark } from "@/components/common/brand-mark";
@@ -11,7 +12,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-import { SectorsContent } from "./sectores";
+import { SectorsContent } from "@/components/sectors-content";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -43,6 +44,49 @@ const pillars = [
 
 function WelcomePage() {
   const navigate = useNavigate();
+  const [userName, setUserName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      setUserName(window.sessionStorage.getItem("userName"));
+    } catch (e) {
+      setUserName(null);
+    }
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "userName") setUserName(window.sessionStorage.getItem("userName"));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  function UserBadge() {
+    const [name, setName] = useState<string | null>(null);
+    const [panel, setPanel] = useState<string | null>(null);
+
+    useEffect(() => {
+      try {
+        setName(sessionStorage.getItem("userName"));
+        setPanel(sessionStorage.getItem("activePanel"));
+      } catch (e) {
+        setName(null);
+        setPanel(null);
+      }
+    }, []);
+
+    if (!panel) return null;
+
+    const roleLabel = panel === "admin" ? "Administrador" : "Cliente";
+    const displayName = name || (panel === "admin" ? "Administrador" : "Usuario");
+
+    return (
+      <div className="ml-2 flex items-center gap-2">
+        <div className="px-2 py-1 rounded-md bg-green-50 text-green-800 text-sm font-medium">{displayName}</div>
+        <div className="px-2 py-1 rounded-md bg-green-600 text-white text-xs font-semibold">{roleLabel}</div>
+      </div>
+    );
+  }
 
   function handleBrandClick(e: any) {
     e.preventDefault();
@@ -63,9 +107,58 @@ function WelcomePage() {
             <a href="/" onClick={handleBrandClick} aria-label="Ir al inicio">
               <BrandMark />
             </a>
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/cuenta">Mi cuenta</Link>
-            </Button>
+            <nav className="flex items-center gap-2">
+              <Link
+                to="/cuenta"
+                onClick={() => {
+                  try {
+                    sessionStorage.setItem("activePanel", "client");
+                    if (!sessionStorage.getItem("userName")) sessionStorage.setItem("userName", "Cliente LRG");
+                  } catch (e) {
+                    /* ignore */
+                  }
+                }}
+                className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2"
+              >
+                Mi cuenta
+              </Link>
+              <Link
+                to="/admin"
+                onClick={() => {
+                  try {
+                    sessionStorage.setItem("activePanel", "admin");
+                    if (!sessionStorage.getItem("userName")) sessionStorage.setItem("userName", "Administrador");
+                  } catch (e) {
+                    /* ignore */
+                  }
+                }}
+                className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2"
+              >
+                Panel administrativo
+              </Link>
+              <UserBadge />
+              {userName && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-600 ml-2"
+                  onClick={async () => {
+                    try {
+                      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+                    } catch (e) {
+                      /* ignore */
+                    }
+                    if (typeof window !== "undefined") {
+                      window.localStorage.clear();
+                      window.sessionStorage.clear();
+                    }
+                    navigate({ to: "/" });
+                  }}
+                >
+                  Cerrar sesión
+                </Button>
+              )}
+            </nav>
           </div>
         </header>
         <div className="h-16" aria-hidden />

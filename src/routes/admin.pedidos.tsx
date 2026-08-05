@@ -1,7 +1,9 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -26,6 +28,7 @@ import {
 import { brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
 import { orderQueries } from "@/services/catalog.service";
+import type { BrandSlug } from "@/config/brands";
 import type { OrderStatus } from "@/data/orders";
 
 const statuses: (OrderStatus | "todos")[] = [
@@ -37,10 +40,12 @@ const statuses: (OrderStatus | "todos")[] = [
   "cancelado",
 ];
 
-const statusVariant: Record<OrderStatus, "default" | "secondary" | "destructive" | "outline"> = {
+const brandsFilter: (BrandSlug | "todos")[] = ["todos", "arcade", "scents", "web-design"];
+
+const statusVariant: Record<OrderStatus, "default" | "secondary" | "destructive" | "success" | "warning" | "outline"> = {
   pendiente: "outline",
-  pagado: "secondary",
-  enviado: "default",
+  pagado: "success",
+  enviado: "warning",
   entregado: "default",
   cancelado: "destructive",
 };
@@ -67,10 +72,24 @@ export const Route = createFileRoute("/admin/pedidos")({
 function AdminOrders() {
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const [status, setStatus] = useState<OrderStatus | "todos">("todos");
+  const [brand, setBrand] = useState<BrandSlug | "todos">("todos");
+  const [query, setQuery] = useState("");
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   const results = useMemo(
-    () => (status === "todos" ? orders : orders.filter((order) => order.status === status)),
-    [orders, status],
+    () =>
+      orders.filter((order) => {
+        const statusMatches = status === "todos" || order.status === status;
+        const brandMatches = brand === "todos" || order.brand === brand;
+        const queryMatches =
+          !query ||
+          order.id.toLowerCase().includes(query.toLowerCase()) ||
+          order.customer.toLowerCase().includes(query.toLowerCase()) ||
+          order.email.toLowerCase().includes(query.toLowerCase());
+
+        return statusMatches && brandMatches && queryMatches;
+      }),
+    [orders, status, brand, query],
   );
 
   return (
@@ -80,18 +99,42 @@ function AdminOrders() {
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Operaciones</p>
           <h1 className="mt-2 text-3xl font-semibold">Pedidos</h1>
         </div>
-        <Select value={status} onValueChange={(value) => setStatus(value as OrderStatus | "todos")}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {statuses.map((item) => (
-              <SelectItem key={item} value={item}>
-                {item === "todos" ? "Todos los estados" : item}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[240px] flex-1">
+            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar pedido, cliente o email"
+              className="pl-9"
+            />
+          </div>
+          <Select value={status} onValueChange={(value) => setStatus(value as OrderStatus | "todos")}>
+            <SelectTrigger className="w-50">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {statuses.map((item) => (
+                <SelectItem key={item} value={item}>
+                  {item === "todos" ? "Todos los estados" : item}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={brand} onValueChange={(value) => setBrand(value as BrandSlug | "todos")}> 
+            <SelectTrigger className="w-55">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {brandsFilter.map((item) => (
+                <SelectItem key={item} value={item}>
+                  {item === "todos" ? "Todos los sectores" : brands[item].name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="glass-panel mt-8 overflow-x-auto rounded-2xl">
@@ -104,52 +147,67 @@ function AdminOrders() {
               <TableHead>Fecha</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Total</TableHead>
+              <TableHead className="text-right">Detalles</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {results.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.id}</TableCell>
-                <TableCell>
-                  <span className="block">{order.customer}</span>
-                  <span className="text-xs text-muted-foreground">{order.email}</span>
-                </TableCell>
-                <TableCell>{brands[order.brand].shortName}</TableCell>
-                <TableCell>{formatDate(order.date)}</TableCell>
-                <TableCell>
-                  <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
-                </TableCell>
-                <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
-              </TableRow>
-            ))}
+            {results.map((order) => {
+              const isExpanded = expandedOrderId === order.id;
+              return (
+                <>
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">{order.id}</TableCell>
+                    <TableCell>
+                      <span className="block">{order.customer}</span>
+                      <span className="text-xs text-muted-foreground">{order.email}</span>
+                    </TableCell>
+                    <TableCell>{brands[order.brand].shortName}</TableCell>
+                    <TableCell>{formatDate(order.date)}</TableCell>
+                    <TableCell>
+                      <Badge className="capitalize" variant={statusVariant[order.status]}>
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
+                    <TableCell className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                        className="rounded-lg border border-border px-3 py-1 text-sm transition hover:bg-surface-2"
+                      >
+                        {isExpanded ? "Ocultar" : "Mostrar"}
+                      </button>
+                    </TableCell>
+                  </TableRow>
+
+                  {isExpanded && (
+                    <TableRow key={`${order.id}-details`}>
+                      <TableCell colSpan={7} className="bg-surface-2/70 p-5">
+                        <div className="space-y-3 text-sm">
+                          <p className="font-medium">Detalle del pedido</p>
+                          <ul className="space-y-2 text-sm">
+                            {order.items.map((item) => (
+                              <li key={item.name} className="flex items-center justify-between gap-4 rounded-xl bg-surface p-3">
+                                <div>
+                                  <p className="font-medium">{item.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {item.quantity} × {formatPrice(item.price)}
+                                  </p>
+                                </div>
+                                <span className="font-medium">{formatPrice(item.price * item.quantity)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
-
-      <section className="mt-10 pb-20">
-        <h2 className="font-display text-lg font-semibold">Detalle de pedidos</h2>
-        <Accordion type="single" collapsible className="glass-panel mt-4 rounded-2xl px-5">
-          {results.map((order) => (
-            <AccordionItem key={order.id} value={order.id}>
-              <AccordionTrigger>
-                {order.id} · {order.customer} · {formatPrice(order.total)}
-              </AccordionTrigger>
-              <AccordionContent>
-                <ul className="space-y-2 text-sm">
-                  {order.items.map((item) => (
-                    <li key={item.name} className="flex justify-between gap-3">
-                      <span className="text-muted-foreground">
-                        {item.quantity} × {item.name}
-                      </span>
-                      <span>{formatPrice(item.price * item.quantity)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </section>
     </main>
   );
 }

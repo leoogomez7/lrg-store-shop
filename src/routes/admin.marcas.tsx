@@ -2,6 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { BrandMark } from "@/components/common/brand-mark";
 import { Button } from "@/components/ui/button";
 import { brandList } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
@@ -49,9 +50,7 @@ function AdminBrands() {
           return (
             <article key={brand.slug} className={`${brand.theme} glass-panel rounded-2xl p-6`}>
               <div className="flex items-center gap-3">
-                <span className="gradient-brand grid size-11 place-items-center rounded-xl text-sm font-semibold text-primary-foreground">
-                  {brand.shortName.slice(0, 2).toUpperCase()}
-                </span>
+                <BrandMark compact brandSlug={brand.slug} />
                 <div>
                   <h2 className="font-display font-semibold">{brand.name}</h2>
                   <p className="text-xs text-primary">{brand.tagline}</p>

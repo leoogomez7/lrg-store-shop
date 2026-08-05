@@ -1,7 +1,15 @@
+import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { DollarSign, Package, ShoppingCart, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -10,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { brandList, brands } from "@/config/brands";
+import { brandList, brands, type BrandSlug } from "@/config/brands";
 import { formatDate, formatNumber, formatPrice } from "@/lib/format";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 
@@ -43,30 +51,125 @@ function AdminDashboard() {
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const { data: revenue } = useSuspenseQuery(orderQueries.revenue());
   const { data: products } = useSuspenseQuery(catalogQueries.all());
+  const [ecosystem, setEcosystem] = useState<"todos" | BrandSlug>("todos");
 
-  const total = orders.reduce((sum, order) => sum + order.total, 0);
-  const revenueSeries = revenue.map((entry) => ({
-    month: entry.month,
-    total: entry.arcade + entry.scents + entry.webDesign,
-  }));
-  const maxRevenue = Math.max(...revenueSeries.map((entry) => entry.total));
-  const lowStock = products.filter((product) => product.stock <= 5);
+  const revenueKeyMap: Record<BrandSlug, "arcade" | "scents" | "webDesign"> = {
+    arcade: "arcade",
+    scents: "scents",
+    "web-design": "webDesign",
+  };
+
+  const filteredProducts =
+    ecosystem === "todos" ? products : products.filter((product) => product.brand === ecosystem);
+  const filteredOrders =
+    ecosystem === "todos" ? orders : orders.filter((order) => order.brand === ecosystem);
+
+  const total = filteredOrders.reduce((sum, order) => sum + order.total, 0);
+
+  // Build revenue series from filtered orders grouped by month/year (MM/YYYY)
+  const monthNameMap: Record<string, number> = {
+    ene: 1,
+    feb: 2,
+    mar: 3,
+    apr: 4,
+    abr: 4,
+    may: 5,
+    jun: 6,
+    jul: 7,
+    ago: 8,
+    aug: 8,
+    sep: 9,
+    oct: 10,
+    nov: 11,
+    dic: 12,
+    dec: 12,
+  };
+
+  const fallbackMonthToMMYYYY = (shortMonth: string) => {
+    const num = monthNameMap[shortMonth.toLowerCase()] || new Date().getMonth() + 1;
+    return `${String(num).padStart(2, "0")}/${new Date().getFullYear()}`;
+  };
+
+  let revenueSeries: { month: string; total: number; _date?: Date }[] = [];
+
+  if (filteredOrders.length > 0) {
+    const map = new Map<string, { month: string; total: number; date: Date }>();
+    for (const o of filteredOrders) {
+      const d = new Date(o.date);
+      const key = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+      const existing = map.get(key);
+      if (existing) existing.total += o.total;
+      else map.set(key, { month: key, total: o.total, date: d });
+    }
+    revenueSeries = Array.from(map.values())
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .map((e) => ({ month: e.month, total: e.total }));
+  } else {
+    // Fallback to static revenue data (use month -> MM/YYYY conversion)
+    revenueSeries = revenue.map((entry) => ({
+      month: fallbackMonthToMMYYYY(entry.month),
+      total:
+        ecosystem === "todos"
+          ? entry.arcade + entry.scents + entry.webDesign
+          : entry[revenueKeyMap[ecosystem]],
+    }));
+  }
+
+  // If duplicates exist, keep the last occurrence (prefer the later entry)
+  const lastSeen = new Map<string, { month: string; total: number }>();
+  for (const r of revenueSeries) lastSeen.set(r.month, { month: r.month, total: r.total });
+  revenueSeries = Array.from(lastSeen.values()).sort((a, b) => {
+    const [am, ay] = a.month.split("/").map((s) => Number(s));
+    const [bm, by] = b.month.split("/").map((s) => Number(s));
+    return new Date(ay, am - 1).getTime() - new Date(by, bm - 1).getTime();
+  });
+
+  const revenueTotal = revenueSeries.reduce((sum, e) => sum + e.total, 0);
 
   const cards = [
     { label: "Ingresos totales", value: formatPrice(total), icon: DollarSign },
-    { label: "Pedidos", value: formatNumber(orders.length), icon: ShoppingCart },
-    { label: "Productos activos", value: formatNumber(products.length), icon: Package },
+    { label: "Pedidos", value: formatNumber(filteredOrders.length), icon: ShoppingCart },
+    { label: "Productos activos", value: formatNumber(filteredProducts.length), icon: Package },
     {
       label: "Ticket promedio",
-      value: formatPrice(Math.round(total / Math.max(orders.length, 1))),
+      value: formatPrice(Math.round(total / Math.max(filteredOrders.length, 1))),
       icon: TrendingUp,
     },
   ];
 
+  const lowStock = filteredProducts
+    .filter((product) => product.stock <= 5)
+    .sort((a, b) => a.stock - b.stock);
+  const [stockPage, setStockPage] = useState(0);
+  const stockPageSize = 10;
+  const stockPages = Math.ceil(lowStock.length / stockPageSize);
+  const currentStockItems = lowStock.slice(
+    stockPage * stockPageSize,
+    stockPage * stockPageSize + stockPageSize,
+  );
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Panel admin</p>
-      <h1 className="mt-2 text-3xl font-semibold">Dashboard general</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="mt-2 text-3xl font-semibold">Dashboard general</h1>
+          <p className="text-sm text-muted-foreground">Filtrá métricas por ecosistema o consultá el total.</p>
+        </div>
+        <Select value={ecosystem} onValueChange={(value) => setEcosystem(value as "todos" | BrandSlug)}>
+          <SelectTrigger className="w-55">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Total</SelectItem>
+            {brandList.map((brand) => (
+              <SelectItem key={brand.slug} value={brand.slug}>
+                {brand.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
@@ -83,44 +186,20 @@ function AdminDashboard() {
       <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="glass-panel rounded-2xl p-6">
           <h2 className="font-display font-semibold">Ingresos por mes</h2>
-          <div className="mt-8 flex h-56 items-end gap-3">
-            {revenueSeries.map((entry) => (
-              <div key={entry.month} className="flex flex-1 flex-col items-center gap-2">
-                <span className="text-[0.65rem] text-muted-foreground">
-                  {formatPrice(entry.total)}
-                </span>
-                <div
-                  className="gradient-brand w-full rounded-t-lg transition-all"
-                  style={{ height: `${Math.max((entry.total / maxRevenue) * 100, 6)}%` }}
-                />
-                <span className="text-xs text-muted-foreground">{entry.month}</span>
-              </div>
-            ))}
+            {/* Total removed per user request */}
+          <div className="mt-6">
+            <ul className="space-y-2">
+              {revenueSeries.map((entry) => (
+                <li key={entry.month} className="flex items-center justify-between text-sm">
+                  <span className="text-xs text-muted-foreground">{entry.month}</span>
+                  <span className="font-medium">{formatPrice(entry.total)}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        <div className="glass-panel rounded-2xl p-6">
-          <h2 className="font-display font-semibold">Productos por sector</h2>
-          <ul className="mt-6 space-y-4">
-            {brandList.map((brand) => {
-              const count = products.filter((product) => product.brand === brand.slug).length;
-              return (
-                <li key={brand.slug}>
-                  <div className="flex items-center justify-between text-sm">
-                    <span>{brand.shortName}</span>
-                    <span className="text-muted-foreground">{count}</span>
-                  </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2">
-                    <div
-                      className="gradient-brand h-full rounded-full"
-                      style={{ width: `${(count / products.length) * 100}%` }}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        {/* Sectores ya están resumidos en las tarjetas. */}
       </section>
 
       <section className="mt-8 grid gap-6 pb-20 lg:grid-cols-2">
@@ -138,7 +217,7 @@ function AdminDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.slice(0, 6).map((order) => (
+              {filteredOrders.slice(0, 6).map((order) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">{order.id}</TableCell>
                   <TableCell>{brands[order.brand].shortName}</TableCell>
@@ -152,10 +231,10 @@ function AdminDashboard() {
 
         <div className="glass-panel overflow-hidden rounded-2xl">
           <h2 className="font-display border-b border-border/60 p-5 font-semibold">
-            Stock crítico
+            Stock total
           </h2>
           <ul className="divide-y divide-border/60">
-            {lowStock.slice(0, 8).map((product) => (
+            {currentStockItems.map((product) => (
               <li key={product.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
                 <span className="min-w-0 flex-1 truncate text-sm">{product.name}</span>
                 <Badge variant={product.stock === 0 ? "destructive" : "secondary"}>
@@ -169,6 +248,18 @@ function AdminDashboard() {
               </li>
             )}
           </ul>
+          {stockPages > 1 && (
+            <div className="border-t border-border/60 px-5 py-4 text-right">
+              <button
+                type="button"
+                className="text-sm font-semibold text-primary transition hover:text-primary/80"
+                onClick={() => setStockPage((current) => Math.min(current + 1, stockPages - 1))}
+                disabled={stockPage >= stockPages - 1}
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
         </div>
       </section>
     </main>

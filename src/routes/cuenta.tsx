@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Heart, MapPin, Package, User } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { Badge } from "@/components/ui/badge";
@@ -38,16 +39,34 @@ export const Route = createFileRoute("/cuenta")({
   component: AccountPage,
 });
 
-const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const statusVariant: Record<string, "default" | "secondary" | "destructive" | "success" | "warning" | "outline"> = {
   pendiente: "outline",
-  pagado: "secondary",
-  enviado: "default",
+  pagado: "success",
+  enviado: "warning",
   entregado: "default",
   cancelado: "destructive",
 };
 
 function AccountPage() {
   const { data: orders } = useSuspenseQuery(orderQueries.list());
+  const navigate = useNavigate();
+  const [userName, setUserName] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      // mark this panel as the active panel (client)
+      sessionStorage.setItem("activePanel", "client");
+      const stored = sessionStorage.getItem("userName");
+      if (!stored) {
+        sessionStorage.setItem("userName", "Cliente LRG");
+        setUserName("Cliente LRG");
+      } else {
+        setUserName(stored);
+      }
+    } catch (e) {
+      setUserName("Cliente LRG");
+    }
+  }, []);
 
   return (
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
@@ -57,11 +76,27 @@ function AccountPage() {
           <Link to="/">
             <BrandMark />
           </Link>
-          <Button asChild variant="ghost" size="sm" className="gap-2">
-            <Link to="/sectores">
-              <ArrowLeft className="size-4" /> Sectores
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="secondary" size="sm" className="gap-2">
+              <Link to="/sectores">
+                <ArrowLeft className="size-4" /> Comprar
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-600"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.localStorage.clear();
+                  window.sessionStorage.clear();
+                }
+                navigate({ to: "/" });
+              }}
+            >
+              Cerrar sesión
+            </Button>
+          </div>
         </header>
 
         <div className="mt-12 flex flex-wrap items-center gap-4">
@@ -69,8 +104,8 @@ function AccountPage() {
             <User className="size-6 text-primary-foreground" />
           </span>
           <div>
-            <h1 className="text-3xl font-semibold">Hola, Cliente LRG</h1>
-            <p className="text-sm text-muted-foreground">cliente@lrgstore.shop</p>
+            <h1 className="text-3xl font-semibold">Hola, {userName ?? "Cliente LRG"}</h1>
+            <p className="text-sm text-muted-foreground">{sessionStorage.getItem("userName") ?? "cliente@lrgstore.shop"}</p>
           </div>
         </div>
 
@@ -101,7 +136,7 @@ function AccountPage() {
                       <TableCell>{brands[order.brand].shortName}</TableCell>
                       <TableCell>{formatDate(order.date)}</TableCell>
                       <TableCell>
-                        <Badge variant={statusVariant[order.status] ?? "secondary"}>
+                        <Badge className="capitalize" variant={statusVariant[order.status] ?? "secondary"}>
                           {order.status}
                         </Badge>
                       </TableCell>
