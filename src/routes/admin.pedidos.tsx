@@ -42,6 +42,14 @@ const statuses: (OrderStatus | "todos")[] = [
 
 const brandsFilter: (BrandSlug | "todos")[] = ["todos", "arcade", "scents", "web-design"];
 
+type OrderSort =
+  | "customer_asc"
+  | "customer_desc"
+  | "date_desc"
+  | "date_asc"
+  | "total_desc"
+  | "total_asc";
+
 const statusVariant: Record<OrderStatus, "default" | "secondary" | "destructive" | "success" | "warning" | "outline"> = {
   pendiente: "outline",
   pagado: "success",
@@ -74,23 +82,41 @@ function AdminOrders() {
   const [status, setStatus] = useState<OrderStatus | "todos">("todos");
   const [brand, setBrand] = useState<BrandSlug | "todos">("todos");
   const [query, setQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<OrderSort>("customer_asc");
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
-  const results = useMemo(
-    () =>
-      orders.filter((order) => {
-        const statusMatches = status === "todos" || order.status === status;
-        const brandMatches = brand === "todos" || order.brand === brand;
-        const queryMatches =
-          !query ||
-          order.id.toLowerCase().includes(query.toLowerCase()) ||
-          order.customer.toLowerCase().includes(query.toLowerCase()) ||
-          order.email.toLowerCase().includes(query.toLowerCase());
+  const results = useMemo(() => {
+    const filtered = orders.filter((order) => {
+      const statusMatches = status === "todos" || order.status === status;
+      const brandMatches = brand === "todos" || order.brand === brand;
+      const queryMatches =
+        !query ||
+        order.id.toLowerCase().includes(query.toLowerCase()) ||
+        order.customer.toLowerCase().includes(query.toLowerCase()) ||
+        order.email.toLowerCase().includes(query.toLowerCase());
 
-        return statusMatches && brandMatches && queryMatches;
-      }),
-    [orders, status, brand, query],
-  );
+      return statusMatches && brandMatches && queryMatches;
+    });
+
+    return [...filtered].sort((a, b) => {
+      switch (sortOrder) {
+        case "customer_asc":
+          return a.customer.localeCompare(b.customer);
+        case "customer_desc":
+          return b.customer.localeCompare(a.customer);
+        case "date_desc":
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        case "date_asc":
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        case "total_desc":
+          return b.total - a.total;
+        case "total_asc":
+          return a.total - b.total;
+        default:
+          return 0;
+      }
+    });
+  }, [orders, status, brand, query, sortOrder]);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
@@ -100,7 +126,7 @@ function AdminOrders() {
           <h1 className="mt-2 text-3xl font-semibold">Pedidos</h1>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[240px] flex-1">
+          <div className="relative min-w-60 flex-1">
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -132,6 +158,20 @@ function AdminOrders() {
                   {item === "todos" ? "Todos los sectores" : brands[item].name}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as OrderSort)}>
+            <SelectTrigger className="w-72">
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="customer_asc">Cliente A-Z</SelectItem>
+              <SelectItem value="customer_desc">Cliente Z-A</SelectItem>
+              <SelectItem value="date_desc">Fecha más reciente</SelectItem>
+              <SelectItem value="date_asc">Fecha más antigua</SelectItem>
+              <SelectItem value="total_desc">Total mayor a menor</SelectItem>
+              <SelectItem value="total_asc">Total menor a mayor</SelectItem>
             </SelectContent>
           </Select>
         </div>

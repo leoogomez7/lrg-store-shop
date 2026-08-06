@@ -15,6 +15,7 @@ export type Product = {
   short: string;
   description: string;
   features: string[];
+  images?: string[];
   createdAt: string;
 };
 

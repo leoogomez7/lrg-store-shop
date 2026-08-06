@@ -91,21 +91,45 @@ function ProductDetail() {
 
       <div className="mt-8 grid gap-10 lg:grid-cols-2">
         <div className="glass-panel overflow-hidden rounded-3xl p-4">
-          <ProductVisual
-            seed={product.id}
-            label={product.name}
-            className="aspect-square rounded-2xl"
-          />
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            {[1, 2, 3].map((index) => (
-              <ProductVisual
-                key={index}
-                seed={`${product.id}-${index}`}
-                label={product.name}
-                className="aspect-square rounded-xl"
+          {product.images && product.images.length > 0 ? (
+            <div>
+              <img
+                src={product.images[0]}
+                alt={`${product.name} portada`}
+                className="aspect-[4/3] w-full rounded-2xl object-cover"
               />
-            ))}
-          </div>
+              {product.images.length > 1 && (
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  {product.images.slice(1).map((image, index) => (
+                    <img
+                      key={`${image}-${index}`}
+                      src={image}
+                      alt={`${product.name} imagen ${index + 2}`}
+                      className="aspect-square w-full rounded-xl object-cover"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <ProductVisual
+                seed={product.id}
+                label={product.name}
+                className="aspect-square rounded-2xl"
+              />
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                {[1, 2, 3].map((index) => (
+                  <ProductVisual
+                    key={index}
+                    seed={`${product.id}-${index}`}
+                    label={product.name}
+                    className="aspect-square rounded-xl"
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <div>
