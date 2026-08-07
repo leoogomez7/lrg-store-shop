@@ -9,6 +9,7 @@ export type KindeProfile = {
 
 export async function saveKindeUserToTurso(user: KindeProfile): Promise<void> {
   if (!user?.id) return;
+  if (!client) return;
 
   const fullName = [user.givenName, user.familyName].filter(Boolean).join(" ").trim() || user.email || "";
   const now = new Date().toISOString();
