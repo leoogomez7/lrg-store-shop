@@ -8,7 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { Component, useEffect, type ErrorInfo, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportClientError } from "../lib/error-reporting";
@@ -36,6 +36,46 @@ function NotFoundComponent() {
       </div>
     </div>
   );
+}
+
+class RootErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Root error boundary caught an exception", error, errorInfo);
+    reportClientError(error, { boundary: "tanstack_root_error_boundary", errorInfo });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background px-4">
+          <div className="max-w-md text-center">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              This page didn't load
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Something went wrong on our end. You can try refreshing or head back home.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              <a
+                href="/"
+                className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+              >
+                Go home
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
@@ -139,17 +179,19 @@ function RootComponent() {
   );
 
   if (!hasKindConfig) {
-    return appContent;
+    return <RootErrorBoundary>{appContent}</RootErrorBoundary>;
   }
 
   return (
-    <KindeProvider
-      clientId={clientId}
-      domain={domain}
-      redirectUri={redirectUri ?? "http://localhost:5174/dashboard"}
-      logoutUri={logoutUri ?? "http://localhost:5174/login"}
-    >
-      {appContent}
-    </KindeProvider>
+    <RootErrorBoundary>
+      <KindeProvider
+        clientId={clientId}
+        domain={domain}
+        redirectUri={redirectUri ?? "http://localhost:5174/dashboard"}
+        logoutUri={logoutUri ?? "http://localhost:5174/login"}
+      >
+        {appContent}
+      </KindeProvider>
+    </RootErrorBoundary>
   );
 }
