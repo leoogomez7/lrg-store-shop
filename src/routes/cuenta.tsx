@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getStoredUserDisplayName, logout } from "@/lib/auth";
 import { saveKindeUserToTurso } from "@/lib/user";
+import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -57,9 +58,21 @@ type Address = {
 };
 
 function AccountPage() {
+  return (
+    <KindeAuthGate fallback={<AccountPageContent auth={null} />}>
+      {(auth) => <AccountPageContent auth={auth} />}
+    </KindeAuthGate>
+  );
+}
+
+function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const navigate = useNavigate();
-  const { user, isAuthenticated, isLoading, logout: kindeLogout } = useKindeAuth();
+  const { user, isAuthenticated, logout: kindeLogout } = auth ?? {
+    user: null,
+    isAuthenticated: false,
+    logout: async () => undefined,
+  };
   const [userName, setUserName] = useState<string | null>(null);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const visibleOrders = userName ? orders.filter((order) => order.customer === userName) : [];

@@ -3,6 +3,7 @@ import { Menu, ShoppingBag, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BrandMark } from "@/components/common/brand-mark";
+import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { CartSheet } from "@/components/layout/cart-sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,13 +15,30 @@ import { cn } from "@/lib/utils";
 import { useCart } from "@/store/cart";
 
 export function BrandHeader({ brand }: { brand: BrandConfig }) {
+  return (
+    <KindeAuthGate fallback={<BrandHeaderContent brand={brand} auth={null} />}>
+      {(auth) => <BrandHeaderContent brand={brand} auth={auth} />}
+    </KindeAuthGate>
+  );
+}
+
+function BrandHeaderContent({
+  brand,
+  auth,
+}: {
+  brand: BrandConfig;
+  auth: ReturnType<typeof useKindeAuth> | null;
+}) {
   const [openMenu, setOpenMenu] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const { count } = useCart();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout: kindeLogout } = useKindeAuth();
+  const { user, logout: kindeLogout } = auth ?? {
+    user: null,
+    logout: async () => undefined,
+  };
   const [userName, setUserName] = useState<string | null>(null);
   const [panel, setPanel] = useState<string | null>(null);
 

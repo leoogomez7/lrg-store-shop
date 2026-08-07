@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { Button } from "@/components/ui/button";
+import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { getKindeRedirectUri } from "@/lib/kinde";
 import { UserPlus, Zap } from "lucide-react";
 
@@ -9,7 +10,18 @@ export const Route = createFileRoute("/register")({
 });
 
 function RegisterPage() {
-  const { register, isLoading } = useKindeAuth();
+  return (
+    <KindeAuthGate fallback={<RegisterPageContent auth={null} />}>
+      {(auth) => <RegisterPageContent auth={auth} />}
+    </KindeAuthGate>
+  );
+}
+
+function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
+  const { register, isLoading } = auth ?? {
+    register: () => undefined,
+    isLoading: false,
+  };
 
   const handleRegister = () => {
     const redirectURL = getKindeRedirectUri("/dashboard");

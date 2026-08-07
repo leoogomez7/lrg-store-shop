@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { Button } from "@/components/ui/button";
+import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { getKindeRedirectUri } from "@/lib/kinde";
 import { Mail, Zap } from "lucide-react";
 
@@ -10,7 +11,19 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { login, isAuthenticated, isLoading } = useKindeAuth();
+  return (
+    <KindeAuthGate fallback={<LoginPageContent auth={null} />}>
+      {(auth) => <LoginPageContent auth={auth} />}
+    </KindeAuthGate>
+  );
+}
+
+function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
+  const { login, isAuthenticated, isLoading } = auth ?? {
+    login: () => undefined,
+    isAuthenticated: false,
+    isLoading: false,
+  };
   const navigate = useNavigate();
 
   useEffect(() => {

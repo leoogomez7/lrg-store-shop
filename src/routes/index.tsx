@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Boxes, Layers, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BrandMark } from "@/components/common/brand-mark";
+import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { Reveal } from "@/components/common/motion-primitives";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -45,8 +46,20 @@ const pillars = [
 ];
 
 function WelcomePage() {
+  return (
+    <KindeAuthGate fallback={<WelcomePageContent auth={null} />}>
+      {(auth) => <WelcomePageContent auth={auth} />}
+    </KindeAuthGate>
+  );
+}
+
+function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout: kindeLogout } = useKindeAuth();
+  const { isAuthenticated, user, logout: kindeLogout } = auth ?? {
+    isAuthenticated: false,
+    user: null,
+    logout: async () => undefined,
+  };
   const [userName, setUserName] = useState<string | null>(null);
   const [panel, setPanel] = useState<string | null>(null);
   const [logoutOpen, setLogoutOpen] = useState(false);
