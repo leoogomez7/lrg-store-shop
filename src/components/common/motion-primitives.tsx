@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import type { ReactNode } from "react";
 
 export function Reveal({
@@ -12,27 +11,33 @@ export function Reveal({
   y?: number;
   className?: string;
 }) {
+  const style = {
+    transitionDelay: `${delay}s`,
+    transitionProperty: "transform, opacity",
+    transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+    transitionDuration: "600ms",
+    transform: `translateY(${y}px)`,
+    opacity: 0,
+  };
+
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
-    >
+    <div className={className} style={style}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
 export function PageTransition({ children }: { children: ReactNode }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+    <div
+      style={{
+        opacity: 1,
+        transform: "translateY(0)",
+        filter: "blur(0px)",
+        transition: "opacity 450ms cubic-bezier(0.22, 1, 0.36, 1), transform 450ms cubic-bezier(0.22, 1, 0.36, 1), filter 450ms cubic-bezier(0.22, 1, 0.36, 1)",
+      }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }

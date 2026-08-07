@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Boxes, Layers, ShieldCheck, Sparkles, Zap } from "lucide-react";import { useKindeAuth } from "@kinde-oss/kinde-auth-react";import { motion } from "motion/react";
+import { ArrowRight, Boxes, Layers, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { Reveal } from "@/components/common/motion-primitives";
 import { Button } from "@/components/ui/button";
@@ -169,42 +170,34 @@ function WelcomePage() {
         <div className="h-16" aria-hidden />
 
         <main className="flex flex-1 flex-col justify-center py-16">
-          <motion.span
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="glass inline-flex w-fit items-center gap-2 rounded-full px-4 py-1.5 text-xs tracking-[0.16em] text-muted-foreground uppercase"
+          <span
+            className="glass inline-flex w-fit items-center gap-2 rounded-full px-4 py-1.5 text-xs tracking-[0.16em] text-muted-foreground uppercase opacity-100"
+            style={{ transition: "opacity 600ms ease" }}
           >
             <Sparkles className="size-3.5 text-primary" />
             Bienvenido al ecosistema
-          </motion.span>
+          </span>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+          <h1
             className="mt-6 max-w-4xl text-4xl leading-[1.05] font-semibold sm:text-6xl lg:text-7xl"
+            style={{ transition: "transform 700ms ease, opacity 700ms ease", transform: "translateY(0)", opacity: 1 }}
           >
             Una plataforma.
             <br />
             <span className="text-gradient-brand">Tres formas de comprar.</span>
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
+          <p
             className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground"
+            style={{ transition: "transform 700ms ease, opacity 700ms ease", transform: "translateY(0)", opacity: 1 }}
           >
             LRG Store Shop reúne gaming, perfumería árabe y desarrollo de software bajo un mismo
             sistema. Elegís el sector y toda la experiencia se adapta a esa marca.
-          </motion.p>
+          </p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          <div
             className="mt-10 flex flex-wrap items-center gap-3"
+            style={{ transition: "transform 700ms ease, opacity 700ms ease", transform: "translateY(0)", opacity: 1 }}
           >
             <Dialog>
               <DialogTrigger asChild>
@@ -216,7 +209,7 @@ function WelcomePage() {
                 <SectorsContent />
               </DialogContent>
             </Dialog>
-          </motion.div>
+          </div>
 
           <Reveal delay={0.3} className="mt-16">
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
