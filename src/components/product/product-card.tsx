@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
-import { motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductVisual } from "@/components/common/product-visual";
@@ -24,11 +23,13 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
   })();
 
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: Math.min(index * 0.05, 0.4), ease: [0.22, 1, 0.36, 1] }}
+    <article
       className="glass-panel hover-lift group flex flex-col overflow-hidden rounded-2xl"
+      style={{
+        transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+        opacity: 1,
+        transform: "translateY(0)",
+      }}
     >
       <Link
         to="/$brand/producto/$slug"
@@ -88,7 +89,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
           </Button>
         </div>
       </div>
-    </motion.article>
+    </article>
   );
 }
 
