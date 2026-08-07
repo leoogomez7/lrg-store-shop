@@ -126,6 +126,21 @@ function RootComponent() {
   const { clientId, domain } = getKindeConfig();
   const redirectUri = getKindeRedirectUri("/dashboard");
   const logoutUri = getKindeRedirectUri("/login");
+  const hasKindConfig = Boolean(clientId && domain && clientId !== "undefined" && domain !== "undefined");
+
+  const appContent = (
+    <QueryClientProvider client={queryClient}>
+      <CartProvider>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+        <Toaster position="top-right" />
+      </CartProvider>
+    </QueryClientProvider>
+  );
+
+  if (!hasKindConfig) {
+    return appContent;
+  }
 
   return (
     <KindeProvider
@@ -134,13 +149,7 @@ function RootComponent() {
       redirectUri={redirectUri ?? "http://localhost:5174/dashboard"}
       logoutUri={logoutUri ?? "http://localhost:5174/login"}
     >
-      <QueryClientProvider client={queryClient}>
-        <CartProvider>
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-          <Toaster position="top-right" />
-        </CartProvider>
-      </QueryClientProvider>
+      {appContent}
     </KindeProvider>
   );
 }
