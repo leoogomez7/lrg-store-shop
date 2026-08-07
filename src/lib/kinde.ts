@@ -1,11 +1,26 @@
-export const FALLBACK_KINDE_CLIENT_ID = "7f41da4eb4f0421d8260d299a4ae2dad";
-export const FALLBACK_KINDE_DOMAIN = "https://lrg07.kinde.com";
+const PLACEHOLDER_PATTERN = /(placeholder|example|test|changeme|undefined)/i;
 
 export function getKindeConfig() {
+  const clientId = import.meta.env.VITE_KINDE_CLIENT_ID?.trim();
+  const domain = import.meta.env.VITE_KINDE_DOMAIN?.trim();
+
   return {
-    clientId: import.meta.env.VITE_KINDE_CLIENT_ID || FALLBACK_KINDE_CLIENT_ID,
-    domain: import.meta.env.VITE_KINDE_DOMAIN || FALLBACK_KINDE_DOMAIN,
+    clientId: clientId || "",
+    domain: domain || "",
   };
+}
+
+export function hasKindeConfig() {
+  const { clientId, domain } = getKindeConfig();
+
+  return Boolean(
+    clientId &&
+      domain &&
+      clientId !== "undefined" &&
+      domain !== "undefined" &&
+      !PLACEHOLDER_PATTERN.test(clientId) &&
+      !PLACEHOLDER_PATTERN.test(domain),
+  );
 }
 
 export function getKindeRedirectUri(path: string) {

@@ -14,7 +14,7 @@ import appCss from "../styles.css?url";
 import { reportClientError } from "../lib/error-reporting";
 import { CartProvider } from "../store/cart";
 import { Toaster } from "../components/ui/sonner";
-import { getKindeConfig, getKindeRedirectUri } from "../lib/kinde";
+import { getKindeConfig, getKindeRedirectUri, hasKindeConfig } from "../lib/kinde";
 
 function NotFoundComponent() {
   return (
@@ -126,7 +126,7 @@ function RootComponent() {
   const { clientId, domain } = getKindeConfig();
   const redirectUri = getKindeRedirectUri("/dashboard");
   const logoutUri = getKindeRedirectUri("/login");
-  const hasKindConfig = Boolean(clientId && domain && clientId !== "undefined" && domain !== "undefined");
+  const hasKindConfig = hasKindeConfig();
 
   const appContent = (
     <QueryClientProvider client={queryClient}>
