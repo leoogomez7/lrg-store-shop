@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { DollarSign, Package, ShoppingCart, TrendingUp } from "lucide-react";
+import { CreditCard, DollarSign, Package, ShoppingCart, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -32,7 +35,7 @@ export const Route = createFileRoute("/admin/")({
   },
   head: () => ({
     meta: [
-      { title: "Dashboard — Admin LRG Store Shop" },
+      { title: "LRG Store Shop" },
       {
         name: "description",
         content: "Métricas de ventas, pedidos y stock de los tres sectores del ecosistema.",
@@ -65,6 +68,12 @@ function AdminDashboard() {
     ecosystem === "todos" ? orders : orders.filter((order) => order.brand === ecosystem);
 
   const total = filteredOrders.reduce((sum, order) => sum + order.total, 0);
+  const deliveredOrders = filteredOrders.filter((order) => order.status === "entregado").length;
+  const pendingOrders = filteredOrders.filter((order) => order.status !== "entregado").length;
+  const inactiveProducts = filteredProducts.filter((product) => product.hidden).length;
+  const activeProducts = filteredProducts.filter((product) => !product.hidden).length;
+  const totalExpenses = filteredOrders.reduce((sum, order) => sum + order.expenses, 0);
+  const totalProfit = filteredOrders.reduce((sum, order) => sum + order.profit, 0);
 
   // Build revenue series from filtered orders grouped by month/year (MM/YYYY)
   const monthNameMap: Record<string, number> = {
@@ -90,71 +99,105 @@ function AdminDashboard() {
     return `${String(num).padStart(2, "0")}/${new Date().getFullYear()}`;
   };
 
-  let revenueSeries: { month: string; total: number; _date?: Date }[] = [];
+  type DateRange = import("react-day-picker").DateRange;
 
-  if (filteredOrders.length > 0) {
+  const [reportMetric, setReportMetric] = useState<
+    "ingresos" | "gastos" | "ganancias" | "pedidosEntregados" | "pedidosSinEntregar"
+  >("ingresos");
+  const [selectedMonth, setSelectedMonth] = useState("todos");
+  const [range, setRange] = useState<DateRange | undefined>(undefined);
+
+  const reportMetricLabelMap: Record<
+    "ingresos" | "gastos" | "ganancias" | "pedidosEntregados" | "pedidosSinEntregar",
+    string
+  > = {
+    ingresos: "Ingresos por mes",
+    gastos: "Gastos por mes",
+    ganancias: "Ganancias por mes",
+    pedidosEntregados: "Pedidos entregados por mes",
+    pedidosSinEntregar: "Pedidos sin entregar por mes",
+  };
+
+  const getMetricValue = (order: typeof filteredOrders[number]) => {
+    switch (reportMetric) {
+      case "gastos":
+        return order.expenses;
+      case "ganancias":
+        return order.profit;
+      case "pedidosEntregados":
+        return order.status === "entregado" ? 1 : 0;
+      case "pedidosSinEntregar":
+        return order.status !== "entregado" ? 1 : 0;
+      default:
+        return order.total;
+    }
+  };
+
+  const buildMonthSeries = (ordersList: typeof filteredOrders) => {
     const map = new Map<string, { month: string; total: number; date: Date }>();
-    for (const o of filteredOrders) {
-      const d = new Date(o.date);
+    for (const order of ordersList) {
+      const d = new Date(order.date);
       const key = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
       const existing = map.get(key);
-      if (existing) existing.total += o.total;
-      else map.set(key, { month: key, total: o.total, date: d });
+      const value = getMetricValue(order);
+      if (existing) existing.total += value;
+      else map.set(key, { month: key, total: value, date: d });
     }
-    revenueSeries = Array.from(map.values())
+    return Array.from(map.values())
       .sort((a, b) => a.date.getTime() - b.date.getTime())
-      .map((e) => ({ month: e.month, total: e.total }));
-  } else {
-    // Fallback to static revenue data (use month -> MM/YYYY conversion)
-    revenueSeries = revenue.map((entry) => ({
-      month: fallbackMonthToMMYYYY(entry.month),
-      total:
-        ecosystem === "todos"
-          ? entry.arcade + entry.scents + entry.webDesign
-          : entry[revenueKeyMap[ecosystem]],
-    }));
-  }
+      .map((entry) => ({ month: entry.month, total: entry.total }));
+  };
 
-  // If duplicates exist, keep the last occurrence (prefer the later entry)
-  const lastSeen = new Map<string, { month: string; total: number }>();
-  for (const r of revenueSeries) lastSeen.set(r.month, { month: r.month, total: r.total });
-  revenueSeries = Array.from(lastSeen.values()).sort((a, b) => {
-    const [am, ay] = a.month.split("/").map((s) => Number(s));
-    const [bm, by] = b.month.split("/").map((s) => Number(s));
-    return new Date(ay, am - 1).getTime() - new Date(by, bm - 1).getTime();
-  });
+  const revenueSeries = buildMonthSeries(filteredOrders);
 
-  const revenueTotal = revenueSeries.reduce((sum, e) => sum + e.total, 0);
+  const reportTitle = reportMetricLabelMap[reportMetric];
+  const monthOptions = revenueSeries.map((entry) => entry.month);
+  const isRangeActive = Boolean(range?.from && range?.to);
+  const isCountMetric = reportMetric === "pedidosEntregados" || reportMetric === "pedidosSinEntregar";
+
+  const reportSeries = (() => {
+    if (isRangeActive && range?.from && range?.to) {
+      const startDate = range.from;
+      const endDate = range.to;
+      const ordersInRange = filteredOrders.filter((order) => {
+        const d = new Date(order.date);
+        return d >= startDate && d <= endDate;
+      });
+      return buildMonthSeries(ordersInRange);
+    }
+    if (selectedMonth !== "todos") {
+      return revenueSeries.filter((entry) => entry.month === selectedMonth);
+    }
+    return revenueSeries;
+  })();
+
+  const reportTotal = reportSeries.reduce((sum, entry) => sum + entry.total, 0);
 
   const cards = [
-    { label: "Ingresos totales", value: formatPrice(total), icon: DollarSign },
-    { label: "Pedidos", value: formatNumber(filteredOrders.length), icon: ShoppingCart },
-    { label: "Productos activos", value: formatNumber(filteredProducts.length), icon: Package },
-    {
-      label: "Ticket promedio",
-      value: formatPrice(Math.round(total / Math.max(filteredOrders.length, 1))),
-      icon: TrendingUp,
-    },
+    { label: "Ingresos", value: formatPrice(total), icon: DollarSign },
+    { label: "Gastos", value: formatPrice(totalExpenses), icon: CreditCard },
+    { label: "Ganancias", value: formatPrice(totalProfit), icon: TrendingUp },
+    { label: "Pedidos entregados", value: formatNumber(deliveredOrders), icon: ShoppingCart },
+    { label: "Pedidos sin entregar", value: formatNumber(pendingOrders), icon: ShoppingCart },
+    { label: "Productos activos", value: formatNumber(activeProducts), icon: Package },
+    { label: "Productos inactivos", value: formatNumber(inactiveProducts), icon: Package },
   ];
 
-  const lowStock = filteredProducts
-    .filter((product) => product.stock <= 5)
-    .sort((a, b) => a.stock - b.stock);
+  const stockItems = filteredProducts.sort((a, b) => a.stock - b.stock);
   const [stockPage, setStockPage] = useState(0);
   const stockPageSize = 10;
-  const stockPages = Math.ceil(lowStock.length / stockPageSize);
-  const currentStockItems = lowStock.slice(
+  const stockPages = Math.max(1, Math.ceil(stockItems.length / stockPageSize));
+  const currentStockItems = stockItems.slice(
     stockPage * stockPageSize,
     stockPage * stockPageSize + stockPageSize,
   );
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Panel admin</p>
+      <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Métricas</p>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="mt-2 text-3xl font-semibold">Dashboard general</h1>
-          <p className="text-sm text-muted-foreground">Filtrá métricas por ecosistema o consultá el total.</p>
+          <h1 className="mt-2 text-3xl font-semibold">Panel administrativo</h1>
         </div>
         <Select value={ecosystem} onValueChange={(value) => setEcosystem(value as "todos" | BrandSlug)}>
           <SelectTrigger className="w-55">
@@ -185,16 +228,117 @@ function AdminDashboard() {
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="glass-panel rounded-2xl p-6">
-          <h2 className="font-display font-semibold">Ingresos por mes</h2>
-            {/* Total removed per user request */}
-          <div className="mt-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="font-display font-semibold">{reportTitle}</h2>
+              <p className="text-sm text-muted-foreground">Selecciona un tipo de reporte, un mes o un rango de fechas.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3 w-full max-w-3xl">
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  Tipo
+                </label>
+                <select
+                  className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  value={reportMetric}
+                  onChange={(event) => {
+                    setReportMetric(event.target.value as typeof reportMetric);
+                    setSelectedMonth("todos");
+                    setRange(undefined);
+                  }}
+                >
+                  <option value="ingresos">Ingresos por mes</option>
+                  <option value="gastos">Gastos por mes</option>
+                  <option value="ganancias">Ganancias por mes</option>
+                  <option value="pedidosEntregados">Pedidos entregados por mes</option>
+                  <option value="pedidosSinEntregar">Pedidos sin entregar por mes</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  Mes
+                </label>
+                <select
+                  className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  value={selectedMonth}
+                  onChange={(event) => {
+                    setSelectedMonth(event.target.value);
+                    setRange(undefined);
+                  }}
+                >
+                  <option value="todos">Todos</option>
+                  {monthOptions.map((month) => (
+                    <option key={month} value={month}>
+                      {month}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  Rango de fechas
+                </label>
+                <div className="mt-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between text-left"
+                        onClick={() => setSelectedMonth("todos")}
+                      >
+                        {range && range.from && range.to
+                          ? `${formatDate(range.from.toISOString())} - ${formatDate(range.to.toISOString())}`
+                          : range && range.from
+                          ? `${formatDate(range.from.toISOString())}`
+                          : "Seleccionar rango"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-88 p-0">
+                      <Calendar
+                        mode="range"
+                        selected={range}
+                        onSelect={(value) => {
+                          setRange(value as DateRange | undefined);
+                          setSelectedMonth("todos");
+                        }}
+                      />
+                      <div className="flex items-center justify-between gap-2 border-t border-border/60 bg-background p-3">
+                        <Button
+                          variant="ghost"
+                          className="w-full"
+                          onClick={() => setRange(undefined)}
+                        >
+                          Limpiar
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            <div className="rounded-2xl bg-surface/80 p-4 text-sm text-muted-foreground">
+              Total: <span className="font-semibold text-foreground">
+                {isCountMetric ? formatNumber(reportTotal) : formatPrice(reportTotal)}
+              </span>
+            </div>
             <ul className="space-y-2">
-              {revenueSeries.map((entry) => (
-                <li key={entry.month} className="flex items-center justify-between text-sm">
-                  <span className="text-xs text-muted-foreground">{entry.month}</span>
-                  <span className="font-medium">{formatPrice(entry.total)}</span>
+              {reportSeries.length === 0 ? (
+                <li className="rounded-2xl border border-border/60 bg-background p-4 text-sm text-muted-foreground">
+                  No hay datos para el filtro seleccionado.
                 </li>
-              ))}
+              ) : (
+                reportSeries.map((entry) => (
+                  <li key={entry.month} className="flex items-center justify-between rounded-2xl border border-border/60 bg-background px-4 py-3 text-sm">
+                    <span className="text-xs text-muted-foreground">{entry.month}</span>
+                    <span className="font-medium">
+                      {isCountMetric ? formatNumber(entry.total) : formatPrice(entry.total)}
+                    </span>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
         </div>
@@ -238,26 +382,55 @@ function AdminDashboard() {
               <li key={product.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
                 <span className="min-w-0 flex-1 truncate text-sm">{product.name}</span>
                 <Badge variant={product.stock === 0 ? "destructive" : "secondary"}>
-                  {product.stock} u.
+                  {product.stock} unidades
                 </Badge>
               </li>
             ))}
-            {lowStock.length === 0 && (
+            {stockItems.length === 0 ? (
               <li className="px-5 py-6 text-sm text-muted-foreground">
-                Todos los productos tienen stock saludable.
+                No hay productos disponibles.
               </li>
-            )}
+            ) : null}
           </ul>
-          {stockPages > 1 && (
-            <div className="border-t border-border/60 px-5 py-4 text-right">
-              <button
-                type="button"
-                className="text-sm font-semibold text-primary transition hover:text-primary/80"
-                onClick={() => setStockPage((current) => Math.min(current + 1, stockPages - 1))}
-                disabled={stockPage >= stockPages - 1}
-              >
-                Siguiente
-              </button>
+          {stockItems.length > 0 && (
+            <div className="border-t border-border/60 px-5 py-4">
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-muted-foreground">
+                  {currentStockItems.length} de {stockItems.length} productos mostrados
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStockPage(0)}
+                    disabled={stockPage === 0}
+                  >
+                    Principio
+                  </Button>
+                  <div className="flex flex-wrap items-center gap-1 rounded-full border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm">
+                    {Array.from({ length: stockPages }, (_, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`rounded-full px-3 py-1 ${index === stockPage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-slate-100"}`}
+                        onClick={() => setStockPage(index)}
+                      >
+                        {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStockPage(stockPages - 1)}
+                    disabled={stockPage >= stockPages - 1}
+                  >
+                    Último
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -1,8 +1,10 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LayoutDashboard, Package, Palette, ShoppingCart } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { logout } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
@@ -13,17 +15,21 @@ const navigation = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/productos", label: "Productos", icon: Package, exact: false },
   { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingCart, exact: false },
-  { to: "/admin/marcas", label: "Marcas", icon: Palette, exact: false },
+  { to: "/admin/marcas", label: "Tiendas disponibles", icon: Palette, exact: false },
 ] as const;
 
 function AdminLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   useEffect(() => {
+    // preserve any existing active admin session, but do not create a default one
     try {
-      sessionStorage.setItem("activePanel", "admin");
-      if (!sessionStorage.getItem("userName")) sessionStorage.setItem("userName", "Administrador");
+      const activePanel = sessionStorage.getItem("activePanel");
+      if (activePanel !== "admin") {
+        return;
+      }
     } catch (e) {
       // ignore
     }
@@ -63,20 +69,28 @@ function AdminLayout() {
               <Button asChild variant="secondary" size="sm" className="gap-2">
                   <Link to="/">Inicio</Link>
                 </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-red-600"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    window.localStorage.clear();
-                    window.sessionStorage.clear();
-                  }
-                  navigate({ to: "/" });
-                }}
-              >
-                Cerrar sesión
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-600"
+                  onClick={() => setLogoutOpen(true)}
+                >
+                  Cerrar sesión
+                </Button>
+                <ConfirmDialog
+                  open={logoutOpen}
+                  onOpenChange={setLogoutOpen}
+                  title="¿Cerrar sesión?"
+                  description="¿Estás seguro de que deseas cerrar sesión?"
+                  confirmLabel="Sí, cerrar sesión"
+                  cancelLabel="No"
+                  onConfirm={async () => {
+                    await logout();
+                    navigate({ to: "/" });
+                  }}
+                />
+              </>
             </div>
           </div>
         </aside>

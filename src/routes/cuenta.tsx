@@ -1,12 +1,16 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Heart, MapPin, Package, User } from "lucide-react";
+import { ArrowLeft, Heart, MapPin, Package, Pencil, Plus, Trash2, User } from "lucide-react";
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getStoredUserDisplayName, logout } from "@/lib/auth";
+import { saveKindeUserToTurso } from "@/lib/user";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -47,26 +51,53 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "s
   cancelado: "destructive",
 };
 
+type Address = {
+  label: string;
+  value: string;
+};
+
 function AccountPage() {
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const navigate = useNavigate();
+  const { user, isAuthenticated, isLoading, logout: kindeLogout } = useKindeAuth();
   const [userName, setUserName] = useState<string | null>(null);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const visibleOrders = userName ? orders.filter((order) => order.customer === userName) : [];
+  const [addresses, setAddresses] = useState<Address[]>([
+    { label: "Casa", value: "Av. Siempre Viva 742, Buenos Aires" },
+    { label: "Oficina", value: "Corrientes 1234, Piso 8, CABA" },
+  ]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addressLabel, setAddressLabel] = useState("");
+  const [addressValue, setAddressValue] = useState("");
 
   useEffect(() => {
-    try {
-      // mark this panel as the active panel (client)
-      sessionStorage.setItem("activePanel", "client");
-      const stored = sessionStorage.getItem("userName");
-      if (!stored) {
-        sessionStorage.setItem("userName", "Cliente LRG");
-        setUserName("Cliente LRG");
-      } else {
-        setUserName(stored);
+    const storedName = getStoredUserDisplayName();
+    const kindeName = user ? user.givenName || user.email || null : null;
+
+    if (isAuthenticated && user) {
+      setUserName(kindeName);
+      saveKindeUserToTurso({
+        id: user.id,
+        email: user.email,
+        givenName: user.givenName,
+        familyName: user.familyName,
+      });
+      try {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem("userFullName", kindeName ?? "");
+          window.sessionStorage.setItem("activePanel", "customer");
+        }
+      } catch {
+        // ignore storage errors
       }
-    } catch (e) {
-      setUserName("Cliente LRG");
+    } else {
+      setUserName(storedName);
     }
-  }, []);
+  }, [user, isAuthenticated]);
 
   return (
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
@@ -82,20 +113,34 @@ function AccountPage() {
                 <ArrowLeft className="size-4" /> Comprar
               </Link>
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-600"
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  window.localStorage.clear();
-                  window.sessionStorage.clear();
-                }
-                navigate({ to: "/" });
-              }}
-            >
-              Cerrar sesión
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600"
+                onClick={() => setLogoutOpen(true)}
+              >
+                Cerrar sesión
+              </Button>
+              <ConfirmDialog
+                open={logoutOpen}
+                onOpenChange={setLogoutOpen}
+                title="¿Cerrar sesión?"
+                description="¿Deseas cerrar la sesión actual? Se finalizará tu acceso en este dispositivo."
+                confirmLabel="Sí, cerrar sesión"
+                cancelLabel="No"
+                onConfirm={async () => {
+                  try {
+                    await kindeLogout();
+                  } catch (error) {
+                    console.error("Error during Kinde logout:", error);
+                  }
+                  await logout();
+                  setUserName(null);
+                  navigate({ to: "/" });
+                }}
+              />
+            </>
           </div>
         </header>
 
@@ -104,8 +149,12 @@ function AccountPage() {
             <User className="size-6 text-primary-foreground" />
           </span>
           <div>
-            <h1 className="text-3xl font-semibold">Hola, {userName ?? "Cliente LRG"}</h1>
-            <p className="text-sm text-muted-foreground">{sessionStorage.getItem("userName") ?? "cliente@lrgstore.shop"}</p>
+            <h1 className="text-3xl font-semibold">Hola{userName ? `, ${userName}` : ""}</h1>
+            {userName ? (
+              <p className="text-sm text-muted-foreground">{userName}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Inicia sesión para ver tu cuenta.</p>
+            )}
           </div>
         </div>
 
@@ -130,77 +179,273 @@ function AccountPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>{brands[order.brand].shortName}</TableCell>
-                      <TableCell>{formatDate(order.date)}</TableCell>
-                      <TableCell>
-                        <Badge className="capitalize" variant={statusVariant[order.status] ?? "secondary"}>
-                          {order.status}
-                        </Badge>
+                  {visibleOrders.length > 0 ? (
+                    visibleOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.id}</TableCell>
+                        <TableCell>{brands[order.brand].shortName}</TableCell>
+                        <TableCell>{formatDate(order.date)}</TableCell>
+                        <TableCell>
+                          <Badge className="capitalize" variant={statusVariant[order.status] ?? "secondary"}>
+                            {order.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="p-6 text-center text-sm text-muted-foreground">
+                        {userName ? "No tenés pedidos registrados aún." : "Inicia sesión para ver tus pedidos."}
                       </TableCell>
-                      <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
           </TabsContent>
 
           <TabsContent value="profile" className="pt-6">
-            <div className="glass-panel grid max-w-xl gap-4 rounded-2xl p-6 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="account-name">Nombre</Label>
-                <Input id="account-name" defaultValue="Cliente LRG" />
+            {userName ? (
+              <div className="glass-panel grid max-w-xl gap-4 rounded-2xl p-6 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="account-name">Nombre</Label>
+                  <Input id="account-name" defaultValue={userName} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="account-email">Email</Label>
+                  <Input id="account-email" defaultValue={`${userName.toLowerCase().replace(/\s+/g, ".")}@lrgstore.shop`} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="account-phone">Teléfono</Label>
+                  <Input id="account-phone" defaultValue="+54 11 4444 4444" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="account-doc">Documento</Label>
+                  <Input id="account-doc" defaultValue="35.123.456" />
+                </div>
+                <Button className="sm:col-span-2 sm:w-fit">Guardar cambios</Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="account-email">Email</Label>
-                <Input id="account-email" defaultValue="cliente@lrgstore.shop" />
+            ) : (
+              <div className="glass-panel rounded-2xl p-10 text-center text-base text-muted-foreground">
+                Inicia sesión para ver y editar tu perfil.
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="account-phone">Teléfono</Label>
-                <Input id="account-phone" defaultValue="+54 11 4444 4444" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="account-doc">Documento</Label>
-                <Input id="account-doc" defaultValue="35.123.456" />
-              </div>
-              <Button className="sm:col-span-2 sm:w-fit">Guardar cambios</Button>
-            </div>
+            )}
           </TabsContent>
 
           <TabsContent value="addresses" className="pt-6">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                { label: "Casa", value: "Av. Siempre Viva 742, Buenos Aires" },
-                { label: "Oficina", value: "Corrientes 1234, Piso 8, CABA" },
-              ].map((address) => (
-                <div key={address.label} className="glass-panel rounded-2xl p-6">
-                  <h2 className="font-display flex items-center gap-2 font-semibold">
-                    <MapPin className="size-4 text-primary" /> {address.label}
-                  </h2>
-                  <p className="mt-2 text-sm text-muted-foreground">{address.value}</p>
+            {userName ? (
+              <>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold">Direcciones</h2>
+                    <p className="text-sm text-muted-foreground">Agregá, editá o borrá tus direcciones de envío.</p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      setShowAddForm((current) => !current);
+                      setEditingIndex(null);
+                      setAddressLabel("");
+                      setAddressValue("");
+                    }}
+                  >
+                    <Plus className="size-4" /> Nueva dirección
+                  </Button>
                 </div>
-              ))}
-            </div>
+
+                {showAddForm && (
+                  <div className="glass-panel rounded-2xl p-6">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="new-address-label">Etiqueta</Label>
+                        <Input
+                          id="new-address-label"
+                          value={addressLabel}
+                          onChange={(event) => setAddressLabel(event.target.value)}
+                          placeholder="Casa, Oficina, etc."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new-address-value">Dirección</Label>
+                        <Input
+                          id="new-address-value"
+                          value={addressValue}
+                          onChange={(event) => setAddressValue(event.target.value)}
+                          placeholder="Calle, número, ciudad, país"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          if (!addressLabel.trim() || !addressValue.trim()) return;
+                          setAddresses((current) => [
+                            ...current,
+                            { label: addressLabel.trim(), value: addressValue.trim() },
+                          ]);
+                          setAddressLabel("");
+                          setAddressValue("");
+                          setShowAddForm(false);
+                        }}
+                      >
+                        Guardar dirección
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddForm(false);
+                          setAddressLabel("");
+                          setAddressValue("");
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {addresses.map((address, index) => (
+                    <div key={`${address.label}-${index}`} className="glass-panel rounded-2xl p-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h2 className="font-display flex items-center gap-2 font-semibold">
+                            <MapPin className="size-4 text-primary" /> {address.label}
+                          </h2>
+                          {editingIndex === index ? (
+                            <div className="mt-4 grid gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor={`edit-address-label-${index}`}>Etiqueta</Label>
+                                <Input
+                                  id={`edit-address-label-${index}`}
+                                  value={addressLabel}
+                                  onChange={(event) => setAddressLabel(event.target.value)}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor={`edit-address-value-${index}`}>Dirección</Label>
+                                <Input
+                                  id={`edit-address-value-${index}`}
+                                  value={addressValue}
+                                  onChange={(event) => setAddressValue(event.target.value)}
+                                />
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    if (!addressLabel.trim() || !addressValue.trim()) return;
+                                    setAddresses((current) =>
+                                      current.map((item, itemIndex) =>
+                                        itemIndex === index
+                                          ? { label: addressLabel.trim(), value: addressValue.trim() }
+                                          : item,
+                                      ),
+                                    );
+                                    setEditingIndex(null);
+                                    setAddressLabel("");
+                                    setAddressValue("");
+                                  }}
+                                >
+                                  Guardar
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingIndex(null);
+                                    setAddressLabel("");
+                                    setAddressValue("");
+                                  }}
+                                >
+                                  Cancelar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="mt-2 text-sm text-muted-foreground">{address.value}</p>
+                              <div className="mt-4 flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2"
+                                  onClick={() => {
+                                    setEditingIndex(index);
+                                    setAddressLabel(address.label);
+                                    setAddressValue(address.value);
+                                    setShowAddForm(false);
+                                  }}
+                                >
+                                  <Pencil className="size-4" /> Editar
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="gap-2"
+                                  onClick={() => {
+                                    setDeleteIndex(index);
+                                    setDeleteOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="size-4" /> Borrar
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <ConfirmDialog
+                  open={deleteOpen}
+                  onOpenChange={setDeleteOpen}
+                  title="¿Borrar dirección?"
+                  description="Esta acción eliminará la dirección seleccionada."
+                  confirmLabel="Borrar"
+                  cancelLabel="Cancelar"
+                  onConfirm={() => {
+                    if (deleteIndex === null) return;
+                    setAddresses((current) => current.filter((_, itemIndex) => itemIndex !== deleteIndex));
+                    setDeleteIndex(null);
+                  }}
+                />
+              </>
+            ) : (
+              <div className="glass-panel rounded-2xl p-10 text-center text-base text-muted-foreground">
+                Inicia sesión para ver y administrar tus direcciones.
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="favorites" className="pt-6">
-            <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl p-14 text-center">
-              <Heart className="size-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.
-              </p>
-              <Button asChild size="sm">
-                <Link to="/sectores">
-                  <Package className="mr-2 size-4" /> Explorar sectores
-                </Link>
-              </Button>
-            </div>
+            {userName ? (
+              <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl p-14 text-center">
+                <Heart className="size-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.
+                </p>
+                <Button asChild size="sm">
+                  <Link to="/sectores">
+                    <Package className="mr-2 size-4" /> Explorar sectores
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="glass-panel rounded-2xl p-10 text-center text-base text-muted-foreground">
+                Inicia sesión para ver tus favoritos.
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
     </div>
   );
 }
+

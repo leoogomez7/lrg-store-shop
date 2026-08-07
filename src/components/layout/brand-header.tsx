@@ -1,11 +1,13 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { Menu, ShoppingBag, User } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { CartSheet } from "@/components/layout/cart-sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { logout } from "@/lib/auth";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { getStoredActivePanel, getStoredUserDisplayName, logout } from "@/lib/auth";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { brandList, type BrandConfig } from "@/config/brands";
 import { cn } from "@/lib/utils";
@@ -13,17 +15,29 @@ import { useCart } from "@/store/cart";
 
 export function BrandHeader({ brand }: { brand: BrandConfig }) {
   const [openMenu, setOpenMenu] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const { count } = useCart();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
+  const { isAuthenticated, user, logout: kindeLogout } = useKindeAuth();
   const [userName, setUserName] = useState<string | null>(null);
+  const [panel, setPanel] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setUserName(window.sessionStorage.getItem("userName"));
+
+    const syncSessionState = () => {
+      setUserName(user ? user.givenName || user.email || null : getStoredUserDisplayName());
+      setPanel(user ? "customer" : getStoredActivePanel());
+    };
+
+    syncSessionState();
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === "userName") setUserName(window.sessionStorage.getItem("userName"));
+      if (["userFullName", "fullName", "name", "userName", "activePanel"].includes(e.key ?? "")) {
+        syncSessionState();
+      }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
@@ -40,34 +54,18 @@ export function BrandHeader({ brand }: { brand: BrandConfig }) {
   };
 
   const links = [
-    { label: "Inicio", to: "/$brand", exact: true },
+    { label: "Inicio", to: "/", exact: true },
     { label: "Catálogo", to: "/$brand/productos", exact: false },
   ] as const;
 
   function UserBadge() {
-    const [name, setName] = useState<string | null>(null);
-    const [panel, setPanel] = useState<string | null>(null);
-
-    useEffect(() => {
-      try {
-        const n = sessionStorage.getItem("userName");
-        const p = sessionStorage.getItem("activePanel");
-        setName(n);
-        setPanel(p);
-      } catch (e) {
-        setName(null);
-        setPanel(null);
-      }
-    }, [pathname]);
-
-    if (!panel) return null;
+    if (!panel || !userName) return null;
 
     const roleLabel = panel === "admin" ? "Administrador" : "Cliente";
-    const displayName = name || (panel === "admin" ? "Administrador" : "Usuario");
 
     return (
       <div className="flex items-center gap-2">
-        <div className="px-2 py-1 rounded-md bg-green-50 text-green-800 text-sm font-medium">{displayName}</div>
+        <div className="px-2 py-1 rounded-md bg-green-50 text-green-800 text-sm font-medium">{userName}</div>
         <div className="px-2 py-1 rounded-md bg-green-600 text-white text-xs font-semibold">{roleLabel}</div>
       </div>
     );
@@ -129,14 +127,6 @@ export function BrandHeader({ brand }: { brand: BrandConfig }) {
               <Link
                 to="/cuenta"
                 aria-label="Mi cuenta"
-                onClick={() => {
-                  try {
-                    sessionStorage.setItem("activePanel", "client");
-                    if (!sessionStorage.getItem("userName")) sessionStorage.setItem("userName", "Usuario");
-                  } catch (e) {
-                    /* ignore */
-                  }
-                }}
                 className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2"
               >
                 Mi cuenta
@@ -145,14 +135,6 @@ export function BrandHeader({ brand }: { brand: BrandConfig }) {
               <Link
                 to="/admin"
                 aria-label="Panel administrativo"
-                onClick={() => {
-                  try {
-                    sessionStorage.setItem("activePanel", "admin");
-                    if (!sessionStorage.getItem("userName")) sessionStorage.setItem("userName", "Administrador");
-                  } catch (e) {
-                    /* ignore */
-                  }
-                }}
                 className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2"
               >
                 Panel administrativo
@@ -163,18 +145,51 @@ export function BrandHeader({ brand }: { brand: BrandConfig }) {
               <UserBadge />
             </div>
 
-            {userName && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-red-600"
-                onClick={async () => {
-                  await logout();
-                  navigate({ to: "/" });
-                }}
-              >
-                Cerrar sesión
-              </Button>
+            {userName ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-600"
+                  onClick={() => setLogoutOpen(true)}
+                >
+                  Cerrar sesión
+                </Button>
+                <ConfirmDialog
+                  open={logoutOpen}
+                  onOpenChange={setLogoutOpen}
+                  title="¿Cerrar sesión?"
+                  description="¿Deseas cerrar la sesión actual? Se finalizará tu acceso en este dispositivo."
+                  confirmLabel="Sí, cerrar sesión"
+                  cancelLabel="No"
+                  onConfirm={async () => {
+                    try {
+                      await kindeLogout();
+                    } catch (error) {
+                      console.error("Error during Kinde logout:", error);
+                    }
+                    await logout();
+                    setUserName(null);
+                    setPanel(null);
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => setLoginOpen(true)}>
+                  Iniciar sesión
+                </Button>
+                <ConfirmDialog
+                  open={loginOpen}
+                  onOpenChange={setLoginOpen}
+                  title="Bienvenido a LRG Store Shop"
+                  description="Elegí cómo querés continuar."
+                  confirmLabel="Ingresar cuenta"
+                  cancelLabel="Crear cuenta"
+                  onConfirm={() => navigate({ to: "/login" })}
+                  onCancel={() => navigate({ to: "/register" })}
+                />
+              </>
             )}
 
             <CartSheet brand={brand}>
@@ -224,12 +239,6 @@ export function BrandHeader({ brand }: { brand: BrandConfig }) {
                       to="/cuenta"
                       onClick={() => {
                         setOpenMenu(false);
-                        try {
-                          sessionStorage.setItem("activePanel", "client");
-                          if (!sessionStorage.getItem("userName")) sessionStorage.setItem("userName", "Usuario");
-                        } catch (e) {
-                          /* ignore */
-                        }
                       }}
                       className="block rounded-lg px-3 py-2.5 text-sm hover:bg-surface-2"
                     >

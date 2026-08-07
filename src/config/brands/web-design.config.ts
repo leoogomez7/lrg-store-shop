@@ -6,7 +6,7 @@ export const webDesignConfig: BrandConfig = {
   theme: "theme-webdesign",
   name: "LRG Web Design",
   shortName: "Web Design",
-  tagline: "Software, producto y diseño de interfaces",
+  tagline: "Software y diseño de páginas web",
   description:
     "Landing pages, dashboards, tiendas ecommerce, software a medida y diseño UX/UI para marcas y equipos esports.",
   keywords: ["desarrollo web", "landing page", "dashboard", "ux ui", "software", "esports"],

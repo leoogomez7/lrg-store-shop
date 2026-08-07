@@ -6,9 +6,9 @@ export const arcadeConfig: BrandConfig = {
   theme: "theme-arcade",
   name: "LRG Arcade",
   shortName: "Arcade",
-  tagline: "Gaming, consolas y servicios digitales",
+  tagline: "Productos Gaming y servicios digitales",
   description:
-    "Consolas, videojuegos, accesorios, streaming y suscripciones. Todo el universo gamer con entrega inmediata y garantía real.",
+    "Consolas, videojuegos, accesorios, plataformas streaming y suscripciones de PlayStation. Todo el universo gamer con entrega inmediata y garantía real.",
   keywords: ["gaming", "playstation", "xbox", "nintendo", "pc gaming", "ps plus"],
   hero: {
     eyebrow: "Sector Gaming",

@@ -1,3 +1,25 @@
+function getStorageValue(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch (e) {
+    return null;
+  }
+}
+
+export function getStoredUserDisplayName(): string | null {
+  return (
+    getStorageValue('userFullName') ||
+    getStorageValue('fullName') ||
+    getStorageValue('name') ||
+    getStorageValue('userName')
+  );
+}
+
+export function getStoredActivePanel(): string | null {
+  return getStorageValue('activePanel');
+}
+
 export async function logout(): Promise<void> {
   try {
     // Attempt server-side logout (best-effort)

@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { KindeProvider } from "@kinde-oss/kinde-auth-react";
 import {
   Outlet,
   Link,
@@ -13,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportClientError } from "../lib/error-reporting";
 import { CartProvider } from "../store/cart";
 import { Toaster } from "../components/ui/sonner";
+import { getKindeConfig, getKindeRedirectUri } from "../lib/kinde";
 
 function NotFoundComponent() {
   return (
@@ -121,14 +123,24 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { clientId, domain } = getKindeConfig();
+  const redirectUri = getKindeRedirectUri("/dashboard");
+  const logoutUri = getKindeRedirectUri("/login");
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <CartProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <Toaster position="top-right" />
-      </CartProvider>
-    </QueryClientProvider>
+    <KindeProvider
+      clientId={clientId}
+      domain={domain}
+      redirectUri={redirectUri ?? "http://localhost:5174/dashboard"}
+      logoutUri={logoutUri ?? "http://localhost:5174/login"}
+    >
+      <QueryClientProvider client={queryClient}>
+        <CartProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <Toaster position="top-right" />
+        </CartProvider>
+      </QueryClientProvider>
+    </KindeProvider>
   );
 }

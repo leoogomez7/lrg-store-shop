@@ -6,7 +6,7 @@ export const scentsConfig: BrandConfig = {
   theme: "theme-scents",
   name: "LRG Scents",
   shortName: "Scents",
-  tagline: "Perfumería árabe y fragancias premium",
+  tagline: "Perfumes árabes originales",
   description:
     "Perfumería árabe, extractos de alta concentración y fragancias exclusivas seleccionadas casa por casa.",
   keywords: ["perfumería árabe", "fragancias", "extracto de perfume", "lujo", "oud"],

@@ -4,6 +4,8 @@ export type Product = {
   id: string;
   slug: string;
   brand: BrandSlug;
+  /** When true the product should be hidden from public listings */
+  hidden?: boolean;
   name: string;
   category: string;
   price: number;
@@ -526,20 +528,20 @@ export const products: Product[] = [
 ];
 
 export function getProductsByBrand(brand: BrandSlug): Product[] {
-  return products.filter((product) => product.brand === brand);
+  return products.filter((product) => product.brand === brand && !product.hidden);
 }
 
 export function getProduct(brand: BrandSlug, slug: string): Product | undefined {
-  return products.find((product) => product.brand === brand && product.slug === slug);
+  return products.find((product) => product.brand === brand && product.slug === slug && !product.hidden);
 }
 
 export function getRelatedProducts(product: Product, limit = 4): Product[] {
   const sameCategory = products.filter(
     (item) =>
-      item.brand === product.brand && item.id !== product.id && item.category === product.category,
+      item.brand === product.brand && item.id !== product.id && item.category === product.category && !item.hidden,
   );
   const fallback = products.filter(
-    (item) => item.brand === product.brand && item.id !== product.id && !sameCategory.includes(item),
+    (item) => item.brand === product.brand && item.id !== product.id && !sameCategory.includes(item) && !item.hidden,
   );
   return [...sameCategory, ...fallback].slice(0, limit);
 }

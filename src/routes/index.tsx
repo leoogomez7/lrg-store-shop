@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Boxes, Layers, ShieldCheck, Sparkles, Zap } from "lucide-react";
-import { motion } from "motion/react";
+import { ArrowRight, Boxes, Layers, ShieldCheck, Sparkles, Zap } from "lucide-react";import { useKindeAuth } from "@kinde-oss/kinde-auth-react";import { motion } from "motion/react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { Reveal } from "@/components/common/motion-primitives";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { brandList } from "@/config/brands";
 import {
   Dialog,
@@ -12,6 +12,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
+import { getStoredActivePanel, getStoredUserDisplayName, logout } from "@/lib/auth";
 import { SectorsContent } from "@/components/sectors-content";
 
 export const Route = createFileRoute("/")({
@@ -44,45 +45,39 @@ const pillars = [
 
 function WelcomePage() {
   const navigate = useNavigate();
+  const { isAuthenticated, user, logout: kindeLogout } = useKindeAuth();
   const [userName, setUserName] = useState<string | null>(null);
+  const [panel, setPanel] = useState<string | null>(null);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      setUserName(window.sessionStorage.getItem("userName"));
-    } catch (e) {
-      setUserName(null);
-    }
+
+    const syncSessionState = () => {
+      setUserName(user ? user.givenName || user.email || null : getStoredUserDisplayName());
+      setPanel(user ? "customer" : getStoredActivePanel());
+    };
+
+    syncSessionState();
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === "userName") setUserName(window.sessionStorage.getItem("userName"));
+      if (["userFullName", "fullName", "name", "userName", "activePanel"].includes(e.key ?? "")) {
+        syncSessionState();
+      }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   function UserBadge() {
-    const [name, setName] = useState<string | null>(null);
-    const [panel, setPanel] = useState<string | null>(null);
-
-    useEffect(() => {
-      try {
-        setName(sessionStorage.getItem("userName"));
-        setPanel(sessionStorage.getItem("activePanel"));
-      } catch (e) {
-        setName(null);
-        setPanel(null);
-      }
-    }, []);
-
-    if (!panel) return null;
+    if (!panel || !userName) return null;
 
     const roleLabel = panel === "admin" ? "Administrador" : "Cliente";
-    const displayName = name || (panel === "admin" ? "Administrador" : "Usuario");
 
     return (
       <div className="ml-2 flex items-center gap-2">
-        <div className="px-2 py-1 rounded-md bg-green-50 text-green-800 text-sm font-medium">{displayName}</div>
+        <div className="px-2 py-1 rounded-md bg-green-50 text-green-800 text-sm font-medium">{userName}</div>
         <div className="px-2 py-1 rounded-md bg-green-600 text-white text-xs font-semibold">{roleLabel}</div>
       </div>
     );
@@ -110,53 +105,63 @@ function WelcomePage() {
             <nav className="flex items-center gap-2">
               <Link
                 to="/cuenta"
-                onClick={() => {
-                  try {
-                    sessionStorage.setItem("activePanel", "client");
-                    if (!sessionStorage.getItem("userName")) sessionStorage.setItem("userName", "Cliente LRG");
-                  } catch (e) {
-                    /* ignore */
-                  }
-                }}
                 className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2"
               >
                 Mi cuenta
               </Link>
               <Link
                 to="/admin"
-                onClick={() => {
-                  try {
-                    sessionStorage.setItem("activePanel", "admin");
-                    if (!sessionStorage.getItem("userName")) sessionStorage.setItem("userName", "Administrador");
-                  } catch (e) {
-                    /* ignore */
-                  }
-                }}
                 className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2"
               >
                 Panel administrativo
               </Link>
               <UserBadge />
-              {userName && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-600 ml-2"
-                  onClick={async () => {
-                    try {
-                      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
-                    } catch (e) {
-                      /* ignore */
-                    }
-                    if (typeof window !== "undefined") {
-                      window.localStorage.clear();
-                      window.sessionStorage.clear();
-                    }
-                    navigate({ to: "/" });
-                  }}
-                >
-                  Cerrar sesión
-                </Button>
+              {userName ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 ml-2"
+                    onClick={() => setLogoutOpen(true)}
+                  >
+                    Cerrar sesión
+                  </Button>
+                  <ConfirmDialog
+                    open={logoutOpen}
+                    onOpenChange={setLogoutOpen}
+                    title="¿Cerrar sesión?"
+                    description="¿Deseas cerrar la sesión actual? Se finalizará tu acceso en este dispositivo."
+                    confirmLabel="Sí, cerrar sesión"
+                    cancelLabel="No"
+                    onConfirm={async () => {
+                      try {
+                        await kindeLogout();
+                      } catch (error) {
+                        console.error("Error during Kinde logout:", error);
+                      }
+                      await logout();
+                      setUserName(null);
+                      setPanel(null);
+                      navigate({ to: "/" });
+                    }}
+                  />
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" size="sm" className="ml-2" onClick={() => setLoginOpen(true)}>
+                    Iniciar sesión
+                  </Button>
+                  <ConfirmDialog
+                    open={loginOpen}
+                    onOpenChange={setLoginOpen}
+                    title="Bienvenido a LRG Store Shop"
+                    description="Elegí cómo querés continuar."
+                    confirmLabel="Ingresar cuenta"
+                    cancelLabel="Crear cuenta"
+                    onConfirm={() => navigate({ to: "/login" })}
+                    onCancel={() => navigate({ to: "/register" })}
+                  />
+                </>
               )}
             </nav>
           </div>

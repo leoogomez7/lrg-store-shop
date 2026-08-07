@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, Check, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Pencil, Plus, Search, Trash2, X, Copy, Eye } from "lucide-react";
+import { products as productsData } from "@/data/products";
 import { useEffect, useMemo, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Select,
   SelectContent,
@@ -84,6 +86,12 @@ function AdminProducts() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState | null>(null);
   const [page, setPage] = useState(0);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description?: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: undefined, onConfirm: () => {} });
 
   useEffect(() => {
     setEditableProducts(products);
@@ -147,6 +155,33 @@ function AdminProducts() {
       delete next[productId];
       return next;
     });
+  };
+
+  const handleDuplicateProduct = (product: Product) => {
+    const newId = `${product.id}-copy-${Date.now()}`;
+    const newSlug = `${product.slug}-copy-${Date.now()}`.replace(/[^a-z0-9-]/g, "-").replace(/--+/g, "-");
+    const duplicated: Product = {
+      ...product,
+      id: newId,
+      slug: newSlug,
+      name: `${product.name} (Copia)`,
+      createdAt: new Date().toISOString().slice(0, 10),
+    };
+
+    // Add to in-memory dataset so public getters reflect it and update UI
+    (productsData as Product[]).push(duplicated);
+    setEditableProducts((current) => [...current, duplicated]);
+  };
+
+  const handleToggleHidden = (productId: string) => {
+    // Toggle hidden flag on the shared products data so public listing respects it
+    const idx = (productsData as Product[]).findIndex((p) => p.id === productId);
+    if (idx === -1) return;
+    const current = (productsData as Product[])[idx] as Product & { hidden?: boolean };
+    current.hidden = !current.hidden;
+
+    // Update local editable list to reflect the change
+    setEditableProducts((currentList) => currentList.map((p) => (p.id === productId ? { ...p, hidden: current.hidden } : p)));
   };
 
   const handleApplyDiscount = (productId: string) => {
@@ -355,7 +390,12 @@ function AdminProducts() {
               return (
                 <TableRow key={product.id}>
                 <TableCell>
-                  <span className="font-medium">{product.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{product.name}</span>
+                    {product.hidden ? (
+                      <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground">Oculto</span>
+                    ) : null}
+                  </div>
                 </TableCell>
                 <TableCell>{brands[product.brand].shortName}</TableCell>
                 <TableCell className="text-muted-foreground uppercase">{product.category}</TableCell>
@@ -406,16 +446,65 @@ function AdminProducts() {
                 <TableCell>{formatPrice(Math.max(0, discountedPrice))}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => openEditProductDialog(product)}>
-                      ✏️
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() =>
+                        setConfirmState({
+                          open: true,
+                          title: `Duplicar "${product.name}"?`,
+                          description: undefined,
+                          onConfirm: () => handleDuplicateProduct(product),
+                        })
+                      }
+                      title="Duplicar"
+                    >
+                      <Copy className="size-4" />
+                    </Button>
+                    <Button
+                      variant={product.hidden ? "outline" : "secondary"}
+                      size="sm"
+                      onClick={() =>
+                        setConfirmState({
+                          open: true,
+                          title: `${product.hidden ? "Mostrar" : "Ocultar"} \"${product.name}\"?`,
+                          description: undefined,
+                          onConfirm: () => handleToggleHidden(product.id),
+                        })
+                      }
+                      title={product.hidden ? "Mostrar" : "Ocultar"}
+                    >
+                      <Eye className="size-4" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() =>
+                        setConfirmState({
+                          open: true,
+                          title: `Editar "${product.name}"?`,
+                          description: undefined,
+                          onConfirm: () => openEditProductDialog(product),
+                        })
+                      }
+                      title="Editar"
+                    >
+                      <Pencil className="size-4" />
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleDeleteProduct(product.id)}
+                      onClick={() =>
+                        setConfirmState({
+                          open: true,
+                          title: `Eliminar "${product.name}"?`,
+                          description: "Esta acción no se puede deshacer.",
+                          onConfirm: () => handleDeleteProduct(product.id),
+                        })
+                      }
                       aria-label={`Eliminar ${product.name}`}
                     >
-                      🗑️
+                      <Trash2 className="size-4" />
                     </Button>
                   </div>
                 </TableCell>
@@ -460,6 +549,15 @@ function AdminProducts() {
         productForm={productForm}
         setProductForm={setProductForm}
         onSave={handleSaveProduct}
+      />
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmLabel="Sí"
+        cancelLabel="No"
+        onConfirm={() => confirmState.onConfirm()}
       />
     </main>
   );

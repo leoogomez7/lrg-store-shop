@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BrandRouteImport } from './routes/$brand'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CuentaRouteImport } from './routes/cuenta'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as SectoresRouteImport } from './routes/sectores'
 import { Route as BrandIndexRouteImport } from './routes/$brand.index'
 import { Route as BrandCarritoRouteImport } from './routes/$brand.carrito'
@@ -42,6 +44,16 @@ const AdminRoute = AdminRouteImport.update({
 const CuentaRoute = CuentaRouteImport.update({
   id: '/cuenta',
   path: '/cuenta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SectoresRoute = SectoresRouteImport.update({
@@ -100,6 +112,8 @@ export interface FileRoutesByFullPath {
   '/$brand': typeof BrandRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/cuenta': typeof CuentaRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/sectores': typeof SectoresRoute
   '/$brand/carrito': typeof BrandCarritoRoute
   '/$brand/checkout': typeof BrandCheckoutRoute
@@ -114,6 +128,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cuenta': typeof CuentaRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/sectores': typeof SectoresRoute
   '/$brand/carrito': typeof BrandCarritoRoute
   '/$brand/checkout': typeof BrandCheckoutRoute
@@ -131,6 +147,8 @@ export interface FileRoutesById {
   '/$brand': typeof BrandRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/cuenta': typeof CuentaRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/sectores': typeof SectoresRoute
   '/$brand/carrito': typeof BrandCarritoRoute
   '/$brand/checkout': typeof BrandCheckoutRoute
@@ -149,6 +167,8 @@ export interface FileRouteTypes {
     | '/$brand'
     | '/admin'
     | '/cuenta'
+    | '/login'
+    | '/register'
     | '/sectores'
     | '/$brand/carrito'
     | '/$brand/checkout'
@@ -163,6 +183,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/cuenta'
+    | '/login'
+    | '/register'
     | '/sectores'
     | '/$brand/carrito'
     | '/$brand/checkout'
@@ -179,6 +201,8 @@ export interface FileRouteTypes {
     | '/$brand'
     | '/admin'
     | '/cuenta'
+    | '/login'
+    | '/register'
     | '/sectores'
     | '/$brand/carrito'
     | '/$brand/checkout'
@@ -196,6 +220,8 @@ export interface RootRouteChildren {
   BrandRoute: typeof BrandRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
   CuentaRoute: typeof CuentaRoute
+  LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
   SectoresRoute: typeof SectoresRoute
 }
 
@@ -227,6 +253,20 @@ declare module '@tanstack/react-router' {
       path: '/cuenta'
       fullPath: '/cuenta'
       preLoaderRoute: typeof CuentaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sectores': {
@@ -341,6 +381,8 @@ const rootRouteChildren: RootRouteChildren = {
   BrandRoute: BrandRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
   CuentaRoute: CuentaRoute,
+  LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
   SectoresRoute: SectoresRoute,
 }
 export const routeTree = rootRouteImport
