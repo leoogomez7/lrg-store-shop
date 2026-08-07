@@ -1,8 +1,8 @@
 const PLACEHOLDER_PATTERN = /(placeholder|example|test|changeme|undefined)/i;
 
 export function getKindeConfig() {
-  const clientId = import.meta.env.VITE_KINDE_CLIENT_ID?.trim();
-  const domain = import.meta.env.VITE_KINDE_DOMAIN?.trim();
+  const clientId = import.meta.env.KINDE_USER?.trim();
+  const domain = import.meta.env.KINDE_USER_ADMIN?.trim();
 
   return {
     clientId: clientId || "",

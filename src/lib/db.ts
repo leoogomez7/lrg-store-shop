@@ -1,7 +1,7 @@
 import { createClient } from "@libsql/client/web";
 
-const tursoUrl = import.meta.env.VITE_TURSO_URL?.trim();
-const tursoToken = import.meta.env.VITE_TURSO_TOKEN?.trim();
+const tursoUrl = import.meta.env.TURSO_BD_USER?.trim();
+const tursoToken = import.meta.env.TURSO_USER?.trim();
 const hasRealTursoConfig = Boolean(
   tursoUrl &&
     tursoToken &&
