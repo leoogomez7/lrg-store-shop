@@ -1,15 +1,19 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Menu, ShoppingBag, User } from "lucide-react";
+import { ShoppingBag, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
-import { CartSheet } from "@/components/layout/cart-sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { getStoredActivePanel, getStoredUserDisplayName, logout } from "@/lib/auth";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { brandList, type BrandConfig } from "@/config/brands";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/store/cart";
@@ -29,9 +33,8 @@ function BrandHeaderContent({
   brand: BrandConfig;
   auth: ReturnType<typeof useKindeAuth> | null;
 }) {
-  const [openMenu, setOpenMenu] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const [loginOpen, setLoginOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState(false);
   const { count } = useCart();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
@@ -40,6 +43,10 @@ function BrandHeaderContent({
     logout: async () => undefined,
   };
   const [userName, setUserName] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOpenMenu(false);
+  }, [pathname]);
   const [panel, setPanel] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,6 +67,7 @@ function BrandHeaderContent({
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
+
   const handleBrandClick = (slug: string, closeMenu = false) => (e: any) => {
     e?.preventDefault?.();
     const href = `/${slug}`;
@@ -75,6 +83,11 @@ function BrandHeaderContent({
     { label: "Inicio", to: "/", exact: true },
     { label: "Catálogo", to: "/$brand/productos", exact: false },
   ] as const;
+
+  const ecosystemLinks = brandList.map((item) => ({
+    label: item.name,
+    slug: item.slug,
+  }));
 
   function UserBadge() {
     if (!panel || !userName) return null;
@@ -124,39 +137,56 @@ function BrandHeaderContent({
               );
             })}
 
-            <span className="mx-2 h-5 w-px bg-border" />
-
-            {brandList
-              .filter((item) => item.slug !== brand.slug)
-              .map((item) => (
-                <a
-                  key={item.slug}
-                  href={`/${item.slug}`}
-                  onClick={handleBrandClick(item.slug)}
-                  className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {item.name}
-                </a>
-              ))}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                  Ecosistema
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {ecosystemLinks.map((item) => (
+                  <DropdownMenuItem
+                    key={item.slug}
+                    onSelect={(event) => {
+                      event.preventDefault();
+                      navigate({ to: "/$brand", params: { brand: item.slug } });
+                    }}
+                  >
+                    {item.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
 
           <div className="ml-auto flex items-center gap-4">
-            <nav className="hidden sm:flex items-center gap-3">
-              <Link
-                to="/cuenta"
-                aria-label="Mi cuenta"
-                className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2"
-              >
-                Mi cuenta
-              </Link>
+            <nav className="hidden md:flex items-center gap-3">
+              {!userName ? (
+                <>
+                  <Button
+                    onClick={() => navigate({ to: "/register" })}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    Crear cuenta
+                  </Button>
 
-              <Link
-                to="/admin"
-                aria-label="Panel administrativo"
-                className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2"
-              >
-                Panel administrativo
-              </Link>
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate({ to: "/login" })}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    Iniciar sesión
+                  </Button>
+                </>
+              ) : (
+                <Link
+                  to="/cuenta"
+                  aria-label="Mi cuenta"
+                  className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2"
+                >
+                  Mi cuenta
+                </Link>
+              )}
             </nav>
 
             <div className="hidden sm:flex items-center">
@@ -165,12 +195,7 @@ function BrandHeaderContent({
 
             {userName ? (
               <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-600"
-                  onClick={() => setLogoutOpen(true)}
-                >
+                <Button variant="ghost" size="sm" className="text-red-600" onClick={() => setLogoutOpen(true)}>
                   Cerrar sesión
                 </Button>
                 <ConfirmDialog
@@ -192,25 +217,34 @@ function BrandHeaderContent({
                   }}
                 />
               </>
-            ) : (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => setLoginOpen(true)}>
-                  Iniciar sesión
-                </Button>
-                <ConfirmDialog
-                  open={loginOpen}
-                  onOpenChange={setLoginOpen}
-                  title="Bienvenido a LRG Store Shop"
-                  description="Elegí cómo querés continuar."
-                  confirmLabel="Ingresar cuenta"
-                  cancelLabel="Crear cuenta"
-                  onConfirm={() => navigate({ to: "/login" })}
-                  onCancel={() => navigate({ to: "/register" })}
-                />
-              </>
-            )}
+            ) : null}
 
-            <CartSheet brand={brand}>
+            {/* Mobile auth buttons: visible on small screens */}
+            <div className="flex md:hidden items-center gap-2">
+              {!userName ? (
+                <>
+                  <Button
+                    onClick={() => navigate({ to: "/register" })}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs px-3 py-1"
+                  >
+                    Crear cuenta
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate({ to: "/login" })}
+                    className="text-muted-foreground hover:text-foreground text-xs px-3 py-1"
+                  >
+                    Iniciar sesión
+                  </Button>
+                </>
+              ) : (
+                <Link to="/cuenta" className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2">
+                  Mi cuenta
+                </Link>
+              )}
+            </div>
+
+            <Link to="/$brand/carrito" params={{ brand: brand.slug }} className="relative inline-flex">
               <Button variant="secondary" size="sm" className="relative gap-2">
                 <ShoppingBag className="size-4" />
                 <span className="hidden sm:inline">Carrito</span>
@@ -220,85 +254,7 @@ function BrandHeaderContent({
                   </Badge>
                 )}
               </Button>
-            </CartSheet>
-
-            <Sheet open={openMenu} onOpenChange={setOpenMenu}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden" aria-label="Abrir menú">
-                  <Menu className="size-4" />
-                </Button>
-              </SheetTrigger>
-
-              <SheetContent side="left" className="w-[86vw] max-w-sm">
-                <div className="space-y-6 p-6">
-                  <div className="flex items-center gap-3">
-                    <BrandMark compact brandSlug={brand.slug} />
-                    <div>
-                      <div className="font-display text-sm font-semibold tracking-tight">{brand.name}</div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    {links
-                      .filter((l) => l.label !== "Inicio")
-                      .map((link) => (
-                        <Link
-                          key={link.label}
-                          to={link.to}
-                          params={{ brand: brand.slug }}
-                          onClick={() => setOpenMenu(false)}
-                          className="block rounded-lg px-3 py-2.5 text-sm hover:bg-surface-2"
-                        >
-                          {link.label}
-                        </Link>
-                      ))}
-
-                    <Link
-                      to="/cuenta"
-                      onClick={() => {
-                        setOpenMenu(false);
-                      }}
-                      className="block rounded-lg px-3 py-2.5 text-sm hover:bg-surface-2"
-                    >
-                      Mi cuenta
-                    </Link>
-                  </div>
-
-                  <div className="space-y-1 border-t border-border pt-4">
-                    <p className="px-3 pb-2 text-xs tracking-[0.16em] text-muted-foreground uppercase">Sectores</p>
-                    {brandList.map((item) => (
-                      <a
-                        key={item.slug}
-                        href={`/${item.slug}`}
-                        onClick={handleBrandClick(item.slug, true)}
-                        className="block rounded-lg px-3 py-2.5 text-sm hover:bg-surface-2"
-                      >
-                        {item.name}
-                      </a>
-                    ))}
-
-                    <div className="border-t border-border mt-4 pt-3">
-                      <p className="px-3 pb-2 text-xs tracking-[0.16em] text-muted-foreground uppercase">LRG Store Shop</p>
-                      <a
-                        href="/"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setOpenMenu(false);
-                          if (typeof window !== "undefined" && window.location.pathname === "/") {
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          } else {
-                            navigate({ to: "/" });
-                          }
-                        }}
-                        className="block rounded-lg px-3 py-2.5 text-sm hover:bg-surface-2"
-                      >
-                        Inicio
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
+            </Link>
           </div>
         </div>
       </header>

@@ -33,9 +33,7 @@ export const Route = createFileRoute("/$brand/carrito")({
 function CartPage() {
   const params = Route.useParams();
   const brand = getBrand(params.brand)!;
-  const { itemsByBrand, brandSubtotal, setQuantity, removeItem, clearBrand } = useCart();
-  const items = itemsByBrand(brand.slug);
-  const subtotal = brandSubtotal(brand.slug);
+  const { items, subtotal, setQuantity, removeItem, clear } = useCart();
   const shipping = subtotal > 300 || subtotal === 0 ? 0 : 18;
 
   return (
@@ -45,11 +43,13 @@ function CartPage() {
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Carrito</p>
           <h1 className="mt-2 text-3xl font-semibold">{brand.name}</h1>
         </div>
-        <Button asChild variant="ghost" className="gap-2">
-          <Link to="/$brand/productos" params={{ brand: brand.slug }}>
-            <ArrowLeft className="size-4" /> Seguir comprando
-          </Link>
-        </Button>
+        <Link
+          to="/$brand/productos"
+          params={{ brand: brand.slug }}
+          className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+        >
+          <ArrowLeft className="size-4" /> Seguir comprando
+        </Link>
       </div>
 
       {items.length === 0 ? (
@@ -76,6 +76,11 @@ function CartPage() {
                   className="size-24 rounded-xl"
                 />
                 <div className="min-w-[200px] flex-1">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-surface-2 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {getBrand(item.brand)?.shortName ?? item.brand}
+                    </span>
+                  </div>
                   <h2 className="font-display font-semibold">{item.name}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {formatPrice(item.price)} · {item.stock} disponibles
@@ -87,6 +92,7 @@ function CartPage() {
                       className="size-8"
                       onClick={() => setQuantity(item.id, item.quantity - 1)}
                       aria-label="Restar unidad"
+                      disabled={item.quantity <= 1}
                     >
                       <Minus className="size-3.5" />
                     </Button>
@@ -97,6 +103,7 @@ function CartPage() {
                       className="size-8"
                       onClick={() => setQuantity(item.id, item.quantity + 1)}
                       aria-label="Sumar unidad"
+                      disabled={item.quantity >= item.stock}
                     >
                       <Plus className="size-3.5" />
                     </Button>
@@ -106,9 +113,12 @@ function CartPage() {
                       className="ml-2 gap-1.5 text-muted-foreground hover:text-destructive"
                       onClick={() => removeItem(item.id)}
                     >
-                      <Trash2 className="size-3.5" /> Quitar
+                      <Trash2 className="size-3.5" /> Eliminar
                     </Button>
                   </div>
+                  {item.quantity >= item.stock && (
+                    <p className="mt-2 text-xs font-medium text-destructive">No hay más stock disponible para agregar.</p>
+                  )}
                 </div>
                 <p className="font-display self-center text-lg font-semibold">
                   {formatPrice(item.price * item.quantity)}
@@ -119,7 +129,7 @@ function CartPage() {
               variant="ghost"
               size="sm"
               className="text-muted-foreground"
-              onClick={() => clearBrand(brand.slug)}
+              onClick={clear}
             >
               Vaciar carrito
             </Button>

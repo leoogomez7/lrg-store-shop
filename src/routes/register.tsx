@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
@@ -22,6 +22,7 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
     register: () => undefined,
     isLoading: false,
   };
+  const navigate = useNavigate();
 
   const handleRegister = () => {
     const redirectURL = getKindeRedirectUri("/dashboard");
@@ -56,6 +57,18 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
           <p className="text-center text-sm text-muted-foreground">
             ¿Ya tenés cuenta? <Link to="/login" className="text-primary hover:underline font-medium">Ingresar</Link>
           </p>
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <Button variant="outline" className="w-32" onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) return window.history.back();
+              navigate({ to: "/" });
+            }}>
+              Volver
+            </Button>
+
+            <Button variant="outline" onClick={() => navigate({ to: "/" })} className="w-32">
+              Inicio
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -117,18 +117,6 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               <BrandMark />
             </a>
             <nav className="flex items-center gap-2">
-              <Link
-                to="/cuenta"
-                className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2"
-              >
-                Mi cuenta
-              </Link>
-              <Link
-                to="/admin"
-                className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2"
-              >
-                Panel administrativo
-              </Link>
               <UserBadge />
               {userName ? (
                 <>
@@ -162,19 +150,20 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 </>
               ) : (
                 <>
-                  <Button variant="ghost" size="sm" className="ml-2" onClick={() => setLoginOpen(true)}>
+                  <Button
+                    onClick={() => navigate({ to: "/register" })}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 ml-2"
+                  >
+                    Crear cuenta
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate({ to: "/login" })}
+                    className="text-muted-foreground hover:text-foreground ml-2"
+                  >
                     Iniciar sesión
                   </Button>
-                  <ConfirmDialog
-                    open={loginOpen}
-                    onOpenChange={setLoginOpen}
-                    title="Bienvenido a LRG Store Shop"
-                    description="Elegí cómo querés continuar."
-                    confirmLabel="Ingresar cuenta"
-                    cancelLabel="Crear cuenta"
-                    onConfirm={() => navigate({ to: "/login" })}
-                    onCancel={() => navigate({ to: "/register" })}
-                  />
                 </>
               )}
             </nav>

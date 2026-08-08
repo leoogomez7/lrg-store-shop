@@ -8,7 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { Component, useEffect, type ErrorInfo, type ReactNode } from "react";
+import { Component, Suspense, useEffect, type ErrorInfo, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportClientError } from "../lib/error-reporting";
@@ -171,15 +171,17 @@ function RootComponent() {
   const appContent = (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        <Suspense fallback={<div>Loading...</div>}>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </Suspense>
         <Toaster position="top-right" />
       </CartProvider>
     </QueryClientProvider>
   );
 
   if (!hasKindConfig) {
-    return <RootErrorBoundary>{appContent}</RootErrorBoundary>;
+    return <>{appContent}</>;
   }
 
   return (

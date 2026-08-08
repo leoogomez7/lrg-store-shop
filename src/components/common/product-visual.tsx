@@ -75,7 +75,7 @@ export function ProductVisual({
         )}
       </div>
       <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/10 to-transparent" />
-      <span className="font-display absolute bottom-3 left-4 text-3xl font-bold text-foreground/85 tracking-tight">
+      <span className="font-display absolute bottom-3 left-4 text-3xl font-bold text-foreground tracking-tight">
         {initials || "LRG"}
       </span>
     </div>

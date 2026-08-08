@@ -61,6 +61,18 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
           <p className="text-center text-sm text-muted-foreground">
             ¿No tienes cuenta? <Link to="/register" className="text-primary hover:underline font-medium">Crear cuenta</Link>
           </p>
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <Button variant="outline" className="w-32" onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) return window.history.back();
+              navigate({ to: "/" });
+            }}>
+              Volver
+            </Button>
+
+            <Button variant="outline" onClick={() => navigate({ to: "/" })} className="w-32">
+              Inicio
+            </Button>
+          </div>
         </div>
       </div>
     </div>

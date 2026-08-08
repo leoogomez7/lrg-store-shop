@@ -38,9 +38,7 @@ export const Route = createFileRoute("/$brand/checkout")({
 function CheckoutPage() {
   const params = Route.useParams();
   const brand = getBrand(params.brand)!;
-  const { itemsByBrand, brandSubtotal, clearBrand } = useCart();
-  const items = itemsByBrand(brand.slug);
-  const subtotal = brandSubtotal(brand.slug);
+  const { items, subtotal, clear } = useCart();
   const shipping = subtotal > 300 || subtotal === 0 ? 0 : 18;
   const [step, setStep] = useState<"form" | "done">("form");
   const [orderId, setOrderId] = useState("");
@@ -53,7 +51,7 @@ function CheckoutPage() {
     }
     const id = `LRG-${Math.floor(10000 + Math.random() * 89999)}`;
     setOrderId(id);
-    clearBrand(brand.slug);
+    clear();
     setStep("done");
     toast.success("Pedido confirmado", { description: `Número ${id}` });
   }
