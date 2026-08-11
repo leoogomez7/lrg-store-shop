@@ -36,7 +36,6 @@ export const products: Product[] = [
     stock: 12,
     rating: 4.9,
     reviews: 214,
-    badge: "Más vendido",
     short: "Consola de nueva generación con SSD ultrarrápido y ray tracing.",
     description:
       "La versión Slim Digital de PlayStation 5 mantiene toda la potencia de la generación: SSD de acceso instantáneo, audio 3D Tempest y ray tracing por hardware, en un chasis un 30% más compacto.",

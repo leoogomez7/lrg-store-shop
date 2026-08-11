@@ -21,7 +21,7 @@ function BrandLayout() {
     <div className={`${brand.theme} min-h-screen bg-background text-foreground`}>
       <div className="aurora-bg" />
       <div className="relative">
-        <BrandHeader brand={brand} />
+        <BrandHeader brand={brand} headerTheme="theme-webdesign" />
         <Outlet />
         <BrandFooter brand={brand} />
       </div>

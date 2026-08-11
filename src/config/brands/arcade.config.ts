@@ -3,12 +3,10 @@ import type { BrandConfig } from "./types";
 
 export const arcadeConfig: BrandConfig = {
   slug: "arcade",
-  theme: "theme-arcade",
+  theme: "theme-webdesign",
   name: "LRG Arcade",
   shortName: "Arcade",
   tagline: "Productos Gaming y servicios digitales",
-  description:
-    "Consolas, videojuegos, accesorios, plataformas streaming y suscripciones de PlayStation. Todo el universo gamer con entrega inmediata y garantía real.",
   keywords: ["gaming", "playstation", "xbox", "nintendo", "pc gaming", "ps plus"],
   hero: {
     eyebrow: "Sector Gaming",

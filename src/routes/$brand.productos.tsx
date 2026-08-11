@@ -98,22 +98,6 @@ function CatalogPage() {
     }
   }, [products, filters]);
 
-  const topSeller = useMemo(() => {
-    const salesCount = orders
-      .filter((order) => order.brand === brand.slug)
-      .flatMap((order) => order.items)
-      .reduce<Record<string, number>>((acc, item) => {
-        acc[item.name] = (acc[item.name] ?? 0) + item.quantity;
-        return acc;
-      }, {});
-
-    const topProductName = Object.entries(salesCount).sort(([, a], [, b]) => b - a)[0]?.[0];
-    if (!topProductName) return null;
-
-    const topProduct = products.find((product) => product.name === topProductName);
-    return topProduct ? { product: topProduct, sales: salesCount[topProductName] } : null;
-  }, [brand.slug, orders, products]);
-
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6">
       <header className="max-w-2xl">
@@ -157,18 +141,6 @@ function CatalogPage() {
           <SlidersHorizontal className="size-4 text-primary" />
           <span>Filtros</span>
         </button>
-      </div>
-
-      <div className="mt-10 grid gap-8">
-        {topSeller && (
-          <div className="glass-panel rounded-3xl p-5 text-sm shadow-sm">
-            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Más vendido</p>
-            <div className="mt-3 flex flex-col gap-1">
-              <p className="font-semibold">{topSeller.product.name}</p>
-              <p className="text-muted-foreground">{topSeller.sales} productos vendidos</p>
-            </div>
-          </div>
-        )}
       </div>
 
       <div

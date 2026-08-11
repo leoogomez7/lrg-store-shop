@@ -1,20 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Boxes, Layers, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Boxes, Layers, ShieldCheck, Sparkles, Star, Zap } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
-import { BrandMark } from "@/components/common/brand-mark";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { Reveal } from "@/components/common/motion-primitives";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { BrandHeader } from "@/components/layout/brand-header";
 import { brandList } from "@/config/brands";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { getStoredActivePanel, getStoredUserDisplayName, logout } from "@/lib/auth";
+import { webDesignConfig } from "@/config/brands/web-design.config";
+import { getStoredActivePanel, getStoredUserDisplayName } from "@/lib/auth";
 import { SectorsContent } from "@/components/sectors-content";
 
 export const Route = createFileRoute("/")({
@@ -45,6 +39,68 @@ const pillars = [
   { icon: Boxes, label: "Arquitectura escalable" },
 ];
 
+const trustpilotReviews = [
+  {
+    name: "Walter Victor Ramirez",
+    title: "Mí opinión es buena ya que el producto es recomendable.",
+    text: "Mí opinión es buena ya que el producto es súper económico y funcióna muy bien. Fácil de crearlo y súper explicado de parte del vendedor. No hay quejas algunas así que súper recomendable.",
+    rating: 5,
+    date: "28 de octubre de 2022",
+    url: "https://es.trustpilot.com/users/635be4d971707b001320768e",
+  },
+  {
+    name: "Diizr _",
+    title: "Sencillo, rapido y confiable que mas queres",
+    text: "Muy buena mi experiencia comprando, no es la primera vez que compro plus y nunca hubo mayor problema con el servicio, siempre atento ante cualquier consulta y responde bien",
+    rating: 5,
+    date: "3 de septiembre de 2023",
+    url: "https://es.trustpilot.com/users/64f4ff79ee59660013fee5e4",
+  },
+  {
+    name: "Guille",
+    title: "Muy confíable",
+    text: "Es un sitio confíable, ya hice varias compras y no tuve problemas. sigan trabajando así 👌",
+    rating: 5,
+    date: "29 de septiembre de 2023",
+    url: "https://es.trustpilot.com/reviews/651717ca02faaee777613144",
+  },
+  {
+    name: "Alejandro Rouseau",
+    title: "Ya es la 3er cuenta que compro..",
+    text: "Ya es la 3er cuenta que compro... y como siempre EXCELENTE... muchas gracias",
+    rating: 5,
+    date: "4 de junio de 2024",
+    url: "https://es.trustpilot.com/reviews/665e69ab576f5b31c32b62f3",
+  },
+  {
+    name: "itzdragonsyt",
+    title: "Explendido",
+    text: "Fue una experiencia bastante buena , una buena atención y el juego me llego muy rapido!. Con precios muy accesibles , un lujo la verdad. Recomendado totalmente",
+    rating: 5,
+    date: "22 de febrero de 2025",
+    url: "https://es.trustpilot.com/users/67ba517930e5fe53f29882f6",
+  },
+  {
+    name: "Ricardo Erazo",
+    title: "Muy buen servicio",
+    text: "Muy buen servicio, entrega a tiempo",
+    rating: 4,
+    date: "14 de agosto de 2025",
+    url: "https://es.trustpilot.com/reviews/689e0c56fc2e7996857f5dd3",
+  },
+  {
+    name: "itzdragonsyt",
+    title: "Excelente servicio muy recomendable…",
+    text: "Excelente servicio muy recomendable siempre conpri aqui",
+    rating: 5,
+    date: "27 de enero de 2026",
+    url: "https://es.trustpilot.com/reviews/69791760404cf879b3cdb350",
+  },
+];
+
+const trustpilotUrl = "https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar";
+const trustpilotUrl_Evaluate = "https://es.trustpilot.com/evaluate/psplusargentinaps4.empretienda.com.ar";
+
 function WelcomePage() {
   return (
     <KindeAuthGate fallback={<WelcomePageContent auth={null} />}>
@@ -60,42 +116,8 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     user: null,
     logout: async () => undefined,
   };
-  const [userName, setUserName] = useState<string | null>(null);
-  const [panel, setPanel] = useState<string | null>(null);
-  const [logoutOpen, setLogoutOpen] = useState(false);
-  const [loginOpen, setLoginOpen] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const syncSessionState = () => {
-      setUserName(user ? user.givenName || user.email || null : getStoredUserDisplayName());
-      setPanel(user ? "customer" : getStoredActivePanel());
-    };
-
-    syncSessionState();
-
-    const onStorage = (e: StorageEvent) => {
-      if (["userFullName", "fullName", "name", "userName", "activePanel"].includes(e.key ?? "")) {
-        syncSessionState();
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  function UserBadge() {
-    if (!panel || !userName) return null;
-
-    const roleLabel = panel === "admin" ? "Administrador" : "Cliente";
-
-    return (
-      <div className="ml-2 flex items-center gap-2">
-        <div className="px-2 py-1 rounded-md bg-green-50 text-green-800 text-sm font-medium">{userName}</div>
-        <div className="px-2 py-1 rounded-md bg-green-600 text-white text-xs font-semibold">{roleLabel}</div>
-      </div>
-    );
-  }
+  const [sortBy, setSortBy] = useState<"date" | "rating">("date");
+  const [sortDirection, setSortDirection] = useState<"newest" | "oldest" | "highest" | "lowest">("newest");
 
   function handleBrandClick(e: any) {
     e.preventDefault();
@@ -105,73 +127,52 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
       navigate({ to: "/" });
     }
   }
+
+  function parseSpanishDate(dateStr: string): Date {
+    const months: { [key: string]: number } = {
+      enero: 1,
+      febrero: 2,
+      marzo: 3,
+      abril: 4,
+      mayo: 5,
+      junio: 6,
+      julio: 7,
+      agosto: 8,
+      septiembre: 9,
+      octubre: 10,
+      noviembre: 11,
+      diciembre: 12,
+    };
+
+    const parts = dateStr.split(" de ");
+    const day = parseInt(parts[0]);
+    const month = months[parts[1].toLowerCase()];
+    const year = parseInt(parts[2]);
+
+    return new Date(year, month - 1, day);
+  }
+
+  const sortedReviews = [...trustpilotReviews].sort((a, b) => {
+    if (sortBy === "rating") {
+      const diff = b.rating - a.rating;
+      return sortDirection === "highest" ? diff : -diff;
+    } else {
+      // Ordenar por fecha
+      const dateA = parseSpanishDate(a.date).getTime();
+      const dateB = parseSpanishDate(b.date).getTime();
+      const diff = dateB - dateA;
+      return sortDirection === "newest" ? diff : -diff;
+    }
+  });
+
   return (
     <div className="theme-webdesign relative min-h-screen overflow-hidden bg-background text-foreground">
       <div className="aurora-bg" />
       <div className="pointer-events-none absolute inset-0 grid-lines opacity-60" />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-8 sm:px-6">
-        <header className="fixed inset-x-0 top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl">
-          <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-            <a href="/" onClick={handleBrandClick} aria-label="Ir al inicio">
-              <BrandMark />
-            </a>
-            <nav className="flex items-center gap-2">
-              <UserBadge />
-              {userName ? (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-600 ml-2"
-                    onClick={() => setLogoutOpen(true)}
-                  >
-                    Cerrar sesión
-                  </Button>
-                  <ConfirmDialog
-                    open={logoutOpen}
-                    onOpenChange={setLogoutOpen}
-                    title="¿Cerrar sesión?"
-                    description="¿Deseas cerrar la sesión actual? Se finalizará tu acceso en este dispositivo."
-                    confirmLabel="Sí, cerrar sesión"
-                    cancelLabel="No"
-                    onConfirm={async () => {
-                      try {
-                        await kindeLogout();
-                      } catch (error) {
-                        console.error("Error during Kinde logout:", error);
-                      }
-                      await logout();
-                      setUserName(null);
-                      setPanel(null);
-                      navigate({ to: "/" });
-                    }}
-                  />
-                </>
-              ) : (
-                <>
-                  <Button
-                    onClick={() => navigate({ to: "/register" })}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 ml-2"
-                  >
-                    Crear cuenta
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    onClick={() => navigate({ to: "/login" })}
-                    className="text-muted-foreground hover:text-foreground ml-2"
-                  >
-                    Iniciar sesión
-                  </Button>
-                </>
-              )}
-            </nav>
-          </div>
-        </header>
-        <div className="h-16" aria-hidden />
-
-        <main className="flex flex-1 flex-col justify-center py-16">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pt-16 pb-8 sm:px-6">
+        <BrandHeader brand={webDesignConfig} displayBrandName="LRG Store Shop" logoBrandSlug="store-shop" />
+        <main className="flex flex-1 flex-col justify-start py-8">
           <span
             className="glass inline-flex w-fit items-center gap-2 rounded-full px-4 py-1.5 text-xs tracking-[0.16em] text-muted-foreground uppercase opacity-100"
             style={{ transition: "opacity 600ms ease" }}
@@ -201,16 +202,27 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             className="mt-10 flex flex-wrap items-center gap-3"
             style={{ transition: "transform 700ms ease, opacity 700ms ease", transform: "translateY(0)", opacity: 1 }}
           >
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button size="lg" className="gap-2">
-                  Elegir sector <ArrowRight className="size-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <SectorsContent />
-              </DialogContent>
-            </Dialog>
+            <Button 
+              onClick={() => navigate({ to: "/$brand", params: { brand: "arcade" } })}
+              size="lg" 
+              className="gap-2"
+            >
+              LRG Arcade <ArrowRight className="size-4" />
+            </Button>
+            <Button 
+              onClick={() => navigate({ to: "/$brand", params: { brand: "scents" } })}
+              size="lg" 
+              className="gap-2"
+            >
+              LRG Scents <ArrowRight className="size-4" />
+            </Button>
+            <Button 
+              onClick={() => navigate({ to: "/$brand", params: { brand: "web-design" } })}
+              size="lg" 
+              className="gap-2"
+            >
+              LRG Web Design <ArrowRight className="size-4" />
+            </Button>
           </div>
 
           <Reveal delay={0.3} className="mt-16">
@@ -225,6 +237,157 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               ))}
             </ul>
           </Reveal>
+
+          <section className="mt-20 p-6 sm:p-8">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 text-primary">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star key={index} className="size-4 fill-current" />
+                  ))}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Reseñas verificadas en Trustpilot</p>
+                  <p className="text-xs text-muted-foreground">4.9/5 según clientes reales</p>
+                  <p className="text-xs text-muted-foreground">+24 opiniones</p>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <a
+                  href={trustpilotUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-background/70 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
+                >
+                  Ver más opiniones
+                  <ArrowUpRight className="size-4" />
+                </a>
+                <a
+                  href={trustpilotUrl_Evaluate}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-background/70 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
+                >
+                  Opinar sobre nosotros
+                  <ArrowUpRight className="size-4" />
+                </a>
+              </div>
+            </div>
+
+            <div className="mt-8 flex gap-2 mb-6 flex-wrap">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setSortBy("date");
+                    setSortDirection("newest");
+                  }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    sortBy === "date" && sortDirection === "newest"
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-border bg-background/70 text-foreground hover:border-primary/50 hover:text-primary"
+                  }`}
+                >
+                  Más reciente
+                </button>
+                <button
+                  onClick={() => {
+                    setSortBy("date");
+                    setSortDirection("oldest");
+                  }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    sortBy === "date" && sortDirection === "oldest"
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-border bg-background/70 text-foreground hover:border-primary/50 hover:text-primary"
+                  }`}
+                >
+                  Más antiguo
+                </button>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setSortBy("rating");
+                    setSortDirection("highest");
+                  }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    sortBy === "rating" && sortDirection === "highest"
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-border bg-background/70 text-foreground hover:border-primary/50 hover:text-primary"
+                  }`}
+                >
+                  Mayor puntuación
+                </button>
+                <button
+                  onClick={() => {
+                    setSortBy("rating");
+                    setSortDirection("lowest");
+                  }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    sortBy === "rating" && sortDirection === "lowest"
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-border bg-background/70 text-foreground hover:border-primary/50 hover:text-primary"
+                  }`}
+                >
+                  Menor puntuación
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {sortedReviews.map((review, index) => (
+                <article
+                  key={`${review.name}-${index}`}
+                  className="group relative overflow-hidden rounded-[2rem] border border-border/60 bg-background/80 p-5 shadow-[0_20px_60px_rgba(10,15,35,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/70 hover:bg-background/95"
+                >
+                  <div className="absolute left-0 top-0 h-2 w-28 rounded-br-full bg-gradient-to-r from-primary to-transparent opacity-90" />
+                  <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-primary to-transparent opacity-80" />
+                  <div className="relative z-10 flex items-center gap-2 text-primary mb-4">
+                    {Array.from({ length: review.rating }).map((_, index) => (
+                      <Star key={`${review.name}-${index}`} className="size-4 fill-current" />
+                    ))}
+                  </div>
+
+                  <div className="relative z-10">
+                    <h3 className="font-semibold text-foreground text-base leading-tight">{review.title}</h3>
+                    <p className="text-xs text-muted-foreground mb-3">{review.date}</p>
+                    <div className="h-px w-16 rounded-full bg-primary/20 mb-4" />
+                  </div>
+
+                  <div className="relative z-10 flex-1">
+                    <p className="text-sm leading-relaxed text-muted-foreground">{review.text}</p>
+                  </div>
+
+                  <div className="relative z-10 my-4 h-px w-full bg-gradient-to-r from-border/30 via-border/10 to-transparent" />
+
+                  <div className="relative z-10 flex items-center gap-2 text-xs">
+                    <span className="font-semibold text-foreground">{review.name}</span>
+                    <span className="h-4 w-px bg-border/20" />
+                    <a
+                      href={review.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-primary"
+                      aria-label={`Ver reseña de ${review.name}`}
+                    >
+                      <ShieldCheck className="size-3.5" />
+                      Verificado
+                    </a>
+                    <a
+                      href={review.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ml-auto inline-flex items-center gap-1 text-primary transition-colors hover:text-primary/80 font-medium"
+                      aria-label={`Abrir opinión de ${review.name}`}
+                    >
+                      Abrir opinión
+                      <ArrowUpRight className="size-3" />
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
         </main>
 
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-6 pb-2 text-xs text-muted-foreground">

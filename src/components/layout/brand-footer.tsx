@@ -1,5 +1,17 @@
 import { Link } from "@tanstack/react-router";
-import { Banknote, Bitcoin, CreditCard, Currency, Globe, Mail, MapPin, Phone, Instagram, Facebook } from "lucide-react";
+import {
+  ArrowUpRight,
+  Banknote,
+  Bitcoin,
+  CreditCard,
+  Currency,
+  Facebook,
+  Globe,
+  Instagram,
+  Mail,
+  MapPin,
+  Phone,
+} from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { brandList, type BrandConfig } from "@/config/brands";
 

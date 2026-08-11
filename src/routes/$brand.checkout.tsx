@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { CheckCircle2, CreditCard, Lock, Truck } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { getBrand } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/store/cart";
+import { orderQueries, orderService, type Order } from "@/services/catalog.service";
 
 export const Route = createFileRoute("/$brand/checkout")({
   loader: ({ params }) => {
@@ -42,6 +44,14 @@ function CheckoutPage() {
   const shipping = subtotal > 300 || subtotal === 0 ? 0 : 18;
   const [step, setStep] = useState<"form" | "done">("form");
   const [orderId, setOrderId] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<string>(brand.payments[0] ?? "Tarjeta");
+  const queryClient = useQueryClient();
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,7 +59,29 @@ function CheckoutPage() {
       toast.error("Tu carrito está vacío");
       return;
     }
+
     const id = `LRG-${Math.floor(10000 + Math.random() * 89999)}`;
+    const total = subtotal + shipping;
+    const expenses = Math.round(total * 0.65);
+    const order: Order = {
+      id,
+      brand: brand.slug,
+      customer: customerName,
+      email,
+      phone,
+      extraInfo: notes,
+      date: new Date().toISOString().slice(0, 10),
+      total,
+      expenses,
+      profit: total - expenses,
+      status: "pendiente",
+      paymentMethod,
+      items: items.map((item) => ({ name: item.name, quantity: item.quantity, price: item.price })),
+    };
+
+    orderService.create(order);
+    const orderQueryKey = ["orders"] as const;
+    queryClient.invalidateQueries({ queryKey: orderQueryKey });
     setOrderId(id);
     clear();
     setStep("done");
@@ -95,27 +127,64 @@ function CheckoutPage() {
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Nombre completo</Label>
-                <Input id="name" required placeholder="Juan Pérez" />
+                <Input
+                  id="name"
+                  required
+                  placeholder="Juan Pérez"
+                  value={customerName}
+                  onChange={(event) => setCustomerName(event.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" required placeholder="juan@mail.com" />
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  placeholder="juan@mail.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Teléfono</Label>
-                <Input id="phone" required placeholder="+54 11 5555 5555" />
+                <Input
+                  id="phone"
+                  required
+                  placeholder="+54 11 5555 5555"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="city">Ciudad</Label>
-                <Input id="city" required placeholder="Buenos Aires" />
+                <Input
+                  id="city"
+                  required
+                  placeholder="Buenos Aires"
+                  value={city}
+                  onChange={(event) => setCity(event.target.value)}
+                />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="address">Dirección</Label>
-                <Input id="address" required placeholder="Av. Siempre Viva 742" />
+                <Input
+                  id="address"
+                  required
+                  placeholder="Av. Siempre Viva 742"
+                  value={address}
+                  onChange={(event) => setAddress(event.target.value)}
+                />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="notes">Notas del pedido (opcional)</Label>
-                <Textarea id="notes" placeholder="Indicaciones para la entrega" rows={3} />
+                <Textarea
+                  id="notes"
+                  placeholder="Indicaciones para la entrega"
+                  rows={3}
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                />
               </div>
             </div>
           </section>
@@ -124,7 +193,11 @@ function CheckoutPage() {
             <h2 className="font-display flex items-center gap-2 font-semibold">
               <CreditCard className="size-4 text-primary" /> Método de pago
             </h2>
-            <RadioGroup defaultValue={brand.payments[0] ?? "Tarjeta"} className="mt-5 space-y-3">
+            <RadioGroup
+              value={paymentMethod}
+              onValueChange={setPaymentMethod}
+              className="mt-5 space-y-3"
+            >
               {brand.payments.map((payment) => (
                 <label
                   key={payment}

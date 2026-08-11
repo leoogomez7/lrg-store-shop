@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { Check, Lock, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Check, Lock, Pencil, Plus, Search, Trash2, X, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -32,6 +32,7 @@ import {
 import { brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
 import { catalogQueries, orderQueries, type Product } from "@/services/catalog.service";
+import { cn } from "@/lib/utils";
 import type { BrandSlug } from "@/config/brands";
 import type { Order, OrderStatus } from "@/data/orders";
 
@@ -56,16 +57,26 @@ type OrderSort =
   | "total_desc"
   | "total_asc";
 
+type DeliveryStatus = "Pendiente" | "Enviado";
+type PaymentStatus = "Pendiente" | "Pagado" | "Cancelado";
+
 type EditableOrderItem = {
   name: string;
   quantity: number;
+  originalName: string | undefined;
+  originalQuantity: number | undefined;
   price: number;
-  stock?: number;
-  confirmed?: boolean;
+  stock: number | undefined;
+  confirmed: boolean;
 };
 
 type EditableOrder = Omit<Order, "items"> & {
   items: EditableOrderItem[];
+  deliveryStatus: DeliveryStatus;
+  paymentStatus: PaymentStatus;
+  shippingNumber?: string | undefined;
+  shippingMethod?: "Por correo fisico" | "Por correo electronico" | "Por Whatsapp" | string | undefined;
+  deliveryDate?: string | undefined;
 };
 
 function computeOrderTotals(items: EditableOrderItem[], expenseRatio = 0.65) {
@@ -81,13 +92,42 @@ function computeOrderTotals(items: EditableOrderItem[], expenseRatio = 0.65) {
   };
 }
 
-const statusVariant: Record<OrderStatus, "default" | "secondary" | "destructive" | "success" | "warning" | "outline"> = {
+const statusVariant: Record<OrderStatus, "default" | "secondary" | "destructive" | "success" | "warning" | "outline" | "pending"> = {
   pendiente: "outline",
   pagado: "success",
   enviado: "warning",
   entregado: "default",
   cancelado: "destructive",
 };
+
+const deliveryVariant: Record<"Pendiente" | "Enviado", "pending" | "warning"> = {
+  Pendiente: "pending",
+  Enviado: "warning",
+};
+
+const paymentVariant: Record<"Pendiente" | "Pagado" | "Cancelado", "pending" | "success" | "destructive"> = {
+  Pendiente: "pending",
+  Pagado: "success",
+  Cancelado: "destructive",
+};
+
+const getDeliveryStatus = (status: OrderStatus): DeliveryStatus =>
+  status === "enviado" || status === "entregado" ? "Enviado" : "Pendiente";
+
+const getPaymentStatus = (status: OrderStatus): PaymentStatus => {
+  if (status === "pagado") return "Pagado";
+  if (status === "cancelado") return "Cancelado";
+  return "Pendiente";
+};
+
+const mergeOrderStatus = (deliveryStatus: DeliveryStatus, paymentStatus: PaymentStatus): OrderStatus => {
+  if (paymentStatus === "Cancelado") return "cancelado";
+  if (paymentStatus === "Pagado") return "pagado";
+  if (deliveryStatus === "Enviado") return "enviado";
+  return "pendiente";
+};
+
+const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
 export const Route = createFileRoute("/admin/pedidos")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
@@ -112,7 +152,10 @@ function AdminOrders() {
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const { data: allProducts } = useSuspenseQuery(catalogQueries.all());
   const [editableOrders, setEditableOrders] = useState<typeof orders>([]);
-  const [status, setStatus] = useState<OrderStatus | "todos">("todos");
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryStatus | "todos">("todos");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | "todos">("todos");
+  const [shippingMethodFilter, setShippingMethodFilter] = useState<string | "todos">("todos");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string | "todos">("todos");
   const [brand, setBrand] = useState<BrandSlug | "todos">("todos");
   const [query, setQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<OrderSort>("customer_asc");
@@ -129,15 +172,24 @@ function AdminOrders() {
 
   const results = useMemo(() => {
     const filtered = editableOrders.filter((order) => {
-      const statusMatches = status === "todos" || order.status === status;
+      const orderDeliveryStatus =
+        (order as Order & { deliveryStatus?: DeliveryStatus }).deliveryStatus ??
+        getDeliveryStatus(order.status);
+      const orderPaymentStatus =
+        (order as Order & { paymentStatus?: PaymentStatus }).paymentStatus ??
+        getPaymentStatus(order.status);
+      const deliveryMatches = deliveryFilter === "todos" || orderDeliveryStatus === deliveryFilter;
+      const paymentMatches = paymentFilter === "todos" || orderPaymentStatus === paymentFilter;
       const brandMatches = brand === "todos" || order.brand === brand;
+      const shippingMatches = shippingMethodFilter === "todos" || (order.shippingMethod ?? "") === shippingMethodFilter;
+      const paymentMethodMatches = paymentMethodFilter === "todos" || (order.paymentMethod ?? "") === paymentMethodFilter;
       const queryMatches =
         !query ||
         order.id.toLowerCase().includes(query.toLowerCase()) ||
         order.customer.toLowerCase().includes(query.toLowerCase()) ||
         order.email.toLowerCase().includes(query.toLowerCase());
 
-      return statusMatches && brandMatches && queryMatches;
+      return deliveryMatches && paymentMatches && brandMatches && queryMatches && shippingMatches && paymentMethodMatches;
     });
 
     return [...filtered].sort((a, b) => {
@@ -158,20 +210,29 @@ function AdminOrders() {
           return 0;
       }
     });
-  }, [editableOrders, status, brand, query, sortOrder]);
+  }, [editableOrders, deliveryFilter, paymentFilter, shippingMethodFilter, paymentMethodFilter, brand, query, sortOrder]);
 
   const openEditOrderDialog = (order: Order) => {
     const expenseRatio = order.total ? order.expenses / order.total : 0.65;
     const cloned: EditableOrder = {
-      ...order,
+      ...(order as any),
       items: order.items.map((item) => {
         const productMatch = allProducts.find((product) => product.name === item.name);
         return {
           ...item,
+          originalName: item.name,
+          originalQuantity: item.quantity,
           stock: productMatch?.stock,
           confirmed: true,
         };
       }),
+      deliveryStatus:
+        (order as Order & { deliveryStatus?: DeliveryStatus }).deliveryStatus ?? getDeliveryStatus(order.status),
+      paymentStatus:
+        (order as Order & { paymentStatus?: PaymentStatus }).paymentStatus ?? getPaymentStatus(order.status),
+      shippingNumber: order.shippingNumber ?? undefined,
+      shippingMethod: (order as Order & { shippingMethod?: string }).shippingMethod ?? undefined,
+      deliveryDate: (order as Order & { deliveryDate?: string }).deliveryDate ?? undefined,
     };
     const totals = computeOrderTotals(cloned.items, expenseRatio);
     cloned.total = totals.total;
@@ -195,6 +256,14 @@ function AdminOrders() {
     return "";
   };
 
+  const updateOrderItemsOnly = (items: EditableOrderItem[]) => {
+    if (!orderForm) return;
+    setOrderForm({
+      ...orderForm,
+      items,
+    });
+  };
+
   const updateOrderItems = (items: EditableOrderItem[]) => {
     if (!orderForm) return;
     const ratio = orderForm.total ? orderForm.expenses / orderForm.total : 0.65;
@@ -208,13 +277,36 @@ function AdminOrders() {
     });
   };
 
+  const handleAddShippingNumber = (orderId: string) => {
+    const current = editableOrders.find((order) => order.id === orderId)?.shippingNumber ?? "";
+    const shippingNumber = window.prompt("Ingrese número de envío", current) ?? "";
+    setEditableOrders((currentOrders) =>
+      currentOrders.map((order) =>
+        order.id === orderId
+          ? ( {
+              ...order,
+              shippingNumber: shippingNumber.trim() || undefined,
+            } as Order)
+          : order,
+      ),
+    );
+  };
+
   const addOrderItem = () => {
     if (!orderForm) return;
     setOrderForm({
       ...orderForm,
       items: [
         ...orderForm.items,
-        { name: "", quantity: 1, price: 0, confirmed: false },
+        {
+          name: "",
+          quantity: 1,
+          price: 0,
+          stock: undefined,
+          confirmed: false,
+          originalName: "",
+          originalQuantity: 0,
+        },
       ],
     });
   };
@@ -229,17 +321,36 @@ function AdminOrders() {
   const confirmOrderItem = (index: number) => {
     if (!orderForm) return;
     const nextItems = [...orderForm.items];
+    if (index < 0 || index >= nextItems.length) return;
     const item = nextItems[index];
-    if (!item.name || item.quantity < 1 || (item.stock !== undefined && item.quantity > item.stock)) return;
-    nextItems[index] = { ...item, confirmed: true };
+    if (!item || !item.name || item.quantity < 1 || (item.stock !== undefined && item.quantity > item.stock)) return;
+    nextItems[index] = {
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      stock: item.stock,
+      confirmed: true,
+      originalName: item.name,
+      originalQuantity: item.quantity,
+    };
     updateOrderItems(nextItems);
   };
 
   const unconfirmOrderItem = (index: number) => {
     if (!orderForm) return;
     const nextItems = [...orderForm.items];
+    if (index < 0 || index >= nextItems.length) return;
     const item = nextItems[index];
-    nextItems[index] = { ...item, confirmed: false };
+    if (!item) return;
+    nextItems[index] = {
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      stock: item.stock,
+      confirmed: false,
+      originalName: item.originalName ?? "",
+      originalQuantity: item.originalQuantity ?? 0,
+    };
     updateOrderItems(nextItems);
   };
 
@@ -278,15 +389,54 @@ function AdminOrders() {
               className="pl-9"
             />
           </div>
-          <Select value={status} onValueChange={(value) => setStatus(value as OrderStatus | "todos")}>
+          <Select value={deliveryFilter} onValueChange={(value) => setDeliveryFilter(value as DeliveryStatus | "todos")}> 
             <SelectTrigger className="w-50">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {statuses.map((item) => (
+              <SelectItem value="todos">Estados de entrega</SelectItem>
+              {(["Pendiente", "Enviado"] as DeliveryStatus[]).map((item) => (
                 <SelectItem key={item} value={item}>
-                  {item === "todos" ? "Todos los estados" : item}
+                  {item}
                 </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={paymentFilter} onValueChange={(value) => setPaymentFilter(value as PaymentStatus | "todos")}> 
+            <SelectTrigger className="w-50">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Estados de pago</SelectItem>
+              {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((item) => (
+                <SelectItem key={item} value={item}>
+                  {item}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={shippingMethodFilter} onValueChange={(value) => setShippingMethodFilter(value as string | "todos")}> 
+            <SelectTrigger className="w-50">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Métodos de envío</SelectItem>
+              <SelectItem value="Por correo fisico">Por correo fisico</SelectItem>
+              <SelectItem value="Por correo electronico">Por correo electronico</SelectItem>
+              <SelectItem value="Por Whatsapp">Por Whatsapp</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={paymentMethodFilter} onValueChange={(value) => setPaymentMethodFilter(value as string | "todos")}> 
+            <SelectTrigger className="w-50">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Métodos de pago</SelectItem>
+              {paymentMethods.map((m) => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -298,7 +448,7 @@ function AdminOrders() {
             <SelectContent>
               {brandsFilter.map((item) => (
                 <SelectItem key={item} value={item}>
-                  {item === "todos" ? "Todos los sectores" : brands[item].name}
+                  {item === "todos" ? "Tiendas" : brands[item].name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -327,13 +477,16 @@ function AdminOrders() {
               <TableHead>Pedido</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Sector</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Estado</TableHead>
+              <TableHead>Fecha de venta</TableHead>
+              <TableHead>Entrega del producto</TableHead>
+              <TableHead>Método de envío</TableHead>
+              <TableHead>Pago del producto</TableHead>
+              <TableHead>Método de pago</TableHead>
+              <TableHead>Fecha de entrega</TableHead>
               <TableHead className="text-right">Gastos</TableHead>
+              <TableHead className="text-right">Precio en venta</TableHead>
               <TableHead className="text-right">Ganancias</TableHead>
-              <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
-              <TableHead className="text-right">Detalles</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -344,6 +497,12 @@ function AdminOrders() {
                 nameParts.length > 1
                   ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}`
                   : order.customer;
+              const displayDeliveryStatus =
+                (order as Order & { deliveryStatus?: DeliveryStatus }).deliveryStatus ??
+                getDeliveryStatus(order.status);
+              const displayPaymentStatus =
+                (order as Order & { paymentStatus?: PaymentStatus }).paymentStatus ??
+                getPaymentStatus(order.status);
 
               return (
                 <Fragment key={order.id}>
@@ -355,37 +514,51 @@ function AdminOrders() {
                     <TableCell>{brands[order.brand].shortName}</TableCell>
                     <TableCell>{formatDate(order.date)}</TableCell>
                     <TableCell>
-                      <Badge className="capitalize" variant={statusVariant[order.status]}>
-                        {order.status}
+                      <Badge className="capitalize" variant={deliveryVariant[displayDeliveryStatus]}>
+                        {displayDeliveryStatus}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">{formatPrice(order.expenses)}</TableCell>
-                    <TableCell className="text-right">{formatPrice(order.profit)}</TableCell>
-                    <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
-                    <TableCell className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => openEditOrderDialog(order)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80"
-                        aria-label="Editar pedido"
-                      >
-                        <Pencil className="size-4" />
-                      </button>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <span>{order.shippingMethod ?? "—"}</span>
+                        <span className="text-sm text-muted-foreground">{order.shippingNumber ?? "—"}</span>
+                      </div>
                     </TableCell>
+                    <TableCell>
+                      <Badge className="capitalize" variant={paymentVariant[displayPaymentStatus]}>
+                        {displayPaymentStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{order.paymentMethod}</TableCell>
+                    <TableCell>{order.deliveryDate ? formatDate(order.deliveryDate) : "—"}</TableCell>
+                    <TableCell className="text-right">{formatPrice(order.expenses)}</TableCell>
+                    <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
+                    <TableCell className="text-right">{formatPrice(order.profit)}</TableCell>
                     <TableCell className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                        className="rounded-lg border border-border px-3 py-1 text-sm transition hover:bg-surface-2"
-                      >
-                        {isExpanded ? "Ocultar" : "Mostrar"}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditOrderDialog(order)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80"
+                          aria-label="Editar pedido"
+                        >
+                          <Pencil className="size-4" />
+                        </button>
+                        <Button
+                          variant={isExpanded ? "outline" : "secondary"}
+                          size="sm"
+                          onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                          title={isExpanded ? "Ocultar" : "Mostrar"}
+                        >
+                          {isExpanded ? <X className="size-4" /> : <Eye className="size-4" />}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
 
                   {isExpanded && (
                     <TableRow key={`${order.id}-details`}>
-                      <TableCell colSpan={10} className="bg-surface-2/70 p-5">
+                      <TableCell colSpan={13} className="bg-surface-2/70 p-5">
                         <div className="space-y-3 text-sm">
                           <p className="font-medium">Detalle del pedido</p>
                           <div className="grid gap-2 text-sm sm:grid-cols-[max-content_minmax(0,1fr)]">
@@ -395,6 +568,36 @@ function AdminOrders() {
                             <span>{order.phone}</span>
                             <span className="text-muted-foreground">Método de pago</span>
                             <span>{order.paymentMethod}</span>
+                            <span className="text-muted-foreground">Envío</span>
+                            <span>{displayDeliveryStatus === "Enviado" ? "Sí" : "No"}</span>
+                            <span className="text-muted-foreground">Número de envío</span>
+                            <span className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                              <input
+                                type="text"
+                                readOnly
+                                value={order.shippingNumber ?? ""}
+                                placeholder="Aún no ingresado"
+                                className={cn(
+                                  "w-full rounded-lg border px-3 py-2 text-sm text-foreground bg-background",
+                                  displayDeliveryStatus !== "Enviado"
+                                    ? "border-border bg-muted/10 text-muted-foreground"
+                                    : "border-border bg-surface",
+                                )}
+                              />
+                              <button
+                                type="button"
+                                disabled={displayDeliveryStatus !== "Enviado"}
+                                onClick={() => handleAddShippingNumber(order.id)}
+                                className={cn(
+                                  "rounded-lg border px-3 py-2 text-sm transition",
+                                  displayDeliveryStatus === "Enviado"
+                                    ? "border-border bg-surface hover:bg-surface-2 text-foreground"
+                                    : "border-border bg-muted/10 text-muted-foreground cursor-not-allowed",
+                                )}
+                              >
+                                Agregar
+                              </button>
+                            </span>
                             <span className="text-muted-foreground">Observaciones</span>
                             <span>{order.extraInfo}</span>
                           </div>
@@ -418,6 +621,13 @@ function AdminOrders() {
                 </Fragment>
               );
             })}
+            {results.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={13} className="py-16 text-center text-sm text-muted-foreground">
+                  No se encontraron pedidos.
+                </TableCell>
+              </TableRow>
+            ) : null}
           </TableBody>
         </Table>
       </div>
@@ -435,7 +645,7 @@ function AdminOrders() {
                   <Input value={orderForm.id} disabled />
                 </div>
                 <div>
-                  <Label>Fecha</Label>
+                  <Label>Fecha de compra</Label>
                   <Input value={formatDate(orderForm.date)} disabled />
                 </div>
               </div>
@@ -457,7 +667,7 @@ function AdminOrders() {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-4">
                 <div>
                   <Label>Celular</Label>
                   <Input
@@ -475,7 +685,6 @@ function AdminOrders() {
                       setOrderForm({
                         ...orderForm,
                         paymentMethod: value,
-                        status: "pendiente",
                       });
                       setPaymentInstruction(nextInstruction);
                     }}
@@ -491,6 +700,101 @@ function AdminOrders() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label>Entrega del producto</Label>
+                  <Select
+                    value={orderForm.deliveryStatus}
+                    onValueChange={(value) => {
+                      if (!orderForm) return;
+                      const nextDeliveryStatus = value as DeliveryStatus;
+                      setOrderForm({
+                        ...orderForm,
+                        deliveryStatus: nextDeliveryStatus,
+                        status: mergeOrderStatus(nextDeliveryStatus, orderForm.paymentStatus),
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar entrega" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(["Pendiente", "Enviado"] as DeliveryStatus[]).map((deliveryStatusOption) => (
+                        <SelectItem key={deliveryStatusOption} value={deliveryStatusOption}>
+                          {deliveryStatusOption}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Pago del producto</Label>
+                  <Select
+                    value={orderForm.paymentStatus}
+                    onValueChange={(value) => {
+                      if (!orderForm) return;
+                      const nextPaymentStatus = value as PaymentStatus;
+                      setOrderForm({
+                        ...orderForm,
+                        paymentStatus: nextPaymentStatus,
+                        status: mergeOrderStatus(orderForm.deliveryStatus, nextPaymentStatus),
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar pago" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((paymentStatusOption) => (
+                        <SelectItem key={paymentStatusOption} value={paymentStatusOption}>
+                          {paymentStatusOption}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Método de envío</Label>
+                  <Select
+                    value={orderForm.shippingMethod}
+                    onValueChange={(value) => {
+                      if (!orderForm) return;
+                      setOrderForm({ ...orderForm, shippingMethod: value });
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar método" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={"Por correo fisico"}>Por correo fisico</SelectItem>
+                      <SelectItem value={"Por correo electronico"}>Por correo electronico</SelectItem>
+                      <SelectItem value={"Por Whatsapp"}>Por Whatsapp</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Fecha de entrega</Label>
+                  <Input
+                    type="date"
+                    value={orderForm.deliveryDate ?? ""}
+                    onChange={(event) => setOrderForm({ ...orderForm, deliveryDate: event.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Número de envío</Label>
+                  <Input
+                    value={orderForm.shippingNumber ?? ""}
+                    onChange={(event) => setOrderForm({ ...orderForm, shippingNumber: event.target.value })}
+                    disabled={orderForm.shippingMethod !== "Por correo fisico"}
+                    placeholder={
+                      orderForm.shippingMethod === "Por correo fisico"
+                        ? "Ingrese número de envío"
+                        : "Disponible solo si Método de envío es Por correo fisico"
+                    }
+                  />
                 </div>
               </div>
 
@@ -526,6 +830,7 @@ function AdminOrders() {
                           <Label>Nombre</Label>
                           <Input
                             value={searchQuery}
+                            placeholder="Buscar producto"
                             onFocus={() => setActiveSuggestionIndex(itemIndex)}
                             onChange={(event) => {
                               setProductSearchQuery((current) => ({
@@ -600,7 +905,7 @@ function AdminOrders() {
                                 ...item,
                                 quantity: clampQuantity(item, Number(event.target.value) || 1),
                               };
-                              updateOrderItems(nextItems);
+                              updateOrderItemsOnly(nextItems);
                             }}
                           />
                         </div>
@@ -611,10 +916,20 @@ function AdminOrders() {
                         <div className="flex items-end gap-2">
                           <Button
                             type="button"
-                            variant={item.confirmed ? "secondary" : "outline"}
+                            variant="ghost"
                             onClick={() => confirmOrderItem(itemIndex)}
-                            disabled={!item.name || item.quantity < 1 || (item.stock !== undefined && item.quantity > item.stock)}
-                            className="h-10 px-3"
+                            disabled={
+                              !item.name ||
+                              item.quantity < 1 ||
+                              (item.stock !== undefined && item.quantity > item.stock) ||
+                              (item.originalName !== undefined &&
+                                item.originalQuantity !== undefined &&
+                                item.name === item.originalName &&
+                                item.quantity === item.originalQuantity)
+                            }
+                            className={`h-10 px-3 text-green-600 ${
+                              item.confirmed ? "hover:text-green-700 bg-transparent hover:bg-accent" : "hover:bg-accent hover:text-accent-foreground"
+                            }`}
                           >
                             <Check className="size-4" />
                           </Button>
@@ -630,7 +945,7 @@ function AdminOrders() {
                             type="button"
                             variant="ghost"
                             onClick={() => removeOrderItem(itemIndex)}
-                            className="h-10 p-2"
+                            className="h-10 p-2 text-red-600 hover:text-red-700 hover:bg-accent"
                           >
                             <Trash2 className="size-4" />
                           </Button>

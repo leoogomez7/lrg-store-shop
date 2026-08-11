@@ -33,6 +33,10 @@ export const catalogService = {
 export const orderService = {
   list: () => simulate(orders, 240),
   revenue: () => simulate(revenueByMonth, 200),
+  create: (order: Order) => {
+    orders.unshift(order);
+    return simulate(order, 240);
+  },
 };
 
 export const catalogQueries = {

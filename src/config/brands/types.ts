@@ -15,7 +15,7 @@ export type BrandConfig = {
   name: string;
   shortName: string;
   tagline: string;
-  description: string;
+  description?: string;
   keywords: string[];
   hero: {
     eyebrow: string;

@@ -102,15 +102,24 @@ function AdminLayout() {
                 <BrandMark compact brandSlug="store-shop" />
               </Link>
               <nav className="flex gap-1 overflow-x-auto">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className="rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                {navigation.map((item) => {
+                  const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "rounded-lg px-2.5 py-1.5 text-xs transition-colors",
+                        active
+                          ? "bg-surface-2 text-foreground font-semibold shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
               </nav>
             </div>
           </header>

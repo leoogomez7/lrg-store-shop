@@ -14,7 +14,12 @@ export type Order = {
   expenses: number;
   profit: number;
   status: OrderStatus;
+  deliveryStatus?: "Pendiente" | "Enviado";
+  paymentStatus?: "Pendiente" | "Pagado" | "Cancelado";
   paymentMethod: string;
+  deliveryDate?: string | undefined;
+  shippingMethod?: "Por correo fisico" | "Por correo electronico" | "Por Whatsapp" | string | undefined;
+  shippingNumber?: string | undefined;
   items: { name: string; quantity: number; price: number }[];
 };
 
@@ -32,6 +37,7 @@ export const orders: Order[] = [
     profit: 208,
     status: "enviado",
     paymentMethod: "Tarjeta",
+    deliveryDate: "2026-08-04",
     items: [
       { name: "PlayStation 5 Slim Digital", quantity: 1, price: 469 },
       { name: "Mando Pro Inalámbrico Elite", quantity: 1, price: 149 },
@@ -50,6 +56,7 @@ export const orders: Order[] = [
     profit: 98,
     status: "pagado",
     paymentMethod: "Transferencia",
+    deliveryDate: "2026-08-03",
     items: [
       { name: "Oud Royal Extrait", quantity: 1, price: 189 },
       { name: "Set Descubrimiento Oriental", quantity: 1, price: 89 },
@@ -68,6 +75,7 @@ export const orders: Order[] = [
     profit: 1700,
     status: "entregado",
     paymentMethod: "Wise",
+    deliveryDate: "2026-07-30",
     items: [{ name: "Tienda Ecommerce Completa", quantity: 1, price: 4900 }],
   },
   {
@@ -83,6 +91,7 @@ export const orders: Order[] = [
     profit: 74,
     status: "entregado",
     paymentMethod: "Mastercard",
+    deliveryDate: "2026-07-26",
     items: [{ name: "PS Plus Premium · 12 meses", quantity: 1, price: 119 }],
   },
   {

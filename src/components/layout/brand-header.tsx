@@ -1,7 +1,8 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { ShoppingBag, User } from "lucide-react";
+import { ShoppingBag, ShoppingCart, User, Menu, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
+import { toast } from "sonner";
 import { BrandMark } from "@/components/common/brand-mark";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { Button } from "@/components/ui/button";
@@ -18,10 +19,38 @@ import { brandList, type BrandConfig } from "@/config/brands";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/store/cart";
 
-export function BrandHeader({ brand }: { brand: BrandConfig }) {
+export function BrandHeader({
+  brand,
+  displayBrandName,
+  logoBrandSlug,
+  headerTheme,
+}: {
+  brand: BrandConfig;
+  displayBrandName?: string;
+  logoBrandSlug?: string;
+  headerTheme?: string;
+}) {
   return (
-    <KindeAuthGate fallback={<BrandHeaderContent brand={brand} auth={null} />}>
-      {(auth) => <BrandHeaderContent brand={brand} auth={auth} />}
+    <KindeAuthGate
+      fallback={
+        <BrandHeaderContent
+          brand={brand}
+          auth={null}
+          displayBrandName={displayBrandName}
+          logoBrandSlug={logoBrandSlug}
+          headerTheme={headerTheme}
+        />
+      }
+    >
+      {(auth) => (
+        <BrandHeaderContent
+          brand={brand}
+          auth={auth}
+          displayBrandName={displayBrandName}
+          logoBrandSlug={logoBrandSlug}
+          headerTheme={headerTheme}
+        />
+      )}
     </KindeAuthGate>
   );
 }
@@ -29,13 +58,21 @@ export function BrandHeader({ brand }: { brand: BrandConfig }) {
 function BrandHeaderContent({
   brand,
   auth,
+  displayBrandName,
+  logoBrandSlug,
+  headerTheme,
 }: {
   brand: BrandConfig;
   auth: ReturnType<typeof useKindeAuth> | null;
+  displayBrandName?: string;
+  logoBrandSlug?: string;
+  headerTheme?: string;
 }) {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
-  const { count } = useCart();
+  const [openBuyMenu, setOpenBuyMenu] = useState(false);
+  const [openCart, setOpenCart] = useState(false);
+  const { count, items, subtotal, itemsByBrand, setQuantity, removeItem } = useCart();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
   const { user, logout: kindeLogout } = auth ?? {
@@ -46,6 +83,7 @@ function BrandHeaderContent({
 
   useEffect(() => {
     setOpenMenu(false);
+    setOpenCart(false);
   }, [pathname]);
   const [panel, setPanel] = useState<string | null>(null);
 
@@ -70,24 +108,25 @@ function BrandHeaderContent({
 
   const handleBrandClick = (slug: string, closeMenu = false) => (e: any) => {
     e?.preventDefault?.();
-    const href = `/${slug}`;
+    const href = slug === "store-shop" ? "/" : `/${slug}`;
     if (typeof window !== "undefined" && window.location.pathname === href) {
       window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (slug === "store-shop") {
+      navigate({ to: "/" });
     } else {
       navigate({ to: "/$brand", params: { brand: slug } });
     }
     if (closeMenu) setOpenMenu(false);
   };
 
-  const links = [
-    { label: "Inicio", to: "/", exact: true },
-    { label: "Catálogo", to: "/$brand/productos", exact: false },
-  ] as const;
+  const links = [{ label: "LRG Store Shop", to: "/", exact: true }] as const;
 
-  const ecosystemLinks = brandList.map((item) => ({
-    label: item.name,
-    slug: item.slug,
-  }));
+  const brandLabel = displayBrandName ?? brand.name;
+  const brandLogoSlug = logoBrandSlug ?? brand.slug;
+  const headerThemeClass = headerTheme ?? brand.theme;
+  const brandHref = displayBrandName ? "/" : `/${brand.slug}`;
+
+  const otherBrands = brandList.filter((item) => item.slug !== brand.slug);
 
   function UserBadge() {
     if (!panel || !userName) return null;
@@ -104,60 +143,19 @@ function BrandHeaderContent({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
+      <header className={`${headerThemeClass} fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl`}>
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-4 px-4 sm:px-6">
-          <Link to="/" className="shrink-0" aria-label="LRG Store Shop">
-            <BrandMark compact brandSlug={brand.slug} />
+          <Link to="/" className="shrink-0" aria-label={brandLabel}>
+            <BrandMark compact brandSlug={brandLogoSlug} />
           </Link>
 
           <a
-            href={`/${brand.slug}`}
-            onClick={handleBrandClick(brand.slug)}
+            href={brandHref}
+            onClick={handleBrandClick(brandLogoSlug === "store-shop" ? "store-shop" : brand.slug)}
             className="font-display hidden text-sm font-semibold tracking-tight sm:block"
           >
-            {brand.name}
+            {brandLabel}
           </a>
-
-          <nav className="ml-4 hidden items-center gap-1 md:flex">
-            {links.map((link) => {
-              const href = link.to.replace("$brand", brand.slug);
-              const active = link.exact ? pathname === href : pathname.startsWith(href);
-              return (
-                <Link
-                  key={link.label}
-                  to={link.to}
-                  params={{ brand: brand.slug }}
-                  className={cn(
-                    "rounded-lg px-3 py-2 text-sm transition-colors",
-                    active ? "bg-surface-2 text-foreground" : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  Ecosistema
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {ecosystemLinks.map((item) => (
-                  <DropdownMenuItem
-                    key={item.slug}
-                    onSelect={(event) => {
-                      event.preventDefault();
-                      navigate({ to: "/$brand", params: { brand: item.slug } });
-                    }}
-                  >
-                    {item.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </nav>
 
           <div className="ml-auto flex items-center gap-4">
             <nav className="hidden md:flex items-center gap-3">
@@ -165,7 +163,7 @@ function BrandHeaderContent({
                 <>
                   <Button
                     onClick={() => navigate({ to: "/register" })}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     Crear cuenta
                   </Button>
@@ -173,7 +171,7 @@ function BrandHeaderContent({
                   <Button
                     variant="ghost"
                     onClick={() => navigate({ to: "/login" })}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="rounded-xl text-muted-foreground hover:text-foreground"
                   >
                     Iniciar sesión
                   </Button>
@@ -193,31 +191,42 @@ function BrandHeaderContent({
               <UserBadge />
             </div>
 
-            {userName ? (
-              <>
-                <Button variant="ghost" size="sm" className="text-red-600" onClick={() => setLogoutOpen(true)}>
-                  Cerrar sesión
+            <div className="hidden md:flex items-center gap-2">
+              {userName ? (
+                <>
+                  <Button variant="ghost" size="sm" className="rounded-xl text-red-600" onClick={() => setLogoutOpen(true)}>
+                    Cerrar sesión
+                  </Button>
+                  <ConfirmDialog
+                    open={logoutOpen}
+                    onOpenChange={setLogoutOpen}
+                    title="¿Cerrar sesión?"
+                    description="¿Deseas cerrar la sesión actual? Se finalizará tu acceso en este dispositivo."
+                    confirmLabel="Sí, cerrar sesión"
+                    cancelLabel="No"
+                    onConfirm={async () => {
+                      try {
+                        await kindeLogout();
+                      } catch (error) {
+                        console.error("Error during Kinde logout:", error);
+                      }
+                      await logout();
+                      setUserName(null);
+                      setPanel(null);
+                    }}
+                  />
+                </>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate({ to: "/login" })}
+                  className="rounded-xl text-muted-foreground hover:text-foreground"
+                >
+                  Iniciar sesión
                 </Button>
-                <ConfirmDialog
-                  open={logoutOpen}
-                  onOpenChange={setLogoutOpen}
-                  title="¿Cerrar sesión?"
-                  description="¿Deseas cerrar la sesión actual? Se finalizará tu acceso en este dispositivo."
-                  confirmLabel="Sí, cerrar sesión"
-                  cancelLabel="No"
-                  onConfirm={async () => {
-                    try {
-                      await kindeLogout();
-                    } catch (error) {
-                      console.error("Error during Kinde logout:", error);
-                    }
-                    await logout();
-                    setUserName(null);
-                    setPanel(null);
-                  }}
-                />
-              </>
-            ) : null}
+              )}
+            </div>
 
             {/* Mobile auth buttons: visible on small screens */}
             <div className="flex md:hidden items-center gap-2">
@@ -225,40 +234,205 @@ function BrandHeaderContent({
                 <>
                   <Button
                     onClick={() => navigate({ to: "/register" })}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs px-3 py-1"
+                    className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs px-3 py-1"
                   >
                     Crear cuenta
                   </Button>
                   <Button
                     variant="ghost"
                     onClick={() => navigate({ to: "/login" })}
-                    className="text-muted-foreground hover:text-foreground text-xs px-3 py-1"
+                    className="rounded-xl text-muted-foreground hover:text-foreground text-xs px-3 py-1"
                   >
                     Iniciar sesión
                   </Button>
                 </>
               ) : (
-                <Link to="/cuenta" className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2">
+                <Link to="/cuenta" className="text-sm font-medium px-2 py-1 rounded-xl hover:bg-surface-2">
                   Mi cuenta
                 </Link>
               )}
             </div>
 
-            <Link to="/$brand/carrito" params={{ brand: brand.slug }} className="relative inline-flex">
-              <Button variant="secondary" size="sm" className="relative gap-2">
-                <ShoppingBag className="size-4" />
-                <span className="hidden sm:inline">Carrito</span>
-                {count > 0 && (
-                  <Badge className="absolute -top-2 -right-2 size-5 justify-center rounded-full p-0 text-[0.65rem]">
-                    {count}
-                  </Badge>
+            <DropdownMenu open={openBuyMenu} onOpenChange={setOpenBuyMenu}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" size="sm" className="rounded-xl gap-2">
+                  <ShoppingCart className="size-4" />
+                  <span className="hidden sm:inline">Comprar</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onSelect={() => handleBrandClick(brand.slug, true)}>
+                  Comprar en {brand.name}
+                </DropdownMenuItem>
+                {otherBrands.map((item) => (
+                  <DropdownMenuItem
+                    key={item.slug}
+                    onSelect={() => handleBrandClick(item.slug, true)}
+                  >
+                    Comprar en {item.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu open={openCart} onOpenChange={setOpenCart}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" size="sm" className="rounded-xl relative gap-2">
+                  <ShoppingBag className="size-4" />
+                  <span className="hidden sm:inline">Carrito</span>
+                  {count > 0 && (
+                    <Badge className="absolute -top-2 -right-2 size-5 justify-center rounded-full p-0 text-[0.65rem]">
+                      {count}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                {count === 0 ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    Tu carrito está vacío
+                  </div>
+                ) : (
+                  <>
+                    <div className="max-h-80 overflow-y-auto">
+                      {items.map((item) => {
+                        const itemBrand = brandList.find((b) => b.slug === item.brand);
+                        return (
+                          <div
+                            key={item.id}
+                            className="px-4 py-3 border-b text-sm hover:bg-accent/50"
+                          >
+                            <div className="font-medium truncate mb-1">
+                              {item.name}
+                            </div>
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs shrink-0">
+                                {itemBrand?.name || item.brand}
+                              </Badge>
+                              <div className="text-xs text-muted-foreground shrink-0">
+                                ${item.price.toFixed(2)}
+                              </div>
+                              <div className="font-semibold shrink-0 text-right flex-1">
+                                ${(item.price * item.quantity).toFixed(2)}
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() =>
+                                    setQuantity(item.id, Math.max(1, item.quantity - 1))
+                                  }
+                                >
+                                  -
+                                </Button>
+                                <span className="w-6 text-center text-xs font-medium">
+                                  {item.quantity}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => {
+                                    if (item.quantity >= item.stock) {
+                                      toast.error("No hay más stock disponible para agregar.", {
+                                        description: `${item.name} alcanzó su límite de stock.`,
+                                      });
+                                      return;
+                                    }
+                                    setQuantity(item.id, item.quantity + 1);
+                                  }}
+                                >
+                                  +
+                                </Button>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
+                                onClick={() => removeItem(item.id)}
+                                title="Eliminar"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="border-t px-4 py-3 space-y-2">
+                      <div className="flex justify-between items-center font-semibold mb-3">
+                        <span>Subtotal:</span>
+                        <span>${items.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2)}</span>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          navigate({ to: `/${brand.slug}/productos` });
+                          setOpenCart(false);
+                        }}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        Seguir comprando
+                      </Button>
+                      <Link
+                        to="/$brand/carrito"
+                        params={{ brand: brand.slug }}
+                        className="w-full block"
+                        onClick={() => setOpenCart(false)}
+                      >
+                        <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                          Ver carrito completo
+                        </Button>
+                      </Link>
+                    </div>
+                  </>
                 )}
-              </Button>
-            </Link>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu open={openMenu} onOpenChange={setOpenMenu}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="rounded-xl gap-2">
+                  <Menu className="size-4" />
+                  <span className="hidden sm:inline">Tiendas</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {links.map((link) => {
+                  const href = link.to.replace("$brand", brand.slug);
+                  return (
+                    <DropdownMenuItem key={link.label} asChild>
+                      <Link
+                        to={link.to}
+                        params={{ brand: brand.slug }}
+                        className="cursor-pointer"
+                        onClick={() => setOpenMenu(false)}
+                      >
+                        {link.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+                
+                {otherBrands.map((item) => (
+                  <DropdownMenuItem
+                    key={item.slug}
+                    onSelect={() => {
+                      handleBrandClick(item.slug)();
+                      setOpenMenu(false);
+                    }}
+                  >
+                    {item.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
-      <div className="h-16" aria-hidden />
     </>
   );
 }

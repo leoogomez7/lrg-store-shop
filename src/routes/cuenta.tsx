@@ -3,15 +3,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Heart, MapPin, Package, Pencil, Plus, Trash2, User } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
-import { BrandMark } from "@/components/common/brand-mark";
+import { BrandHeader } from "@/components/layout/brand-header";
+import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
+import { webDesignConfig } from "@/config/brands/web-design.config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getStoredUserDisplayName, logout } from "@/lib/auth";
-import { saveKindeUserToTurso } from "@/lib/user";
-import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -23,6 +22,8 @@ import {
 } from "@/components/ui/table";
 import { brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
+import { getStoredUserDisplayName } from "@/lib/auth";
+import { saveKindeUserToTurso } from "@/lib/user";
 import { orderQueries } from "@/services/catalog.service";
 
 export const Route = createFileRoute("/cuenta")({
@@ -113,54 +114,15 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   }, [user, isAuthenticated]);
 
   return (
-    <div className="theme-webdesign min-h-screen bg-background text-foreground">
+    <div className="theme-webdesign relative min-h-screen bg-background text-foreground">
+      <BrandHeader brand={webDesignConfig} displayBrandName="LRG Store Shop" logoBrandSlug="store-shop" />
       <div className="aurora-bg" />
-      <div className="relative mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-        <header className="flex items-center justify-between">
-          <Link to="/">
-            <BrandMark />
-          </Link>
-          <div className="flex gap-2">
-            <Button asChild variant="secondary" size="sm" className="gap-2">
-              <Link to="/sectores">
-                <ArrowLeft className="size-4" /> Comprar
-              </Link>
-            </Button>
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-red-600"
-                onClick={() => setLogoutOpen(true)}
-              >
-                Cerrar sesión
-              </Button>
-              <ConfirmDialog
-                open={logoutOpen}
-                onOpenChange={setLogoutOpen}
-                title="¿Cerrar sesión?"
-                description="¿Deseas cerrar la sesión actual? Se finalizará tu acceso en este dispositivo."
-                confirmLabel="Sí, cerrar sesión"
-                cancelLabel="No"
-                onConfirm={async () => {
-                  try {
-                    await kindeLogout();
-                  } catch (error) {
-                    console.error("Error during Kinde logout:", error);
-                  }
-                  await logout();
-                  setUserName(null);
-                  navigate({ to: "/" });
-                }}
-              />
-            </>
+      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 sm:px-6 pt-20">
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <span className="gradient-brand grid size-14 place-items-center rounded-2xl">
+              <User className="size-6 text-primary-foreground" />
+            </span>
           </div>
-        </header>
-
-        <div className="mt-12 flex flex-wrap items-center gap-4">
-          <span className="gradient-brand grid size-14 place-items-center rounded-2xl">
-            <User className="size-6 text-primary-foreground" />
-          </span>
           <div>
             <h1 className="text-3xl font-semibold">Hola{userName ? `, ${userName}` : ""}</h1>
             {userName ? (
@@ -457,7 +419,6 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             )}
           </TabsContent>
         </Tabs>
-      </div>
     </div>
   );
 }

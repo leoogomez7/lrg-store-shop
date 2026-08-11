@@ -3,12 +3,10 @@ import type { BrandConfig } from "./types";
 
 export const scentsConfig: BrandConfig = {
   slug: "scents",
-  theme: "theme-scents",
+  theme: "theme-webdesign",
   name: "LRG Scents",
   shortName: "Scents",
   tagline: "Perfumes árabes originales",
-  description:
-    "Perfumería árabe, extractos de alta concentración y fragancias exclusivas seleccionadas casa por casa.",
   keywords: ["perfumería árabe", "fragancias", "extracto de perfume", "lujo", "oud"],
   hero: {
     eyebrow: "Sector Fragancias",

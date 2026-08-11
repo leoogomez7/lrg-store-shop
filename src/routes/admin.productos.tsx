@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, Check, Pencil, Plus, Search, Trash2, X, Copy, Eye } from "lucide-react";
+import { toast } from "sonner";
 import { products as productsData } from "@/data/products";
 import { useEffect, useMemo, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
@@ -196,6 +197,10 @@ function AdminProducts() {
       ...current,
       [productId]: String(nextDiscount),
     }));
+    const appliedProduct = products.find((p) => p.id === productId);
+    toast.success("Descuento aplicado", {
+      description: `${nextDiscount}% aplicado a "${appliedProduct?.name ?? productId}"`,
+    });
   };
 
   type SortOrder =
@@ -344,7 +349,7 @@ function AdminProducts() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todas">Todos los sectores</SelectItem>
+            <SelectItem value="todas">Tiendas</SelectItem>
             {brandList.map((brand) => (
               <SelectItem key={brand.slug} value={brand.slug}>
                 {brand.name}
@@ -436,7 +441,16 @@ function AdminProducts() {
                           : "outline"
                       }
                       size="sm"
-                      onClick={() => handleApplyDiscount(product.id)}
+                      onClick={() => {
+                        const text = pendingDiscounts[product.id] ?? String(discount ?? 0);
+                        const nextDiscount = Math.max(0, Math.min(100, Number(text) || 0));
+                        setConfirmState({
+                          open: true,
+                          title: `Aplicar ${nextDiscount}% de descuento a "${product.name}"?`,
+                          description: undefined,
+                          onConfirm: () => handleApplyDiscount(product.id),
+                        });
+                      }}
                       aria-label="Aplicar descuento"
                     >
                       <Check className="size-4" />
@@ -511,11 +525,15 @@ function AdminProducts() {
               </TableRow>
             );
           })}
+            {results.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="py-16 text-center text-sm text-muted-foreground">
+                  No se encontraron productos.
+                </TableCell>
+              </TableRow>
+            ) : null}
           </TableBody>
         </Table>
-        {results.length === 0 && (
-          <p className="p-8 text-center text-sm text-muted-foreground">Sin resultados.</p>
-        )}
       </div>
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">

@@ -7,8 +7,6 @@ export const webDesignConfig: BrandConfig = {
   name: "LRG Web Design",
   shortName: "Web Design",
   tagline: "Software y diseño de páginas web",
-  description:
-    "Landing pages, dashboards, tiendas ecommerce, software a medida y diseño UX/UI para marcas y equipos esports.",
   keywords: ["desarrollo web", "landing page", "dashboard", "ux ui", "software", "esports"],
   hero: {
     eyebrow: "Sector Software",
@@ -17,7 +15,6 @@ export const webDesignConfig: BrandConfig = {
     subtitle:
       "Diseñamos y desarrollamos landings, dashboards, ecommerce y software con arquitectura escalable y diseño impecable.",
     primaryCta: "Ver servicios",
-    secondaryCta: "Agendar diagnóstico",
     stats: [
       { label: "Proyectos entregados", value: "120+" },
       { label: "Performance media", value: "98 Lighthouse" },
