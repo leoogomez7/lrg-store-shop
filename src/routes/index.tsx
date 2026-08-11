@@ -238,8 +238,8 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             </ul>
           </Reveal>
 
-          <section className="mt-20 p-6 sm:p-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <section className="mt-20 glass-panel rounded-[2rem] p-6 sm:p-8 shadow-[0_20px_60px_rgba(10,15,35,0.18)]">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between rounded-[1.75rem] border border-border/60 bg-surface/90 p-5 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1 text-primary">
                   {Array.from({ length: 5 }).map((_, index) => (
@@ -257,7 +257,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   href={trustpilotUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full bg-background/70 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-border/60 bg-background/90 px-4 py-3 text-sm font-semibold text-foreground transition duration-200 hover:border-primary/70 hover:text-primary"
                 >
                   Ver más opiniones
                   <ArrowUpRight className="size-4" />
@@ -266,7 +266,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   href={trustpilotUrl_Evaluate}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full bg-background/70 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-border/60 bg-background/90 px-4 py-3 text-sm font-semibold text-foreground transition duration-200 hover:border-primary/70 hover:text-primary"
                 >
                   Opinar sobre nosotros
                   <ArrowUpRight className="size-4" />
@@ -334,11 +334,12 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               </div>
             </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-6 grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(18rem, 1fr))" }}>
               {sortedReviews.map((review, index) => (
                 <article
                   key={`${review.name}-${index}`}
                   className="group relative overflow-hidden rounded-[2rem] border border-border/60 bg-background/80 p-5 shadow-[0_20px_60px_rgba(10,15,35,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/70 hover:bg-background/95"
+                  style={{ width: "100%" }}
                 >
                   <div className="absolute left-0 top-0 h-2 w-28 rounded-br-full bg-gradient-to-r from-primary to-transparent opacity-90" />
                   <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-primary to-transparent opacity-80" />
@@ -361,13 +362,13 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   <div className="relative z-10 my-4 h-px w-full bg-gradient-to-r from-border/30 via-border/10 to-transparent" />
 
                   <div className="relative z-10 flex items-center gap-2 text-xs">
-                    <span className="font-semibold text-foreground">{review.name}</span>
+                    <span className="font-semibold text-foreground leading-none">{review.name}</span>
                     <span className="h-4 w-px bg-border/20" />
                     <a
                       href={review.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-primary"
+                      className="inline-flex items-center gap-1 leading-none text-muted-foreground transition-colors hover:text-primary"
                       aria-label={`Ver reseña de ${review.name}`}
                     >
                       <ShieldCheck className="size-3.5" />
@@ -377,7 +378,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                       href={review.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="ml-auto inline-flex items-center gap-1 text-primary transition-colors hover:text-primary/80 font-medium"
+                      className="ml-auto inline-flex h-9 items-center gap-1 rounded-2xl border border-border/70 bg-surface/90 px-3 text-sm font-semibold leading-none text-primary transition duration-200 hover:border-primary/70 hover:bg-background/95 hover:text-primary"
                       aria-label={`Abrir opinión de ${review.name}`}
                     >
                       Abrir opinión
