@@ -1,5 +1,16 @@
 import type { BrandSlug } from "@/config/brands";
 
+const PRODUCTS_STORAGE_KEY = "lrg:products";
+
+export function saveProducts(products: Product[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export type Product = {
   id: string;
   slug: string;
@@ -23,7 +34,7 @@ export type Product = {
 
 const p = (product: Product): Product => product;
 
-export const products: Product[] = [
+const defaultProducts: Product[] = [
   // ---------------- LRG Arcade ----------------
   p({
     id: "arc-001",
@@ -525,6 +536,30 @@ export const products: Product[] = [
     createdAt: "2026-06-15",
   }),
 ];
+
+function readStoredProducts(): Product[] {
+  if (typeof window === "undefined") {
+    return defaultProducts;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(PRODUCTS_STORAGE_KEY);
+    if (!raw) {
+      return defaultProducts;
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return defaultProducts;
+    }
+
+    return parsed;
+  } catch {
+    return defaultProducts;
+  }
+}
+
+export const products: Product[] = readStoredProducts();
 
 export function getProductsByBrand(brand: BrandSlug): Product[] {
   return products.filter((product) => product.brand === brand && !product.hidden);

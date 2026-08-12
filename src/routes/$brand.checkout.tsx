@@ -41,7 +41,8 @@ function CheckoutPage() {
   const params = Route.useParams();
   const brand = getBrand(params.brand)!;
   const { items, subtotal, clear } = useCart();
-  const shipping = subtotal > 300 || subtotal === 0 ? 0 : 18;
+  const shippingThreshold = brand.shipping?.freeShippingThreshold ?? 300;
+  const shipping = subtotal > shippingThreshold || subtotal === 0 ? 0 : 18;
   const [step, setStep] = useState<"form" | "done">("form");
   const [orderId, setOrderId] = useState("");
   const [customerName, setCustomerName] = useState("");

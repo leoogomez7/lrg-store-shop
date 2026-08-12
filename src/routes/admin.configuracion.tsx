@@ -1,13 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowUpRight, Check, Pencil, Settings, Store, Trash2, X, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, Check, CreditCard, Package, Pencil, Settings, Store, Tag, Trash2, Truck, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { brandList, setBrandCategories } from "@/config/brands";
+import {
+  BrandPaymentMethod,
+  brandList,
+  getBrand,
+  setBrandCategories,
+  setBrandPaymentMethods,
+  setBrandShippingConfig,
+} from "@/config/brands";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/configuracion")({
@@ -30,22 +37,15 @@ function AdminConfiguration() {
   const [pendingFreeShippingThreshold, setPendingFreeShippingThreshold] = useState(String(300));
   const [freeShippingConfirmationStatus, setFreeShippingConfirmationStatus] = useState<"confirmed" | "unchanged" | null>(null);
   const [freeShippingConfirmed, setFreeShippingConfirmed] = useState(false);
+  const [applyFreeShippingToAll, setApplyFreeShippingToAll] = useState(false);
+  const [applyShippingMethodsToAll, setApplyShippingMethodsToAll] = useState(false);
+  const [applyPaymentMethodsToAll, setApplyPaymentMethodsToAll] = useState(false);
   const [newShippingMethod, setNewShippingMethod] = useState("");
-  const [shippingMethods, setShippingMethods] = useState([
-    { id: "physical", name: "Físico", enabled: true },
-    { id: "digital", name: "Digital", enabled: true },
-    { id: "whatsapp", name: "WhatsApp", enabled: true },
-  ]);
+  const [shippingMethods, setShippingMethods] = useState<BrandPaymentMethod[]>([]);
   const [editingMethodId, setEditingMethodId] = useState<string | null>(null);
   const [editingMethodName, setEditingMethodName] = useState("");
   const [newPaymentMethod, setNewPaymentMethod] = useState("");
-  const [paymentMethods, setPaymentMethods] = useState([
-    { id: "transferencia-bancaria", name: "Transferencia bancaria", enabled: true },
-    { id: "tarjeta-credito", name: "Tarjeta de crédito", enabled: true },
-    { id: "tarjeta-debito", name: "Tarjeta de débito", enabled: true },
-    { id: "efectivo", name: "Efectivo", enabled: true },
-    { id: "mercadopago", name: "MercadoPago", enabled: true },
-  ]);
+  const [paymentMethods, setPaymentMethods] = useState<BrandPaymentMethod[]>([]);
   const [editingPaymentMethodId, setEditingPaymentMethodId] = useState<string | null>(null);
   const [editingPaymentMethodName, setEditingPaymentMethodName] = useState("");
   const [newCategory, setNewCategory] = useState("");
@@ -54,44 +54,46 @@ function AdminConfiguration() {
     const current = brandList.find((brand) => brand.slug === selectedBrand)?.categories ?? [];
     return current.map((category) => ({ id: category.slug, name: category.name, enabled: true }));
   });
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const loadBrandSettings = (brandSlug: string) => {
+    const brand = getBrand(brandSlug);
+    if (!brand) return;
+
+    syncCategoriesToSelectedBrand(brandSlug);
+
+    setPaymentMethods(
+      brand.paymentMethods?.length
+        ? brand.paymentMethods
+        : brand.payments.map((name) => ({
+            id: name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, ""),
+            name,
+            enabled: true,
+          })),
+    );
+
+    setShippingMethods(
+      brand.shipping?.methods ?? [
+        { id: "physical", name: "Físico", enabled: true },
+        { id: "digital", name: "Digital", enabled: true },
+        { id: "whatsapp", name: "WhatsApp", enabled: true },
+      ],
+    );
+
+    setFreeShippingThreshold(brand.shipping?.freeShippingThreshold ?? 300);
+    setPendingFreeShippingThreshold(String(brand.shipping?.freeShippingThreshold ?? 300));
+    setFreeShippingConfirmationStatus(null);
+    setFreeShippingConfirmed(false);
+    setIsInitialized(true);
+  };
 
   useEffect(() => {
-    syncCategoriesToSelectedBrand(selectedBrand);
+    if (!selectedBrand) return;
+    loadBrandSettings(selectedBrand);
   }, [selectedBrand]);
-
-  useEffect(() => {
-    try {
-      const storedShippingMethods = localStorage.getItem("lrg:shippingMethods");
-      if (storedShippingMethods) {
-        const parsed = JSON.parse(storedShippingMethods);
-        if (Array.isArray(parsed)) {
-          setShippingMethods(parsed.map((item: any) => ({
-            id: item.id ?? `${Date.now()}-${item.name}`,
-            name: String(item.name ?? item),
-            enabled: item.enabled !== false,
-          })));
-        }
-      }
-    } catch {
-      // ignore invalid storage
-    }
-
-    try {
-      const storedPaymentMethods = localStorage.getItem("lrg:paymentMethods");
-      if (storedPaymentMethods) {
-        const parsed = JSON.parse(storedPaymentMethods);
-        if (Array.isArray(parsed)) {
-          setPaymentMethods(parsed.map((item: any) => ({
-            id: item.id ?? `${Date.now()}-${item.name}`,
-            name: String(item.name ?? item),
-            enabled: item.enabled !== false,
-          })));
-        }
-      }
-    } catch {
-      // ignore invalid storage
-    }
-  }, []);
 
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
@@ -118,32 +120,72 @@ function AdminConfiguration() {
   const addShippingMethod = () => {
     const trimmed = newShippingMethod.trim();
     if (!trimmed) return;
-    setShippingMethods((current) => [
-      ...current,
-      { id: `${Date.now()}-${trimmed}`, name: trimmed, enabled: true },
-    ]);
+
+    const next = [
+      ...shippingMethods,
+      { id: `${Date.now()}-${trimmed}`, name: trimmed, enabled: true, codeRequired: false },
+    ];
+
+    setShippingMethods(next);
     setNewShippingMethod("");
+
+    if (isInitialized) {
+      persistShippingConfig(next);
+    }
   };
 
   const confirmFreeShippingThreshold = () => {
     const trimmed = pendingFreeShippingThreshold.trim();
     const parsed = Number(trimmed);
     if (!trimmed || Number.isNaN(parsed) || parsed < 0) return;
+
+    if (applyFreeShippingToAll) {
+      brandList.forEach((brand) => {
+        setBrandShippingConfig(brand.slug, {
+          freeShippingThreshold: parsed,
+          methods: brand.shipping?.methods ?? [],
+        });
+      });
+    } else if (selectedBrand) {
+      setBrandShippingConfig(selectedBrand, {
+        freeShippingThreshold: parsed,
+        methods: shippingMethods,
+      });
+    }
+
     setFreeShippingConfirmationStatus(parsed === freeShippingThreshold ? "unchanged" : "confirmed");
     setFreeShippingThreshold(parsed);
     setFreeShippingConfirmed(true);
 
     toast.success("Envío gratis confirmado", {
-      description: `Desde $${parsed}`,
+      description: applyFreeShippingToAll
+        ? `Desde $${parsed} en todas las tiendas`
+        : `Desde $${parsed}`,
     });
   };
 
   const toggleShippingMethod = (id: string) => {
-    setShippingMethods((current) =>
-      current.map((method) =>
+    setShippingMethods((current) => {
+      const next = current.map((method) =>
         method.id === id ? { ...method, enabled: !method.enabled } : method,
-      ),
-    );
+      );
+      if (isInitialized) {
+        persistShippingConfig(next);
+      }
+      return next;
+    });
+  };
+
+  const toggleShippingMethodCodeRequired = (id: string) => {
+    setShippingMethods((current) => {
+      const next = current.map((method) =>
+        method.id === id ? { ...method, codeRequired: !method.codeRequired } : method,
+      );
+      if (isInitialized) {
+        persistShippingConfig(next);
+      }
+      return next;
+    });
   };
 
   const startEditingMethod = (method: { id: string; name: string }) => {
@@ -154,17 +196,43 @@ function AdminConfiguration() {
   const saveEditedMethod = (id: string) => {
     const trimmed = editingMethodName.trim();
     if (!trimmed) return;
-    setShippingMethods((current) =>
-      current.map((method) =>
+    setShippingMethods((current) => {
+      const next = current.map((method) =>
         method.id === id ? { ...method, name: trimmed } : method,
-      ),
-    );
+      );
+      if (isInitialized) {
+        persistShippingConfig(next);
+      }
+      return next;
+    });
     setEditingMethodId(null);
     setEditingMethodName("");
   };
 
   const removeShippingMethod = (id: string) => {
-    setShippingMethods((current) => current.filter((method) => method.id !== id));
+    setShippingMethods((current) => {
+      const next = current.filter((method) => method.id !== id);
+      if (isInitialized && selectedBrand) {
+        setBrandShippingConfig(selectedBrand, {
+          freeShippingThreshold,
+          methods: next,
+        });
+      }
+      return next;
+    });
+  };
+
+  const persistShippingConfig = (methods: BrandPaymentMethod[], threshold = freeShippingThreshold) => {
+    if (!selectedBrand) return;
+    setBrandShippingConfig(selectedBrand, {
+      freeShippingThreshold: threshold,
+      methods,
+    });
+  };
+
+  const persistPaymentMethods = (methods: BrandPaymentMethod[]) => {
+    if (!selectedBrand) return;
+    setBrandPaymentMethods(selectedBrand, methods);
   };
 
   const [confirmState, setConfirmState] = useState<{
@@ -175,11 +243,15 @@ function AdminConfiguration() {
   }>({ open: false, title: "", description: undefined, onConfirm: () => {} });
 
   const togglePaymentMethod = (id: string) => {
-    setPaymentMethods((current) =>
-      current.map((method) =>
+    setPaymentMethods((current) => {
+      const next = current.map((method) =>
         method.id === id ? { ...method, enabled: !method.enabled } : method,
-      ),
-    );
+      );
+      if (isInitialized) {
+        persistPaymentMethods(next);
+      }
+      return next;
+    });
   };
 
   const startEditingPaymentMethod = (method: { id: string; name: string }) => {
@@ -190,24 +262,35 @@ function AdminConfiguration() {
   const saveEditedPaymentMethod = (id: string) => {
     const trimmed = editingPaymentMethodName.trim();
     if (!trimmed) return;
-    setPaymentMethods((current) =>
-      current.map((method) =>
+    setPaymentMethods((current) => {
+      const next = current.map((method) =>
         method.id === id ? { ...method, name: trimmed } : method,
-      ),
-    );
+      );
+      if (isInitialized) {
+        persistPaymentMethods(next);
+      }
+      return next;
+    });
     setEditingPaymentMethodId(null);
     setEditingPaymentMethodName("");
   };
 
   const removePaymentMethod = (id: string) => {
-    setPaymentMethods((current) => current.filter((method) => method.id !== id));
+    setPaymentMethods((current) => {
+      const next = current.filter((method) => method.id !== id);
+      if (isInitialized) {
+        persistPaymentMethods(next);
+      }
+      return next;
+    });
   };
 
   const addPaymentMethod = () => {
     const trimmed = newPaymentMethod.trim();
     if (!trimmed) return;
-    setPaymentMethods((current) => [
-      ...current,
+
+    const next = [
+      ...paymentMethods,
       {
         id: `${Date.now()}-${trimmed}`
           .toLowerCase()
@@ -216,8 +299,91 @@ function AdminConfiguration() {
         name: trimmed,
         enabled: true,
       },
-    ]);
+    ];
+
+    setPaymentMethods(next);
     setNewPaymentMethod("");
+    if (isInitialized) {
+      persistPaymentMethods(next);
+    }
+  };
+
+  const normalizePaymentMethods = (methods: BrandPaymentMethod[]) =>
+    methods
+      .map((method) => ({ id: method.id, name: method.name.trim(), enabled: method.enabled }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+  const normalizeShippingMethods = (methods: BrandPaymentMethod[]) =>
+    methods
+      .map((method) => ({
+        id: method.id,
+        name: method.name.trim(),
+        enabled: method.enabled,
+        codeRequired: Boolean(method.codeRequired),
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+  const paymentMethodsAppliedToAll = useMemo(() => {
+    const current = normalizePaymentMethods(paymentMethods);
+    return brandList.every((brand) => {
+      const brandMethods = brand.paymentMethods?.length
+        ? brand.paymentMethods
+        : brand.payments.map((name) => ({
+            id: name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, ""),
+            name,
+            enabled: true,
+          }));
+      const normalizedBrandMethods = normalizePaymentMethods(brandMethods);
+      if (normalizedBrandMethods.length !== current.length) return false;
+      return normalizedBrandMethods.every(
+        (method, index) =>
+          method.id === current[index].id &&
+          method.name === current[index].name &&
+          method.enabled === current[index].enabled,
+      );
+    });
+  }, [paymentMethods]);
+
+  const shippingMethodsAppliedToAll = useMemo(() => {
+    const current = normalizeShippingMethods(shippingMethods);
+    return brandList.every((brand) => {
+      const brandMethods = brand.shipping?.methods ?? [];
+      const normalizedBrandMethods = normalizeShippingMethods(brandMethods);
+      if (normalizedBrandMethods.length !== current.length) return false;
+      return normalizedBrandMethods.every(
+        (method, index) =>
+          method.id === current[index].id &&
+          method.name === current[index].name &&
+          method.enabled === current[index].enabled &&
+          method.codeRequired === current[index].codeRequired,
+      );
+    });
+  }, [shippingMethods]);
+
+  const applyPaymentMethodsToAllConfirm = () => {
+    brandList.forEach((brand) => {
+      setBrandPaymentMethods(brand.slug, paymentMethods);
+    });
+    setApplyPaymentMethodsToAll(false);
+    toast.success("Métodos de pago aplicados a todas las tiendas", {
+      description: `Se sincronizaron ${paymentMethods.length} métodos en todas las tiendas.`,
+    });
+  };
+
+  const applyShippingMethodsToAllConfirm = () => {
+    brandList.forEach((brand) => {
+      setBrandShippingConfig(brand.slug, {
+        freeShippingThreshold: brand.shipping?.freeShippingThreshold ?? freeShippingThreshold,
+        methods: shippingMethods,
+      });
+    });
+    setApplyShippingMethodsToAll(false);
+    toast.success("Métodos de envío aplicados a todas las tiendas", {
+      description: `Se sincronizaron ${shippingMethods.length} métodos en todas las tiendas.`,
+    });
   };
 
   const addCategory = () => {
@@ -260,27 +426,23 @@ function AdminConfiguration() {
   };
 
   const handleBrandChange = (brandSlug: string) => {
+    if (selectedBrand && isInitialized) {
+      persistShippingConfig(shippingMethods, freeShippingThreshold);
+      persistPaymentMethods(paymentMethods);
+    }
     setSelectedBrand(brandSlug);
-    syncCategoriesToSelectedBrand(brandSlug);
   };
 
   const selectedBrandName = brandList.find((brand) => brand.slug === selectedBrand)?.name ?? "Sin tienda seleccionada";
 
   useEffect(() => {
-    try {
-      localStorage.setItem("lrg:paymentMethods", JSON.stringify(paymentMethods));
-    } catch (e) {
-      // ignore
-    }
-  }, [paymentMethods]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("lrg:shippingMethods", JSON.stringify(shippingMethods));
-    } catch (e) {
-      // ignore
-    }
-  }, [shippingMethods]);
+    return () => {
+      if (selectedBrand && isInitialized) {
+        persistShippingConfig(shippingMethods, freeShippingThreshold);
+        persistPaymentMethods(paymentMethods);
+      }
+    };
+  }, [selectedBrand, isInitialized, shippingMethods, paymentMethods, freeShippingThreshold]);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
@@ -340,7 +502,9 @@ function AdminConfiguration() {
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
         <section className="glass-panel rounded-3xl p-6">
           <div className="flex items-center gap-3">
-            <Settings className="size-5 text-primary" />
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Truck className="size-5" />
+            </div>
             <div>
               <h2 className="text-xl font-semibold">Envíos</h2>
               <p className="text-sm text-muted-foreground">Configurar las condiciones de envío.</p>
@@ -359,15 +523,21 @@ function AdminConfiguration() {
                   onChange={(event) => setPendingFreeShippingThreshold(event.target.value)}
                   className="h-9 min-w-0 w-[28%] max-w-[170px]"
                 />
-                <Button
-                  size="sm"
-                  onClick={confirmFreeShippingThreshold}
-                  disabled={pendingFreeShippingThreshold.trim().length === 0 || Number.isNaN(Number(pendingFreeShippingThreshold))}
-                  className="h-9 flex-shrink-0 gap-2"
-                >
-                  <Check className="h-4 w-4" />
-                  Confirmar
-                </Button>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
+                    <span className="text-sm">Aplicar a todas las tiendas</span>
+                    <Switch checked={applyFreeShippingToAll} onCheckedChange={setApplyFreeShippingToAll} />
+                  </label>
+                  <Button
+                    size="sm"
+                    onClick={confirmFreeShippingThreshold}
+                    disabled={pendingFreeShippingThreshold.trim().length === 0 || Number.isNaN(Number(pendingFreeShippingThreshold))}
+                    className="h-9 flex-shrink-0 gap-2"
+                  >
+                    <Check className="h-4 w-4" />
+                    Confirmar
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -387,6 +557,10 @@ function AdminConfiguration() {
                   placeholder="Escribir nuevo método de envío"
                   className="h-9 min-w-0 w-[70%] max-w-[430px]"
                 />
+                <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
+                  <span className="text-sm">Aplicar a todas las tiendas</span>
+                  <Switch checked={applyShippingMethodsToAll} onCheckedChange={setApplyShippingMethodsToAll} />
+                </label>
                 <Button
                   size="sm"
                   onClick={addShippingMethod}
@@ -445,13 +619,22 @@ function AdminConfiguration() {
                       </>
                     ) : (
                       <>
-                        <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
-                          <span className="text-sm">{method.enabled ? "Disponible" : "No disponible"}</span>
-                          <Switch
-                            checked={method.enabled}
-                            onCheckedChange={() => toggleShippingMethod(method.id)}
-                          />
-                        </label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
+                            <span className="text-sm">{method.enabled ? "Disponible" : "No disponible"}</span>
+                            <Switch
+                              checked={method.enabled}
+                              onCheckedChange={() => toggleShippingMethod(method.id)}
+                            />
+                          </label>
+                          <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
+                            <span className="text-sm">Requiere código</span>
+                            <Switch
+                              checked={Boolean(method.codeRequired)}
+                              onCheckedChange={() => toggleShippingMethodCodeRequired(method.id)}
+                            />
+                          </label>
+                        </div>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -483,14 +666,24 @@ function AdminConfiguration() {
                 </div>
               ))}
             </div>
-
+            <div className="mt-4 flex justify-end">
+              <Button
+                size="sm"
+                onClick={applyShippingMethodsToAllConfirm}
+                disabled={!applyShippingMethodsToAll || shippingMethodsAppliedToAll}
+                className="h-9 flex-shrink-0 gap-2"
+              >
+                <Check className="h-4 w-4" />
+                Confirmar
+              </Button>
+            </div>
           </div>
         </section>
 
         <section className="glass-panel rounded-3xl p-6">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
-              <Pencil className="size-5" />
+              <CreditCard className="size-5" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">Métodos de pago</h2>
@@ -507,6 +700,10 @@ function AdminConfiguration() {
                 placeholder="Escribir nuevo método de pago"
                 className="h-9 min-w-0 w-[70%] max-w-[430px]"
               />
+              <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
+                <span className="text-sm">Aplicar a todas las tiendas</span>
+                <Switch checked={applyPaymentMethodsToAll} onCheckedChange={setApplyPaymentMethodsToAll} />
+              </label>
               <Button
                 size="sm"
                 onClick={addPaymentMethod}
@@ -602,13 +799,24 @@ function AdminConfiguration() {
                 </div>
               ))}
             </div>
+            <div className="mt-4 flex justify-end">
+              <Button
+                size="sm"
+                onClick={applyPaymentMethodsToAllConfirm}
+                disabled={!applyPaymentMethodsToAll || paymentMethodsAppliedToAll}
+                className="h-9 flex-shrink-0 gap-2"
+              >
+                <Check className="h-4 w-4" />
+                Confirmar
+              </Button>
+            </div>
           </div>
         </section>
 
         <section className="glass-panel rounded-3xl p-6">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
-              <Pencil className="size-5" />
+              <Tag className="size-5" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">Categorías</h2>

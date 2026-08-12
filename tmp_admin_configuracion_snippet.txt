@@ -1,0 +1,40 @@
+                          Cancelar
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
+                          <span className="text-sm">{method.enabled ? "Disponible" : "No disponible"}</span>
+                          <Switch
+                            checked={method.enabled}
+                            onCheckedChange={() => toggleShippingMethod(method.id)}
+                          />
+                        </label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditingMethod(method)}
+                          className="gap-2"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Editar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setConfirmState({
+                              open: true,
+                              title: `Eliminar "${method.name}"?`,
+                              description: "Esta acción no se puede deshacer.",
+                              onConfirm: () => removeShippingMethod(method.id),
+                            })
+                          }
+                          className="gap-2 text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Eliminar
+                        </Button>
+                      </>
+                    )}
+                  </div>

@@ -8,6 +8,18 @@ export type BrandCategory = {
   description: string;
 };
 
+export type BrandPaymentMethod = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  codeRequired?: boolean;
+};
+
+export type BrandShippingConfig = {
+  freeShippingThreshold: number;
+  methods: BrandPaymentMethod[];
+};
+
 export type BrandConfig = {
   slug: BrandSlug;
   /** clase de tema definida en styles.css */
@@ -32,5 +44,7 @@ export type BrandConfig = {
   social: { label: string; href: string }[];
   contact: { email: string; phone: string; location: string };
   payments: string[];
+  paymentMethods?: BrandPaymentMethod[];
+  shipping?: BrandShippingConfig;
   footerNote: string;
 };

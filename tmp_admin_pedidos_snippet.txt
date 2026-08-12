@@ -1,0 +1,20 @@
+                            value={quickDraft.shippingNumber}
+                            onChange={(event) =>
+                              setQuickEditOrderForm((current) => ({
+                                ...current,
+                                [order.id]: {
+                                  ...quickDraft,
+                                  shippingNumber: event.target.value,
+                                },
+                              }))
+                            }
+                            placeholder="Número de envío"
+                            className="w-full"
+                            disabled={!isPhysicalShippingMethod(quickDraft.shippingMethod)}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <span>{order.shippingMethod ?? "—"}</span>
+                          <span className="text-sm text-muted-foreground">{order.shippingNumber ?? "—"}</span>
+                        </div>

@@ -27,7 +27,8 @@ export function CartSheet({
 
   const { items, setQuantity, removeItem } = useCart();
   const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
-  const shippingCost = items.length > 0 ? (subtotal > 100 ? 0 : 12.5) : 0;
+  const freeShippingThreshold = brand.shipping?.freeShippingThreshold ?? 300;
+  const shippingCost = items.length > 0 ? (subtotal > freeShippingThreshold ? 0 : 12.5) : 0;
   const total = subtotal + shippingCost;
 
   const handleOpenChange = (next: boolean) => {

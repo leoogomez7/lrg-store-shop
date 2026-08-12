@@ -1,5 +1,7 @@
 import type { BrandSlug } from "@/config/brands";
 
+const ORDERS_STORAGE_KEY = "lrg:orders";
+
 export type OrderStatus = "pendiente" | "pagado" | "enviado" | "entregado" | "cancelado";
 
 export type Order = {
@@ -23,7 +25,38 @@ export type Order = {
   items: { name: string; quantity: number; price: number }[];
 };
 
-export const orders: Order[] = [
+function readStoredOrders(): Order[] {
+  if (typeof window === "undefined") {
+    return defaultOrders;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(ORDERS_STORAGE_KEY);
+    if (!raw) {
+      return defaultOrders;
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return defaultOrders;
+    }
+
+    return parsed;
+  } catch {
+    return defaultOrders;
+  }
+}
+
+export function saveOrders(orders: Order[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+const defaultOrders: Order[] = [
   {
     id: "LRG-24810",
     brand: "arcade",
@@ -125,6 +158,8 @@ export const orders: Order[] = [
     items: [{ name: "Dashboard Analítico", quantity: 1, price: 3600 }],
   },
 ];
+
+export const orders: Order[] = readStoredOrders();
 
 export const revenueByMonth = [
   { month: "Feb", arcade: 12400, scents: 8200, webDesign: 14200 },
