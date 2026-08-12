@@ -1,7 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Separator } from "@/components/ui/separator";
 import { getBrand } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
@@ -35,6 +37,13 @@ function CartPage() {
   const brand = getBrand(params.brand)!;
   const { items, subtotal, setQuantity, removeItem, clear } = useCart();
   const shipping = subtotal > 300 || subtotal === 0 ? 0 : 18;
+
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description?: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: undefined, onConfirm: () => {} });
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6">
@@ -111,7 +120,14 @@ function CartPage() {
                       variant="ghost"
                       size="sm"
                       className="ml-2 gap-1.5 text-muted-foreground hover:text-destructive"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() =>
+                        setConfirmState({
+                          open: true,
+                          title: `Eliminar "${item.name}" del carrito?`,
+                          description: undefined,
+                          onConfirm: () => removeItem(item.id),
+                        })
+                      }
                     >
                       <Trash2 className="size-3.5" /> Eliminar
                     </Button>
@@ -162,6 +178,21 @@ function CartPage() {
           </aside>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(v) => setConfirmState((s) => ({ ...s, open: v }))}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onConfirm={() => {
+          try {
+            confirmState.onConfirm();
+          } finally {
+            setConfirmState((s) => ({ ...s, open: false }));
+          }
+        }}
+      />
     </main>
   );
 }

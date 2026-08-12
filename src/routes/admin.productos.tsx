@@ -1,14 +1,15 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, Check, Pencil, Plus, Search, Trash2, X, Copy, Eye } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Edit3, Pencil, Plus, Save, Search, Trash2, X, Copy, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { products as productsData } from "@/data/products";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -86,6 +87,14 @@ function AdminProducts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState | null>(null);
+  const [quickEditProductId, setQuickEditProductId] = useState<string | null>(null);
+  const [quickEditForm, setQuickEditForm] = useState<
+    Record<
+      string,
+      { brand: BrandSlug; name: string; category: string; price: number; stock: number; discount: number }
+    >
+  >({});
+  const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
   const [page, setPage] = useState(0);
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
@@ -172,6 +181,9 @@ function AdminProducts() {
     // Add to in-memory dataset so public getters reflect it and update UI
     (productsData as Product[]).push(duplicated);
     setEditableProducts((current) => [...current, duplicated]);
+    toast.success("Producto duplicado", {
+      description: `Se creó una copia de "${product.name}"`,
+    });
   };
 
   const handleToggleHidden = (productId: string) => {
@@ -200,6 +212,73 @@ function AdminProducts() {
     const appliedProduct = products.find((p) => p.id === productId);
     toast.success("Descuento aplicado", {
       description: `${nextDiscount}% aplicado a "${appliedProduct?.name ?? productId}"`,
+    });
+  };
+
+  const startQuickEdit = (product: Product) => {
+    setQuickEditProductId(product.id);
+    setQuickEditForm((current) => ({
+      ...current,
+      [product.id]: {
+        brand: product.brand,
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        stock: product.stock,
+        discount: discounts[product.id] ?? 0,
+      },
+    }));
+  };
+
+  const cancelQuickEdit = () => {
+    setQuickEditProductId(null);
+    setQuickEditForm((current) => {
+      const next = { ...current };
+      if (quickEditProductId) delete next[quickEditProductId];
+      return next;
+    });
+  };
+
+  const saveQuickEdit = (product: Product) => {
+    const draft = quickEditForm[product.id];
+    if (!draft) return;
+
+    const nextBrand = draft.brand;
+    const nextName = draft.name.trim() || product.name;
+    const nextCategory = draft.category.trim() || product.category;
+    const nextPrice = Number(draft.price) || product.price;
+    const nextStock = Number(draft.stock) || product.stock;
+    const nextDiscount = Math.max(0, Math.min(100, Number(draft.discount) || 0));
+
+    setEditableProducts((current) =>
+      current.map((item) =>
+        item.id === product.id
+          ? {
+              ...item,
+              brand: nextBrand,
+              name: nextName,
+              category: nextCategory,
+              price: nextPrice,
+              stock: nextStock,
+            }
+          : item,
+      ),
+    );
+
+    setDiscounts((current) => ({
+      ...current,
+      [product.id]: nextDiscount,
+    }));
+    setPendingDiscounts((current) => ({
+      ...current,
+      [product.id]: String(nextDiscount),
+    }));
+
+    setQuickEditProductId(null);
+    setQuickEditForm((current) => {
+      const next = { ...current };
+      delete next[product.id];
+      return next;
     });
   };
 
@@ -273,6 +352,23 @@ function AdminProducts() {
 
     setDialogOpen(false);
   };
+
+  useEffect(() => {
+    if (!quickEditProductId) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const isInsideRow = quickEditRowRef.current?.contains(target);
+      const isInsideSelectPortal = !!(target as Element)?.closest?.("[data-radix-popper-content-wrapper]");
+
+      if (!isInsideRow && !isInsideSelectPortal) {
+        cancelQuickEdit();
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [quickEditProductId]);
 
   const results = useMemo(() => {
     const filtered = editableProducts.filter((product) => {
@@ -375,156 +471,285 @@ function AdminProducts() {
       </div>
 
       <div className="glass-panel mt-6 overflow-x-auto rounded-2xl pb-2">
-        <Table>
+        <Table className="text-center">
           <TableHeader>
             <TableRow>
-              <TableHead>Producto</TableHead>
-              <TableHead>Sector</TableHead>
-              <TableHead>Categoría</TableHead>
-              <TableHead>Precio</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Aplicar descuento</TableHead>
-              <TableHead>Precio con descuento</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className="text-center">Producto</TableHead>
+              <TableHead className="text-center">Sector</TableHead>
+              <TableHead className="text-center">Categoría</TableHead>
+              <TableHead className="text-center">Precio</TableHead>
+              <TableHead className="text-center">Stock</TableHead>
+              <TableHead className="text-center">Descuento</TableHead>
+              <TableHead className="text-center">Precio con descuento</TableHead>
+              <TableHead className="text-center">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {visibleResults.map((product) => {
               const discount = discounts[product.id] ?? 0;
               const discountedPrice = product.price * (1 - discount / 100);
+              const isQuickEditing = quickEditProductId === product.id;
+              const quickDraft = quickEditForm[product.id] ?? {
+                brand: product.brand,
+                name: product.name,
+                category: product.category,
+                price: product.price,
+                stock: product.stock,
+                discount,
+              };
+              const activeQuickBrand = quickDraft.brand ?? product.brand;
+              const brandCategoryOptions = brands[activeQuickBrand]?.categories ?? [];
+
               return (
-                <TableRow key={product.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{product.name}</span>
-                    {product.hidden ? (
-                      <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground">Oculto</span>
-                    ) : null}
-                  </div>
-                </TableCell>
-                <TableCell>{brands[product.brand].shortName}</TableCell>
-                <TableCell className="text-muted-foreground uppercase">{product.category}</TableCell>
-                <TableCell>{formatPrice(product.price)}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      product.stock === 0
-                        ? "destructive"
-                        : product.stock <= 4
-                          ? "warning"
-                          : "success"
-                    }
-                  >
-                    {product.stock}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={pendingDiscounts[product.id] ?? (discount ? String(discount) : "")}
-                      onChange={(event) =>
-                        setPendingDiscounts((current) => ({
-                          ...current,
-                          [product.id]: event.target.value,
-                        }))
-                      }
-                      placeholder="0%"
-                      className="w-24"
-                    />
-                    <Button
-                      variant={
-                        Number(pendingDiscounts[product.id] ?? discount) === discount
-                          ? "secondary"
-                          : "outline"
-                      }
-                      size="sm"
-                      onClick={() => {
-                        const text = pendingDiscounts[product.id] ?? String(discount ?? 0);
-                        const nextDiscount = Math.max(0, Math.min(100, Number(text) || 0));
-                        setConfirmState({
-                          open: true,
-                          title: `Aplicar ${nextDiscount}% de descuento a "${product.name}"?`,
-                          description: undefined,
-                          onConfirm: () => handleApplyDiscount(product.id),
-                        });
-                      }}
-                      aria-label="Aplicar descuento"
-                    >
-                      <Check className="size-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-                <TableCell>{formatPrice(Math.max(0, discountedPrice))}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() =>
-                        setConfirmState({
-                          open: true,
-                          title: `Duplicar "${product.name}"?`,
-                          description: undefined,
-                          onConfirm: () => handleDuplicateProduct(product),
-                        })
-                      }
-                      title="Duplicar"
-                    >
-                      <Copy className="size-4" />
-                    </Button>
-                    <Button
-                      variant={product.hidden ? "outline" : "secondary"}
-                      size="sm"
-                      onClick={() =>
-                        setConfirmState({
-                          open: true,
-                          title: `${product.hidden ? "Mostrar" : "Ocultar"} \"${product.name}\"?`,
-                          description: undefined,
-                          onConfirm: () => handleToggleHidden(product.id),
-                        })
-                      }
-                      title={product.hidden ? "Mostrar" : "Ocultar"}
-                    >
-                      <Eye className="size-4" />
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() =>
-                        setConfirmState({
-                          open: true,
-                          title: `Editar "${product.name}"?`,
-                          description: undefined,
-                          onConfirm: () => openEditProductDialog(product),
-                        })
-                      }
-                      title="Editar"
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() =>
-                        setConfirmState({
-                          open: true,
-                          title: `Eliminar "${product.name}"?`,
-                          description: "Esta acción no se puede deshacer.",
-                          onConfirm: () => handleDeleteProduct(product.id),
-                        })
-                      }
-                      aria-label={`Eliminar ${product.name}`}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })}
+                <TableRow key={product.id} ref={quickEditProductId === product.id ? quickEditRowRef : undefined}>
+                  {isQuickEditing ? (
+                    <>
+                      <TableCell>
+                        <Input
+                          value={quickDraft.name}
+                          onChange={(event) =>
+                            setQuickEditForm((current) => ({
+                              ...current,
+                              [product.id]: { ...quickDraft, name: event.target.value },
+                            }))
+                          }
+                          className="w-full min-w-[180px]"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={activeQuickBrand}
+                          onValueChange={(value) => {
+                            const nextBrand = value as BrandSlug;
+                            const nextCategory = brands[nextBrand].categories[0]?.slug ?? quickDraft.category;
+                            setQuickEditForm((current) => ({
+                              ...current,
+                              [product.id]: {
+                                ...quickDraft,
+                                brand: nextBrand,
+                                category: nextCategory,
+                              },
+                            }));
+                          }}
+                        >
+                          <SelectTrigger className="min-w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {brandList.map((brand) => (
+                              <SelectItem key={brand.slug} value={brand.slug}>
+                                {brand.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={quickDraft.category}
+                          onValueChange={(value) =>
+                            setQuickEditForm((current) => ({
+                              ...current,
+                              [product.id]: { ...quickDraft, category: value },
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="min-w-[140px]">
+                            <SelectValue placeholder="Seleccionar categoría" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {brandCategoryOptions.map((category) => (
+                              <SelectItem key={category.slug} value={category.slug}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={quickDraft.price}
+                          onChange={(event) =>
+                            setQuickEditForm((current) => ({
+                              ...current,
+                              [product.id]: { ...quickDraft, price: Number(event.target.value) },
+                            }))
+                          }
+                          className="w-24 text-center"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={quickDraft.stock}
+                          onChange={(event) =>
+                            setQuickEditForm((current) => ({
+                              ...current,
+                              [product.id]: { ...quickDraft, stock: Number(event.target.value) },
+                            }))
+                          }
+                          className="w-20 text-center"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={quickDraft.discount}
+                          onChange={(event) =>
+                            setQuickEditForm((current) => ({
+                              ...current,
+                              [product.id]: { ...quickDraft, discount: Number(event.target.value) },
+                            }))
+                          }
+                          className="w-20 text-center"
+                        />
+                      </TableCell>
+                      <TableCell>{formatPrice(Math.max(0, quickDraft.price * (1 - quickDraft.discount / 100)))}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setConfirmState({
+                                open: true,
+                                title: `Guardar cambios de "${product.name}"?`,
+                                description: undefined,
+                                onConfirm: () => saveQuickEdit(product),
+                              })
+                            }
+                            className="h-8 gap-2 px-3 text-xs"
+                          >
+                            <Check className="h-4 w-4" />
+                            <span>Guardar</span>
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={cancelQuickEdit} className="h-8 gap-2 px-3 text-xs">
+                            <X className="size-4" />
+                            <span>Cancelar</span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{product.name}</span>
+                          {product.hidden ? (
+                            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground">Oculto</span>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell>{brands[product.brand].shortName}</TableCell>
+                      <TableCell className="text-muted-foreground uppercase">{product.category}</TableCell>
+                      <TableCell>{formatPrice(product.price)}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            product.stock === 0
+                              ? "destructive"
+                              : product.stock <= 4
+                                ? "warning"
+                                : "success"
+                          }
+                        >
+                          {product.stock}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={pendingDiscounts[product.id] ?? (discount ? String(discount) : "")}
+                          placeholder="0%"
+                          className="w-24 border-0 shadow-none bg-transparent px-0 text-center cursor-default"
+                          readOnly
+                          tabIndex={-1}
+                          onFocus={(e) => (e.currentTarget as HTMLInputElement).blur()}
+                          onMouseDown={(e) => e.preventDefault()}
+                        />
+                      </TableCell>
+                      <TableCell>{formatPrice(Math.max(0, discountedPrice))}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-nowrap items-center justify-end gap-2">
+                          <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
+                            <span className="text-sm">{product.hidden ? "No disponible" : "Disponible"}</span>
+                            <Switch
+                              checked={!product.hidden}
+                              onCheckedChange={() =>
+                                setConfirmState({
+                                  open: true,
+                                  title: `${product.hidden ? "Mostrar" : "Ocultar"} "${product.name}"?`,
+                                  description: undefined,
+                                  onConfirm: () => handleToggleHidden(product.id),
+                                })
+                              }
+                            />
+                          </label>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startQuickEdit(product)}
+                            title="Editar rápido"
+                            className="h-8 gap-2 px-3 text-xs"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                            <span>Editar rápido</span>
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditProductDialog(product)}
+                            title="Editar"
+                            className="h-8 gap-2 px-3 text-xs"
+                          >
+                            <Pencil className="h-4 w-4" />
+                            <span className="text-[11px]">Editar</span>
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDuplicateProduct(product)}
+                            title="Duplicar"
+                            className="h-8 gap-2 px-3 text-xs"
+                          >
+                            <Copy className="h-4 w-4" />
+                            <span className="text-[11px]">Duplicar</span>
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setConfirmState({
+                                open: true,
+                                title: `Eliminar "${product.name}"?`,
+                                description: "Esta acción no se puede deshacer.",
+                                onConfirm: () => handleDeleteProduct(product.id),
+                              })
+                            }
+                            aria-label={`Eliminar ${product.name}`}
+                            className="h-8 gap-2 px-3 text-xs text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="text-[11px]">Eliminar</span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              );
+            })}
             {results.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="py-16 text-center text-sm text-muted-foreground">
@@ -573,9 +798,12 @@ function AdminProducts() {
         onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}
         title={confirmState.title}
         description={confirmState.description}
-        confirmLabel="Sí"
+        confirmLabel={(confirmState as any).confirmLabel ?? "Sí"}
         cancelLabel="No"
-        onConfirm={() => confirmState.onConfirm()}
+        onConfirm={() => {
+          confirmState.onConfirm();
+          setConfirmState((s) => ({ ...s, open: false }));
+        }}
       />
     </main>
   );
@@ -597,6 +825,16 @@ function ProductEditDialog({
   const [newFeature, setNewFeature] = useState("");
   const [editingFeatureIndex, setEditingFeatureIndex] = useState<number | null>(null);
   const [inlineFeatureText, setInlineFeatureText] = useState("");
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmExitOpen, setConfirmExitOpen] = useState(false);
+  const initialFormRef = useRef<string>(JSON.stringify(productForm));
+  useEffect(() => {
+    if (open) {
+      initialFormRef.current = JSON.stringify(productForm);
+    }
+  }, [open, productForm]);
+
+  const hasChanges = useMemo(() => JSON.stringify(productForm) !== initialFormRef.current, [productForm]);
 
   const handleAddFeature = () => {
     if (!productForm) return;
@@ -646,6 +884,9 @@ function ProductEditDialog({
       handleCancelInlineEdit();
     }
   };
+
+  const [confirmDeleteFeatureOpen, setConfirmDeleteFeatureOpen] = useState(false);
+  const [featureToDeleteIndex, setFeatureToDeleteIndex] = useState<number | null>(null);
 
   const handleAddImageFile = (file: File | null) => {
     if (!productForm || !file) return;
@@ -700,6 +941,7 @@ function ProductEditDialog({
   if (!productForm) return null;
 
   const isNewProduct = productForm.id === "";
+  const availableCategories = brands[productForm.brand]?.categories ?? [];
   const ganancias = productForm.price - productForm.gastos;
   const isImmediate = productForm.deliveryUnit === "inmediata";
   const priceValue = String(productForm.price);
@@ -707,6 +949,7 @@ function ProductEditDialog({
   const discountValue = String(productForm.discount);
   const stockValue = String(productForm.stock);
   const deliveryAmountValue = String(productForm.deliveryAmount);
+ 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -757,15 +1000,13 @@ function ProductEditDialog({
             <Label htmlFor="new-category">Categoría</Label>
             <Select
               value={productForm.category}
-              onValueChange={(value) =>
-                setProductForm({ ...productForm, category: value })
-              }
+              onValueChange={(value) => setProductForm({ ...productForm, category: value })}
             >
               <SelectTrigger id="new-category" className="w-full">
                 <SelectValue placeholder="Seleccionar categoría" />
               </SelectTrigger>
               <SelectContent>
-                {brands[productForm.brand].categories.map((category) => (
+                {availableCategories.map((category) => (
                   <SelectItem key={category.slug} value={category.slug}>
                     {category.name}
                   </SelectItem>
@@ -816,21 +1057,13 @@ function ProductEditDialog({
           </div>
           <div className="space-y-2">
             <Label>Ganancias</Label>
-            <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-foreground">
+            <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-foreground opacity-60">
               {ganancias >= 0 ? formatPrice(ganancias) : `-${formatPrice(Math.abs(ganancias))}`}
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="delivery-unit">Tiempo de entrega</Label>
-            <Select
-              value={productForm.deliveryUnit}
-              onValueChange={(value) =>
-                setProductForm({
-                  ...productForm,
-                  deliveryUnit: value as DeliveryUnit,
-                })
-              }
-            >
+            <Select value={productForm.deliveryUnit} onValueChange={(value) => setProductForm({ ...productForm, deliveryUnit: value as DeliveryUnit })}>
               <SelectTrigger id="delivery-unit" className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -842,12 +1075,12 @@ function ProductEditDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="delivery-amount">Cantidad</Label>
+            <Label htmlFor="delivery-amount">Cantidad de entrega</Label>
             <Input
               id="delivery-amount"
               type="number"
               min={1}
-              value={deliveryAmountValue}
+              value={isImmediate ? "" : deliveryAmountValue}
               onFocus={(event) => event.target.select()}
               onChange={(event) =>
                 setProductForm({
@@ -855,13 +1088,13 @@ function ProductEditDialog({
                   deliveryAmount: Number(event.target.value),
                 })
               }
-              placeholder="Cantidad"
+              placeholder={isImmediate ? "" : "Cantidad"}
               disabled={isImmediate}
             />
           </div>
           <div className="space-y-2">
             <Label>Entrega</Label>
-            <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-foreground">
+            <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-foreground opacity-60">
               {isImmediate
                 ? "Entrega inmediata"
                 : `${productForm.deliveryAmount} ${productForm.deliveryUnit}`}
@@ -905,10 +1138,10 @@ function ProductEditDialog({
                     handleAddFeature();
                   }
                 }}
-                placeholder="Agregar característica"
+                placeholder="Escribir nueva característica"
               />
               <Button type="button" onClick={handleAddFeature} className="whitespace-nowrap">
-                Agregar
+                <Plus className="h-4 w-4" /> Agregar
               </Button>
             </div>
             {productForm.features.length > 0 && (
@@ -935,50 +1168,57 @@ function ProductEditDialog({
                           <Button
                             type="button"
                             variant="secondary"
-                            size="icon"
-                            className="h-8 w-8"
+                            size="sm"
+                            className="h-8 gap-2 px-3 text-sm"
                             onClick={handleSaveInlineEdit}
                             aria-label={`Guardar edición de característica ${index + 1}`}
                           >
-                            <Check className="size-4" />
+                            <Check className="h-4 w-4" />
+                            <span>Guardar</span>
                           </Button>
                           <Button
                             type="button"
                             variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
+                            size="sm"
+                            className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
                             onClick={handleCancelInlineEdit}
                             aria-label={`Cancelar edición de característica ${index + 1}`}
                           >
-                            <X className="size-4" />
+                            <X className="h-4 w-4" />
+                            <span>Cancelar</span>
                           </Button>
                         </div>
                       </div>
                     ) : (
                       <div className="flex flex-1 items-center justify-between gap-2">
                         <span className="truncate">{feature}</span>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleStartInlineEdit(index)}
-                            aria-label={`Editar característica ${index + 1}`}
-                          >
-                            <Pencil className="size-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleDeleteFeature(index)}
-                            aria-label={`Eliminar característica ${index + 1}`}
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-2 px-3 text-sm"
+                              onClick={() => handleStartInlineEdit(index)}
+                              aria-label={`Editar característica ${index + 1}`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                              <span>Editar</span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
+                              onClick={() => {
+                                setFeatureToDeleteIndex(index);
+                                setConfirmDeleteFeatureOpen(true);
+                              }}
+                              aria-label={`Eliminar característica ${index + 1}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span>Eliminar</span>
+                            </Button>
+                          </div>
                       </div>
                     )}
                   </div>
@@ -1001,7 +1241,7 @@ function ProductEditDialog({
                   htmlFor="new-image"
                   className="inline-flex cursor-pointer items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  Agregar
+                  <Plus className="h-4 w-4 mr-2 text-primary-foreground" /> Agregar
                 </label>
               </div>
             </div>
@@ -1029,6 +1269,7 @@ function ProductEditDialog({
                           variant="outline"
                           size="sm"
                           onClick={() => handleRemoveImage(index)}
+                          disabled
                         >
                           Eliminar
                         </Button>
@@ -1037,7 +1278,7 @@ function ProductEditDialog({
                           variant="ghost"
                           size="sm"
                           onClick={() => moveImage(index, index - 1)}
-                          disabled={index === 0}
+                          disabled
                         >
                           <ArrowUp className="size-4" />
                           Arriba
@@ -1047,7 +1288,7 @@ function ProductEditDialog({
                           variant="ghost"
                           size="sm"
                           onClick={() => moveImage(index, index + 1)}
-                          disabled={index === productForm.images.length - 1}
+                          disabled
                         >
                           <ArrowDown className="size-4" />
                           Abajo
@@ -1060,9 +1301,73 @@ function ProductEditDialog({
             ) : null}
           </div>
         </div>
+        <ConfirmDialog
+          open={confirmDeleteFeatureOpen}
+          onOpenChange={(open) => setConfirmDeleteFeatureOpen(open)}
+          title={
+            featureToDeleteIndex !== null
+              ? `Eliminar "${productForm.features[featureToDeleteIndex]}"?`
+              : "Eliminar característica?"
+          }
+          description="Esta acción no se puede deshacer."
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={() => {
+            if (featureToDeleteIndex !== null) handleDeleteFeature(featureToDeleteIndex);
+            setConfirmDeleteFeatureOpen(false);
+            setFeatureToDeleteIndex(null);
+          }}
+        />
+
         <DialogFooter>
-          <Button onClick={onSave}>Guardar producto</Button>
+          <div className="flex items-center justify-end w-full gap-2">
+            <div className="flex gap-2">
+              <Button
+                className="bg-white text-primary-foreground hover:bg-slate-100 h-9 px-4 py-2"
+                onClick={() => {
+                  if (hasChanges) {
+                    setConfirmExitOpen(true);
+                  } else {
+                    setProductForm(null);
+                    onOpenChange(false);
+                  }
+                }}
+              >
+                <X className="h-4 w-4 mr-2 text-primary-foreground" /> Salir
+              </Button>
+              <Button disabled={!hasChanges} onClick={() => setConfirmSaveOpen(true)}>
+                <Save className="h-4 w-4 mr-2 text-primary-foreground" /> Guardar producto
+              </Button>
+            </div>
+          </div>
         </DialogFooter>
+
+        <ConfirmDialog
+          open={confirmSaveOpen}
+          onOpenChange={(open) => setConfirmSaveOpen(open)}
+          title={"Guardar cambios?"}
+          description={"¿Deseas guardar los cambios realizados en el producto?"}
+          confirmLabel="Guardar"
+          cancelLabel="Cancelar"
+          onConfirm={() => {
+            setConfirmSaveOpen(false);
+            onSave();
+          }}
+        />
+
+        <ConfirmDialog
+          open={confirmExitOpen}
+          onOpenChange={(open) => setConfirmExitOpen(open)}
+          title={"Salir sin guardar?"}
+          description={"Hay cambios sin guardar. ¿Estás seguro que quieres salir?"}
+          confirmLabel="Salir"
+          cancelLabel="Cancelar"
+          onConfirm={() => {
+            setConfirmExitOpen(false);
+            setProductForm(null);
+            onOpenChange(false);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

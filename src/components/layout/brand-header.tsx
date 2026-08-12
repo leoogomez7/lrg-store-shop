@@ -87,6 +87,13 @@ function BrandHeaderContent({
   }, [pathname]);
   const [panel, setPanel] = useState<string | null>(null);
 
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description?: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: undefined, onConfirm: () => {} });
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -213,6 +220,21 @@ function BrandHeaderContent({
                       await logout();
                       setUserName(null);
                       setPanel(null);
+                    }}
+                  />
+                  <ConfirmDialog
+                    open={confirmState.open}
+                    onOpenChange={(v) => setConfirmState((s) => ({ ...s, open: v }))}
+                    title={confirmState.title}
+                    description={confirmState.description}
+                    confirmLabel="Eliminar"
+                    cancelLabel="Cancelar"
+                    onConfirm={() => {
+                      try {
+                        confirmState.onConfirm();
+                      } finally {
+                        setConfirmState((s) => ({ ...s, open: false }));
+                      }
                     }}
                   />
                 </>
@@ -352,7 +374,14 @@ function BrandHeaderContent({
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
-                                onClick={() => removeItem(item.id)}
+                                onClick={() =>
+                                  setConfirmState({
+                                    open: true,
+                                    title: `Eliminar "${item.name}" del carrito?`,
+                                    description: undefined,
+                                    onConfirm: () => removeItem(item.id),
+                                  })
+                                }
                                 title="Eliminar"
                               >
                                 <Trash2 className="size-4" />

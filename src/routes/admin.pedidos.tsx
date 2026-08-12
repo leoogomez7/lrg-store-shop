@@ -4,6 +4,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { Check, Lock, Pencil, Plus, Search, Trash2, X, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,7 +48,24 @@ const statuses: (OrderStatus | "todos")[] = [
 
 const brandsFilter: (BrandSlug | "todos")[] = ["todos", "arcade", "scents", "web-design"];
 
-const paymentMethods = ["Transferencia", "Efectivo", "Tarjeta", "Mercado Pago"];
+const defaultShippingMethods = ["Físico", "Digital", "WhatsApp"];
+const defaultPaymentMethods = ["Transferencia bancaria", "Tarjeta de crédito", "Tarjeta de débito", "Efectivo", "MercadoPago"];
+
+const getConfiguredMethodNames = (storageKey: string, fallback: string[]) => {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return fallback;
+    const configured = parsed
+      .filter((item: any) => item?.enabled)
+      .map((item: any) => (item && item.name ? String(item.name) : String(item)))
+      .filter(Boolean);
+    return configured.length > 0 ? configured : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 type OrderSort =
   | "customer_asc"
@@ -161,14 +179,45 @@ function AdminOrders() {
   const [sortOrder, setSortOrder] = useState<OrderSort>("customer_asc");
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [orderForm, setOrderForm] = useState<EditableOrder | null>(null);
   const [paymentInstruction, setPaymentInstruction] = useState<string>("");
   const [productSearchQuery, setProductSearchQuery] = useState<Record<number, string>>({});
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number | null>(null);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description?: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: undefined, onConfirm: () => {} });
+
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
+  const [availableShippingMethods, setAvailableShippingMethods] = useState<string[]>([]);
+
+  useEffect(() => {
+    setAvailablePaymentMethods(getConfiguredMethodNames("lrg:paymentMethods", defaultPaymentMethods));
+    setAvailableShippingMethods(getConfiguredMethodNames("lrg:shippingMethods", defaultShippingMethods));
+  }, []);
 
   useEffect(() => {
     setEditableOrders(orders);
   }, [orders]);
+
+  const paymentMethodOptions = useMemo(() => {
+    const options = [...availablePaymentMethods];
+    if (orderForm?.paymentMethod && !options.includes(orderForm.paymentMethod)) {
+      options.push(orderForm.paymentMethod);
+    }
+    return options;
+  }, [availablePaymentMethods, orderForm?.paymentMethod]);
+
+  const shippingMethodOptions = useMemo(() => {
+    const options = [...availableShippingMethods];
+    if (orderForm?.shippingMethod && !options.includes(orderForm.shippingMethod)) {
+      options.push(orderForm.shippingMethod);
+    }
+    return options;
+  }, [availableShippingMethods, orderForm?.shippingMethod]);
 
   const results = useMemo(() => {
     const filtered = editableOrders.filter((order) => {
@@ -379,6 +428,21 @@ function AdminOrders() {
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Ventas</p>
           <h1 className="mt-2 text-3xl font-semibold">Pedidos</h1>
         </div>
+        <ConfirmDialog
+          open={confirmState.open}
+          onOpenChange={(v) => setConfirmState((s) => ({ ...s, open: v }))}
+          title={confirmState.title}
+          description={confirmState.description}
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={() => {
+            try {
+              confirmState.onConfirm();
+            } finally {
+              setConfirmState((s) => ({ ...s, open: false }));
+            }
+          }}
+        />
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-60 flex-1">
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -389,89 +453,113 @@ function AdminOrders() {
               className="pl-9"
             />
           </div>
-          <Select value={deliveryFilter} onValueChange={(value) => setDeliveryFilter(value as DeliveryStatus | "todos")}> 
-            <SelectTrigger className="w-50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Estados de entrega</SelectItem>
-              {(["Pendiente", "Enviado"] as DeliveryStatus[]).map((item) => (
-                <SelectItem key={item} value={item}>
-                  {item}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
-          <Select value={paymentFilter} onValueChange={(value) => setPaymentFilter(value as PaymentStatus | "todos")}> 
-            <SelectTrigger className="w-50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Estados de pago</SelectItem>
-              {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((item) => (
-                <SelectItem key={item} value={item}>
-                  {item}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={shippingMethodFilter} onValueChange={(value) => setShippingMethodFilter(value as string | "todos")}> 
-            <SelectTrigger className="w-50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Métodos de envío</SelectItem>
-              <SelectItem value="Por correo fisico">Por correo fisico</SelectItem>
-              <SelectItem value="Por correo electronico">Por correo electronico</SelectItem>
-              <SelectItem value="Por Whatsapp">Por Whatsapp</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={paymentMethodFilter} onValueChange={(value) => setPaymentMethodFilter(value as string | "todos")}> 
-            <SelectTrigger className="w-50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Métodos de pago</SelectItem>
-              {paymentMethods.map((m) => (
-                <SelectItem key={m} value={m}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={brand} onValueChange={(value) => setBrand(value as BrandSlug | "todos")}> 
-            <SelectTrigger className="w-55">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {brandsFilter.map((item) => (
-                <SelectItem key={item} value={item}>
-                  {item === "todos" ? "Tiendas" : brands[item].name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as OrderSort)}>
-            <SelectTrigger className="w-72">
-              <SelectValue placeholder="Ordenar por" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="customer_asc">Cliente A-Z</SelectItem>
-              <SelectItem value="customer_desc">Cliente Z-A</SelectItem>
-              <SelectItem value="date_desc">Fecha más reciente</SelectItem>
-              <SelectItem value="date_asc">Fecha más antigua</SelectItem>
-              <SelectItem value="total_desc">Total mayor a menor</SelectItem>
-              <SelectItem value="total_asc">Total menor a mayor</SelectItem>
-            </SelectContent>
-          </Select>
+          <Button
+            variant={filtersOpen ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setFiltersOpen((current) => !current)}
+            className="gap-2"
+            aria-expanded={filtersOpen}
+          >
+            <span aria-hidden="true">🔎</span>
+            Filtros
+          </Button>
         </div>
+
+        {filtersOpen ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <Select value={deliveryFilter} onValueChange={(value) => setDeliveryFilter(value as DeliveryStatus | "todos")}> 
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Estados de entrega</SelectItem>
+                {(["Pendiente", "Enviado"] as DeliveryStatus[]).map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={paymentFilter} onValueChange={(value) => setPaymentFilter(value as PaymentStatus | "todos")}> 
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Estados de pago</SelectItem>
+                {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={shippingMethodFilter} onValueChange={(value) => setShippingMethodFilter(value as string | "todos")}> 
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Métodos de envío</SelectItem>
+                {availableShippingMethods.length === 0 ? (
+                  <SelectItem value="">No hay métodos configurados</SelectItem>
+                ) : (
+                  availableShippingMethods.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+
+            <Select value={paymentMethodFilter} onValueChange={(value) => setPaymentMethodFilter(value as string | "todos")}> 
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Métodos de pago</SelectItem>
+                {availablePaymentMethods.length === 0 ? (
+                  <SelectItem value="">No hay métodos configurados</SelectItem>
+                ) : (
+                  availablePaymentMethods.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+
+            <Select value={brand} onValueChange={(value) => setBrand(value as BrandSlug | "todos")}> 
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {brandsFilter.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item === "todos" ? "Tiendas" : brands[item].name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as OrderSort)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="customer_asc">Cliente A-Z</SelectItem>
+                <SelectItem value="customer_desc">Cliente Z-A</SelectItem>
+                <SelectItem value="date_desc">Fecha más reciente</SelectItem>
+                <SelectItem value="date_asc">Fecha más antigua</SelectItem>
+                <SelectItem value="total_desc">Total mayor a menor</SelectItem>
+                <SelectItem value="total_asc">Total menor a mayor</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
       </div>
 
       <div className="glass-panel mt-8 overflow-x-auto rounded-2xl">
-        <Table>
+        <Table className="text-center">
           <TableHeader>
             <TableRow>
               <TableHead>Pedido</TableHead>
@@ -693,11 +781,15 @@ function AdminOrders() {
                       <SelectValue placeholder="Seleccionar método" />
                     </SelectTrigger>
                     <SelectContent>
-                      {paymentMethods.map((method) => (
-                        <SelectItem key={method} value={method}>
-                          {method}
-                        </SelectItem>
-                      ))}
+                      {paymentMethodOptions.length === 0 ? (
+                        <SelectItem value="">No hay métodos configurados</SelectItem>
+                      ) : (
+                        paymentMethodOptions.map((method) => (
+                          <SelectItem key={method} value={method}>
+                            {method}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -766,9 +858,15 @@ function AdminOrders() {
                       <SelectValue placeholder="Seleccionar método" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={"Por correo fisico"}>Por correo fisico</SelectItem>
-                      <SelectItem value={"Por correo electronico"}>Por correo electronico</SelectItem>
-                      <SelectItem value={"Por Whatsapp"}>Por Whatsapp</SelectItem>
+                      {shippingMethodOptions.length === 0 ? (
+                        <SelectItem value="">No hay métodos configurados</SelectItem>
+                      ) : (
+                        shippingMethodOptions.map((method) => (
+                          <SelectItem key={method} value={method}>
+                            {method}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -944,7 +1042,14 @@ function AdminOrders() {
                           <Button
                             type="button"
                             variant="ghost"
-                            onClick={() => removeOrderItem(itemIndex)}
+                            onClick={() =>
+                              setConfirmState({
+                                open: true,
+                                title: `Eliminar producto del pedido?`,
+                                description: undefined,
+                                onConfirm: () => removeOrderItem(itemIndex),
+                              })
+                            }
                             className="h-10 p-2 text-red-600 hover:text-red-700 hover:bg-accent"
                           >
                             <Trash2 className="size-4" />

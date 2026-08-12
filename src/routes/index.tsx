@@ -5,6 +5,7 @@ import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { Reveal } from "@/components/common/motion-primitives";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { brandList } from "@/config/brands";
 import { webDesignConfig } from "@/config/brands/web-design.config";
@@ -225,116 +226,79 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             </Button>
           </div>
 
-          <Reveal delay={0.3} className="mt-16">
-            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {pillars.map((pillar) => (
-                <li key={pillar.label} className="glass-panel flex items-center gap-3 rounded-xl p-4">
-                  <span className="gradient-brand grid size-9 shrink-0 place-items-center rounded-lg">
-                    <pillar.icon className="size-4 text-primary-foreground" />
-                  </span>
-                  <span className="text-sm text-muted-foreground">{pillar.label}</span>
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-
-          <section className="mt-20 glass-panel rounded-[2rem] p-6 sm:p-8 shadow-[0_20px_60px_rgba(10,15,35,0.18)]">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between rounded-[1.75rem] border border-border/60 bg-surface/90 p-5 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 text-primary">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Star key={index} className="size-4 fill-current" />
-                  ))}
+          <section className="mt-6 p-4 sm:p-6">
+            <div className="flex flex-col gap-4 rounded-[1.75rem] border border-border/60 bg-surface/90 p-4 shadow-sm">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3 text-primary">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star key={index} className="size-4 fill-current" />
+                    ))}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-semibold text-foreground">Reseñas verificadas en Trustpilot</p>
+                    <p className="text-xs text-muted-foreground">4.9/5 según clientes reales · +24 opiniones</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Reseñas verificadas en Trustpilot</p>
-                  <p className="text-xs text-muted-foreground">4.9/5 según clientes reales</p>
-                  <p className="text-xs text-muted-foreground">+24 opiniones</p>
+                <div className="flex gap-2 flex-wrap">
+                  <a
+                    href={trustpilotUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-9 items-center gap-1 rounded-2xl border border-border/70 bg-surface/90 px-3 text-sm font-semibold leading-none text-primary transition duration-200 hover:border-primary/70 hover:bg-background/95 hover:text-primary"
+                  >
+                    Ver más opiniones
+                    <ArrowUpRight className="size-4" />
+                  </a>
+                  <a
+                    href={trustpilotUrl_Evaluate}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-9 items-center gap-1 rounded-2xl border border-border/70 bg-surface/90 px-3 text-sm font-semibold leading-none text-primary transition duration-200 hover:border-primary/70 hover:bg-background/95 hover:text-primary"
+                  >
+                    Opinar sobre nosotros
+                    <ArrowUpRight className="size-4" />
+                  </a>
                 </div>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                <a
-                  href={trustpilotUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-border/60 bg-background/90 px-4 py-3 text-sm font-semibold text-foreground transition duration-200 hover:border-primary/70 hover:text-primary"
+
+              <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2">
+                <span className="text-sm font-semibold text-foreground">Ordenar por</span>
+                <Select
+                  value={`${sortBy}-${sortDirection}`}
+                  onValueChange={(value) => {
+                    switch (value) {
+                      case "date-newest":
+                        setSortBy("date");
+                        setSortDirection("newest");
+                        break;
+                      case "date-oldest":
+                        setSortBy("date");
+                        setSortDirection("oldest");
+                        break;
+                      case "rating-highest":
+                        setSortBy("rating");
+                        setSortDirection("highest");
+                        break;
+                      case "rating-lowest":
+                        setSortBy("rating");
+                        setSortDirection("lowest");
+                        break;
+                    }
+                  }}
                 >
-                  Ver más opiniones
-                  <ArrowUpRight className="size-4" />
-                </a>
-                <a
-                  href={trustpilotUrl_Evaluate}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-border/60 bg-background/90 px-4 py-3 text-sm font-semibold text-foreground transition duration-200 hover:border-primary/70 hover:text-primary"
-                >
-                  Opinar sobre nosotros
-                  <ArrowUpRight className="size-4" />
-                </a>
+                  <SelectTrigger className="w-auto max-w-14rem min-w-10rem h-8" />
+                  <SelectContent>
+                    <SelectItem value="date-newest">Más reciente</SelectItem>
+                    <SelectItem value="date-oldest">Más antiguo</SelectItem>
+                    <SelectItem value="rating-highest">Mayor puntuación</SelectItem>
+                    <SelectItem value="rating-lowest">Menor puntuación</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div className="mt-8 flex gap-2 mb-6 flex-wrap">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setSortBy("date");
-                    setSortDirection("newest");
-                  }}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    sortBy === "date" && sortDirection === "newest"
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border bg-background/70 text-foreground hover:border-primary/50 hover:text-primary"
-                  }`}
-                >
-                  Más reciente
-                </button>
-                <button
-                  onClick={() => {
-                    setSortBy("date");
-                    setSortDirection("oldest");
-                  }}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    sortBy === "date" && sortDirection === "oldest"
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border bg-background/70 text-foreground hover:border-primary/50 hover:text-primary"
-                  }`}
-                >
-                  Más antiguo
-                </button>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setSortBy("rating");
-                    setSortDirection("highest");
-                  }}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    sortBy === "rating" && sortDirection === "highest"
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border bg-background/70 text-foreground hover:border-primary/50 hover:text-primary"
-                  }`}
-                >
-                  Mayor puntuación
-                </button>
-                <button
-                  onClick={() => {
-                    setSortBy("rating");
-                    setSortDirection("lowest");
-                  }}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    sortBy === "rating" && sortDirection === "lowest"
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border bg-background/70 text-foreground hover:border-primary/50 hover:text-primary"
-                  }`}
-                >
-                  Menor puntuación
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(18rem, 1fr))" }}>
+            <div className="mt-4 grid gap-4 grid-cols-1">
               {sortedReviews.map((review, index) => (
                 <article
                   key={`${review.name}-${index}`}
@@ -343,7 +307,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 >
                   <div className="absolute left-0 top-0 h-2 w-28 rounded-br-full bg-gradient-to-r from-primary to-transparent opacity-90" />
                   <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-primary to-transparent opacity-80" />
-                  <div className="relative z-10 flex items-center gap-2 text-primary mb-4">
+                  <div className="relative z-10 flex items-center gap-3 text-primary mb-4">
                     {Array.from({ length: review.rating }).map((_, index) => (
                       <Star key={`${review.name}-${index}`} className="size-4 fill-current" />
                     ))}
@@ -351,7 +315,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
                   <div className="relative z-10">
                     <h3 className="font-semibold text-foreground text-base leading-tight">{review.title}</h3>
-                    <p className="text-xs text-muted-foreground mb-3">{review.date}</p>
+                    <p className="text-xs text-muted-foreground mb-2">{review.date}</p>
                     <div className="h-px w-16 rounded-full bg-primary/20 mb-4" />
                   </div>
 
@@ -359,7 +323,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     <p className="text-sm leading-relaxed text-muted-foreground">{review.text}</p>
                   </div>
 
-                  <div className="relative z-10 my-4 h-px w-full bg-gradient-to-r from-border/30 via-border/10 to-transparent" />
+                  <div className="relative z-10 my-5 h-px w-full bg-gradient-to-r from-border/30 via-border/10 to-transparent" />
 
                   <div className="relative z-10 flex items-center gap-2 text-xs">
                     <span className="font-semibold text-foreground leading-none">{review.name}</span>

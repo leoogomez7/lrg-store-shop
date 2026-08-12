@@ -2,6 +2,7 @@
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { cloneElement, useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProductVisual } from "@/components/common/product-visual";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/store/cart";
@@ -35,6 +36,13 @@ export function CartSheet({
     }
     onOpenChange?.(next);
   };
+
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description?: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: undefined, onConfirm: () => {} });
 
   useEffect(() => {
     if (!open) return;
@@ -180,7 +188,14 @@ export function CartSheet({
                                 variant="ghost"
                                 size="icon"
                                 className="ml-auto text-muted-foreground hover:text-destructive"
-                                onClick={() => removeItem(item.id)}
+                                onClick={() =>
+                                  setConfirmState({
+                                    open: true,
+                                    title: `Eliminar "${item.name}" del carrito?`,
+                                    description: undefined,
+                                    onConfirm: () => removeItem(item.id),
+                                  })
+                                }
                                 aria-label="Eliminar producto"
                               >
                                 <Trash2 className="size-4" />
@@ -234,6 +249,21 @@ export function CartSheet({
           </div>
         </div>
       ) : null}
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(v) => setConfirmState((s) => ({ ...s, open: v }))}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onConfirm={() => {
+          try {
+            confirmState.onConfirm();
+          } finally {
+            setConfirmState((s) => ({ ...s, open: false }));
+          }
+        }}
+      />
     </>
   );
 }

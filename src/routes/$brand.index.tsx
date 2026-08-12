@@ -54,7 +54,7 @@ function BrandHome() {
                   to="/$brand/productos"
                   params={{ brand: brand.slug }}
                   search={{ categoria: category.slug }}
-                  className="group flex min-h-[5.5rem] flex-col items-center justify-center rounded-3xl border border-border/60 bg-surface px-4 py-4 text-center text-sm text-foreground shadow-sm transition hover:bg-surface-2"
+                  className="group flex min-h-5.5rem flex-col items-center justify-center rounded-3xl border border-border/60 bg-surface px-4 py-4 text-center text-sm text-foreground shadow-sm transition hover:bg-surface-2"
                 >
                   <span className="block w-full text-sm font-semibold leading-tight text-foreground transition-colors group-hover:text-foreground">
                     {category.name}

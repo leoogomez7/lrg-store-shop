@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Package, Palette, ShoppingCart } from "lucide-react";
+import { LayoutDashboard, Package, Palette, ShoppingCart, Settings } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -16,6 +16,7 @@ const navigation = [
   { to: "/admin/productos", label: "Productos", icon: Package, exact: false },
   { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingCart, exact: false },
   { to: "/admin/marcas", label: "Tiendas disponibles", icon: Palette, exact: false },
+  { to: "/admin/configuracion", label: "Configuración", icon: Settings, exact: false },
 ] as const;
 
 function AdminLayout() {
@@ -110,10 +111,10 @@ function AdminLayout() {
                       to={item.to}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "rounded-lg px-2.5 py-1.5 text-xs transition-colors",
+                        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
                         active
                           ? "bg-surface-2 text-foreground font-semibold shadow-sm"
-                          : "text-muted-foreground hover:text-foreground",
+                          : "text-muted-foreground hover:text-foreground hover:bg-surface-2 hover:shadow-sm",
                       )}
                     >
                       {item.label}

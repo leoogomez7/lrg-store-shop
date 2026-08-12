@@ -39,7 +39,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         <ProductVisual
           seed={product.id}
           label={product.name}
-          className="aspect-[4/3] transition-transform duration-500 group-hover:scale-[1.03]"
+          className="aspect-4/3 transition-transform duration-500 group-hover:scale-[1.03]"
         />
         <div className="absolute left-3 top-3 flex flex-col gap-2">
           {discountLabel && (
@@ -96,7 +96,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
 export function ProductCardSkeleton() {
   return (
     <div className="glass-panel overflow-hidden rounded-2xl">
-      <div className="aspect-[4/3] animate-pulse bg-surface-2" />
+      <div className="aspect-4/3 animate-pulse bg-surface-2" />
       <div className="space-y-3 p-5">
         <div className="h-4 w-3/4 animate-pulse rounded bg-surface-2" />
         <div className="h-3 w-full animate-pulse rounded bg-surface-2" />
