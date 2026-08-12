@@ -1,16 +1,21 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, Check, Edit3, Pencil, Plus, Save, Search, Trash2, X, Copy, Eye } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronsUpDown, Edit3, Filter, Pencil, Plus, Save, Search, Trash2, X, Copy, Eye, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { products as productsData } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +24,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Select,
@@ -81,6 +91,15 @@ function AdminProducts() {
   const [editableProducts, setEditableProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState<BrandSlug | "todas">("todas");
+  const [categoryFilter, setCategoryFilter] = useState("todas");
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+  const [discountedPriceMin, setDiscountedPriceMin] = useState("");
+  const [discountedPriceMax, setDiscountedPriceMax] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [categoryFilterOpen, setCategoryFilterOpen] = useState(false);
+  const [categoryFilterSearch, setCategoryFilterSearch] = useState("");
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrder>("name_asc");
   const [discounts, setDiscounts] = useState<Record<string, number>>({});
   const [pendingDiscounts, setPendingDiscounts] = useState<Record<string, string>>({});
@@ -370,10 +389,43 @@ function AdminProducts() {
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [quickEditProductId]);
 
+  const availableCategories = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          editableProducts
+            .map((product) => product.category)
+            .filter((category) => category && category.trim().length > 0),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [editableProducts],
+  );
+
+  const filteredCategories = useMemo(
+    () =>
+      availableCategories.filter((category) =>
+        category.toLowerCase().includes(categoryFilterSearch.toLowerCase()),
+      ),
+    [availableCategories, categoryFilterSearch],
+  );
+
   const results = useMemo(() => {
     const filtered = editableProducts.filter((product) => {
       if (brandFilter !== "todas" && product.brand !== brandFilter) return false;
+      if (categoryFilter !== "todas" && product.category !== categoryFilter) return false;
       if (query && !product.name.toLowerCase().includes(query.toLowerCase())) return false;
+
+      const priceMinNumber = priceMin === "" ? null : Number(priceMin);
+      const priceMaxNumber = priceMax === "" ? null : Number(priceMax);
+      const discountedPriceMinNumber = discountedPriceMin === "" ? null : Number(discountedPriceMin);
+      const discountedPriceMaxNumber = discountedPriceMax === "" ? null : Number(discountedPriceMax);
+      const discountedPrice = product.price * (1 - (discounts[product.id] ?? 0) / 100);
+
+      if (priceMinNumber !== null && product.price < priceMinNumber) return false;
+      if (priceMaxNumber !== null && product.price > priceMaxNumber) return false;
+      if (discountedPriceMinNumber !== null && discountedPrice < discountedPriceMinNumber) return false;
+      if (discountedPriceMaxNumber !== null && discountedPrice > discountedPriceMaxNumber) return false;
+
       return true;
     });
 
@@ -404,7 +456,7 @@ function AdminProducts() {
           return 0;
       }
     });
-  }, [editableProducts, query, brandFilter, sortOrder, discounts]);
+  }, [editableProducts, query, brandFilter, categoryFilter, priceMin, priceMax, discountedPriceMin, discountedPriceMax, sortOrder, discounts]);
 
   useEffect(() => {
     setPage(0);
@@ -427,48 +479,168 @@ function AdminProducts() {
         </Button>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-4">
-        <div className="relative w-full max-w-md">
+      <div className="mt-6 flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="relative w-full max-w-[260px] sm:max-w-[280px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Buscar producto"
-            className="pl-9"
+            className="h-9 pl-9"
           />
         </div>
-        <Select
-          value={brandFilter}
-          onValueChange={(value) => setBrandFilter(value as BrandSlug | "todas")}
+
+        <Button
+          variant={filtersOpen ? "secondary" : "outline"}
+          size="sm"
+          onClick={() => setFiltersOpen((current) => !current)}
+          className="h-9 shrink-0 gap-1.5 px-2.5"
+          aria-expanded={filtersOpen}
         >
-          <SelectTrigger className="w-50">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Tiendas</SelectItem>
-            {brandList.map((brand) => (
-              <SelectItem key={brand.slug} value={brand.slug}>
-                {brand.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
-          <SelectTrigger className="w-72">
-            <SelectValue placeholder="Ordenar por" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="name_asc">Producto A-Z</SelectItem>
-            <SelectItem value="name_desc">Producto Z-A</SelectItem>
-            <SelectItem value="price_asc">Precio menor a mayor</SelectItem>
-            <SelectItem value="price_desc">Precio mayor a menor</SelectItem>
-            <SelectItem value="stock_asc">Stock menor a mayor</SelectItem>
-            <SelectItem value="stock_desc">Stock mayor a menor</SelectItem>
-            <SelectItem value="discountedPrice_asc">Precio descuento menor a mayor</SelectItem>
-            <SelectItem value="discountedPrice_desc">Precio descuento mayor a menor</SelectItem>
-          </SelectContent>
-        </Select>
+          <Filter className="size-4 text-white" />
+          Filtros
+        </Button>
+
+        <Button
+          variant={sortMenuOpen ? "secondary" : "outline"}
+          size="sm"
+          onClick={() => setSortMenuOpen((current) => !current)}
+          className="h-9 shrink-0 gap-1.5 px-2.5"
+          aria-expanded={sortMenuOpen}
+        >
+          <ArrowUpDown className="size-4 text-white" />
+          Ordenar por
+        </Button>
       </div>
+
+      {filtersOpen ? (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-2">
+            <Popover open={categoryFilterOpen} onOpenChange={setCategoryFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={categoryFilterOpen}
+                  className="w-full justify-between"
+                >
+                  <span className="truncate">
+                    {categoryFilter === "todas" ? "Todas las categorías" : categoryFilter}
+                  </span>
+                  <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                <Command>
+                  <CommandInput
+                    value={categoryFilterSearch}
+                    onValueChange={setCategoryFilterSearch}
+                    placeholder="Buscar categoría..."
+                  />
+                  <CommandList>
+                    <CommandEmpty>No se encontró ninguna categoría.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="todas"
+                        onSelect={() => {
+                          setCategoryFilter("todas");
+                          setCategoryFilterSearch("");
+                          setCategoryFilterOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 size-4",
+                            categoryFilter === "todas" ? "opacity-100" : "opacity-0",
+                          )}
+                        />
+                        Categorías
+                      </CommandItem>
+                      {filteredCategories.map((category) => (
+                        <CommandItem
+                          key={category}
+                          value={category}
+                          onSelect={() => {
+                            setCategoryFilter(category);
+                            setCategoryFilterSearch("");
+                            setCategoryFilterOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 size-4",
+                              categoryFilter === category ? "opacity-100" : "opacity-0",
+                            )}
+                          />
+                          {category}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="number"
+                min={0}
+                value={priceMin}
+                onChange={(event) => setPriceMin(event.target.value)}
+                placeholder="Precio desde"
+              />
+              <Input
+                type="number"
+                min={0}
+                value={priceMax}
+                onChange={(event) => setPriceMax(event.target.value)}
+                placeholder="Precio hasta"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Select
+              value={brandFilter}
+              onValueChange={(value) => setBrandFilter(value as BrandSlug | "todas")}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Tiendas</SelectItem>
+                {brandList.map((brand) => (
+                  <SelectItem key={brand.slug} value={brand.slug}>
+                    {brand.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      ) : null}
+
+      {sortMenuOpen ? (
+        <div className="mt-4 w-full max-w-[320px]">
+          <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name_asc">Producto A-Z</SelectItem>
+              <SelectItem value="name_desc">Producto Z-A</SelectItem>
+              <SelectItem value="price_asc">Precio menor a mayor</SelectItem>
+              <SelectItem value="price_desc">Precio mayor a menor</SelectItem>
+              <SelectItem value="stock_asc">Stock menor a mayor</SelectItem>
+              <SelectItem value="stock_desc">Stock mayor a menor</SelectItem>
+              <SelectItem value="discountedPrice_asc">Precio con descuento menor a mayor</SelectItem>
+              <SelectItem value="discountedPrice_desc">Precio con descuento mayor a menor</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
 
       <div className="glass-panel mt-6 overflow-x-auto rounded-2xl pb-2">
         <Table className="text-center">
@@ -611,9 +783,9 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell>{formatPrice(Math.max(0, quickDraft.price * (1 - quickDraft.discount / 100)))}</TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
+                        <div className="flex flex-nowrap items-center justify-start gap-2">
                           <Button
-                            variant="ghost"
+                            variant="secondary"
                             size="sm"
                             onClick={() =>
                               setConfirmState({
@@ -623,12 +795,17 @@ function AdminProducts() {
                                 onConfirm: () => saveQuickEdit(product),
                               })
                             }
-                            className="h-8 gap-2 px-3 text-xs"
+                            className="h-8 flex-none gap-2 px-3 text-xs"
                           >
                             <Check className="h-4 w-4" />
                             <span>Guardar</span>
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={cancelQuickEdit} className="h-8 gap-2 px-3 text-xs">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={cancelQuickEdit}
+                            className="h-8 flex-none gap-2 px-3 text-xs text-destructive hover:bg-destructive/10"
+                          >
                             <X className="size-4" />
                             <span>Cancelar</span>
                           </Button>
