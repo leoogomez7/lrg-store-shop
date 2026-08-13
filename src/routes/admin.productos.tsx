@@ -669,8 +669,8 @@ function AdminProducts() {
       {sortMenuOpen ? (
         <div className="mt-4 w-full max-w-[320px]">
           <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Ordenar por" />
+            <SelectTrigger className="w-full" showValue>
+              Ordenar por
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="name_asc">Producto A-Z</SelectItem>

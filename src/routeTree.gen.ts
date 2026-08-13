@@ -23,6 +23,7 @@ import { Route as BrandProductosRouteImport } from './routes/$brand.productos'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminMarcasRouteImport } from './routes/admin.marcas'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 import { Route as AdminProductosRouteImport } from './routes/admin.productos'
 import { Route as AdminConfiguracionRouteImport } from './routes/admin.configuracion'
 import { Route as BrandProductoSlugRouteImport } from './routes/$brand.producto.$slug'
@@ -97,6 +98,11 @@ const AdminPedidosRoute = AdminPedidosRouteImport.update({
   path: '/pedidos',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminClientesRoute = AdminClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProductosRoute = AdminProductosRouteImport.update({
   id: '/productos',
   path: '/productos',
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/$brand/productos': typeof BrandProductosRoute
   '/admin/marcas': typeof AdminMarcasRoute
   '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/clientes': typeof AdminClientesRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
   '/$brand/': typeof BrandIndexRoute
@@ -143,8 +150,10 @@ export interface FileRoutesByTo {
   '/$brand/productos': typeof BrandProductosRoute
   '/admin/marcas': typeof AdminMarcasRoute
   '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/clientes': typeof AdminClientesRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
+  '/admin/clientes': typeof AdminClientesRoute
   '/$brand': typeof BrandIndexRoute
   '/admin': typeof AdminIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
@@ -163,6 +172,7 @@ export interface FileRoutesById {
   '/$brand/productos': typeof BrandProductosRoute
   '/admin/marcas': typeof AdminMarcasRoute
   '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/clientes': typeof AdminClientesRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
   '/$brand/': typeof BrandIndexRoute
@@ -382,13 +392,16 @@ const BrandRouteWithChildren = BrandRoute._addFileChildren(BrandRouteChildren)
 interface AdminRouteChildren {
   AdminMarcasRoute: typeof AdminMarcasRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
+  AdminClientesRoute: typeof AdminClientesRoute
   AdminProductosRoute: typeof AdminProductosRoute
+  AdminConfiguracionRoute: typeof AdminConfiguracionRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminMarcasRoute: AdminMarcasRoute,
   AdminPedidosRoute: AdminPedidosRoute,
+  AdminClientesRoute: AdminClientesRoute,
   AdminProductosRoute: AdminProductosRoute,
   AdminConfiguracionRoute: AdminConfiguracionRoute,
   AdminIndexRoute: AdminIndexRoute,

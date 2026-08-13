@@ -198,58 +198,6 @@ function BrandHeaderContent({
               <UserBadge />
             </div>
 
-            <div className="hidden md:flex items-center gap-2">
-              {userName ? (
-                <>
-                  <Button variant="ghost" size="sm" className="rounded-xl text-red-600" onClick={() => setLogoutOpen(true)}>
-                    Cerrar sesión
-                  </Button>
-                  <ConfirmDialog
-                    open={logoutOpen}
-                    onOpenChange={setLogoutOpen}
-                    title="¿Cerrar sesión?"
-                    description="¿Deseas cerrar la sesión actual? Se finalizará tu acceso en este dispositivo."
-                    confirmLabel="Sí, cerrar sesión"
-                    cancelLabel="No"
-                    onConfirm={async () => {
-                      try {
-                        await kindeLogout();
-                      } catch (error) {
-                        console.error("Error during Kinde logout:", error);
-                      }
-                      await logout();
-                      setUserName(null);
-                      setPanel(null);
-                    }}
-                  />
-                  <ConfirmDialog
-                    open={confirmState.open}
-                    onOpenChange={(v) => setConfirmState((s) => ({ ...s, open: v }))}
-                    title={confirmState.title}
-                    description={confirmState.description}
-                    confirmLabel="Eliminar"
-                    cancelLabel="Cancelar"
-                    onConfirm={() => {
-                      try {
-                        confirmState.onConfirm();
-                      } finally {
-                        setConfirmState((s) => ({ ...s, open: false }));
-                      }
-                    }}
-                  />
-                </>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate({ to: "/login" })}
-                  className="rounded-xl text-muted-foreground hover:text-foreground"
-                >
-                  Iniciar sesión
-                </Button>
-              )}
-            </div>
-
             {/* Mobile auth buttons: visible on small screens */}
             <div className="flex md:hidden items-center gap-2">
               {!userName ? (
@@ -374,14 +322,7 @@ function BrandHeaderContent({
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
-                                onClick={() =>
-                                  setConfirmState({
-                                    open: true,
-                                    title: `Eliminar "${item.name}" del carrito?`,
-                                    description: undefined,
-                                    onConfirm: () => removeItem(item.id),
-                                  })
-                                }
+                                onClick={() => removeItem(item.id)}
                                 title="Eliminar"
                               >
                                 <Trash2 className="size-4" />
