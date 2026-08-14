@@ -35,13 +35,13 @@ export const Route = createFileRoute("/admin/")({
   },
   head: () => ({
     meta: [
-      { title: "LRG Store Shop" },
+      { title: "LRG Store Shop - Administrador" },
       {
         name: "description",
-        content: "Métricas de ventas, pedidos y stock de los tres sectores del ecosistema.",
+        content: "Métricas de ventas, pedidos y stock de los tres sectores del negocio.",
       },
-      { property: "og:title", content: "Dashboard — Admin LRG Store Shop" },
-      { property: "og:description", content: "Panel administrativo del ecosistema LRG." },
+      { property: "og:title", content: "LRG Store Shop - Administrador" },
+      { property: "og:description", content: "Panel administrativo del negocio LRG." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex" },
@@ -197,7 +197,7 @@ function AdminDashboard() {
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Métricas</p>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="mt-2 text-3xl font-semibold">Panel administrativo</h1>
+          <h1 className="mt-2 text-3xl font-semibold">Panel Administrativo</h1>
         </div>
         <Select value={ecosystem} onValueChange={(value) => setEcosystem(value as "todos" | BrandSlug)}>
           <SelectTrigger className="w-55">

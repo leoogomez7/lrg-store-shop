@@ -20,10 +20,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/admin/configuracion")({
   head: () => ({
     meta: [
-      { title: "Configuración — Admin LRG Store Shop" },
+      { title: "LRG Store Shop - Administrador" },
       { name: "description", content: "Ajustes generales del admin: categorías, envíos y más." },
-      { property: "og:title", content: "Configuración — Admin LRG Store Shop" },
-      { property: "og:description", content: "Administrá categorías, envíos y ajustes del ecosistema." },
+      { property: "og:title", content: "LRG Store Shop - Administrador" },
+      { property: "og:description", content: "Administrá categorías, envíos y ajustes del negocio." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex" },
@@ -516,12 +516,12 @@ function AdminConfiguration() {
             <div>
               <Label htmlFor="freeShippingThreshold">Envío gratis desde ($)</Label>
               <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
-                <Input
+                  <Input
                   id="freeShippingThreshold"
                   type="number"
                   value={pendingFreeShippingThreshold}
                   onChange={(event) => setPendingFreeShippingThreshold(event.target.value)}
-                  className="h-9 min-w-0 w-[28%] max-w-[170px]"
+                  className="h-9 min-w-0 w-[28%] max-w-42.5"
                 />
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
@@ -532,7 +532,7 @@ function AdminConfiguration() {
                     size="sm"
                     onClick={confirmFreeShippingThreshold}
                     disabled={pendingFreeShippingThreshold.trim().length === 0 || Number.isNaN(Number(pendingFreeShippingThreshold))}
-                    className="h-9 flex-shrink-0 gap-2"
+                    className="h-9 shrink-0 gap-2"
                   >
                     <Check className="h-4 w-4" />
                     Confirmar
@@ -555,18 +555,18 @@ function AdminConfiguration() {
                   value={newShippingMethod}
                   onChange={(event) => setNewShippingMethod(event.target.value)}
                   placeholder="Escribir nuevo método de envío"
-                  className="h-9 min-w-0 w-[70%] max-w-[430px]"
+                  className="h-9 min-w-0 w-[70%] max-w-107.5"
                 />
                 <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
                   <span className="text-sm">Aplicar a todas las tiendas</span>
                   <Switch checked={applyShippingMethodsToAll} onCheckedChange={setApplyShippingMethodsToAll} />
                 </label>
-                <Button
-                  size="sm"
-                  onClick={addShippingMethod}
-                  disabled={!newShippingMethod.trim()}
-                  className="h-9 flex-shrink-0 gap-2"
-                >
+                  <Button
+                    size="sm"
+                    onClick={addShippingMethod}
+                    disabled={!newShippingMethod.trim()}
+                    className="h-9 shrink-0 gap-2"
+                  >
                   <Plus className="h-4 w-4" />
                   Agregar
                 </Button>
@@ -581,10 +581,10 @@ function AdminConfiguration() {
                 >
                   <div className="min-w-0 flex-1 text-sm font-semibold text-foreground">
                     {editingMethodId === method.id ? (
-                      <Input
+                        <Input
                         value={editingMethodName}
                         onChange={(event) => setEditingMethodName(event.target.value)}
-                        className="min-w-[140px]"
+                        className="min-w-35"
                       />
                     ) : (
                       method.name
@@ -671,7 +671,7 @@ function AdminConfiguration() {
                 size="sm"
                 onClick={applyShippingMethodsToAllConfirm}
                 disabled={!applyShippingMethodsToAll || shippingMethodsAppliedToAll}
-                className="h-9 flex-shrink-0 gap-2"
+                className="h-9 shrink-0 gap-2"
               >
                 <Check className="h-4 w-4" />
                 Confirmar
@@ -698,7 +698,7 @@ function AdminConfiguration() {
                 value={newPaymentMethod}
                 onChange={(event) => setNewPaymentMethod(event.target.value)}
                 placeholder="Escribir nuevo método de pago"
-                className="h-9 min-w-0 w-[70%] max-w-[430px]"
+                className="h-9 min-w-0 w-[70%] max-w-107.5"
               />
               <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
                 <span className="text-sm">Aplicar a todas las tiendas</span>
@@ -708,7 +708,7 @@ function AdminConfiguration() {
                 size="sm"
                 onClick={addPaymentMethod}
                 disabled={!newPaymentMethod.trim()}
-                className="h-9 flex-shrink-0 gap-2"
+                className="h-9 shrink-0 gap-2"
               >
                 <Plus className="h-4 w-4" />
                 Agregar
@@ -723,10 +723,10 @@ function AdminConfiguration() {
                 >
                   <div className="min-w-0 flex-1 text-sm font-semibold text-foreground">
                     {editingPaymentMethodId === method.id ? (
-                      <Input
+                        <Input
                         value={editingPaymentMethodName}
                         onChange={(event) => setEditingPaymentMethodName(event.target.value)}
-                        className="min-w-[140px] w-full"
+                        className="min-w-35 w-full"
                       />
                     ) : (
                       method.name
@@ -801,11 +801,11 @@ function AdminConfiguration() {
             </div>
             <div className="mt-4 flex justify-end">
               <Button
-                size="sm"
-                onClick={applyPaymentMethodsToAllConfirm}
-                disabled={!applyPaymentMethodsToAll || paymentMethodsAppliedToAll}
-                className="h-9 flex-shrink-0 gap-2"
-              >
+                  size="sm"
+                  onClick={applyPaymentMethodsToAllConfirm}
+                  disabled={!applyPaymentMethodsToAll || paymentMethodsAppliedToAll}
+                  className="h-9 shrink-0 gap-2"
+                >
                 <Check className="h-4 w-4" />
                 Confirmar
               </Button>
@@ -831,9 +831,9 @@ function AdminConfiguration() {
                 value={newCategory}
                 onChange={(event) => setNewCategory(event.target.value)}
                 placeholder="Escribir nueva categoría"
-                className="h-9 min-w-0 w-[70%] max-w-[430px]"
+                className="h-9 min-w-0 w-[70%] max-w-107.5"
               />
-              <Button onClick={addCategory} size="sm" disabled={!newCategory.trim()} className="h-9 flex-shrink-0 gap-2">
+              <Button onClick={addCategory} size="sm" disabled={!newCategory.trim()} className="h-9 shrink-0 gap-2">
                   <Plus className="h-4 w-4" />
                   Agregar
                 </Button>
@@ -847,10 +847,10 @@ function AdminConfiguration() {
                 >
                   <div className="min-w-0 flex-1 text-sm font-semibold text-foreground">
                     {editingCategoryId === category.id ? (
-                      <Input
+                        <Input
                         value={editingCategoryName}
                         onChange={(event) => setEditingCategoryName(event.target.value)}
-                        className="min-w-[140px] w-full"
+                        className="min-w-35 w-full"
                       />
                     ) : (
                       category.name

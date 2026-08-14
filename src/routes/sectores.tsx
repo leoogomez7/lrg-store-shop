@@ -13,7 +13,7 @@ export const Route = createFileRoute("/sectores")({
       { property: "og:title", content: "Elegí tu sector — LRG Store Shop" },
       {
         property: "og:description",
-        content: "Tres sectores independientes dentro del ecosistema LRG Store Shop.",
+        content: "Tres sectores independientes dentro del negocio LRG Store Shop.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

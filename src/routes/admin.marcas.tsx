@@ -14,13 +14,13 @@ export const Route = createFileRoute("/admin/marcas")({
   loader: ({ context }) => context.queryClient.ensureQueryData(catalogQueries.all()),
   head: () => ({
     meta: [
-      { title: "Marcas — Admin LRG Store Shop" },
+      { title: "LRG Store Shop - Administrador" },
       {
         name: "description",
         content: "Configuración de los tres sectores: identidad, categorías, contacto y pagos.",
       },
-      { property: "og:title", content: "Marcas — Admin LRG Store Shop" },
-      { property: "og:description", content: "Configuración de marcas del ecosistema LRG." },
+      { property: "og:title", content: "LRG Store Shop - Administrador" },
+      { property: "og:description", content: "Configuración de sectores del negocio LRG." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex" },
@@ -119,7 +119,7 @@ function AdminBrands() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Ecosistema</p>
+      <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Sectores</p>
       <h1 className="mt-2 text-3xl font-semibold">Tiendas disponibles</h1>
 
       <div className="mt-10 grid gap-6 pb-20 lg:grid-cols-3">

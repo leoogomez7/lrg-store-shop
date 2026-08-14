@@ -108,7 +108,7 @@ export function BrandFooter({ brand }: { brand: BrandConfig }) {
             </li>
             <li>
               <Link to="/admin" className="transition-colors hover:text-foreground">
-                Panel administrativo
+                Administrador
               </Link>
             </li>
           </ul>
@@ -157,7 +157,7 @@ export function BrandFooter({ brand }: { brand: BrandConfig }) {
                 </a>
               </li>
             </ul>
-          <div className="mt-2 flex flex-col gap-2 text-sm">
+          <div className="mt-2 flex flex-col items-start gap-2 text-sm">
             {brand.social.map((social) => {
               const key = social.label.toLowerCase();
               let Icon: any = null;
@@ -173,13 +173,23 @@ export function BrandFooter({ brand }: { brand: BrandConfig }) {
                   target="_blank"
                   rel="noreferrer"
                   aria-label={social.label}
-                  className="flex items-center gap-2 transition-colors hover:text-foreground"
+                    className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground w-auto self-start"
                 >
                   {Icon ? <Icon className="size-4 text-muted-foreground" /> : null}
-                  <span className="text-sm text-muted-foreground">{social.label}</span>
+                  <span>{social.label}</span>
                 </a>
               );
             })}
+            <a
+              href="https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Reseñas"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground w-auto self-start"
+            >
+              <span className="">⭐</span>
+              <span>Reseñas</span>
+            </a>
           </div>
         </div>
       </div>

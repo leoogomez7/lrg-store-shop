@@ -1,0 +1,239 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { z } from "zod";
+import { ArrowUpDown, Funnel, Search } from "lucide-react";
+import { BrandFooter } from "@/components/layout/brand-footer";
+import { BrandHeader } from "@/components/layout/brand-header";
+import { ProductCard } from "@/components/product/product-card";
+import {
+  ProductFilters,
+  sortLabels,
+  type CatalogFilters,
+} from "@/components/product/product-filters";
+import { Input } from "@/components/ui/input";
+import { brandList } from "@/config/brands";
+import { webDesignConfig } from "@/config/brands/web-design.config";
+import { catalogQueries } from "@/services/catalog.service";
+
+const searchSchema = z.object({
+  categoria: z.string().optional(),
+});
+
+export const Route = createFileRoute("/productos")({
+  validateSearch: searchSchema,
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData(catalogQueries.all());
+    return null;
+  },
+  head: () => ({
+    meta: [
+      { title: "Todos los productos — LRG Store Shop" },
+      {
+        name: "description",
+        content: "Explorá todos los productos del ecosistema LRG Store Shop: gaming, perfumería árabe y diseño web.",
+      },
+      { property: "og:title", content: "Todos los productos — LRG Store Shop" },
+      {
+        property: "og:description",
+        content: "Explorá todos los productos del ecosistema LRG Store Shop: gaming, perfumería árabe y diseño web.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: ProductosPage,
+});
+
+function ProductosPage() {
+  const search = Route.useSearch();
+  const { data: products } = useSuspenseQuery(catalogQueries.all());
+
+  const categories = useMemo(() => {
+    const map = new Map<string, { slug: string; name: string; description: string }>();
+
+    brandList.forEach((brand) => {
+      brand.categories.forEach((category) => {
+        if (!map.has(category.slug)) {
+          map.set(category.slug, category);
+        }
+      });
+    });
+
+    return Array.from(map.values());
+  }, []);
+
+  const priceLimit = useMemo(
+    () => Math.ceil(Math.max(...products.map((product) => product.price)) / 50) * 50,
+    [products],
+  );
+
+  const [filters, setFilters] = useState<CatalogFilters>({
+    search: "",
+    categories: search.categoria ? [search.categoria] : [],
+    brands: [],
+    minPrice: 0,
+    maxPrice: priceLimit,
+    inStockOnly: false,
+    sort: "precio-asc",
+  });
+
+  const [showFilters, setShowFilters] = useState(false);
+  const [showSortOptions, setShowSortOptions] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!showSortOptions) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!sortMenuRef.current?.contains(target)) {
+        setShowSortOptions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [showSortOptions]);
+
+  const results = useMemo(() => {
+    const query = filters.search.trim().toLowerCase();
+    const filtered = products.filter((product) => {
+      if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
+      if (filters.categories.length && !filters.categories.includes(product.category)) return false;
+      if ((filters.brands ?? []).length && !(filters.brands ?? []).includes(product.brand)) return false;
+      if (product.price < filters.minPrice) return false;
+      if (product.price > filters.maxPrice) return false;
+      if (filters.inStockOnly && product.stock <= 0) return false;
+      return true;
+    });
+
+    switch (filters.sort) {
+      case "precio-asc":
+        return filtered.sort((a, b) => a.price - b.price);
+      case "precio-desc":
+        return filtered.sort((a, b) => b.price - a.price);
+      case "nombre-asc":
+        return filtered.sort((a, b) => a.name.localeCompare(b.name));
+      case "nombre-desc":
+        return filtered.sort((a, b) => b.name.localeCompare(a.name));
+      default:
+        return filtered.sort((a, b) => a.price - b.price);
+    }
+  }, [products, filters]);
+
+  return (
+    <div className="theme-webdesign min-h-screen bg-background text-foreground">
+      <div className="aurora-bg" />
+      <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pt-20 pb-8 sm:px-6">
+        <BrandHeader brand={webDesignConfig} displayBrandName="LRG Store Shop" logoBrandSlug="store-shop" />
+
+        <main className="flex-1 py-10">
+          <header className="max-w-3xl">
+            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Catálogo completo</p>
+            <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">LRG Store Shop</h1>
+          </header>
+
+          <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="relative max-w-md w-full">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar producto"
+                value={filters.search}
+                onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+                className="max-w-md pl-9"
+              />
+            </div>
+
+            <div ref={sortMenuRef} className="relative max-w-xs">
+              <button
+                type="button"
+                onClick={() => setShowSortOptions((value) => !value)}
+                className="inline-flex h-9 w-full max-w-xs items-center justify-between gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
+              >
+                <span className="flex items-center gap-2">
+                  <ArrowUpDown className="size-4 text-white" aria-hidden="true" />
+                  <span>Ordenar por</span>
+                </span>
+              </button>
+
+              {showSortOptions && (
+                <div className="absolute right-0 z-20 mt-2 w-full min-w-55 rounded-xl border border-border/60 bg-background/95 p-2 shadow-lg backdrop-blur-sm">
+                  {Object.entries(sortLabels).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        setFilters((current) => ({ ...current, sort: value as CatalogFilters["sort"] }));
+                        setShowSortOptions(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
+                        filters.sort === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      <span>{label}</span>
+                      {filters.sort === value && <span aria-hidden="true">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowFilters((value) => !value)}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
+            >
+              <Funnel className="size-4 text-white" />
+              <span>Filtros</span>
+            </button>
+          </div>
+
+          <div className={"mt-6 grid gap-8 " + (showFilters ? "lg:grid-cols-[280px_1fr]" : "lg:grid-cols-1")}>
+            {showFilters && (
+              <ProductFilters
+                categories={categories}
+                filters={filters}
+                priceLimit={priceLimit}
+                resultCount={results.length}
+                onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
+                onReset={() =>
+                  setFilters({
+                    search: "",
+                    categories: [],
+                    brands: [],
+                    minPrice: 0,
+                    maxPrice: priceLimit,
+                    inStockOnly: false,
+                    sort: "precio-asc",
+                  })
+                }
+                hideSearch
+                showBrandFilter
+              />
+            )}
+
+            <section>
+              {results.length === 0 ? (
+                <div className="glass-panel rounded-2xl p-12 text-center">
+                  <h2 className="font-display text-lg font-semibold">Sin resultados</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Probá ajustando los filtros o ampliando el rango de precio.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                  {results.map((product, index) => (
+                    <ProductCard key={product.id} product={product} index={index} />
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        </main>
+
+        <BrandFooter brand={webDesignConfig} />
+      </div>
+    </div>
+  );
+}

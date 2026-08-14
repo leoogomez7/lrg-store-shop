@@ -30,17 +30,18 @@ export const Route = createFileRoute("/cuenta")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
   head: () => ({
     meta: [
-      { title: "Mi cuenta — LRG Store Shop" },
+      { title: "Mi cuenta" },
       {
         name: "description",
         content: "Gestioná tus pedidos, direcciones, favoritos y datos personales.",
       },
-      { property: "og:title", content: "Mi cuenta — LRG Store Shop" },
+      { property: "og:title", content: "Mi cuenta" },
       { property: "og:description", content: "Panel de cliente de LRG Store Shop." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex" },
     ],
+    links: [{ rel: "icon", href: "/LRG Store Shop PNG.png", type: "image/png" }],
   }),
   component: AccountPage,
 });

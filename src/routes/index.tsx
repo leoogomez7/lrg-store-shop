@@ -15,16 +15,16 @@ import { SectorsContent } from "@/components/sectors-content";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "LRG Store Shop — Ecosistema de marcas premium" },
+      { title: "LRG Store Shop" },
       {
         name: "description",
         content:
-          "Un ecosistema, tres sectores: gaming, perfumería árabe y software. Elegí tu marca y viví una experiencia de compra distinta.",
+          "Un negocio, tres sectores: gaming, perfumería árabe y software. Conectá con tus pasiones y descubrí una nueva forma de pontenciar tu día a día.",
       },
-      { property: "og:title", content: "LRG Store Shop — Ecosistema de marcas premium" },
+      { property: "og:title", content: "LRG Store Shop" },
       {
         property: "og:description",
-        content: "Un ecosistema, tres sectores: gaming, perfumería árabe y software. Elegí tu marca y viví una experiencia de compra distinta.",
+        content: "Un negocio, tres sectores: gaming, perfumería árabe y software. Conectá con tus pasiones y descubrí una nueva forma de pontenciar tu día a día.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/")({
 });
 
 const pillars = [
-  { icon: Layers, label: "Tres sectores, un mismo sistema" },
+  { icon: Layers, label: "Tres sectores, un mismo negocio" },
   { icon: Zap, label: "Navegación instantánea" },
   { icon: ShieldCheck, label: "Compras protegidas" },
   { icon: Boxes, label: "Arquitectura escalable" },
@@ -179,7 +179,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             style={{ transition: "opacity 600ms ease" }}
           >
             <Sparkles className="size-3.5 text-primary" />
-            Bienvenido al ecosistema
+            Bienvenido LRG Store Shop
           </span>
 
           <h1
@@ -195,8 +195,8 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground"
             style={{ transition: "transform 700ms ease, opacity 700ms ease", transform: "translateY(0)", opacity: 1 }}
           >
-            LRG Store Shop reúne gaming, perfumería árabe y desarrollo de software bajo un mismo
-            sistema. Elegís el sector y toda la experiencia se adapta a esa marca.
+            LRG Store Shop reúne gaming, streaming, perfumería árabe y diseño de páginas web
+            bajo un mismo sistema. Elegís el sector y toda la experiencia se adapta a esa marca.
           </p>
 
           <div
@@ -223,6 +223,13 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               className="gap-2"
             >
               LRG Web Design <ArrowRight className="size-4" />
+            </Button>
+            <Button
+              onClick={() => navigate({ to: "/productos" })}
+              size="lg"
+              className="gap-2 bg-surface-2 text-foreground hover:bg-surface-3"
+            >
+              Mostrar todos los productos <ArrowRight className="size-4" />
             </Button>
           </div>
 
@@ -305,8 +312,8 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   className="group relative overflow-hidden rounded-[2rem] border border-border/60 bg-background/80 p-5 shadow-[0_20px_60px_rgba(10,15,35,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/70 hover:bg-background/95"
                   style={{ width: "100%" }}
                 >
-                  <div className="absolute left-0 top-0 h-2 w-28 rounded-br-full bg-gradient-to-r from-primary to-transparent opacity-90" />
-                  <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-primary to-transparent opacity-80" />
+                  <div className="absolute left-0 top-0 h-2 w-28 rounded-br-full bg-linear-to-r from-primary to-transparent opacity-90" />
+                  <div className="absolute left-0 top-0 h-full w-1 bg-linear-to-b from-primary to-transparent opacity-80" />
                   <div className="relative z-10 flex items-center gap-3 text-primary mb-4">
                     {Array.from({ length: review.rating }).map((_, index) => (
                       <Star key={`${review.name}-${index}`} className="size-4 fill-current" />
@@ -323,7 +330,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     <p className="text-sm leading-relaxed text-muted-foreground">{review.text}</p>
                   </div>
 
-                  <div className="relative z-10 my-5 h-px w-full bg-gradient-to-r from-border/30 via-border/10 to-transparent" />
+                  <div className="relative z-10 my-5 h-px w-full bg-linear-to-r from-border/30 via-border/10 to-transparent" />
 
                   <div className="relative z-10 flex items-center gap-2 text-xs">
                     <span className="font-semibold text-foreground leading-none">{review.name}</span>

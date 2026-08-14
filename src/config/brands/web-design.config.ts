@@ -10,8 +10,8 @@ export const webDesignConfig: BrandConfig = {
   keywords: ["desarrollo web", "landing page", "dashboard", "ux ui", "software", "esports"],
   hero: {
     eyebrow: "Sector Software",
-    title: "Producto digital con",
-    highlight: "estándar de startup",
+    title: "Duplica tus ventas",
+    highlight: "mejorando la experiencia de tus usuarios",
     subtitle:
       "Diseñamos y desarrollamos landings, dashboards, ecommerce y software con arquitectura escalable y diseño impecable.",
     primaryCta: "Ver servicios",
@@ -65,4 +65,5 @@ export const webDesignConfig: BrandConfig = {
   },
   payments: ["Transferencia", "Visa", "Mastercard", "Wise"],
   footerNote: "Contratos por alcance, entregas por sprint y documentación incluida.",
+  favicon: "/LRG Web Design PNG.png",
 };

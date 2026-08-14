@@ -20,6 +20,7 @@ import { getBrand } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { catalogQueries } from "@/services/catalog.service";
 import { useCart } from "@/store/cart";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/$brand/producto/$slug")({
   loader: async ({ params, context }) => {
@@ -59,6 +60,7 @@ function ProductDetail() {
   const { data: related } = useSuspenseQuery(catalogQueries.related(brand.slug, params.slug));
   const { addProduct } = useCart();
   const [quantity, setQuantity] = useState(1);
+  const navigate = useNavigate();
 
   if (!product) return null;
   const category = brand.categories.find((item) => item.slug === product.category);
@@ -96,7 +98,7 @@ function ProductDetail() {
               <img
                 src={product.images[0]}
                 alt={`${product.name} portada`}
-                className="aspect-[4/3] w-full rounded-2xl object-cover"
+                className="aspect-4/3 w-full rounded-2xl object-cover"
               />
               {product.images.length > 1 && (
                 <div className="mt-4 grid grid-cols-3 gap-3">
@@ -179,10 +181,9 @@ function ProductDetail() {
                   variant="ghost"
                   size="icon"
                   className="size-8"
-                  onClick={() =>
-                    setQuantity((value) => Math.min(Math.max(product.stock, 1), value + 1))
-                  }
+                  onClick={() => setQuantity((value) => Math.min(product.stock, value + 1))}
                   aria-label="Sumar unidad"
+                  disabled={product.stock <= 0}
                 >
                   <Plus className="size-3.5" />
                 </Button>
@@ -195,10 +196,16 @@ function ProductDetail() {
               >
                 {product.stock > 0 ? "Agregar al carrito" : "Sin stock"}
               </Button>
-              <Button asChild size="lg" variant="secondary">
-                <Link to="/$brand/checkout" params={{ brand: brand.slug }}>
-                  Comprar ahora
-                </Link>
+              <Button
+                size="lg"
+                variant="secondary"
+                onClick={() => {
+                  if (product.stock <= 0) return;
+                  addProduct(product, quantity);
+                  navigate({ to: "/checkout" });
+                }}
+              >
+                Comprar ahora
               </Button>
             </div>
 

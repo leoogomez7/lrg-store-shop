@@ -25,6 +25,9 @@ export const Route = createFileRoute("/$brand/")({
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
       ],
+      links: [
+        { rel: "icon", href: brand?.favicon ?? "/favicon.ico", type: "image/png" },
+      ],
     };
   },
   component: BrandHome,

@@ -1,16 +1,9 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { SlidersHorizontal } from "lucide-react";
+import { ArrowUpDown, Funnel, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 import { sortLabels } from "@/components/product/product-filters";
 import { ProductCard } from "@/components/product/product-card";
 import {
@@ -67,18 +60,36 @@ function CatalogPage() {
   const [filters, setFilters] = useState<CatalogFilters>({
     search: "",
     categories: search.categoria ? [search.categoria] : [],
+    minPrice: 0,
     maxPrice: priceLimit,
     inStockOnly: false,
-    sort: "relevancia",
+    sort: "precio-asc",
   });
 
   const [showFilters, setShowFilters] = useState(false);
+  const [showSortOptions, setShowSortOptions] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!showSortOptions) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!sortMenuRef.current?.contains(target)) {
+        setShowSortOptions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [showSortOptions]);
 
   const results = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
     const filtered = products.filter((product) => {
       if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
       if (filters.categories.length && !filters.categories.includes(product.category)) return false;
+      if (product.price < filters.minPrice) return false;
       if (product.price > filters.maxPrice) return false;
       if (filters.inStockOnly && product.stock <= 0) return false;
       return true;
@@ -89,12 +100,12 @@ function CatalogPage() {
         return filtered.sort((a, b) => a.price - b.price);
       case "precio-desc":
         return filtered.sort((a, b) => b.price - a.price);
-      case "novedades":
-        return filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-      case "rating":
-        return filtered.sort((a, b) => b.rating - a.rating);
+      case "nombre-asc":
+        return filtered.sort((a, b) => a.name.localeCompare(b.name));
+      case "nombre-desc":
+        return filtered.sort((a, b) => b.name.localeCompare(a.name));
       default:
-        return filtered.sort((a, b) => b.reviews - a.reviews);
+        return filtered.sort((a, b) => a.price - b.price);
     }
   }, [products, filters]);
 
@@ -107,38 +118,56 @@ function CatalogPage() {
       </header>
 
       <div className="mt-6 flex items-center justify-end gap-3">
-        <Input
-          placeholder="Buscar"
-          value={filters.search}
-          onChange={(e: any) => setFilters((c) => ({ ...c, search: e.target.value }))}
-          className="max-w-md"
-        />
+        <div className="relative max-w-md w-full">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar producto"
+            value={filters.search}
+            onChange={(e: any) => setFilters((c) => ({ ...c, search: e.target.value }))}
+            className="max-w-md pl-9"
+          />
+        </div>
 
-        <Select
-          value={filters.sort}
-          onValueChange={(value) => setFilters((c) => ({ ...c, sort: value as any }))}
-        >
-          <SelectTrigger className="max-w-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">Ordenar por</span>
+        <div ref={sortMenuRef} className="relative max-w-xs">
+          <button
+            type="button"
+            onClick={() => setShowSortOptions((value) => !value)}
+            className="inline-flex h-9 w-full max-w-xs items-center justify-between gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
+          >
+            <span className="flex items-center gap-2">
+              <ArrowUpDown className="size-4 text-white" aria-hidden="true" />
+              <span>Ordenar por</span>
+            </span>
+          </button>
+
+          {showSortOptions && (
+            <div className="absolute right-0 z-20 mt-2 w-full min-w-55 rounded-xl border border-border/60 bg-background/95 p-2 shadow-lg backdrop-blur-sm">
+              {Object.entries(sortLabels).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    setFilters((current) => ({ ...current, sort: value as CatalogFilters["sort"] }));
+                    setShowSortOptions(false);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
+                    filters.sort === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  <span>{label}</span>
+                  {filters.sort === value && <span aria-hidden="true">✓</span>}
+                </button>
+              ))}
             </div>
-            <SelectValue className="sr-only" />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(sortLabels).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          )}
+        </div>
 
         <button
           type="button"
           onClick={() => setShowFilters((s) => !s)}
-          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-2"
+          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
         >
-          <SlidersHorizontal className="size-4 text-primary" />
+          <Funnel className="size-4 text-white" />
           <span>Filtros</span>
         </button>
       </div>
@@ -159,9 +188,10 @@ function CatalogPage() {
               setFilters({
                 search: "",
                 categories: [],
+                minPrice: 0,
                 maxPrice: priceLimit,
                 inStockOnly: false,
-                sort: "relevancia",
+                sort: "precio-asc",
               })
             }
             hideSearch

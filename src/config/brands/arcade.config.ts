@@ -11,7 +11,7 @@ export const arcadeConfig: BrandConfig = {
   hero: {
     eyebrow: "Sector Gaming",
     title: "El arsenal completo para",
-    highlight: "jugar sin límites",
+    highlight: "jugar sin límites y el maratón de streaming definitivo",
     subtitle:
       "Consolas, videojuegos, accesorios de alto rendimiento, suscripciones y servicios digitales activados en minutos.",
     primaryCta: "Explorar catálogo",
@@ -66,4 +66,5 @@ export const arcadeConfig: BrandConfig = {
   },
   payments: ["Visa", "Mastercard", "Amex", "Transferencia", "Crypto"],
   footerNote: "Hardware original con garantía oficial y soporte técnico propio.",
+  favicon: "/LRG Arcade PNG.png",
 };

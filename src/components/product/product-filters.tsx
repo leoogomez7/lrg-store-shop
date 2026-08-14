@@ -1,4 +1,4 @@
-import { SlidersHorizontal, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Funnel, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,24 +9,25 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 
 import { formatPrice } from "@/lib/format";
-import type { BrandCategory } from "@/config/brands";
+import { brandList, type BrandCategory } from "@/config/brands";
 
-export type SortOption = "relevancia" | "precio-asc" | "precio-desc" | "novedades" | "rating";
+export type SortOption = "precio-asc" | "precio-desc" | "nombre-asc" | "nombre-desc";
 
 export type CatalogFilters = {
   search: string;
   categories: string[];
+  brands?: string[];
+  minPrice: number;
   maxPrice: number;
   inStockOnly: boolean;
   sort: SortOption;
 };
 
 export const sortLabels: Record<SortOption, string> = {
-  relevancia: "Relevancia",
   "precio-asc": "Precio: menor a mayor",
   "precio-desc": "Precio: mayor a menor",
-  novedades: "Novedades",
-  rating: "Mejor valorados",
+  "nombre-asc": "Nombre: A-Z",
+  "nombre-desc": "Nombre: Z-A",
 };
 
 /** Único componente de filtros para todas las marcas. */
@@ -39,6 +40,7 @@ export function ProductFilters({
   onReset,
   hideSearch,
   hideSort,
+  showBrandFilter = false,
 }: {
   categories: BrandCategory[];
   filters: CatalogFilters;
@@ -48,31 +50,23 @@ export function ProductFilters({
   onReset: () => void;
   hideSearch?: boolean;
   hideSort?: boolean;
+  showBrandFilter?: boolean;
 }) {
   const activeCount =
     (filters.search ? 1 : 0) +
     filters.categories.length +
+    (filters.brands?.length ?? 0) +
     (filters.inStockOnly ? 1 : 0) +
+    (filters.minPrice > 0 ? 1 : 0) +
     (filters.maxPrice < priceLimit ? 1 : 0);
 
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [brandsOpen, setBrandsOpen] = useState(false);
   const activeCatCount = filters.categories.length;
+  const activeBrandCount = filters.brands?.length ?? 0;
 
   return (
     <aside className="glass-panel h-fit space-y-6 rounded-2xl p-5 lg:sticky lg:top-24">
-      <header className="flex items-center justify-between">
-        <span className="flex items-center gap-2 text-sm font-semibold">
-          <SlidersHorizontal className="size-4 text-primary" />
-          Filtros
-          {activeCount > 0 && <Badge variant="secondary">{activeCount}</Badge>}
-        </span>
-        {activeCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={onReset} className="h-8 px-2 text-xs">
-            <X className="mr-1 size-3.5" /> Limpiar
-          </Button>
-        )}
-      </header>
-
       {!hideSearch && (
         <div className="space-y-2">
           <Label htmlFor="filter-search">Buscar</Label>
@@ -136,17 +130,79 @@ export function ProductFilters({
         )}
       </div>
 
+      {showBrandFilter && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setBrandsOpen((s) => !s)}
+              className="flex items-center gap-2 text-sm font-medium"
+              aria-expanded={brandsOpen}
+              aria-controls="brands-list"
+            >
+              <span>Sectores</span>
+              {activeBrandCount > 0 && <Badge variant="secondary">{activeBrandCount}</Badge>}
+              {brandsOpen ? (
+                <ChevronUp className="size-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="size-4 text-muted-foreground" />
+              )}
+            </button>
+          </div>
+
+          {brandsOpen && (
+            <div id="brands-list" className="space-y-2.5">
+              {brandList.map((brand) => {
+                const checked = (filters.brands ?? []).includes(brand.slug);
+                return (
+                  <label
+                    key={brand.slug}
+                    className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(value) =>
+                        onChange({
+                          brands: value
+                            ? [...(filters.brands ?? []), brand.slug]
+                            : (filters.brands ?? []).filter((slug) => slug !== brand.slug),
+                        })
+                      }
+                    />
+                    <span>
+                      <span className="block leading-none font-medium">{brand.name}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">{brand.tagline}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label>Precio máximo</Label>
-          <span className="text-xs text-muted-foreground">{formatPrice(filters.maxPrice)}</span>
+        <div className="flex items-center gap-2 text-[11px] font-medium text-foreground/90">
+          <span className="flex-1 border-b border-white/10 pb-1 text-left">
+            Desde {formatPrice(filters.minPrice)}
+          </span>
+          <span className="flex-1 border-b border-white/10 pb-1 text-right">
+            Hasta {formatPrice(filters.maxPrice)}
+          </span>
         </div>
         <Slider
           min={0}
           max={priceLimit}
           step={Math.max(1, Math.round(priceLimit / 100))}
-          value={[filters.maxPrice]}
-          onValueChange={(value) => onChange({ maxPrice: value[0] ?? priceLimit })}
+          value={[filters.minPrice, filters.maxPrice]}
+          onValueChange={(value) => {
+            const nextMin = value[0] ?? 0;
+            const nextMax = value[1] ?? priceLimit;
+            onChange({
+              minPrice: Math.min(nextMin, nextMax),
+              maxPrice: Math.max(nextMin, nextMax),
+            });
+          }}
         />
       </div>
 
@@ -161,8 +217,14 @@ export function ProductFilters({
         />
       </div>
 
-
-      <p className="text-xs text-muted-foreground">{resultCount} productos encontrados</p>
+      <div className="flex items-center justify-between gap-2 pt-0">
+        <p className="text-xs text-muted-foreground">{resultCount} productos encontrados</p>
+        {activeCount > 0 && (
+          <Button variant="ghost" size="sm" onClick={onReset} className="ml-auto flex h-8 px-2 text-xs">
+            <X className="mr-1 size-3.5" /> Limpiar
+          </Button>
+        )}
+      </div>
     </aside>
   );
 }

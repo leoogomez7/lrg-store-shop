@@ -47,4 +47,6 @@ export type BrandConfig = {
   paymentMethods?: BrandPaymentMethod[];
   shipping?: BrandShippingConfig;
   footerNote: string;
+  /** optional path to favicon/logo shown in browser tab (public/) */
+  favicon?: string;
 };

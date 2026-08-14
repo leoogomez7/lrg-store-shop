@@ -66,4 +66,5 @@ export const scentsConfig: BrandConfig = {
   },
   payments: ["Visa", "Mastercard", "Amex", "Transferencia"],
   footerNote: "Fragancias 100% originales con envío protegido y muestras de cortesía.",
+  favicon: "/LRG Scents PNG.png",
 };

@@ -71,13 +71,13 @@ export const Route = createFileRoute("/admin/productos")({
   loader: ({ context }) => context.queryClient.ensureQueryData(catalogQueries.all()),
   head: () => ({
     meta: [
-      { title: "Productos — Admin LRG Store Shop" },
+      { title: "LRG Store Shop - Administrador" },
       {
         name: "description",
         content: "Administrá el catálogo completo: precios, stock y categorías por sector.",
       },
-      { property: "og:title", content: "Productos — Admin LRG Store Shop" },
-      { property: "og:description", content: "Gestión de catálogo del ecosistema LRG." },
+      { property: "og:title", content: "LRG Store Shop - Administrador" },
+      { property: "og:description", content: "Gestión de catálogo del negocio LRG." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex" },
@@ -513,18 +513,13 @@ function AdminProducts() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-55 flex-1">
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Catálogo</p>
           <h1 className="mt-2 text-3xl font-semibold">Productos</h1>
         </div>
-        <Button className="gap-2" onClick={openNewProductDialog}>
-          <Plus className="size-4" /> Nuevo producto
-        </Button>
-      </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-2 sm:gap-3">
-        <div className="relative w-full max-w-[260px] sm:max-w-[280px]">
+        <div className="relative min-w-55 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -534,27 +529,33 @@ function AdminProducts() {
           />
         </div>
 
-        <Button
-          variant={filtersOpen ? "secondary" : "outline"}
-          size="sm"
-          onClick={() => setFiltersOpen((current) => !current)}
-          className="h-9 shrink-0 gap-1.5 px-2.5"
-          aria-expanded={filtersOpen}
-        >
-          <Filter className="size-4 text-white" />
-          Filtros
-        </Button>
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <Button
+            variant={sortMenuOpen ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setSortMenuOpen((current) => !current)}
+            className="h-9 shrink-0 gap-1.5 px-2.5"
+            aria-expanded={sortMenuOpen}
+          >
+            <ArrowUpDown className="size-4 text-white" />
+            Ordenar por
+          </Button>
 
-        <Button
-          variant={sortMenuOpen ? "secondary" : "outline"}
-          size="sm"
-          onClick={() => setSortMenuOpen((current) => !current)}
-          className="h-9 shrink-0 gap-1.5 px-2.5"
-          aria-expanded={sortMenuOpen}
-        >
-          <ArrowUpDown className="size-4 text-white" />
-          Ordenar por
-        </Button>
+          <Button
+            variant={filtersOpen ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setFiltersOpen((current) => !current)}
+            className="h-9 shrink-0 gap-1.5 px-2.5"
+            aria-expanded={filtersOpen}
+          >
+            <Filter className="size-4 text-white" />
+            Filtros
+          </Button>
+
+          <Button className="h-9 gap-2" onClick={openNewProductDialog}>
+            <Plus className="size-4" /> Nuevo producto
+          </Button>
+        </div>
       </div>
 
       {filtersOpen ? (
@@ -574,7 +575,7 @@ function AdminProducts() {
                   <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+              <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
                 <Command>
                   <CommandInput
                     value={categoryFilterSearch}
@@ -725,7 +726,7 @@ function AdminProducts() {
                           value={quickDraft.name}
                           readOnly
                           disabled
-                          className="w-full min-w-[180px] cursor-not-allowed bg-muted/40 opacity-80"
+                          className="w-full min-w-45 cursor-not-allowed bg-muted/40 opacity-80"
                         />
                       </TableCell>
                       <TableCell>
@@ -744,7 +745,7 @@ function AdminProducts() {
                             }));
                           }}
                         >
-                          <SelectTrigger className="min-w-[120px]">
+                          <SelectTrigger className="min-w-30">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -766,7 +767,7 @@ function AdminProducts() {
                             }))
                           }
                         >
-                          <SelectTrigger className="min-w-[140px]">
+                          <SelectTrigger className="min-w-35">
                             <SelectValue placeholder="Seleccionar categoría" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1296,32 +1297,33 @@ function ProductEditDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="delivery-amount">Cantidad de entrega</Label>
-            <Input
-              id="delivery-amount"
-              type="number"
-              min={1}
-              value={isImmediate ? "" : deliveryAmountValue}
-              onFocus={(event) => event.target.select()}
-              onChange={(event) =>
-                setProductForm({
-                  ...productForm,
-                  deliveryAmount: Number(event.target.value),
-                })
-              }
-              placeholder={isImmediate ? "" : "Cantidad"}
-              disabled={isImmediate}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Entrega</Label>
-            <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-foreground opacity-60">
-              {isImmediate
-                ? "Entrega inmediata"
-                : `${productForm.deliveryAmount} ${productForm.deliveryUnit}`}
+          {!isImmediate && (
+            <div className="space-y-2">
+              <Label htmlFor="delivery-amount">Cantidad de entrega</Label>
+              <Input
+                id="delivery-amount"
+                type="number"
+                min={1}
+                value={deliveryAmountValue}
+                onFocus={(event) => event.target.select()}
+                onChange={(event) =>
+                  setProductForm({
+                    ...productForm,
+                    deliveryAmount: Number(event.target.value),
+                  })
+                }
+                placeholder="Cantidad"
+              />
             </div>
-          </div>
+          )}
+          {!isImmediate && (
+            <div className="space-y-2">
+              <Label>Entrega</Label>
+              <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-foreground opacity-60">
+                {`${productForm.deliveryAmount} ${productForm.deliveryUnit}`}
+              </div>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="new-stock">Stock</Label>
             <Input

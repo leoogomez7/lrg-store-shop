@@ -129,17 +129,15 @@ export function CartSheet({
               <div className="flex h-full flex-col">
                 <div className="flex-1 overflow-y-auto pr-1 touch-auto">
                   {items.length === 0 ? (
-                    <div className="flex min-h-[240px] flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-border/60 bg-background p-8 text-center">
+                    <div className="flex min-h-60 flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-border/60 bg-background p-8 text-center">
                       <ShoppingBag className="size-10 text-muted-foreground" />
                       <div>
                         <p className="text-lg font-semibold text-foreground">Carrito vacío</p>
                         <p className="text-sm text-muted-foreground">Agrega productos y revisa todo antes de pagar.</p>
                       </div>
-                      <Button asChild size="sm" onClick={() => handleOpenChange(false)}>
-                        <Link to="/$brand/productos" params={{ brand: brand.slug }}>
-                          Ver catálogo
-                        </Link>
-                      </Button>
+                        <Button asChild size="sm" onClick={() => handleOpenChange(false)}>
+                          <Link to="/">Ver catálogo</Link>
+                        </Button>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -165,20 +163,20 @@ export function CartSheet({
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-9 min-w-[2.5rem] rounded-full"
+                                className="h-9 min-w-10 rounded-full"
                                 onClick={() => setQuantity(item.id, item.quantity - 1)}
                                 aria-label="Restar unidad"
                                 disabled={item.quantity <= 1}
                               >
                                 <Minus className="size-4" />
                               </Button>
-                              <span className="inline-flex min-w-[2rem] justify-center rounded-full bg-surface px-2 py-1 text-sm font-medium text-foreground">
+                                <span className="inline-flex min-w-8 justify-center rounded-full bg-surface px-2 py-1 text-sm font-medium text-foreground">
                                 {item.quantity}
                               </span>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-9 min-w-[2.5rem] rounded-full"
+                                className="h-9 min-w-10 rounded-full"
                                 onClick={() => setQuantity(item.id, item.quantity + 1)}
                                 aria-label="Sumar unidad"
                                 disabled={item.quantity >= item.stock}
@@ -232,14 +230,10 @@ export function CartSheet({
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <Button asChild className="flex-1">
-                    <Link to="/$brand/checkout" params={{ brand: brand.slug }}>
-                      Finalizar compra
-                    </Link>
+                    <Link to="/checkout">Finalizar compra</Link>
                   </Button>
                   <Button asChild variant="secondary" className="flex-1">
-                    <Link to="/$brand/carrito" params={{ brand: brand.slug }}>
-                      Ver carrito completo
-                    </Link>
+                    <Link to="/carrito">Ver carrito completo</Link>
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">

@@ -126,14 +126,41 @@ function BrandHeaderContent({
     if (closeMenu) setOpenMenu(false);
   };
 
-  const links = [{ label: "LRG Store Shop", to: "/", exact: true }] as const;
+  const defaultLinks = [{ label: "LRG Store Shop", to: "/", exact: true }] as const;
+
+  const storeShopLinks = [
+    { href: "#projects", label: "Proyectos" },
+    { href: "#clients", label: "Clientes" },
+    { href: "#comprar", label: "Comprar" },
+    { href: "#pricing", label: "Presupuestos" },
+    { href: "#proposals", label: "Propuestas" },
+    { href: "#about", label: "¿Quién soy?" },
+    { href: "#social", label: "Mis redes" },
+    { href: "#contact", label: "Contactar" },
+  ];
+
+  const effectiveSlug = displayBrandName ? (logoBrandSlug ?? "store-shop") : brand.slug;
+  const links = effectiveSlug === "store-shop" ? storeShopLinks : defaultLinks;
 
   const brandLabel = displayBrandName ?? brand.name;
   const brandLogoSlug = logoBrandSlug ?? brand.slug;
   const headerThemeClass = headerTheme ?? brand.theme;
   const brandHref = displayBrandName ? "/" : `/${brand.slug}`;
 
-  const otherBrands = brandList.filter((item) => item.slug !== brand.slug);
+  const otherBrands = brandList.filter((item) => item.slug !== effectiveSlug);
+  const tiendaMenuItems = [
+    { slug: "store-shop", name: "LRG Store Shop" },
+    ...brandList.filter((item) => item.slug !== "store-shop"),
+  ];
+  const buyMenuItems = [
+    { slug: "store-shop", name: "LRG Store Shop" },
+    ...brandList
+      .filter((item) => item.slug !== "store-shop")
+      .map((item) => ({
+        slug: item.slug,
+        name: item.name,
+      })),
+  ];
 
   function UserBadge() {
     if (!panel || !userName) return null;
@@ -166,6 +193,48 @@ function BrandHeaderContent({
 
           <div className="ml-auto flex items-center gap-4">
             <nav className="hidden md:flex items-center gap-3">
+              {links.map((l: any) => {
+                // anchor links for store-shop
+                if (l.href && typeof l.href === "string" && l.href.startsWith("#")) {
+                  return (
+                    <a
+                      key={l.href}
+                      href={l.href}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (typeof window !== "undefined") {
+                          if (window.location.pathname !== "/") {
+                            navigate({ to: "/" });
+                            // delay scroll slightly to allow route change
+                            setTimeout(() => {
+                              const el = document.querySelector(l.href);
+                              if (el) el.scrollIntoView({ behavior: "smooth" });
+                            }, 80);
+                          } else {
+                            const el = document.querySelector(l.href);
+                            if (el) el.scrollIntoView({ behavior: "smooth" });
+                          }
+                        }
+                      }}
+                      className="text-sm font-medium px-3 py-1 rounded hover:bg-surface-2"
+                    >
+                      {l.label}
+                    </a>
+                  );
+                }
+
+                // default router links
+                if (l.to) {
+                  return (
+                    <Link key={l.to} to={l.to} params={{ brand: brand.slug }} className="text-sm font-medium px-3 py-1 rounded hover:bg-surface-2">
+                      {l.label}
+                    </Link>
+                  );
+                }
+
+                return null;
+              })}
+
               {!userName ? (
                 <>
                   <Button
@@ -231,13 +300,17 @@ function BrandHeaderContent({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onSelect={() => handleBrandClick(brand.slug, true)}>
-                  Comprar en {brand.name}
-                </DropdownMenuItem>
-                {otherBrands.map((item) => (
+                {buyMenuItems.map((item) => (
                   <DropdownMenuItem
                     key={item.slug}
-                    onSelect={() => handleBrandClick(item.slug, true)}
+                    onSelect={() => {
+                      if (item.slug === "store-shop") {
+                        navigate({ to: "/productos" });
+                      } else {
+                        navigate({ to: '/$brand/productos', params: { brand: item.slug } });
+                      }
+                      setOpenMenu(false);
+                    }}
                   >
                     Comprar en {item.name}
                   </DropdownMenuItem>
@@ -347,15 +420,8 @@ function BrandHeaderContent({
                       >
                         Seguir comprando
                       </Button>
-                      <Link
-                        to="/$brand/carrito"
-                        params={{ brand: brand.slug }}
-                        className="w-full block"
-                        onClick={() => setOpenCart(false)}
-                      >
-                        <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                          Ver carrito completo
-                        </Button>
+                      <Link to="/carrito" className="w-full block" onClick={() => setOpenCart(false)}>
+                        <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">Ver carrito completo</Button>
                       </Link>
                     </div>
                   </>
@@ -371,23 +437,7 @@ function BrandHeaderContent({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                {links.map((link) => {
-                  const href = link.to.replace("$brand", brand.slug);
-                  return (
-                    <DropdownMenuItem key={link.label} asChild>
-                      <Link
-                        to={link.to}
-                        params={{ brand: brand.slug }}
-                        className="cursor-pointer"
-                        onClick={() => setOpenMenu(false)}
-                      >
-                        {link.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  );
-                })}
-                
-                {otherBrands.map((item) => (
+                {tiendaMenuItems.map((item) => (
                   <DropdownMenuItem
                     key={item.slug}
                     onSelect={() => {

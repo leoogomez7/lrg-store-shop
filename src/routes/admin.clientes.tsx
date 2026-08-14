@@ -4,11 +4,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { orderQueries, type Order } from "@/services/catalog.service";
 import { useMemo, useState } from "react";
-import { Upload } from "lucide-react";
+import { Download, Eye, EyeOff, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/admin/clientes")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
-  head: () => ({ meta: [{ title: "Clientes — Admin LRG Store Shop" }] }),
+  head: () => ({ meta: [{ title: "LRG Store Shop - Administrador" }] }),
   component: AdminClients,
 });
 
@@ -37,7 +37,8 @@ function AdminClients() {
           <h1 className="mt-2 text-3xl font-semibold">Listado de clientes</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button className="text-white inline-flex items-center" 
+          <Button
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
             onClick={() => {
               // build CSV: one row per order with customer info
               const header = [
@@ -75,9 +76,76 @@ function AdminClients() {
               a.remove();
               URL.revokeObjectURL(url);
             }}
-            >
+          >
             <Upload className="size-4" />
-            <span className="ml-2">Exportar CSV</span>
+            Exportar CSV
+          </Button>
+
+          <Button
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
+            onClick={() => {
+              const rows = customers.flatMap((customer) =>
+                customer.orders.map((order) => [
+                  customer.name ?? "",
+                  customer.email ?? "",
+                  order.id,
+                  order.date,
+                  String(order.total ?? ""),
+                  order.shippingMethod ?? order.paymentMethod ?? "",
+                  String((order.items || []).reduce((s, it) => s + (it.quantity || 0), 0)),
+                ]),
+              );
+
+              const tableHtml = `
+                <html>
+                  <head>
+                    <meta charset="utf-8" />
+                    <style>
+                      body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
+                      table { border-collapse: collapse; width: 100%; font-size: 12px; }
+                      th, td { border: 1px solid #d4d4d4; padding: 8px; text-align: left; }
+                      th { background: #f3f3f3; }
+                    </style>
+                  </head>
+                  <body>
+                    <h2>Listado de clientes</h2>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Cliente</th>
+                          <th>Email</th>
+                          <th>Pedido</th>
+                          <th>Fecha</th>
+                          <th>Total</th>
+                          <th>Envío</th>
+                          <th>Cantidad</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${rows
+                          .map(
+                            (row) =>
+                              `<tr>${row
+                                .map((cell) => `<td>${String(cell).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`)
+                                .join("")}</tr>`,
+                          )
+                          .join("")}
+                      </tbody>
+                    </table>
+                  </body>
+                </html>
+              `;
+
+              const printWindow = window.open("", "_blank");
+              if (!printWindow) return;
+              printWindow.document.write(tableHtml);
+              printWindow.document.close();
+              printWindow.focus();
+              printWindow.print();
+            }}
+          >
+            <Download className="size-4" />
+            Exportar PDF
           </Button>
         </div>
       </div>
@@ -118,7 +186,11 @@ function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: 
         <TableCell>{customer.orders.length}</TableCell>
         <TableCell>{new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(totalSpent)}</TableCell>
         <TableCell>
-          <button className="text-sm text-primary underline" onClick={() => setOpen((v) => !v)}>
+          <button
+            className="inline-flex items-center gap-2 rounded-md bg-transparent px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             {open ? "Ocultar" : "Mostrar"}
           </button>
         </TableCell>
