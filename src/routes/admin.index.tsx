@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CreditCard, DollarSign, Package, ShoppingCart, TrendingUp } from "lucide-react";
+import { Check, CreditCard, DollarSign, Package, ShoppingCart, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
@@ -183,13 +184,27 @@ function AdminDashboard() {
     { label: "Productos inactivos", value: formatNumber(inactiveProducts), icon: Package },
   ];
 
-  const stockItems = filteredProducts.sort((a, b) => a.stock - b.stock);
+  const stockItems = [...filteredProducts].sort((a, b) => a.stock - b.stock);
+  const totalStockUnits = stockItems.reduce((sum, product) => sum + product.stock, 0);
   const [stockPage, setStockPage] = useState(0);
-  const stockPageSize = 10;
+  const [stockPageSize, setStockPageSize] = useState<number>(10);
+  const [stockPageSizeInput, setStockPageSizeInput] = useState<string>("10");
   const stockPages = Math.max(1, Math.ceil(stockItems.length / stockPageSize));
   const currentStockItems = stockItems.slice(
     stockPage * stockPageSize,
     stockPage * stockPageSize + stockPageSize,
+  );
+
+  const recentOrders = [...filteredOrders].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
+  const [ordersPage, setOrdersPage] = useState(0);
+  const [ordersPageSize, setOrdersPageSize] = useState<number>(10);
+  const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("10");
+  const ordersPages = Math.max(1, Math.ceil(recentOrders.length / ordersPageSize));
+  const currentOrders = recentOrders.slice(
+    ordersPage * ordersPageSize,
+    ordersPage * ordersPageSize + ordersPageSize,
   );
 
   return (
@@ -348,9 +363,9 @@ function AdminDashboard() {
 
       <section className="mt-8 grid gap-6 pb-20 lg:grid-cols-2">
         <div className="glass-panel overflow-hidden rounded-2xl">
-          <h2 className="font-display border-b border-border/60 p-5 font-semibold">
-            Últimos pedidos
-          </h2>
+          <div className="flex items-center justify-between gap-4 border-b border-border/60 p-5">
+            <h2 className="font-display font-semibold">Últimos pedidos</h2>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -361,7 +376,7 @@ function AdminDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredOrders.slice(0, 6).map((order) => (
+              {currentOrders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">{order.id}</TableCell>
                   <TableCell>{brands[order.brand].shortName}</TableCell>
@@ -369,14 +384,88 @@ function AdminDashboard() {
                   <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
                 </TableRow>
               ))}
+              {recentOrders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
+                    No hay pedidos disponibles.
+                  </TableCell>
+                </TableRow>
+              ) : null}
             </TableBody>
           </Table>
+          {recentOrders.length > 0 && (
+            <div className="border-t border-border/60 px-5 py-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    {currentOrders.length} de {recentOrders.length} pedidos mostrados
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>Mostrar</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={1000}
+                      value={ordersPageSizeInput}
+                      onChange={(e) => setOrdersPageSizeInput(e.target.value)}
+                      className="h-8 w-20"
+                    />
+                    {(() => {
+                      const v = Number(ordersPageSizeInput);
+                      const isValid = Number.isFinite(v) && v >= 1;
+                      const isChanged = ordersPageSizeInput !== "" && String(Math.floor(v)) !== String(ordersPageSize);
+                      return (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            if (!isValid || !isChanged) return;
+                            const final = Math.min(1000, Math.floor(v));
+                            setOrdersPageSize(final);
+                            setOrdersPage(0);
+                          }}
+                          disabled={!isValid || !isChanged}
+                        >
+                          <Check className="mr-2 h-4 w-4" />Confirmar
+                        </Button>
+                      );
+                    })()}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setOrdersPage(0)} disabled={ordersPage === 0}>
+                      Principio
+                    </Button>
+                    <div className="flex items-center gap-1 rounded-full border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm">
+                      {Array.from({ length: ordersPages }, (_, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          className={`rounded-full px-3 py-1 ${index === ordersPage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-slate-100"}`}
+                          onClick={() => setOrdersPage(index)}
+                        >
+                          {index + 1}
+                        </button>
+                      ))}
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setOrdersPage(ordersPages - 1)} disabled={ordersPage >= ordersPages - 1}>
+                      Último
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="glass-panel overflow-hidden rounded-2xl">
-          <h2 className="font-display border-b border-border/60 p-5 font-semibold">
-            Stock total
-          </h2>
+          <div className="flex items-center justify-between gap-4 border-b border-border/60 p-5">
+            <h2 className="font-display font-semibold">Stock total</h2>
+            <span className="rounded-full bg-secondary/60 px-3 py-1 text-sm font-medium text-foreground">
+              {formatNumber(totalStockUnits)} total
+            </span>
+          </div>
           <ul className="divide-y divide-border/60">
             {currentStockItems.map((product) => (
               <li key={product.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
@@ -395,40 +484,75 @@ function AdminDashboard() {
           {stockItems.length > 0 && (
             <div className="border-t border-border/60 px-5 py-4">
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-muted-foreground">
-                  {currentStockItems.length} de {stockItems.length} productos mostrados
-                </p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setStockPage(0)}
-                    disabled={stockPage === 0}
-                  >
-                    Principio
-                  </Button>
-                  <div className="flex flex-wrap items-center gap-1 rounded-full border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm">
-                    {Array.from({ length: stockPages }, (_, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        className={`rounded-full px-3 py-1 ${index === stockPage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-slate-100"}`}
-                        onClick={() => setStockPage(index)}
-                      >
-                        {index + 1}
-                      </button>
-                    ))}
+                <div className="flex items-center gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    {currentStockItems.length} de {stockItems.length} productos mostrados
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>Mostrar</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={1000}
+                      value={stockPageSizeInput}
+                      onChange={(e) => setStockPageSizeInput(e.target.value)}
+                      className="h-8 w-20"
+                    />
+                    {(() => {
+                      const v = Number(stockPageSizeInput);
+                      const isValid = Number.isFinite(v) && v >= 1;
+                      const isChanged = stockPageSizeInput !== "" && String(Math.floor(v)) !== String(stockPageSize);
+                      return (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            if (!isValid || !isChanged) return;
+                            const final = Math.min(1000, Math.floor(v));
+                            setStockPageSize(final);
+                            setStockPage(0);
+                          }}
+                          disabled={!isValid || !isChanged}
+                        >
+                          <Check className="mr-2 h-4 w-4" />Confirmar
+                        </Button>
+                      );
+                    })()}
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setStockPage(stockPages - 1)}
-                    disabled={stockPage >= stockPages - 1}
-                  >
-                    Último
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStockPage(0)}
+                      disabled={stockPage === 0}
+                    >
+                      Principio
+                    </Button>
+                    <div className="flex flex-wrap items-center gap-1 rounded-full border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm">
+                      {Array.from({ length: stockPages }, (_, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          className={`rounded-full px-3 py-1 ${index === stockPage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-slate-100"}`}
+                          onClick={() => setStockPage(index)}
+                        >
+                          {index + 1}
+                        </button>
+                      ))}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStockPage(stockPages - 1)}
+                      disabled={stockPage >= stockPages - 1}
+                    >
+                      Último
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
