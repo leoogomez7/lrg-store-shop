@@ -119,9 +119,6 @@ export function ProductFilters({
                   />
                   <span>
                     <span className="block leading-none font-medium">{category.name}</span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      {category.description}
-                    </span>
                   </span>
                 </label>
               );
@@ -171,7 +168,6 @@ export function ProductFilters({
                     />
                     <span>
                       <span className="block leading-none font-medium">{brand.name}</span>
-                      <span className="mt-1 block text-xs text-muted-foreground">{brand.tagline}</span>
                     </span>
                   </label>
                 );

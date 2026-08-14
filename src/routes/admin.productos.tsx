@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, Check, ChevronsUpDown, Edit3, Filter, Pencil, Plus, Save, Search, Trash2, X, Copy, Eye, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronsUpDown, Edit3, Filter, Pencil, Plus, Save, Search, Trash2, X, Copy, Eye, ArrowUpDown, Sheet, FileText } from "lucide-react";
+import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { products as productsData, saveProducts } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -114,6 +115,8 @@ function AdminProducts() {
     >
   >({});
   const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
+  const sortMenuRef = useRef<HTMLDivElement | null>(null);
+  const sortButtonRef = useRef<HTMLButtonElement | null>(null);
   const [page, setPage] = useState(0);
   // `pageSize` is the confirmed page size; default is 10 products per page
   const [pageSize, setPageSize] = useState<number>(10);
@@ -437,6 +440,19 @@ function AdminProducts() {
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [quickEditProductId]);
 
+  useEffect(() => {
+    if (!sortMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (sortMenuRef.current?.contains(target) || sortButtonRef.current?.contains(target)) return;
+      setSortMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [sortMenuOpen]);
+
   const availableCategories = useMemo(
     () =>
       Array.from(
@@ -540,17 +556,54 @@ function AdminProducts() {
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          <Button
-            variant={sortMenuOpen ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setSortMenuOpen((current) => !current)}
-            className="h-9 shrink-0 gap-1.5 px-2.5"
-            aria-expanded={sortMenuOpen}
-          >
-            <ArrowUpDown className="size-4 text-white" />
-            Ordenar por
-          </Button>
+        <div className="relative flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <div className="relative">
+            <Button
+              ref={sortButtonRef as any}
+              variant={sortMenuOpen ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setSortMenuOpen((current) => !current)}
+              className="h-9 shrink-0 gap-1.5 px-2.5"
+              aria-expanded={sortMenuOpen}
+            >
+              <ArrowUpDown className="size-4 text-white" />
+              Ordenar por
+            </Button>
+
+            {sortMenuOpen ? (
+              <div ref={sortMenuRef} className="absolute left-0 top-full z-20 mt-2 w-[320px]">
+                <div className="rounded-xl border border-border/60 bg-background/95 p-2 shadow-lg backdrop-blur-sm">
+                  {(
+                    [
+                      ["name_asc", "Producto A-Z"],
+                      ["name_desc", "Producto Z-A"],
+                      ["price_asc", "Precio: menor a mayor"],
+                      ["price_desc", "Precio: mayor a menor"],
+                      ["stock_asc", "Stock: menor a mayor"],
+                      ["stock_desc", "Stock: mayor a menor"],
+                      ["discountedPrice_asc", "Precio con descuento: menor a mayor"],
+                      ["discountedPrice_desc", "Precio con descuento: mayor a menor"],
+                    ] as [SortOrder, string][]
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        setSortOrder(value);
+                        setSortMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
+                        sortOrder === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      <span>{label}</span>
+                      {sortOrder === value && <span aria-hidden="true">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
 
           <Button
             variant={filtersOpen ? "secondary" : "outline"}
@@ -562,10 +615,101 @@ function AdminProducts() {
             <Filter className="size-4 text-white" />
             Filtros
           </Button>
+ 
+          <Button
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
+            onClick={() => {
+              const rows: (string | number)[][] = [["ID","Nombre","Marca","Categoria","Precio","Stock","Descuento"]];
 
+              for (const p of results) {
+                const discounted = discounts[p.id] ?? 0;
+                rows.push([
+                  p.id,
+                  p.name,
+                  p.brand,
+                  p.category ?? "",
+                  p.price ?? 0,
+                  p.stock ?? 0,
+                  `${discounted}%`,
+                ]);
+              }
+
+              const worksheet = XLSX.utils.aoa_to_sheet(rows);
+              const workbook = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(workbook, worksheet, "Productos");
+              const date = new Date().toISOString().slice(0, 10);
+              XLSX.writeFile(workbook, `productos_${date}_filtered.xlsx`);
+            }}
+          >
+            <Sheet className="size-4" />
+            Exportar Excel
+          </Button>
+
+          <Button
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
+            onClick={() => {
+              const rows = results.map((p) => {
+                const discounted = discounts[p.id] ?? 0;
+                return [p.id, p.name, p.brand, p.category ?? "", p.price ?? 0, p.stock ?? 0, `${discounted}%`];
+              });
+
+              const tableHtml = `
+                <html>
+                  <head>
+                    <meta charset="utf-8" />
+                    <style>
+                      body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
+                      table { border-collapse: collapse; width: 100%; font-size: 12px; }
+                      th, td { border: 1px solid #d4d4d4; padding: 8px; text-align: left; }
+                      th { background: #f3f3f3; }
+                    </style>
+                  </head>
+                  <body>
+                    <h2>Listado de productos</h2>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Nombre</th>
+                          <th>Marca</th>
+                          <th>Categoria</th>
+                          <th>Precio</th>
+                          <th>Stock</th>
+                          <th>Descuento</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${rows
+                          .map(
+                            (row) =>
+                              `<tr>${row
+                                .map((cell) => `<td>${String(cell).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`)
+                                .join("")}</tr>`,
+                          )
+                          .join("")}
+                      </tbody>
+                    </table>
+                  </body>
+                </html>
+              `;
+
+              const printWindow = window.open("", "_blank");
+              if (!printWindow) return;
+              const date = new Date().toISOString().slice(0, 10);
+              printWindow.document.title = `productos_${date}_filtered`;
+              printWindow.document.write(tableHtml);
+              printWindow.document.close();
+              printWindow.focus();
+              printWindow.print();
+            }}
+          >
+            <FileText className="size-4" />
+            Exportar PDF
+          </Button>
           <Button className="h-9 gap-2" onClick={openNewProductDialog}>
             <Plus className="size-4" /> Nuevo producto
           </Button>
+          
         </div>
       </div>
 
@@ -678,25 +822,7 @@ function AdminProducts() {
         </div>
       ) : null}
 
-      {sortMenuOpen ? (
-        <div className="mt-4 w-full max-w-[320px]">
-          <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
-            <SelectTrigger className="w-full" showValue>
-              Ordenar por
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name_asc">Producto A-Z</SelectItem>
-              <SelectItem value="name_desc">Producto Z-A</SelectItem>
-              <SelectItem value="price_asc">Precio menor a mayor</SelectItem>
-              <SelectItem value="price_desc">Precio mayor a menor</SelectItem>
-              <SelectItem value="stock_asc">Stock menor a mayor</SelectItem>
-              <SelectItem value="stock_desc">Stock mayor a menor</SelectItem>
-              <SelectItem value="discountedPrice_asc">Precio con descuento menor a mayor</SelectItem>
-              <SelectItem value="discountedPrice_desc">Precio con descuento mayor a menor</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      ) : null}
+      
 
       <div className="glass-panel mt-6 overflow-x-auto rounded-2xl pb-2">
         <Table className="text-center">

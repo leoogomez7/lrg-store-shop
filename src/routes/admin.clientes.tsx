@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { orderQueries, type Order } from "@/services/catalog.service";
 import { useMemo, useState } from "react";
-import { Check, Eye, EyeOff, Sheet, FileText, FileSpreadsheet } from "lucide-react";
+import { Check, Eye, EyeOff, Sheet, FileText, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 
 export const Route = createFileRoute("/admin/clientes")({
@@ -19,6 +19,7 @@ function AdminClients() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+  const [query, setQuery] = useState("");
 
   type Customer = { key: string; name: string; email: string; orders: Order[] };
 
@@ -34,28 +35,45 @@ function AdminClients() {
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [orders]);
 
+  const filteredCustomers = useMemo(() => {
+    if (!query) return customers;
+    const q = query.toLowerCase();
+    return customers.filter((c) => {
+      const name = (c.name ?? "").toLowerCase();
+      const email = (c.email ?? "").toLowerCase();
+      const key = (c.key ?? "").toLowerCase();
+      return name.includes(q) || email.includes(q) || key.includes(q);
+    });
+  }, [customers, query]);
+
   const visibleCustomers = useMemo(() => {
     if (!pageSize || pageSize <= 0) return [] as typeof customers;
-    return customers.slice(page * pageSize, page * pageSize + pageSize);
-  }, [customers, page, pageSize]);
-  const totalPages = pageSize && pageSize > 0 ? Math.max(1, Math.ceil(customers.length / pageSize)) : 1;
+    return filteredCustomers.slice(page * pageSize, page * pageSize + pageSize);
+  }, [filteredCustomers, page, pageSize]);
+  const totalPages = pageSize && pageSize > 0 ? Math.max(1, Math.ceil(filteredCustomers.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-55">
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Clientes</p>
           <h1 className="mt-2 text-3xl font-semibold">Listado de clientes</h1>
         </div>
+
+        <div className="relative min-w-55 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar cliente" className="h-9 pl-9" />
+        </div>
+
         <div className="flex items-center gap-2">
           <Button
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
             onClick={() => {
               const rows: (string | number)[][] = [["Cliente", "Email", "Total de pedidos", "Total gastado"]];
 
-              for (const c of customers) {
+              for (const c of visibleCustomers) {
                 const total = c.orders.reduce((s, o) => s + (o.total || 0), 0);
                 const gasto = new Intl.NumberFormat("es-AR", {
                   style: "currency",
@@ -74,7 +92,9 @@ function AdminClients() {
               const worksheet = XLSX.utils.aoa_to_sheet(rows);
               const workbook = XLSX.utils.book_new();
               XLSX.utils.book_append_sheet(workbook, worksheet, "Clientes");
-              XLSX.writeFile(workbook, `clientes_pedidos_${new Date().toISOString().slice(0, 10)}.xlsx`);
+              const date = new Date().toISOString().slice(0, 10);
+              const pageSuffix = page + 1;
+              XLSX.writeFile(workbook, `clientes_pedidos_${date}_page-${pageSuffix}.xlsx`);
             }}
           >
             <Sheet className="size-4" />
@@ -84,7 +104,7 @@ function AdminClients() {
           <Button
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
             onClick={() => {
-              const rows = customers.map((customer) => {
+              const rows = visibleCustomers.map((customer) => {
                 const total = customer.orders.reduce((s, o) => s + (o.total || 0), 0);
                 const gasto = new Intl.NumberFormat("es-AR", {
                   style: "currency",
@@ -134,6 +154,9 @@ function AdminClients() {
 
               const printWindow = window.open("", "_blank");
               if (!printWindow) return;
+              const date = new Date().toISOString().slice(0, 10);
+              const pageSuffix = page + 1;
+              printWindow.document.title = `clientes_pedidos_${date}_page-${pageSuffix}`;
               printWindow.document.write(tableHtml);
               printWindow.document.close();
               printWindow.focus();
@@ -144,43 +167,12 @@ function AdminClients() {
             Exportar PDF
           </Button>
 
-          <Button
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
-            onClick={() => {
-              const header = ["Cliente", "Email", "Total de pedidos", "Total gastado"];
-              const rows: string[][] = [header];
-
-              for (const c of customers) {
-                const total = c.orders.reduce((s, o) => s + (o.total || 0), 0);
-                const gasto = new Intl.NumberFormat("es-AR", {
-                  style: "currency",
-                  currency: "ARS",
-                  minimumFractionDigits: 0,
-                }).format(total);
-
-                rows.push([c.name ?? "", c.email ?? "", String(c.orders.length), gasto]);
-              }
-
-              const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-              const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `clientes_pedidos_${new Date().toISOString().slice(0, 10)}.csv`;
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
-              URL.revokeObjectURL(url);
-            }}
-          >
-            <FileSpreadsheet className="size-4" />
-            Exportar CSV
-          </Button>
+          
         </div>
       </div>
 
         <div className="glass-panel overflow-x-auto rounded-2xl pb-2">
-        <Table className="w-full sm:w-auto mx-auto">
+        <Table className="text-center w-auto mx-auto">
           <TableHeader>
             <TableRow>
               <TableHead>Cliente</TableHead>
@@ -197,7 +189,7 @@ function AdminClients() {
                 <CustomerRow key={c.key} customer={c} totalSpent={totalSpent} />
               );
             })}
-            {customers.length === 0 ? (
+            {filteredCustomers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-16 text-center text-sm text-muted-foreground">
                   No se encontraron clientes.
@@ -210,7 +202,7 @@ function AdminClients() {
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">
-          {visibleCustomers.length} de {customers.length} clientes mostrados
+          {visibleCustomers.length} de {filteredCustomers.length} clientes mostrados
         </p>
         <div className="flex items-center gap-3">
           <div className="text-sm text-muted-foreground">Mostrar</div>
