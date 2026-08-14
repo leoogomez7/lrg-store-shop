@@ -115,6 +115,10 @@ function AdminProducts() {
   >({});
   const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
   const [page, setPage] = useState(0);
+  // `pageSize` is the confirmed page size; default is 10 products per page
+  const [pageSize, setPageSize] = useState<number>(10);
+  // `pageSizeInput` is the editable input value the user types before confirming
+  const [pageSizeInput, setPageSizeInput] = useState<string>("10");
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     title: string;
@@ -506,8 +510,15 @@ function AdminProducts() {
     setPage(0);
   }, [results]);
 
-  const visibleResults = useMemo(() => results.slice(page * 10, page * 10 + 10), [results, page]);
-  const totalPages = Math.max(1, Math.ceil(results.length / 10));
+  useEffect(() => {
+    setPage(0);
+  }, [pageSize]);
+
+  const visibleResults = useMemo(() => {
+    if (!pageSize || pageSize <= 0) return [] as typeof results;
+    return results.slice(page * pageSize, page * pageSize + pageSize);
+  }, [results, page, pageSize]);
+  const totalPages = pageSize && pageSize > 0 ? Math.max(1, Math.ceil(results.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
 
@@ -987,6 +998,38 @@ function AdminProducts() {
         <p className="text-xs text-muted-foreground">
           {visibleResults.length} de {results.length} productos mostrados
         </p>
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-muted-foreground">Mostrar</div>
+          <Input
+            type="number"
+            min={1}
+            max={1000}
+            value={pageSizeInput}
+            placeholder="Ej: 10"
+            onChange={(e) => setPageSizeInput(e.target.value)}
+            className="h-8 w-28"
+          />
+
+          {(() => {
+            const v = Number(pageSizeInput);
+            const isValid = Number.isFinite(v) && v >= 1;
+            const isChanged = pageSizeInput !== "" && String(Math.floor(v)) !== String(pageSize);
+            return (
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (!isValid || !isChanged) return;
+                  const final = Math.min(1000, Math.floor(v));
+                  setPageSize(final);
+                  setPage(0);
+                }}
+                disabled={!isValid || !isChanged}
+              >
+                <Check className="h-4 w-4 mr-2" />Confirmar
+              </Button>
+            );
+          })()}
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => setPage(0)} disabled={!hasPreviousPage}>
             Principio
