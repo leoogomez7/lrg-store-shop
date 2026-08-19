@@ -11,6 +11,8 @@ export function saveProducts(products: Product[]) {
   }
 }
 
+export type CurrencyCode = "ARS" | "USD";
+
 export type Product = {
   id: string;
   slug: string;
@@ -20,6 +22,10 @@ export type Product = {
   name: string;
   category: string;
   price: number;
+  priceCurrency?: CurrencyCode;
+  gastos?: number;
+  gastosCurrency?: CurrencyCode;
+  usdRate?: number;
   compareAtPrice?: number;
   stock: number;
   rating: number;

@@ -126,21 +126,10 @@ function BrandHeaderContent({
     if (closeMenu) setOpenMenu(false);
   };
 
-  const defaultLinks = [{ label: "LRG Store Shop", to: "/", exact: true }] as const;
-
-  const storeShopLinks = [
-    { href: "#projects", label: "Proyectos" },
-    { href: "#clients", label: "Clientes" },
-    { href: "#comprar", label: "Comprar" },
-    { href: "#pricing", label: "Presupuestos" },
-    { href: "#proposals", label: "Propuestas" },
-    { href: "#about", label: "¿Quién soy?" },
-    { href: "#social", label: "Mis redes" },
-    { href: "#contact", label: "Contactar" },
-  ];
+  const defaultLinks: Array<{ label: string; to: string; exact?: boolean }> = [];
 
   const effectiveSlug = displayBrandName ? (logoBrandSlug ?? "store-shop") : brand.slug;
-  const links = effectiveSlug === "store-shop" ? storeShopLinks : defaultLinks;
+  const links = defaultLinks;
 
   const brandLabel = displayBrandName ?? brand.name;
   const brandLogoSlug = logoBrandSlug ?? brand.slug;

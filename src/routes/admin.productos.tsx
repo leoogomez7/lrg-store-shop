@@ -1,22 +1,13 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, Check, ChevronsUpDown, Edit3, Filter, Pencil, Plus, Save, Search, Trash2, X, Copy, Eye, ArrowUpDown, Sheet, FileText } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronUp, Edit3, Filter, Pencil, Plus, Save, Search, Trash2, X, Copy, Eye, ArrowUpDown, Sheet, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { products as productsData, saveProducts } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -27,8 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -51,6 +43,7 @@ import { formatPrice } from "@/lib/format";
 import { catalogQueries, type Product } from "@/services/catalog.service";
 
 type DeliveryUnit = "inmediata" | "horas" | "dias";
+type CurrencyCode = "ARS" | "USD";
 
 type ProductFormState = {
   id: string;
@@ -58,11 +51,14 @@ type ProductFormState = {
   brand: BrandSlug;
   category: string;
   price: number;
+  priceCurrency: CurrencyCode;
   stock: number;
   description: string;
   features: string[];
   images: string[];
   gastos: number;
+  gastosCurrency: CurrencyCode;
+  usdRate: number;
   deliveryUnit: DeliveryUnit;
   deliveryAmount: number;
   discount: number;
@@ -91,22 +87,35 @@ function AdminProducts() {
   const { data: products } = useSuspenseQuery(catalogQueries.all());
   const [editableProducts, setEditableProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
-  const [brandFilter, setBrandFilter] = useState<BrandSlug | "todas">("todas");
-  const [categoryFilter, setCategoryFilter] = useState("todas");
-  const [priceMin, setPriceMin] = useState("");
-  const [priceMax, setPriceMax] = useState("");
-  const [discountedPriceMin, setDiscountedPriceMin] = useState("");
-  const [discountedPriceMax, setDiscountedPriceMax] = useState("");
+  const [brandFilter, setBrandFilter] = useState<BrandSlug[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const [currencyFilter, setCurrencyFilter] = useState<CurrencyCode[]>([]);
+  const [priceMode, setPriceMode] = useState<"price" | "storePrice">("storePrice");
+  const [priceMin, setPriceMin] = useState(0);
+  const [priceMax, setPriceMax] = useState(0);
+  const [discountOnly, setDiscountOnly] = useState(false);
+  const [stockOnly, setStockOnly] = useState(false);
+  const [availableOnly, setAvailableOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [categoryFilterOpen, setCategoryFilterOpen] = useState(false);
-  const [categoryFilterSearch, setCategoryFilterSearch] = useState("");
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [brandsOpen, setBrandsOpen] = useState(false);
+  const [priceFilterOpen, setPriceFilterOpen] = useState(false);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
-  const [sortOrder, setSortOrder] = useState<SortOrder>("name_asc");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("createdAt_desc");
   const [discounts, setDiscounts] = useState<Record<string, number>>({});
   const [pendingDiscounts, setPendingDiscounts] = useState<Record<string, string>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [createChoiceOpen, setCreateChoiceOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState | null>(null);
+  const [usdRate, setUsdRate] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    return Number(window.localStorage.getItem("lrg:usdRate")) || 0;
+  });
+  const [usdRatePromptOpen, setUsdRatePromptOpen] = useState(false);
+  const [usdRatePromptValue, setUsdRatePromptValue] = useState("");
+  const multiProductInputRef = useRef<HTMLInputElement | null>(null);
   const [quickEditProductId, setQuickEditProductId] = useState<string | null>(null);
   const [quickEditForm, setQuickEditForm] = useState<
     Record<
@@ -122,6 +131,16 @@ function AdminProducts() {
   const [pageSize, setPageSize] = useState<number>(10);
   // `pageSizeInput` is the editable input value the user types before confirming
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+  const priceLimit = useMemo(() => {
+    const values = products
+      .filter((product) => !currencyFilter.length || currencyFilter.includes(product.priceCurrency ?? "ARS"))
+      .map((product) => {
+        const discount = discounts[product.id] ?? 0;
+        return priceMode === "storePrice" ? product.price * (1 - discount / 100) : product.price;
+      });
+    const maximum = Math.max(0, ...values);
+    return Math.max(50, Math.ceil(maximum / 50) * 50);
+  }, [products, currencyFilter, priceMode, discounts]);
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     title: string;
@@ -133,41 +152,124 @@ function AdminProducts() {
     setEditableProducts(products);
   }, [products]);
 
+  useEffect(() => {
+    setPriceMin(0);
+    setPriceMax(priceLimit);
+  }, [currencyFilter, priceMode, priceLimit]);
+
   const defaultFormState: ProductFormState = {
     id: "",
     name: "",
     brand: "arcade",
     category: "",
     price: 0,
+    priceCurrency: "ARS",
     stock: 0,
     description: "",
     features: [],
     images: [],
     gastos: 0,
+    gastosCurrency: "ARS",
+    usdRate: 0,
     deliveryUnit: "inmediata",
     deliveryAmount: 0,
     discount: 0,
   };
 
+  const handleUsdRateConfirm = () => {
+    const nextUsdRate = Number(usdRatePromptValue);
+    if (!Number.isFinite(nextUsdRate) || nextUsdRate <= 0) {
+      toast.error("Ingresá un valor mayor a 0 para 1 USD.");
+      return;
+    }
+    setUsdRate(nextUsdRate);
+    window.localStorage.setItem("lrg:usdRate", String(nextUsdRate));
+    setProductForm((current) => (current ? { ...current, usdRate: nextUsdRate } : current));
+    setUsdRatePromptOpen(false);
+    setUsdRatePromptValue("");
+  };
+
   const openNewProductDialog = () => {
+    setCreateChoiceOpen(true);
+  };
+
+  const openSingleProductDialog = () => {
+    setCreateChoiceOpen(false);
     setEditingProduct(null);
-    setProductForm(defaultFormState);
+    setDialogMode("create");
+    setProductForm({ ...defaultFormState, usdRate });
     setDialogOpen(true);
+  };
+
+  const handleImportMultipleProducts = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      toast.error("No se seleccionaron imágenes válidas.");
+      return;
+    }
+
+    const importedProducts = imageFiles.map((file, index) => {
+      const baseName = file.name
+        .replace(/\.[^.]+$/, "")
+        .replace(/[_-]+/g, " ")
+        .trim();
+      const productName = baseName || `Producto importado ${index + 1}`;
+      const slugBase = productName
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "") || `producto-importado-${Date.now()}-${index + 1}`;
+      const defaultBrand: BrandSlug = "arcade";
+      const defaultCategory = brands[defaultBrand].categories[0]?.slug ?? "consolas";
+
+      return {
+        id: `import-${Date.now()}-${index + 1}`,
+        slug: `${slugBase}-${index + 1}`,
+        brand: defaultBrand,
+        name: productName,
+        category: defaultCategory,
+        price: 0,
+        stock: 1,
+        rating: 0,
+        reviews: 0,
+        short: "Producto agregado desde importación múltiple.",
+        description: "Producto creado a partir de una imagen importada desde el dispositivo.",
+        features: [],
+        images: [URL.createObjectURL(file)],
+        createdAt: new Date().toISOString().slice(0, 10),
+      } as Product;
+    });
+
+    (productsData as Product[]).push(...importedProducts);
+    saveProducts(productsData as Product[]);
+    setEditableProducts((current) => [...current, ...importedProducts]);
+    setCreateChoiceOpen(false);
+
+    toast.success(`Se importaron ${importedProducts.length} productos`, {
+      description: "Ya están disponibles en el listado y puedes editarlos como cualquier otro producto.",
+    });
   };
 
   const openEditProductDialog = (product: Product) => {
     setEditingProduct(product);
+    setDialogMode("edit");
     setProductForm({
       id: product.id,
       name: product.name,
       brand: product.brand,
       category: product.category,
       price: product.price,
+      priceCurrency: product.priceCurrency ?? "ARS",
       stock: product.stock,
       description: product.description,
       features: product.features ?? [],
       images: product.images ?? [],
-      gastos: 0,
+      gastos: product.gastos ?? 0,
+      gastosCurrency: product.gastosCurrency ?? "ARS",
+      usdRate: product.usdRate ?? usdRate,
       deliveryUnit: "inmediata",
       deliveryAmount: 1,
       discount: discounts[product.id] ?? 0,
@@ -290,11 +392,6 @@ function AdminProducts() {
     const nextStock = Number(draft.stock) || product.stock;
     const nextDiscount = Math.max(0, Math.min(100, Number(draft.discount) || 0));
 
-    if (nextStock > product.stock) {
-      showStockExceededToast(product.name, product.stock);
-      return;
-    }
-
     setEditableProducts((current) =>
       current.map((item) =>
         item.id === product.id
@@ -341,6 +438,8 @@ function AdminProducts() {
   type SortOrder =
     | "name_asc"
     | "name_desc"
+    | "createdAt_asc"
+    | "createdAt_desc"
     | "price_asc"
     | "price_desc"
     | "stock_asc"
@@ -382,6 +481,10 @@ function AdminProducts() {
           name: productForm.name,
           category: productForm.category,
           price: productForm.price,
+          priceCurrency: productForm.priceCurrency,
+          gastos: productForm.gastos,
+          gastosCurrency: productForm.gastosCurrency,
+          usdRate: productForm.usdRate,
           stock: productForm.stock,
           rating: 0,
           reviews: 0,
@@ -403,6 +506,10 @@ function AdminProducts() {
         existing.brand = productForm.brand;
         existing.category = productForm.category;
         existing.price = productForm.price;
+        existing.priceCurrency = productForm.priceCurrency;
+        existing.gastos = productForm.gastos;
+        existing.gastosCurrency = productForm.gastosCurrency;
+        existing.usdRate = productForm.usdRate;
         existing.stock = productForm.stock;
         existing.description = productForm.description;
         existing.features = productForm.features;
@@ -465,30 +572,18 @@ function AdminProducts() {
     [editableProducts],
   );
 
-  const filteredCategories = useMemo(
-    () =>
-      availableCategories.filter((category) =>
-        category.toLowerCase().includes(categoryFilterSearch.toLowerCase()),
-      ),
-    [availableCategories, categoryFilterSearch],
-  );
-
   const results = useMemo(() => {
     const filtered = editableProducts.filter((product) => {
-      if (brandFilter !== "todas" && product.brand !== brandFilter) return false;
-      if (categoryFilter !== "todas" && product.category !== categoryFilter) return false;
+      if (brandFilter.length && !brandFilter.includes(product.brand)) return false;
+      if (categoryFilter.length && !categoryFilter.includes(product.category)) return false;
+      if (currencyFilter.length && !currencyFilter.includes(product.priceCurrency ?? "ARS")) return false;
       if (query && !product.name.toLowerCase().includes(query.toLowerCase())) return false;
-
-      const priceMinNumber = priceMin === "" ? null : Number(priceMin);
-      const priceMaxNumber = priceMax === "" ? null : Number(priceMax);
-      const discountedPriceMinNumber = discountedPriceMin === "" ? null : Number(discountedPriceMin);
-      const discountedPriceMaxNumber = discountedPriceMax === "" ? null : Number(discountedPriceMax);
-      const discountedPrice = product.price * (1 - (discounts[product.id] ?? 0) / 100);
-
-      if (priceMinNumber !== null && product.price < priceMinNumber) return false;
-      if (priceMaxNumber !== null && product.price > priceMaxNumber) return false;
-      if (discountedPriceMinNumber !== null && discountedPrice < discountedPriceMinNumber) return false;
-      if (discountedPriceMaxNumber !== null && discountedPrice > discountedPriceMaxNumber) return false;
+      if (discountOnly && (discounts[product.id] ?? 0) <= 0) return false;
+      if (stockOnly && product.stock <= 0) return false;
+      if (availableOnly && product.hidden) return false;
+      const storePrice = product.price * (1 - (discounts[product.id] ?? 0) / 100);
+      const selectedPrice = priceMode === "storePrice" ? storePrice : product.price;
+      if (selectedPrice < priceMin || selectedPrice > priceMax) return false;
 
       return true;
     });
@@ -504,6 +599,10 @@ function AdminProducts() {
           return a.name.localeCompare(b.name);
         case "name_desc":
           return b.name.localeCompare(a.name);
+        case "createdAt_asc":
+          return a.createdAt.localeCompare(b.createdAt);
+        case "createdAt_desc":
+          return b.createdAt.localeCompare(a.createdAt);
         case "price_asc":
           return a.price - b.price;
         case "price_desc":
@@ -520,7 +619,7 @@ function AdminProducts() {
           return 0;
       }
     });
-  }, [editableProducts, query, brandFilter, categoryFilter, priceMin, priceMax, discountedPriceMin, discountedPriceMax, sortOrder, discounts]);
+  }, [editableProducts, query, brandFilter, categoryFilter, currencyFilter, priceMode, priceMin, priceMax, discountOnly, stockOnly, availableOnly, sortOrder, discounts]);
 
   useEffect(() => {
     setPage(0);
@@ -537,6 +636,36 @@ function AdminProducts() {
   const totalPages = pageSize && pageSize > 0 ? Math.max(1, Math.ceil(results.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
+  const activeFilterCount =
+    categoryFilter.length +
+    brandFilter.length +
+    currencyFilter.length +
+    (priceMode !== "storePrice" ? 1 : 0) +
+    (priceMin > 0 ? 1 : 0) +
+    (priceMax < priceLimit ? 1 : 0) +
+    (discountOnly ? 1 : 0) +
+    (stockOnly ? 1 : 0) +
+    (availableOnly ? 1 : 0);
+
+  const resetFilters = () => {
+    setCategoryFilter([]);
+    setBrandFilter([]);
+    setCurrencyFilter([]);
+    setPriceMode("storePrice");
+    setPriceMin(0);
+    setPriceMax(priceLimit);
+    setDiscountOnly(false);
+    setStockOnly(false);
+    setAvailableOnly(false);
+  };
+  const priceDisplayCurrency = currencyFilter.length === 1 ? currencyFilter[0] : "ARS";
+  const priceCurrencyLabel =
+    currencyFilter.includes("ARS") && currencyFilter.includes("USD")
+      ? "$/USD"
+      : currencyFilter.includes("USD")
+        ? "USD"
+        : "$";
+  const priceFilterCount = currencyFilter.length + 1;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
@@ -575,14 +704,16 @@ function AdminProducts() {
                 <div className="rounded-xl border border-border/60 bg-background/95 p-2 shadow-lg backdrop-blur-sm">
                   {(
                     [
-                      ["name_asc", "Producto A-Z"],
-                      ["name_desc", "Producto Z-A"],
+                      ["name_asc", "Producto: A-Z"],
+                      ["name_desc", "Producto: Z-A"],
+                      ["createdAt_asc", "Producto agregado: Antiguo a nuevo"],
+                      ["createdAt_desc", "Producto agregado: Nuevo a antiguo"],
                       ["price_asc", "Precio: menor a mayor"],
                       ["price_desc", "Precio: mayor a menor"],
+                      ["discountedPrice_asc", "Precio en la tienda: menor a mayor"],
+                      ["discountedPrice_desc", "Precio en la tienda: mayor a menor"],
                       ["stock_asc", "Stock: menor a mayor"],
                       ["stock_desc", "Stock: mayor a menor"],
-                      ["discountedPrice_asc", "Precio con descuento: menor a mayor"],
-                      ["discountedPrice_desc", "Precio con descuento: mayor a menor"],
                     ] as [SortOrder, string][]
                   ).map(([value, label]) => (
                     <button
@@ -616,6 +747,10 @@ function AdminProducts() {
             Filtros
           </Button>
  
+          <Button className="h-9 gap-2" onClick={openNewProductDialog}>
+            <Plus className="size-4" /> Nuevo producto
+          </Button>
+
           <Button
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
             onClick={() => {
@@ -706,118 +841,224 @@ function AdminProducts() {
             <FileText className="size-4" />
             Exportar PDF
           </Button>
-          <Button className="h-9 gap-2" onClick={openNewProductDialog}>
-            <Plus className="size-4" /> Nuevo producto
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 gap-2 border-amber-500/50 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 hover:text-amber-700"
+            onClick={() => {
+              setUsdRatePromptValue(usdRate > 0 ? String(usdRate) : "");
+              setUsdRatePromptOpen(true);
+            }}
+          >
+            Seleccionar valor USD
           </Button>
-          
         </div>
       </div>
 
       {filtersOpen ? (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-2">
-            <Popover open={categoryFilterOpen} onOpenChange={setCategoryFilterOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={categoryFilterOpen}
-                  className="w-full justify-between"
-                >
-                  <span className="truncate">
-                    {categoryFilter === "todas" ? "Todas las categorías" : categoryFilter}
-                  </span>
-                  <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
-                <Command>
-                  <CommandInput
-                    value={categoryFilterSearch}
-                    onValueChange={setCategoryFilterSearch}
-                    placeholder="Buscar categoría..."
-                  />
-                  <CommandList>
-                    <CommandEmpty>No se encontró ninguna categoría.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        value="todas"
-                        onSelect={() => {
-                          setCategoryFilter("todas");
-                          setCategoryFilterSearch("");
-                          setCategoryFilterOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 size-4",
-                            categoryFilter === "todas" ? "opacity-100" : "opacity-0",
-                          )}
-                        />
-                        Categorías
-                      </CommandItem>
-                      {filteredCategories.map((category) => (
-                        <CommandItem
-                          key={category}
-                          value={category}
-                          onSelect={() => {
-                            setCategoryFilter(category);
-                            setCategoryFilterSearch("");
-                            setCategoryFilterOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 size-4",
-                              categoryFilter === category ? "opacity-100" : "opacity-0",
-                            )}
-                          />
-                          {category}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="number"
-                min={0}
-                value={priceMin}
-                onChange={(event) => setPriceMin(event.target.value)}
-                placeholder="Precio desde"
-              />
-              <Input
-                type="number"
-                min={0}
-                value={priceMax}
-                onChange={(event) => setPriceMax(event.target.value)}
-                placeholder="Precio hasta"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Select
-              value={brandFilter}
-              onValueChange={(value) => setBrandFilter(value as BrandSlug | "todas")}
+        <div className="glass-panel mt-4 space-y-6 rounded-2xl p-5">
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setCategoriesOpen((current) => !current)}
+              className="flex items-center gap-2 text-sm font-medium"
+              aria-expanded={categoriesOpen}
             >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Tiendas</SelectItem>
-                {brandList.map((brand) => (
-                  <SelectItem key={brand.slug} value={brand.slug}>
-                    {brand.name}
-                  </SelectItem>
+              <span>Categorías</span>
+              {categoryFilter.length > 0 && <Badge variant="secondary">{categoryFilter.length}</Badge>}
+              {categoriesOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+            </button>
+            {categoriesOpen && (
+              <div className="space-y-2.5">
+                {availableCategories.map((category) => (
+                  <label key={category} className="flex cursor-pointer items-start gap-3 text-sm">
+                    <Checkbox
+                      checked={categoryFilter.includes(category)}
+                      onCheckedChange={(checked) =>
+                        setCategoryFilter((current) =>
+                          checked ? [...current, category] : current.filter((value) => value !== category),
+                        )
+                      }
+                    />
+                    <span className="font-medium">{category}</span>
+                  </label>
                 ))}
-              </SelectContent>
-            </Select>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setBrandsOpen((current) => !current)}
+              className="flex items-center gap-2 text-sm font-medium"
+              aria-expanded={brandsOpen}
+            >
+              <span>Tienda</span>
+              {brandFilter.length > 0 && <Badge variant="secondary">{brandFilter.length}</Badge>}
+              {brandsOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+            </button>
+            {brandsOpen && (
+              <div className="space-y-2.5">
+                {brandList.map((brand) => (
+                  <label key={brand.slug} className="flex cursor-pointer items-start gap-3 text-sm">
+                    <Checkbox
+                      checked={brandFilter.includes(brand.slug)}
+                      onCheckedChange={(checked) =>
+                        setBrandFilter((current) =>
+                          checked ? [...current, brand.slug] : current.filter((value) => value !== brand.slug),
+                        )
+                      }
+                    />
+                    <span className="font-medium">{brand.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setPriceFilterOpen((current) => !current)}
+              className="flex items-center gap-2 text-sm font-medium"
+              aria-expanded={priceFilterOpen}
+            >
+              <span>Precio</span>
+              <Badge variant="secondary">{priceFilterCount}</Badge>
+              {priceFilterOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+            </button>
+            {priceFilterOpen && (
+              <div className="space-y-2.5">
+                <label className="flex cursor-pointer items-start gap-3 text-sm">
+                  <Checkbox
+                    checked={currencyFilter.includes("ARS")}
+                    onCheckedChange={(checked) =>
+                      setCurrencyFilter((current) =>
+                        checked ? [...current, "ARS"] : current.filter((value) => value !== "ARS"),
+                      )
+                    }
+                  />
+                  <span className="font-medium">$ (ARS)</span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3 text-sm">
+                  <Checkbox
+                    checked={currencyFilter.includes("USD")}
+                    onCheckedChange={(checked) =>
+                      setCurrencyFilter((current) =>
+                        checked ? [...current, "USD"] : current.filter((value) => value !== "USD"),
+                      )
+                    }
+                  />
+                  <span className="font-medium">USD (Dólar)</span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3 text-sm">
+                  <Checkbox
+                    checked={priceMode === "price"}
+                    onCheckedChange={(checked) => checked && setPriceMode("price")}
+                  />
+                  <span className="font-medium">Precio</span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3 text-sm">
+                  <Checkbox
+                    checked={priceMode === "storePrice"}
+                    onCheckedChange={(checked) => checked && setPriceMode("storePrice")}
+                  />
+                  <span className="font-medium">Precio en la tienda</span>
+                </label>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-foreground/90">
+              <label className="flex shrink-0 items-center gap-2">
+                <span>Desde {priceCurrencyLabel}</span>
+                <Input
+                  aria-label="Precio mínimo"
+                  type="number"
+                  min={0}
+                  max={priceLimit}
+                  value={priceMin}
+                  aria-valuetext={formatPrice(priceMin, priceDisplayCurrency)}
+                  onChange={(event) => {
+                    const value = Number(event.target.value);
+                    if (!Number.isFinite(value)) return;
+                    setPriceMin(Math.min(Math.max(0, value), priceMax));
+                  }}
+                  className="h-8 w-20 px-2 sm:w-24"
+                />
+              </label>
+              <label className="flex shrink-0 items-center justify-end gap-2">
+                <span>Hasta {priceCurrencyLabel}</span>
+                <Input
+                  aria-label="Precio máximo"
+                  type="number"
+                  min={0}
+                  max={priceLimit}
+                  value={priceMax}
+                  aria-valuetext={formatPrice(priceMax, priceDisplayCurrency)}
+                  onChange={(event) => {
+                    const value = Number(event.target.value);
+                    if (!Number.isFinite(value)) return;
+                    setPriceMax(Math.max(Math.min(priceLimit, value), priceMin));
+                  }}
+                  className="h-8 w-20 px-2 sm:w-24"
+                />
+              </label>
+            </div>
+            <Slider
+              min={0}
+              max={priceLimit}
+              step={Math.max(1, Math.round(priceLimit / 100))}
+              value={[priceMin, priceMax]}
+              onValueChange={(value) => {
+                const nextMin = value[0] ?? 0;
+                const nextMax = value[1] ?? priceLimit;
+                setPriceMin(Math.min(nextMin, nextMax));
+                setPriceMax(Math.max(nextMin, nextMax));
+              }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
+            <Label htmlFor="admin-filter-discount" className="cursor-pointer text-sm">
+              Sólo con descuento
+            </Label>
+            <Switch
+              id="admin-filter-discount"
+              checked={discountOnly}
+              onCheckedChange={setDiscountOnly}
+            />
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
+            <Label htmlFor="admin-filter-stock" className="cursor-pointer text-sm">
+              Sólo con stock
+            </Label>
+            <Switch id="admin-filter-stock" checked={stockOnly} onCheckedChange={setStockOnly} />
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
+            <Label htmlFor="admin-filter-available" className="cursor-pointer text-sm">
+              Sólo disponible
+            </Label>
+            <Switch
+              id="admin-filter-available"
+              checked={availableOnly}
+              onCheckedChange={setAvailableOnly}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-2 pt-0">
+            <p className="text-xs text-muted-foreground">{results.length} productos encontrados</p>
+            {activeFilterCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="ml-auto flex h-8 px-2 text-xs"
+              >
+                <X className="mr-1 size-3.5" /> Limpiar
+              </Button>
+            )}
           </div>
         </div>
       ) : null}
@@ -825,17 +1066,17 @@ function AdminProducts() {
       
 
       <div className="glass-panel mt-6 overflow-x-auto rounded-2xl pb-2">
-        <Table className="text-center">
+        <Table className="w-full table-fixed text-center [&_td]:align-middle [&_th]:align-middle">
           <TableHeader>
             <TableRow>
-              <TableHead className="text-center">Producto</TableHead>
-              <TableHead className="text-center">Sector</TableHead>
-              <TableHead className="text-center">Categoría</TableHead>
-              <TableHead className="text-center">Precio</TableHead>
-              <TableHead className="text-center">Stock</TableHead>
-              <TableHead className="text-center">Descuento</TableHead>
-              <TableHead className="text-center">Precio con descuento</TableHead>
-              <TableHead className="text-center">Acciones</TableHead>
+              <TableHead className="text-center w-28">Producto</TableHead>
+              <TableHead className="text-center w-20">Sector</TableHead>
+              <TableHead className="text-center w-24">Categoría</TableHead>
+              <TableHead className="text-center w-20">Precio</TableHead>
+              <TableHead className="text-center w-16">Stock</TableHead>
+              <TableHead className="text-center w-20">Descuento</TableHead>
+              <TableHead className="text-center w-24">Precio tienda</TableHead>
+              <TableHead className="text-center flex-1">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -858,7 +1099,7 @@ function AdminProducts() {
                 <TableRow key={product.id} ref={quickEditProductId === product.id ? quickEditRowRef : undefined}>
                   {isQuickEditing ? (
                     <>
-                      <TableCell>
+                      <TableCell className="align-middle">
                         <Input
                           value={quickDraft.name}
                           readOnly
@@ -866,7 +1107,7 @@ function AdminProducts() {
                           className="w-full min-w-45 cursor-not-allowed bg-muted/40 opacity-80"
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="align-middle">
                         <Select
                           value={activeQuickBrand}
                           onValueChange={(value) => {
@@ -894,7 +1135,7 @@ function AdminProducts() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="align-middle">
                         <Select
                           value={quickDraft.category}
                           onValueChange={(value) =>
@@ -916,7 +1157,7 @@ function AdminProducts() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="align-middle">
                         <Input
                           type="number"
                           min={0}
@@ -930,26 +1171,21 @@ function AdminProducts() {
                           className="w-24 text-center"
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="align-middle">
                         <Input
                           type="number"
                           min={0}
                           value={quickDraft.stock}
-                          onChange={(event) => {
-                            const nextValue = Number(event.target.value);
-                            if (nextValue > product.stock) {
-                              showStockExceededToast(product.name, product.stock);
-                              return;
-                            }
+                          onChange={(event) =>
                             setQuickEditForm((current) => ({
                               ...current,
-                              [product.id]: { ...quickDraft, stock: nextValue },
-                            }));
-                          }}
+                              [product.id]: { ...quickDraft, stock: Number(event.target.value) },
+                            }))
+                          }
                           className="w-20 text-center"
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="align-middle">
                         <Input
                           type="number"
                           min={0}
@@ -964,9 +1200,9 @@ function AdminProducts() {
                           className="w-20 text-center"
                         />
                       </TableCell>
-                      <TableCell>{formatPrice(Math.max(0, quickDraft.price * (1 - quickDraft.discount / 100)))}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-nowrap items-center justify-start gap-2">
+                      <TableCell className="align-middle">{formatPrice(Math.max(0, quickDraft.price * (1 - quickDraft.discount / 100)))}</TableCell>
+                      <TableCell className="align-middle">
+                        <div className="flex flex-wrap items-center justify-center gap-1">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -978,19 +1214,19 @@ function AdminProducts() {
                                 onConfirm: () => saveQuickEdit(product),
                               })
                             }
-                            className="h-8 flex-none gap-2 bg-transparent px-3 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                            className="h-7 flex-none gap-1 bg-transparent px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700"
                           >
-                            <Check className="h-4 w-4" />
-                            <span>Guardar</span>
+                            <Check className="h-3 w-3" />
+                            <span className="hidden sm:inline">Guardar</span>
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={cancelQuickEdit}
-                            className="h-8 flex-none gap-2 bg-transparent px-3 text-xs text-destructive shadow-none hover:bg-destructive/10"
+                            className="h-7 flex-none gap-1 bg-transparent px-2 text-xs text-destructive shadow-none hover:bg-destructive/10"
                           >
-                            <X className="size-4" />
-                            <span>Cancelar</span>
+                            <X className="size-3" />
+                            <span className="hidden sm:inline">Cancelar</span>
                           </Button>
                         </div>
                       </TableCell>
@@ -1037,9 +1273,9 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell>{formatPrice(Math.max(0, discountedPrice))}</TableCell>
                       <TableCell>
-                        <div className="flex flex-nowrap items-center justify-end gap-2">
-                          <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
-                            <span className="text-sm">{product.hidden ? "No disponible" : "Disponible"}</span>
+                        <div className="flex flex-wrap items-center justify-center gap-1.5">
+                          <label className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
+                            <span>{product.hidden ? "No disponible" : "Disponible"}</span>
                             <Switch
                               checked={!product.hidden}
                               onCheckedChange={() =>
@@ -1057,10 +1293,9 @@ function AdminProducts() {
                             variant="ghost"
                             size="sm"
                             onClick={() => startQuickEdit(product)}
-                            title="Editar rápido"
-                            className="h-8 gap-2 px-3 text-xs"
+                            className="h-7 gap-1 px-2 text-xs"
                           >
-                            <Edit3 className="h-4 w-4" />
+                            <Edit3 className="h-3.5 w-3.5" />
                             <span>Editar rápido</span>
                           </Button>
 
@@ -1068,22 +1303,20 @@ function AdminProducts() {
                             variant="ghost"
                             size="sm"
                             onClick={() => openEditProductDialog(product)}
-                            title="Editar"
-                            className="h-8 gap-2 px-3 text-xs"
+                            className="h-7 gap-1 px-2 text-xs"
                           >
-                            <Pencil className="h-4 w-4" />
-                            <span className="text-[11px]">Editar</span>
+                            <Pencil className="h-3.5 w-3.5" />
+                            <span>Editar</span>
                           </Button>
 
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDuplicateProduct(product)}
-                            title="Duplicar"
-                            className="h-8 gap-2 px-3 text-xs"
+                            className="h-7 gap-1 px-2 text-xs"
                           >
-                            <Copy className="h-4 w-4" />
-                            <span className="text-[11px]">Duplicar</span>
+                            <Copy className="h-3.5 w-3.5" />
+                            <span>Duplicar</span>
                           </Button>
 
                           <Button
@@ -1098,10 +1331,10 @@ function AdminProducts() {
                               })
                             }
                             aria-label={`Eliminar ${product.name}`}
-                            className="h-8 gap-2 px-3 text-xs text-destructive hover:bg-destructive/10"
+                            className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
                           >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="text-[11px]">Eliminar</span>
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Eliminar</span>
                           </Button>
                         </div>
                       </TableCell>
@@ -1178,13 +1411,117 @@ function AdminProducts() {
         </div>
       </div>
 
+      <input
+        ref={multiProductInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(event) => {
+          handleImportMultipleProducts(event.target.files);
+          event.target.value = "";
+        }}
+      />
+
+      <Dialog open={createChoiceOpen} onOpenChange={setCreateChoiceOpen}>
+        <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+          <DialogHeader className="space-y-2">
+            <DialogTitle>Crear producto</DialogTitle>
+            <DialogDescription>Elegí cómo quieres añadir nuevos productos al catálogo.</DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 space-y-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start text-left"
+              onClick={openSingleProductDialog}
+            >
+              <span className="flex w-full items-center justify-between gap-3">
+                <span>Un solo producto</span>
+                <span className="text-xs text-muted-foreground">Abrir formulario</span>
+              </span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start text-left"
+              onClick={() => {
+                setCreateChoiceOpen(false);
+                multiProductInputRef.current?.click();
+              }}
+            >
+              <span className="flex w-full items-center justify-between gap-3">
+                <span>Varios productos</span>
+                <span className="text-xs text-muted-foreground">Seleccionar imágenes</span>
+              </span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start text-left"
+              onClick={() => {
+                setCreateChoiceOpen(false);
+                toast.info("Importar desde Store aún no está implementado.");
+              }}
+            >
+              <span className="flex w-full items-center justify-between gap-3">
+                <span>Importar desde la tienda Store</span>
+                <span className="text-xs text-muted-foreground">Próximamente</span>
+              </span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <ProductEditDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        mode={dialogMode}
         productForm={productForm}
         setProductForm={setProductForm}
+        configuredUsdRate={usdRate}
         onSave={handleSaveProduct}
       />
+      <Dialog open={usdRatePromptOpen} onOpenChange={setUsdRatePromptOpen}>
+        <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+          <DialogHeader className="space-y-3">
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-amber-700">
+              Tipo de cambio
+            </div>
+            <DialogTitle className="text-2xl">Ingresá el valor de 1 USD</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Este valor se reutilizará automáticamente al seleccionar USD en los productos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4">
+              <div className="flex items-center gap-2">
+                <span className="min-w-fit text-sm font-medium text-amber-700">1 USD =</span>
+                <Input
+                  id="admin-usd-rate"
+                  type="number"
+                  min={0}
+                  value={usdRatePromptValue}
+                  onChange={(event) => setUsdRatePromptValue(event.target.value)}
+                  placeholder="Ej: 1200"
+                  className="h-11 text-base"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button type="button" variant="outline" onClick={() => setUsdRatePromptOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={handleUsdRateConfirm}>
+                Guardar valor
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       <ConfirmDialog
         open={confirmState.open}
         onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}
@@ -1204,14 +1541,18 @@ function AdminProducts() {
 function ProductEditDialog({
   open,
   onOpenChange,
+  mode,
   productForm,
   setProductForm,
+  configuredUsdRate,
   onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode: "create" | "edit";
   productForm: ProductFormState | null;
   setProductForm: (form: ProductFormState | null) => void;
+  configuredUsdRate: number;
   onSave: () => void;
 }) {
   const [newFeature, setNewFeature] = useState("");
@@ -1219,14 +1560,23 @@ function ProductEditDialog({
   const [inlineFeatureText, setInlineFeatureText] = useState("");
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [confirmExitOpen, setConfirmExitOpen] = useState(false);
-  const initialFormRef = useRef<string>(JSON.stringify(productForm));
+  const initialFormRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (open) {
+    if (!open) {
+      initialFormRef.current = null;
+      return;
+    }
+
+    if (productForm) {
       initialFormRef.current = JSON.stringify(productForm);
     }
-  }, [open, productForm]);
+  }, [open]);
 
-  const hasChanges = useMemo(() => JSON.stringify(productForm) !== initialFormRef.current, [productForm]);
+  const hasChanges = useMemo(
+    () => (productForm ? JSON.stringify(productForm) !== initialFormRef.current : false),
+    [productForm],
+  );
 
   const handleAddFeature = () => {
     if (!productForm) return;
@@ -1280,6 +1630,16 @@ function ProductEditDialog({
   const [confirmDeleteFeatureOpen, setConfirmDeleteFeatureOpen] = useState(false);
   const [featureToDeleteIndex, setFeatureToDeleteIndex] = useState<number | null>(null);
 
+  const requestUsdRateForCurrency = (field: "priceCurrency" | "gastosCurrency", nextCurrency: CurrencyCode) => {
+    if (!productForm) return;
+
+    setProductForm({
+      ...productForm,
+      [field]: nextCurrency,
+      usdRate: nextCurrency === "USD" && configuredUsdRate > 0 ? configuredUsdRate : productForm.usdRate,
+    });
+  };
+
   const handleAddImageFile = (file: File | null) => {
     if (!productForm || !file) return;
 
@@ -1332,263 +1692,403 @@ function ProductEditDialog({
 
   if (!productForm) return null;
 
-  const isNewProduct = productForm.id === "";
+  const isNewProduct = mode === "create";
+  const modeTitle = isNewProduct ? "Nuevo producto" : "Editar producto";
+  const modeDescription = isNewProduct
+    ? "Agregá un producto completo con nombre, stock, precio y categoría."
+    : "Actualizá los datos del producto sin afectar el flujo de alta.";
   const availableCategories = brands[productForm.brand]?.categories ?? [];
-  const ganancias = productForm.price - productForm.gastos;
+  const usdRate = productForm.usdRate > 0 ? productForm.usdRate : 0;
+  const toLocalCurrency = (amount: number, currency: CurrencyCode) =>
+    currency === "USD" ? (usdRate > 0 ? amount * usdRate : 0) : amount;
+  const precioEnLocal = toLocalCurrency(productForm.price, productForm.priceCurrency);
+  const gastosEnLocal = toLocalCurrency(productForm.gastos, productForm.gastosCurrency);
+  const precioConDescuento = precioEnLocal * (1 - productForm.discount / 100);
+  const ganancias = precioConDescuento - gastosEnLocal;
+  const formatLockedNumber = (value: number) =>
+    new Intl.NumberFormat("es-AR", {
+      maximumFractionDigits: 0,
+    }).format(value);
   const isImmediate = productForm.deliveryUnit === "inmediata";
   const priceValue = String(productForm.price);
   const gastosValue = String(productForm.gastos);
   const discountValue = String(productForm.discount);
   const stockValue = String(productForm.stock);
   const deliveryAmountValue = String(productForm.deliveryAmount);
- 
+  const conversionHint =
+    usdRate > 0 ? `Tipo de cambio USD: 1 USD = ${formatPrice(usdRate)}` : "Ingresá el valor de 1 USD para convertir";
+  const showUsdRateInput = productForm.priceCurrency === "USD" || productForm.gastosCurrency === "USD";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{productForm.id ? "Editar producto" : "Nuevo producto"}</DialogTitle>
+      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl sm:max-w-4xl">
+        <DialogHeader className="space-y-2">
+          <DialogTitle>{modeTitle}</DialogTitle>
+          <DialogDescription>{modeDescription}</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="new-name">Nombre</Label>
-            <Input
-              id="new-name"
-              value={productForm.name}
-              readOnly
-              disabled
-              className="cursor-not-allowed bg-muted/40 opacity-80"
-              placeholder="Nombre del producto"
-            />
-          </div>
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="new-sector">Seleccionar sector</Label>
-            <Select
-              value={productForm.brand}
-              onValueChange={(value) => {
-                const nextBrand = value as BrandSlug;
-                const nextCategory = brands[nextBrand].categories[0]?.slug ?? "";
 
-                setProductForm({
-                  ...productForm,
-                  brand: nextBrand,
-                  category: nextCategory,
-                });
-              }}
-            >
-              <SelectTrigger id="new-sector" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {brandList.map((brand) => (
-                  <SelectItem key={brand.slug} value={brand.slug}>
-                    {brand.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="new-category">Categoría</Label>
-            <Select
-              value={productForm.category}
-              onValueChange={(value) => setProductForm({ ...productForm, category: value })}
-            >
-              <SelectTrigger id="new-category" className="w-full">
-                <SelectValue placeholder="Seleccionar categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableCategories.map((category) => (
-                  <SelectItem key={category.slug} value={category.slug}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="new-price">Precio ($)</Label>
-            <Input
-              id="new-price"
-              type="number"
-              value={priceValue}
-              onFocus={(event) => event.target.select()}
-              onChange={(event) =>
-                setProductForm({ ...productForm, price: Number(event.target.value) })
-              }
-              placeholder="Precio"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="new-gastos">Gastos ($)</Label>
-            <Input
-              id="new-gastos"
-              type="number"
-              value={gastosValue}
-              onFocus={(event) => event.target.select()}
-              onChange={(event) =>
-                setProductForm({ ...productForm, gastos: Number(event.target.value) })
-              }
-              placeholder="Gastos"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="new-discount">Descuento (%)</Label>
-            <Input
-              id="new-discount"
-              type="number"
-              min={0}
-              max={100}
-              value={discountValue}
-              onFocus={(event) => event.target.select()}
-              onChange={(event) =>
-                setProductForm({ ...productForm, discount: Number(event.target.value) })
-              }
-              placeholder="Descuento (%)"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Ganancias</Label>
-            <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-foreground opacity-60">
-              {ganancias >= 0 ? formatPrice(ganancias) : `-${formatPrice(Math.abs(ganancias))}`}
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-border/60 bg-surface/40 p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                {isNewProduct ? "Alta" : "Edición"}
+              </span>
+              {productForm.id ? (
+                <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-primary">
+                  ID {productForm.id}
+                </span>
+              ) : null}
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="delivery-unit">Tiempo de entrega</Label>
-            <Select value={productForm.deliveryUnit} onValueChange={(value) => setProductForm({ ...productForm, deliveryUnit: value as DeliveryUnit })}>
-              <SelectTrigger id="delivery-unit" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="inmediata">Entrega inmediata</SelectItem>
-                <SelectItem value="horas">Horas</SelectItem>
-                <SelectItem value="dias">Días</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {!isImmediate && (
-            <div className="space-y-2">
-              <Label htmlFor="delivery-amount">Cantidad de entrega</Label>
-              <Input
-                id="delivery-amount"
-                type="number"
-                min={1}
-                value={deliveryAmountValue}
-                onFocus={(event) => event.target.select()}
-                onChange={(event) =>
-                  setProductForm({
-                    ...productForm,
-                    deliveryAmount: Number(event.target.value),
-                  })
-                }
-                placeholder="Cantidad"
-              />
-            </div>
-          )}
-          {!isImmediate && (
-            <div className="space-y-2">
-              <Label>Entrega</Label>
-              <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-foreground opacity-60">
-                {`${productForm.deliveryAmount} ${productForm.deliveryUnit}`}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="new-name">Nombre</Label>
+                <Input
+                  id="new-name"
+                  value={productForm.name}
+                  onChange={(event) => setProductForm({ ...productForm, name: event.target.value })}
+                  placeholder="Nombre del producto"
+                />
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="new-sector">Seleccionar sector</Label>
+                <Select
+                  value={productForm.brand}
+                  onValueChange={(value) => {
+                    const nextBrand = value as BrandSlug;
+                    const nextCategory = brands[nextBrand].categories[0]?.slug ?? "";
+
+                    setProductForm({
+                      ...productForm,
+                      brand: nextBrand,
+                      category: nextCategory,
+                    });
+                  }}
+                >
+                  <SelectTrigger id="new-sector" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brandList.map((brand) => (
+                      <SelectItem key={brand.slug} value={brand.slug}>
+                        {brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="new-category">Categoría</Label>
+                <Select
+                  value={productForm.category}
+                  onValueChange={(value) => setProductForm({ ...productForm, category: value })}
+                >
+                  <SelectTrigger id="new-category" className="w-full">
+                    <SelectValue placeholder="Seleccionar categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCategories.map((category) => (
+                      <SelectItem key={category.slug} value={category.slug}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {showUsdRateInput ? (
+                <div className="h-full space-y-2 sm:col-span-2">
+                  <Label htmlFor="usd-rate">Tipo de cambio USD</Label>
+                  <div className="rounded-xl border border-amber-500/35 bg-amber-500/5 p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="min-w-fit text-[10px] font-medium uppercase tracking-[0.2em] text-amber-600">
+                        1 USD =
+                      </span>
+                      <Input
+                        id="usd-rate"
+                        type="number"
+                        min={0}
+                        value={usdRate === 0 ? "" : String(usdRate)}
+                        placeholder="Ej: 1200"
+                        disabled
+                        className="h-9 cursor-not-allowed opacity-70"
+                      />
+                    </div>
+                    <p className="mt-2 text-[11px] text-muted-foreground">{conversionHint}</p>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="h-full space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="new-price">Precio</Label>
+                  <Select
+                    value={productForm.priceCurrency}
+                    onValueChange={(value) =>
+                      requestUsdRateForCurrency("priceCurrency", value as CurrencyCode)
+                    }
+                  >
+                    <SelectTrigger className="h-8 w-28">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ARS">$ (ARS)</SelectItem>
+                      <SelectItem value="USD">USD (Dólar)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Input
+                  id="new-price"
+                  type="number"
+                  value={priceValue}
+                  onFocus={(event) => event.target.select()}
+                  onChange={(event) =>
+                    setProductForm({ ...productForm, price: Number(event.target.value) })
+                  }
+                  placeholder="Precio"
+                />
+                {productForm.priceCurrency === "USD" ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    {conversionHint} · equivale a {formatPrice(precioEnLocal)}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="h-full space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="new-gastos">Gastos</Label>
+                  <Select
+                    value={productForm.gastosCurrency}
+                    onValueChange={(value) =>
+                      requestUsdRateForCurrency("gastosCurrency", value as CurrencyCode)
+                    }
+                  >
+                    <SelectTrigger className="h-8 w-28">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ARS">$ (ARS)</SelectItem>
+                      <SelectItem value="USD">USD (Dólar)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Input
+                  id="new-gastos"
+                  type="number"
+                  value={gastosValue}
+                  onFocus={(event) => event.target.select()}
+                  onChange={(event) =>
+                    setProductForm({ ...productForm, gastos: Number(event.target.value) })
+                  }
+                  placeholder="Gastos"
+                />
+                {productForm.gastosCurrency === "USD" ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    {conversionHint} · equivale a {formatPrice(gastosEnLocal)}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="h-full space-y-2">
+                <Label htmlFor="new-discount">Descuento (%)</Label>
+                <Input
+                  id="new-discount"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={discountValue}
+                  onFocus={(event) => event.target.select()}
+                  onChange={(event) =>
+                    setProductForm({ ...productForm, discount: Number(event.target.value) })
+                  }
+                  placeholder="Descuento (%)"
+                />
+              </div>
+
+              <div className="h-full space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Precio en la tienda</Label>
+                  <span className="rounded-md border border-input bg-muted/30 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                    {productForm.priceCurrency}
+                  </span>
+                </div>
+                <div className="flex h-9 items-center rounded-md border border-input bg-muted/20 px-3 text-sm text-foreground opacity-80">
+                  {formatLockedNumber(precioConDescuento)}
+                </div>
+              </div>
+
+              <div className="h-full space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Ganancias</Label>
+                  <span className="rounded-md border border-input bg-muted/30 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                    {productForm.priceCurrency}
+                  </span>
+                </div>
+                <div className="flex h-9 items-center rounded-md border border-input bg-muted/20 px-3 text-sm text-foreground opacity-80">
+                  {ganancias >= 0
+                    ? formatLockedNumber(ganancias)
+                    : `-${formatLockedNumber(Math.abs(ganancias))}`}
+                </div>
+              </div>
+
+              <div className="h-full space-y-2">
+                <Label htmlFor="delivery-unit">Tiempo de entrega</Label>
+                <Select
+                  value={productForm.deliveryUnit}
+                  onValueChange={(value) =>
+                    setProductForm({ ...productForm, deliveryUnit: value as DeliveryUnit })
+                  }
+                >
+                  <SelectTrigger id="delivery-unit" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="inmediata">Entrega inmediata</SelectItem>
+                    <SelectItem value="horas">Horas</SelectItem>
+                    <SelectItem value="dias">Días</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {!isImmediate && (
+                <div className="h-full space-y-2">
+                  <Label htmlFor="delivery-amount">Cantidad de entrega</Label>
+                  <Input
+                    id="delivery-amount"
+                    type="number"
+                    min={1}
+                    value={deliveryAmountValue}
+                    onFocus={(event) => event.target.select()}
+                    onChange={(event) =>
+                      setProductForm({
+                        ...productForm,
+                        deliveryAmount: Number(event.target.value),
+                      })
+                    }
+                    placeholder="Cantidad"
+                  />
+                </div>
+              )}
+
+              {!isImmediate && (
+                <div className="h-full space-y-2">
+                  <Label>Entrega</Label>
+                  <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-foreground opacity-60">
+                    {`${productForm.deliveryAmount} ${productForm.deliveryUnit}`}
+                  </div>
+                </div>
+              )}
+
+              <div className="h-full space-y-2">
+                <Label htmlFor="new-stock">Stock</Label>
+                <Input
+                  id="new-stock"
+                  type="number"
+                  value={stockValue}
+                  onFocus={(event) => event.target.select()}
+                  onChange={(event) =>
+                    setProductForm({ ...productForm, stock: Number(event.target.value) })
+                  }
+                  placeholder="Stock"
+                />
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="new-desc">Descripción</Label>
+                <Textarea
+                  id="new-desc"
+                  rows={3}
+                  value={productForm.description}
+                  onChange={(event) =>
+                    setProductForm({ ...productForm, description: event.target.value })
+                  }
+                  placeholder="Descripción del producto"
+                />
               </div>
             </div>
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="new-stock">Stock</Label>
-            <Input
-              id="new-stock"
-              type="number"
-              value={stockValue}
-              onFocus={(event) => event.target.select()}
-              onChange={(event) =>
-                setProductForm({ ...productForm, stock: Number(event.target.value) })
-              }
-              placeholder="Stock"
-            />
           </div>
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="new-desc">Descripción</Label>
-            <Textarea
-              id="new-desc"
-              rows={3}
-              value={productForm.description}
-              onChange={(event) =>
-                setProductForm({ ...productForm, description: event.target.value })
-              }
-              placeholder="Descripción del producto"
-            />
-          </div>
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="new-feature">Características</Label>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <Input
-                id="new-feature"
-                value={newFeature}
-                onChange={(event) => setNewFeature(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    handleAddFeature();
-                  }
-                }}
-                placeholder="Escribir nueva característica"
-              />
-              <Button type="button" onClick={handleAddFeature} className="whitespace-nowrap">
-                <Plus className="h-4 w-4" /> Agregar
-              </Button>
+
+          <div className="rounded-2xl border border-border/60 bg-surface/40 p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                Características
+              </span>
             </div>
-            {productForm.features.length > 0 && (
-              <div className="grid gap-2">
-                {productForm.features.map((feature, index) => (
-                  <div
-                    key={`${feature}-${index}`}
-                    className="flex flex-col gap-2 rounded-lg border border-input px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    {editingFeatureIndex === index ? (
-                      <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <Input
-                          value={inlineFeatureText}
-                          onChange={(event) => setInlineFeatureText(event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              handleSaveInlineEdit();
-                            }
-                          }}
-                          className="flex-1 min-w-0"
-                        />
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={
-                              inlineFeatureText.trim() === (productForm.features[editingFeatureIndex] ?? "") ||
-                              !inlineFeatureText.trim()
-                            }
-                            className="h-8 gap-2 px-3 text-sm text-green-600 hover:text-green-700 bg-transparent hover:bg-green-100/80"
-                            onClick={handleSaveInlineEdit}
-                            aria-label={`Guardar edición de característica ${index + 1}`}
-                          >
-                            <Check className="h-4 w-4" />
-                            <span>Guardar</span>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
-                            onClick={handleCancelInlineEdit}
-                            aria-label={`Cancelar edición de característica ${index + 1}`}
-                          >
-                            <X className="h-4 w-4" />
-                            <span>Cancelar</span>
-                          </Button>
+
+            <div className="space-y-2">
+              <Label htmlFor="new-feature">Características</Label>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <Input
+                  id="new-feature"
+                  value={newFeature}
+                  onChange={(event) => setNewFeature(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handleAddFeature();
+                    }
+                  }}
+                  placeholder="Escribir nueva característica"
+                />
+                <Button type="button" onClick={handleAddFeature} className="whitespace-nowrap">
+                  <Plus className="h-4 w-4" /> Agregar
+                </Button>
+              </div>
+
+              {productForm.features.length > 0 && (
+                <div className="grid gap-2">
+                  {productForm.features.map((feature, index) => (
+                    <div
+                      key={`${feature}-${index}`}
+                      className="flex flex-col gap-2 rounded-lg border border-input px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      {editingFeatureIndex === index ? (
+                        <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <Input
+                            value={inlineFeatureText}
+                            onChange={(event) => setInlineFeatureText(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                handleSaveInlineEdit();
+                              }
+                            }}
+                            className="flex-1 min-w-0"
+                          />
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              disabled={
+                                inlineFeatureText.trim() === (productForm.features[editingFeatureIndex] ?? "") ||
+                                !inlineFeatureText.trim()
+                              }
+                              className="h-8 gap-2 px-3 text-sm text-green-600 hover:text-green-700 bg-transparent hover:bg-green-100/80"
+                              onClick={handleSaveInlineEdit}
+                              aria-label={`Guardar edición de característica ${index + 1}`}
+                            >
+                              <Check className="h-4 w-4" />
+                              <span>Guardar</span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
+                              onClick={handleCancelInlineEdit}
+                              aria-label={`Cancelar edición de característica ${index + 1}`}
+                            >
+                              <X className="h-4 w-4" />
+                              <span>Cancelar</span>
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-1 items-center justify-between gap-2">
-                        <span className="truncate">{feature}</span>
+                      ) : (
+                        <div className="flex flex-1 items-center justify-between gap-2">
+                          <span className="truncate">{feature}</span>
                           <div className="flex items-center gap-2">
                             <Button
                               type="button"
@@ -1616,88 +2116,100 @@ function ProductEditDialog({
                               <span>Eliminar</span>
                             </Button>
                           </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="space-y-3 sm:col-span-2">
-            <Label htmlFor="new-image">Imágenes</Label>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="relative">
-                <Input
-                  id="new-image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleSelectImageFile}
-                  className="sr-only"
-                />
-                <label
-                  htmlFor="new-image"
-                  className="inline-flex cursor-pointer items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <Plus className="h-4 w-4 mr-2 text-primary-foreground" /> Agregar
-                </label>
-              </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            {productForm.images.length > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {productForm.images.map((image, index) => (
-                  <div key={image + index} className="rounded-2xl border border-input overflow-hidden">
-                    <div className="relative overflow-hidden bg-slate-950/5">
-                      <img
-                        src={image}
-                        alt={`Imagen ${index + 1}`}
-                        className="h-36 w-full object-cover"
-                      />
-                    </div>
-                    <div className="space-y-2 p-3 text-sm">
-                      <div className="flex items-center justify-between gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                        <span>{index === 0 ? "Imagen principal" : `Imagen ${index + 1}`}</span>
-                        <span className="rounded-full border border-input bg-muted px-2 py-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-                          {index === 0 ? "Principal" : "Secundaria"}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveImage(index)}
-                          disabled
-                        >
-                          Eliminar
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => moveImage(index, index - 1)}
-                          disabled
-                        >
-                          <ArrowUp className="size-4" />
-                          Arriba
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => moveImage(index, index + 1)}
-                          disabled
-                        >
-                          <ArrowDown className="size-4" />
-                          Abajo
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+          </div>
+
+          <div className="rounded-2xl border border-border/60 bg-surface/40 p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                Imágenes
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="new-image">Imágenes</Label>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="relative">
+                  <Input
+                    id="new-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleSelectImageFile}
+                    className="sr-only"
+                  />
+                  <label
+                    htmlFor="new-image"
+                    className="inline-flex cursor-pointer items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <Plus className="h-4 w-4 mr-2 text-primary-foreground" /> Agregar
+                  </label>
+                </div>
               </div>
-            ) : null}
+
+              {productForm.images.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {productForm.images.map((image, index) => (
+                    <div key={image + index} className="rounded-2xl border border-input overflow-hidden">
+                      <div className="relative overflow-hidden bg-slate-950/5">
+                        <img
+                          src={image}
+                          alt={`Imagen ${index + 1}`}
+                          className="h-36 w-full object-cover"
+                        />
+                      </div>
+                      <div className="space-y-2 p-3 text-sm">
+                        <div className="flex items-center justify-between gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                          <span>{index === 0 ? "Imagen principal" : `Imagen ${index + 1}`}</span>
+                          <span className="rounded-full border border-input bg-muted px-2 py-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                            {index === 0 ? "Principal" : "Secundaria"}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveImage(index)}
+                            disabled
+                          >
+                            Eliminar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => moveImage(index, index - 1)}
+                            disabled
+                          >
+                            <ArrowUp className="size-4" />
+                            Arriba
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => moveImage(index, index + 1)}
+                            disabled
+                          >
+                            <ArrowDown className="size-4" />
+                            Abajo
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
+
         <ConfirmDialog
           open={confirmDeleteFeatureOpen}
           onOpenChange={(open) => setConfirmDeleteFeatureOpen(open)}
@@ -1741,7 +2253,8 @@ function ProductEditDialog({
                 className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50"
                 style={{ boxShadow: "none" }}
               >
-                <Save className="h-4 w-4 mr-2" /> Guardar producto
+                <Save className="h-4 w-4 mr-2" />
+                {isNewProduct ? "Guardar producto" : "Guardar cambios"}
               </Button>
             </div>
           </div>

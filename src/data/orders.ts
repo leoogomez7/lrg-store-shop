@@ -4,6 +4,13 @@ const ORDERS_STORAGE_KEY = "lrg:orders";
 
 export type OrderStatus = "pendiente" | "pagado" | "enviado" | "entregado" | "cancelado";
 
+export type OrderAttachment = {
+  name: string;
+  type: string;
+  size: number;
+  dataUrl: string;
+};
+
 export type Order = {
   id: string;
   brand: BrandSlug;
@@ -22,6 +29,7 @@ export type Order = {
   deliveryDate?: string | undefined;
   shippingMethod?: "Por correo fisico" | "Por correo electronico" | "Por Whatsapp" | string | undefined;
   shippingNumber?: string | undefined;
+  attachments?: OrderAttachment[];
   items: { name: string; quantity: number; price: number }[];
 };
 

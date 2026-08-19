@@ -1,7 +1,8 @@
 ﻿import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUpDown, Check, Edit3, Filter, Lock, Pencil, Plus, Save, Search, Trash2, X, Eye, EyeOff } from "lucide-react";
+import { z } from "zod";
+import { ArrowUpDown, Check, ChevronDown, ChevronUp, Edit3, Filter, Lock, Paperclip, Pencil, Plus, Save, Search, Trash2, X, Eye, EyeOff, Download } from "lucide-react";
 import { Sheet, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -36,7 +39,7 @@ import { brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
 import { catalogQueries, orderQueries, type Product } from "@/services/catalog.service";
 import { cn } from "@/lib/utils";
-import { saveOrders, type Order, type OrderStatus } from "@/data/orders";
+import { saveOrders, type Order, type OrderAttachment, type OrderStatus } from "@/data/orders";
 
 // Export helpers (summary only — no `items` field)
 function buildExportRowsFromOrders(ordersList: Order[]) {
@@ -291,7 +294,9 @@ type OrderSort =
   | "date_desc"
   | "date_asc"
   | "total_desc"
-  | "total_asc";
+  | "total_asc"
+  | "profit_asc"
+  | "profit_desc";
 
 type DeliveryStatus = "Pendiente" | "Enviado";
 type PaymentStatus = "Pendiente" | "Pagado" | "Cancelado";
@@ -366,7 +371,10 @@ const mergeOrderStatus = (deliveryStatus: DeliveryStatus, paymentStatus: Payment
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
+const searchSchema = z.object({ pedido: z.string().optional() });
+
 export const Route = createFileRoute("/admin/pedidos")({
+  validateSearch: searchSchema,
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
   head: () => ({
     meta: [
@@ -386,23 +394,39 @@ export const Route = createFileRoute("/admin/pedidos")({
 });
 
 function AdminOrders() {
+  const search = Route.useSearch();
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const { data: allProducts } = useSuspenseQuery(catalogQueries.all());
   const [editableOrders, setEditableOrders] = useState<typeof orders>([]);
-  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryStatus | "todos">("todos");
-  const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | "todos">("todos");
-  const [shippingMethodFilter, setShippingMethodFilter] = useState<string | "todos">("todos");
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string | "todos">("todos");
-  const [brand, setBrand] = useState<BrandSlug | "todos">("todos");
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryStatus[]>([]);
+  const [paymentFilter, setPaymentFilter] = useState<PaymentStatus[]>([]);
+  const [shippingMethodFilter, setShippingMethodFilter] = useState<string[]>([]);
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string[]>([]);
+  const [brand, setBrand] = useState<BrandSlug[]>([]);
+  const [currencyFilter, setCurrencyFilter] = useState<Array<"ARS" | "USD">>([]);
+  const [priceMin, setPriceMin] = useState(0);
+  const [priceMax, setPriceMax] = useState(0);
+  const [quantityMin, setQuantityMin] = useState(0);
+  const [quantityMax, setQuantityMax] = useState(0);
   const [query, setQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState<OrderSort>("customer_asc");
+  const [sortOrder, setSortOrder] = useState<OrderSort>("date_desc");
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
+  const documentsInputRef = useRef<HTMLInputElement | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [deliveryFilterOpen, setDeliveryFilterOpen] = useState(false);
+  const [paymentFilterOpen, setPaymentFilterOpen] = useState(false);
+  const [shippingFilterOpen, setShippingFilterOpen] = useState(false);
+  const [paymentMethodFilterOpen, setPaymentMethodFilterOpen] = useState(false);
+  const [brandFilterOpen, setBrandFilterOpen] = useState(false);
+  const [priceFilterOpen, setPriceFilterOpen] = useState(false);
+  const [quantityFilterOpen, setQuantityFilterOpen] = useState(false);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
   const sortButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -499,6 +523,45 @@ function AdminOrders() {
     });
   };
 
+  const addDocuments = async (files: FileList | null) => {
+    if (!files || !documentsOrder) return;
+    const attachments = await Promise.all(
+      Array.from(files).map(
+        (file) =>
+          new Promise<OrderAttachment>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve({ name: file.name, type: file.type, size: file.size, dataUrl: String(reader.result) });
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          }),
+      ),
+    );
+    setEditableOrders((current) => {
+      const next = current.map((order) =>
+        order.id === documentsOrder.id
+          ? { ...order, attachments: [...(order.attachments ?? []), ...attachments] }
+          : order,
+      );
+      saveOrders(next);
+      setDocumentsOrder(next.find((order) => order.id === documentsOrder.id) ?? null);
+      return next;
+    });
+  };
+
+  const removeDocument = (attachmentName: string) => {
+    if (!documentsOrder) return;
+    setEditableOrders((current) => {
+      const next = current.map((order) =>
+        order.id === documentsOrder.id
+          ? { ...order, attachments: (order.attachments ?? []).filter((attachment) => attachment.name !== attachmentName) }
+          : order,
+      );
+      saveOrders(next);
+      setDocumentsOrder(next.find((order) => order.id === documentsOrder.id) ?? null);
+      return next;
+    });
+  };
+
   useEffect(() => {
     if (!quickEditOrderId) return;
 
@@ -562,6 +625,35 @@ function AdminOrders() {
     return options;
   }, [availableShippingMethods, orderForm?.shippingMethod]);
 
+  const getOrderCurrencies = (order: Order) =>
+    new Set(
+      order.items.map(
+        (item) => allProducts.find((product) => product.name === item.name)?.priceCurrency ?? "ARS",
+      ),
+    );
+
+  const priceLimit = useMemo(() => {
+    const values = editableOrders
+      .filter((order) => !currencyFilter.length || [...getOrderCurrencies(order)].some((currency) => currencyFilter.includes(currency as "ARS" | "USD")))
+      .map((order) => order.total);
+    return Math.max(1, Math.ceil(Math.max(0, ...values) / 50) * 50);
+  }, [editableOrders, allProducts, currencyFilter]);
+
+  const quantityLimit = useMemo(
+    () => Math.max(1, ...editableOrders.map((order) => order.items.reduce((sum, item) => sum + item.quantity, 0))),
+    [editableOrders],
+  );
+
+  useEffect(() => {
+    setPriceMin(0);
+    setPriceMax(priceLimit);
+  }, [currencyFilter, priceLimit]);
+
+  useEffect(() => {
+    setQuantityMin(0);
+    setQuantityMax(quantityLimit);
+  }, [quantityLimit]);
+
   const results = useMemo(() => {
     const filtered = editableOrders.filter((order) => {
       const orderDeliveryStatus =
@@ -570,18 +662,23 @@ function AdminOrders() {
       const orderPaymentStatus =
         (order as Order & { paymentStatus?: PaymentStatus }).paymentStatus ??
         getPaymentStatus(order.status);
-      const deliveryMatches = deliveryFilter === "todos" || orderDeliveryStatus === deliveryFilter;
-      const paymentMatches = paymentFilter === "todos" || orderPaymentStatus === paymentFilter;
-      const brandMatches = brand === "todos" || order.brand === brand;
-      const shippingMatches = shippingMethodFilter === "todos" || (order.shippingMethod ?? "") === shippingMethodFilter;
-      const paymentMethodMatches = paymentMethodFilter === "todos" || (order.paymentMethod ?? "") === paymentMethodFilter;
+      const deliveryMatches = !deliveryFilter.length || deliveryFilter.includes(orderDeliveryStatus);
+      const paymentMatches = !paymentFilter.length || paymentFilter.includes(orderPaymentStatus);
+      const brandMatches = !brand.length || brand.includes(order.brand);
+      const shippingMatches = !shippingMethodFilter.length || shippingMethodFilter.includes(order.shippingMethod ?? "");
+      const paymentMethodMatches = !paymentMethodFilter.length || paymentMethodFilter.includes(order.paymentMethod ?? "");
+      const currencyMatches =
+        !currencyFilter.length || [...getOrderCurrencies(order)].some((currency) => currencyFilter.includes(currency as "ARS" | "USD"));
+      const quantity = order.items.reduce((sum, item) => sum + item.quantity, 0);
+      const priceMatches = order.total >= priceMin && order.total <= priceMax;
+      const quantityMatches = quantity >= quantityMin && quantity <= quantityMax;
       const queryMatches =
         !query ||
         order.id.toLowerCase().includes(query.toLowerCase()) ||
         order.customer.toLowerCase().includes(query.toLowerCase()) ||
         order.email.toLowerCase().includes(query.toLowerCase());
 
-      return deliveryMatches && paymentMatches && brandMatches && queryMatches && shippingMatches && paymentMethodMatches;
+      return deliveryMatches && paymentMatches && brandMatches && queryMatches && shippingMatches && paymentMethodMatches && currencyMatches && priceMatches && quantityMatches;
     });
 
     return [...filtered].sort((a, b) => {
@@ -598,11 +695,15 @@ function AdminOrders() {
           return b.total - a.total;
         case "total_asc":
           return a.total - b.total;
+        case "profit_asc":
+          return a.profit - b.profit;
+        case "profit_desc":
+          return b.profit - a.profit;
         default:
           return 0;
       }
     });
-  }, [editableOrders, deliveryFilter, paymentFilter, shippingMethodFilter, paymentMethodFilter, brand, query, sortOrder]);
+  }, [editableOrders, deliveryFilter, paymentFilter, shippingMethodFilter, paymentMethodFilter, brand, currencyFilter, priceMin, priceMax, quantityMin, quantityMax, query, sortOrder, allProducts]);
 
   useEffect(() => {
     setPage(0);
@@ -616,9 +717,134 @@ function AdminOrders() {
     if (!pageSize || pageSize <= 0) return [] as typeof results;
     return results.slice(page * pageSize, page * pageSize + pageSize);
   }, [results, page, pageSize]);
+
+  useEffect(() => {
+    if (!search.pedido || !pageSize || pageSize <= 0) return;
+    const orderIndex = results.findIndex((order) => order.id === search.pedido);
+    if (orderIndex < 0) return;
+
+    setPage(Math.floor(orderIndex / pageSize));
+  }, [search.pedido, results, pageSize]);
+
+  useEffect(() => {
+    if (!search.pedido || !visibleResults.some((order) => order.id === search.pedido)) return;
+
+    setHighlightedOrderId(search.pedido);
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`pedido-${search.pedido}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+    const timeout = window.setTimeout(() => setHighlightedOrderId(null), 2600);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timeout);
+    };
+  }, [search.pedido, visibleResults]);
   const totalPages = pageSize && pageSize > 0 ? Math.max(1, Math.ceil(results.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
+  const activeFilterCount =
+    deliveryFilter.length +
+    paymentFilter.length +
+    shippingMethodFilter.length +
+    paymentMethodFilter.length +
+    brand.length +
+    currencyFilter.length +
+    (priceMin > 0 ? 1 : 0) +
+    (priceMax < priceLimit ? 1 : 0) +
+    (quantityMin > 0 ? 1 : 0) +
+    (quantityMax < quantityLimit ? 1 : 0);
+
+  const resetFilters = () => {
+    setDeliveryFilter([]);
+    setPaymentFilter([]);
+    setShippingMethodFilter([]);
+    setPaymentMethodFilter([]);
+    setBrand([]);
+    setCurrencyFilter([]);
+    setPriceMin(0);
+    setPriceMax(priceLimit);
+    setQuantityMin(0);
+    setQuantityMax(quantityLimit);
+  };
+  const priceCurrencyLabel =
+    currencyFilter.includes("ARS") && currencyFilter.includes("USD")
+      ? "$/USD"
+      : currencyFilter.includes("USD")
+        ? "USD"
+        : "$";
+  const filterSections: Array<{
+    label: string;
+    open: boolean;
+    setOpen: (value: (current: boolean) => boolean) => void;
+    selected: string[];
+    setSelected: (value: string, checked: boolean) => void;
+    options: Array<{ value: string; label: string }>;
+  }> = [
+    {
+      label: "Tiendas",
+      open: brandFilterOpen,
+      setOpen: setBrandFilterOpen,
+      selected: brand,
+      setSelected: (value, checked) =>
+        setBrand((current) =>
+          checked
+            ? [...current, value as BrandSlug]
+            : current.filter((selectedValue) => selectedValue !== value),
+        ),
+      options: brandsFilter.filter((item) => item !== "todos").map((item) => ({ value: item, label: brands[item].name })),
+    },
+    {
+      label: "Estado de entrega",
+      open: deliveryFilterOpen,
+      setOpen: setDeliveryFilterOpen,
+      selected: deliveryFilter,
+      setSelected: (value, checked) =>
+        setDeliveryFilter((current) =>
+          checked
+            ? [...current, value as DeliveryStatus]
+            : current.filter((selectedValue) => selectedValue !== value),
+        ),
+      options: (["Pendiente", "Enviado"] as DeliveryStatus[]).map((item) => ({ value: item, label: item })),
+    },
+    {
+      label: "Estado de pago",
+      open: paymentFilterOpen,
+      setOpen: setPaymentFilterOpen,
+      selected: paymentFilter,
+      setSelected: (value, checked) =>
+        setPaymentFilter((current) =>
+          checked
+            ? [...current, value as PaymentStatus]
+            : current.filter((selectedValue) => selectedValue !== value),
+        ),
+      options: (["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((item) => ({ value: item, label: item })),
+    },
+    {
+      label: "Métodos de envío",
+      open: shippingFilterOpen,
+      setOpen: setShippingFilterOpen,
+      selected: shippingMethodFilter,
+      setSelected: (value, checked) =>
+        setShippingMethodFilter((current) =>
+          checked ? [...current, value] : current.filter((selectedValue) => selectedValue !== value),
+        ),
+      options: availableShippingMethods.map((item) => ({ value: item, label: item })),
+    },
+    {
+      label: "Métodos de pago",
+      open: paymentMethodFilterOpen,
+      setOpen: setPaymentMethodFilterOpen,
+      selected: paymentMethodFilter,
+      setSelected: (value, checked) =>
+        setPaymentMethodFilter((current) =>
+          checked ? [...current, value] : current.filter((selectedValue) => selectedValue !== value),
+        ),
+      options: availablePaymentMethods.map((item) => ({ value: item, label: item })),
+    },
+  ];
 
   const openEditOrderDialog = (order: Order) => {
     const expenseRatio = order.total ? order.expenses / order.total : 0.65;
@@ -867,12 +1093,14 @@ function AdminOrders() {
                 <div className="rounded-xl border border-border/60 bg-background/95 p-2 shadow-lg backdrop-blur-sm">
                   {(
                     [
-                      ["customer_asc", "Cliente A-Z"],
-                      ["customer_desc", "Cliente Z-A"],
-                      ["date_desc", "Fecha: más recientes"],
-                      ["date_asc", "Fecha: más antiguas"],
-                      ["total_asc", "Total: menor a mayor"],
-                      ["total_desc", "Total: mayor a menor"],
+                      ["customer_asc", "Cliente: A-Z"],
+                      ["customer_desc", "Cliente: Z-A"],
+                      ["date_desc", "Fecha de venta: más recientes"],
+                      ["date_asc", "Fecha de venta: más antiguas"],
+                      ["total_asc", "Precio total: menor a mayor"],
+                      ["total_desc", "Precio total: mayor a menor"],
+                      ["profit_asc", "Ganancias: menor a mayor"],
+                      ["profit_desc", "Ganancias: mayor a menor"],
                     ] as [OrderSort, string][]
                   ).map(([value, label]) => (
                     <button
@@ -967,81 +1195,99 @@ function AdminOrders() {
       />
 
       {filtersOpen ? (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            <Select value={deliveryFilter} onValueChange={(value) => setDeliveryFilter(value as DeliveryStatus | "todos")}> 
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Estados de entrega</SelectItem>
-                {(["Pendiente", "Enviado"] as DeliveryStatus[]).map((item) => (
-                  <SelectItem key={item} value={item}>
-                    {item}
-                  </SelectItem>
+        <div className="glass-panel mt-4 space-y-6 rounded-2xl p-5">
+          {filterSections.map(({ label, open, setOpen, selected, setSelected, options }) => (
+            <div key={label} className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setOpen((current) => !current)}
+                className="flex items-center gap-2 text-sm font-medium"
+                aria-expanded={open}
+              >
+                <span>{label}</span>
+                {selected.length > 0 && <Badge variant="secondary">{selected.length}</Badge>}
+                {open ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+              </button>
+              {open && (
+                <div className="space-y-2.5">
+                  {options.map((option) => (
+                    <label key={option.value} className="flex cursor-pointer items-start gap-3 text-sm">
+                      <Checkbox
+                        checked={selected.includes(option.value)}
+                        onCheckedChange={(checked) => setSelected(option.value, checked === true)}
+                      />
+                      <span className="font-medium">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setPriceFilterOpen((current) => !current)}
+              className="flex items-center gap-2 text-sm font-medium"
+              aria-expanded={priceFilterOpen}
+            >
+              <span>Precio total</span>
+              {currencyFilter.length > 0 && <Badge variant="secondary">{currencyFilter.length}</Badge>}
+              {priceFilterOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+            </button>
+            {priceFilterOpen && (
+              <div className="space-y-2.5">
+                {(["ARS", "USD"] as const).map((currency) => (
+                  <label key={currency} className="flex cursor-pointer items-start gap-3 text-sm">
+                    <Checkbox
+                      checked={currencyFilter.includes(currency)}
+                      onCheckedChange={(checked) =>
+                        setCurrencyFilter((current) =>
+                          checked ? [...current, currency] : current.filter((value) => value !== currency),
+                        )
+                      }
+                    />
+                    <span className="font-medium">{currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}</span>
+                  </label>
                 ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={paymentFilter} onValueChange={(value) => setPaymentFilter(value as PaymentStatus | "todos")}> 
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Estados de pago</SelectItem>
-                {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((item) => (
-                  <SelectItem key={item} value={item}>
-                    {item}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={shippingMethodFilter} onValueChange={(value) => setShippingMethodFilter(value as string | "todos")}> 
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Métodos de envío</SelectItem>
-                {availableShippingMethods.length === 0 ? (
-                  <SelectItem value="">No hay métodos configurados</SelectItem>
-                ) : (
-                  availableShippingMethods.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-
-            <Select value={paymentMethodFilter} onValueChange={(value) => setPaymentMethodFilter(value as string | "todos")}> 
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Métodos de pago</SelectItem>
-                {availablePaymentMethods.length === 0 ? (
-                  <SelectItem value="">No hay métodos configurados</SelectItem>
-                ) : (
-                  availablePaymentMethods.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-
-            <Select value={brand} onValueChange={(value) => setBrand(value as BrandSlug | "todos")}> 
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {brandsFilter.map((item) => (
-                  <SelectItem key={item} value={item}>
-                    {item === "todos" ? "Tiendas" : brands[item].name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
+                  <label className="flex shrink-0 items-center gap-2">
+                    <span>Desde {priceCurrencyLabel}</span>
+                    <Input type="number" min={0} max={priceLimit} value={priceMin} onChange={(event) => setPriceMin(Math.min(Math.max(0, Number(event.target.value) || 0), priceMax))} className="h-8 w-20 px-2 sm:w-24" />
+                  </label>
+                  <label className="flex shrink-0 items-center justify-end gap-2">
+                    <span>Hasta {priceCurrencyLabel}</span>
+                    <Input type="number" min={0} max={priceLimit} value={priceMax} onChange={(event) => setPriceMax(Math.max(Math.min(priceLimit, Number(event.target.value) || 0), priceMin))} className="h-8 w-20 px-2 sm:w-24" />
+                  </label>
+                </div>
+                <Slider min={0} max={priceLimit} step={Math.max(1, Math.round(priceLimit / 100))} value={[priceMin, priceMax]} onValueChange={(value) => { const nextMin = value[0] ?? 0; const nextMax = value[1] ?? priceLimit; setPriceMin(Math.min(nextMin, nextMax)); setPriceMax(Math.max(nextMin, nextMax)); }} />
+              </div>
+            )}
           </div>
-        ) : null}
+
+          <div className="space-y-3">
+            <button type="button" onClick={() => setQuantityFilterOpen((current) => !current)} className="flex items-center gap-2 text-sm font-medium" aria-expanded={quantityFilterOpen}>
+              <span>Cantidad</span>
+              {(quantityMin > 0 || quantityMax < quantityLimit) && <Badge variant="secondary">1</Badge>}
+              {quantityFilterOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+            </button>
+            {quantityFilterOpen && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
+                  <label className="flex shrink-0 items-center gap-2"><span>Desde</span><Input type="number" min={0} max={quantityLimit} value={quantityMin} onChange={(event) => setQuantityMin(Math.min(Math.max(0, Number(event.target.value) || 0), quantityMax))} className="h-8 w-20 px-2 sm:w-24" /></label>
+                  <label className="flex shrink-0 items-center justify-end gap-2"><span>Hasta</span><Input type="number" min={0} max={quantityLimit} value={quantityMax} onChange={(event) => setQuantityMax(Math.max(Math.min(quantityLimit, Number(event.target.value) || 0), quantityMin))} className="h-8 w-20 px-2 sm:w-24" /></label>
+                </div>
+                <Slider min={0} max={quantityLimit} step={1} value={[quantityMin, quantityMax]} onValueChange={(value) => { const nextMin = value[0] ?? 0; const nextMax = value[1] ?? quantityLimit; setQuantityMin(Math.min(nextMin, nextMax)); setQuantityMax(Math.max(nextMin, nextMax)); }} />
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-2 pt-0">
+            <p className="text-xs text-muted-foreground">{results.length} pedidos encontrados</p>
+            {activeFilterCount > 0 && <Button variant="ghost" size="sm" onClick={resetFilters} className="ml-auto flex h-8 px-2 text-xs"><X className="mr-1 size-3.5" /> Limpiar</Button>}
+          </div>
+        </div>
+      ) : null}
 
       {sortMenuOpen ? (
         <div className="mt-4 w-full max-w-[320px]">
@@ -1062,28 +1308,27 @@ function AdminOrders() {
               <SelectItem value="date_asc">Fecha compra más antigua</SelectItem>
               <SelectItem value="total_desc">Precio mayor a menor</SelectItem>
               <SelectItem value="total_asc">Precio menor a mayor</SelectItem>
+              <SelectItem value="profit_asc">Ganancias: menor a mayor</SelectItem>
+              <SelectItem value="profit_desc">Ganancias: mayor a menor</SelectItem>
             </SelectContent>
           </Select>
         </div>
       ) : null}
 
       <div className="glass-panel mt-8 overflow-x-auto rounded-2xl">
-        <Table className="text-center">
+        <Table className="w-full table-fixed text-center [&_td]:align-middle [&_th]:align-middle">
           <TableHeader>
             <TableRow>
-              <TableHead>Pedido</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Sector</TableHead>
-              <TableHead>Fecha de venta</TableHead>
-              <TableHead>Entrega del producto</TableHead>
-              <TableHead>Método de envío</TableHead>
-              <TableHead>Pago del producto</TableHead>
-              <TableHead>Método de pago</TableHead>
-              <TableHead>Fecha de entrega</TableHead>
-              <TableHead>Gastos</TableHead>
-              <TableHead>Precio en venta</TableHead>
-              <TableHead>Ganancias</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className="w-16">Pedido</TableHead>
+              <TableHead className="w-24">Fecha de venta</TableHead>
+              <TableHead className="w-24">Estado de pago</TableHead>
+              <TableHead className="w-28">Número de envío</TableHead>
+              <TableHead className="w-28">Estado de envío</TableHead>
+              <TableHead className="w-24">Fecha de envío</TableHead>
+              <TableHead className="w-20">Gastos</TableHead>
+              <TableHead className="w-24">Precio total</TableHead>
+              <TableHead className="w-20">Ganancias</TableHead>
+              <TableHead className="w-56">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1113,98 +1358,13 @@ function AdminOrders() {
 
               return (
                 <Fragment key={order.id}>
-                  <TableRow ref={isQuickEditing ? quickEditRowRef : undefined}>
+                  <TableRow
+                    id={`pedido-${order.id}`}
+                    ref={isQuickEditing ? quickEditRowRef : undefined}
+                    className={highlightedOrderId === order.id ? "animate-pulse bg-amber-500/20 ring-2 ring-amber-400" : undefined}
+                  >
                     <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>
-                      <span className="block">{displayCustomer}</span>
-                    </TableCell>
-                    <TableCell>{brands[order.brand].shortName}</TableCell>
                     <TableCell>{formatDate(order.date)}</TableCell>
-                    <TableCell>
-                      {isQuickEditing ? (
-                        <Select
-                          value={quickDraft.deliveryStatus}
-                          onValueChange={(value) =>
-                            setQuickEditOrderForm((current) => ({
-                              ...current,
-                              [order.id]: {
-                                ...quickDraft,
-                                deliveryStatus: value as DeliveryStatus,
-                              },
-                            }))
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(["Pendiente", "Enviado"] as DeliveryStatus[]).map((statusOption) => (
-                              <SelectItem key={statusOption} value={statusOption}>
-                                {statusOption}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge className="capitalize" variant={deliveryVariant[displayDeliveryStatus]}>
-                          {displayDeliveryStatus}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {isQuickEditing ? (
-                        <div className="space-y-2">
-                          <Select
-                            value={quickDraft.shippingMethod}
-                            onValueChange={(value) =>
-                              setQuickEditOrderForm((current) => ({
-                                ...current,
-                                [order.id]: {
-                                  ...quickDraft,
-                                  shippingMethod: value,
-                                },
-                              }))
-                            }
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Método de envío" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="">Sin selección</SelectItem>
-                              {quickEditShippingMethodOptions.map((method) => (
-                                <SelectItem key={method} value={method}>
-                                  {method}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            value={quickDraft.shippingNumber}
-                            onChange={(event) =>
-                              setQuickEditOrderForm((current) => ({
-                                ...current,
-                                [order.id]: {
-                                  ...quickDraft,
-                                  shippingNumber: event.target.value,
-                                },
-                              }))
-                            }
-                            placeholder={
-                              isShippingCodeRequiredForBrand(order.brand, quickDraft.shippingMethod)
-                                ? "Número de envío"
-                                : "Este método no requiere código"
-                            }
-                            className="w-full"
-                            disabled={!isShippingCodeRequiredForBrand(order.brand, quickDraft.shippingMethod)}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3">
-                          <span>{order.shippingMethod ?? "—"}</span>
-                          <span className="text-sm text-muted-foreground">{order.shippingNumber ?? "—"}</span>
-                        </div>
-                      )}
-                    </TableCell>
                     <TableCell>
                       {isQuickEditing ? (
                         <Select
@@ -1238,32 +1398,52 @@ function AdminOrders() {
                     </TableCell>
                     <TableCell>
                       {isQuickEditing ? (
-                        <Select
-                          value={quickDraft.paymentMethod}
-                          onValueChange={(value) =>
+                        <Input
+                          value={quickDraft.shippingNumber}
+                          onChange={(event) =>
                             setQuickEditOrderForm((current) => ({
                               ...current,
                               [order.id]: {
                                 ...quickDraft,
-                                paymentMethod: value,
+                                shippingNumber: event.target.value,
                               },
                             }))
                           }
+                          placeholder="Número de envío"
+                          className="w-full"
+                        />
+                      ) : (
+                        <Input
+                          value={order.shippingNumber ?? ""}
+                          placeholder="-"
+                          disabled={!order.shippingNumber}
+                          readOnly
+                          className="w-full text-center"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {isQuickEditing ? (
+                        <Select
+                          value={quickDraft.deliveryStatus}
+                          onValueChange={(value) =>
+                            setQuickEditOrderForm((current) => ({
+                              ...current,
+                              [order.id]: { ...quickDraft, deliveryStatus: value as DeliveryStatus },
+                            }))
+                          }
                         >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Método de pago" />
-                          </SelectTrigger>
+                          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Sin selección</SelectItem>
-                            {quickEditPaymentMethodOptions.map((method) => (
-                              <SelectItem key={method} value={method}>
-                                {method}
-                              </SelectItem>
+                            {(["Pendiente", "Enviado"] as DeliveryStatus[]).map((statusOption) => (
+                              <SelectItem key={statusOption} value={statusOption}>{statusOption}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       ) : (
-                        order.paymentMethod
+                        <Badge className="capitalize" variant={deliveryVariant[displayDeliveryStatus]}>
+                          {displayDeliveryStatus}
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>
@@ -1292,7 +1472,7 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.total)}</TableCell>
                     <TableCell>{formatPrice(order.profit)}</TableCell>
                     <TableCell>
-                      <div className="flex flex-nowrap items-center justify-start gap-2">
+                      <div className="flex flex-wrap items-center justify-center gap-1.5">
                         {isQuickEditing ? (
                           <>
                             <Button
@@ -1320,29 +1500,38 @@ function AdminOrders() {
                               variant="ghost"
                               size="sm"
                               onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                              title={isExpanded ? "Ocultar detalles" : "Ver detalles"}
-                              className="h-8 flex-none gap-2 bg-transparent px-3 text-xs font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
+                              title={isExpanded ? "Ocultar detalles" : "Mostrar detalles"}
+                              className="h-8 flex-none gap-1.5 bg-transparent px-2 text-xs font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
                             >
                               {isExpanded ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                              {isExpanded ? "Ocultar" : "Ver detalles"}
+                              <span className="hidden sm:inline">{isExpanded ? "Ocultar" : "Mostrar"}</span>
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => startQuickEditOrder(order)}
-                              className="h-8 flex-none gap-2 px-3 text-xs"
+                              className="h-8 flex-none gap-1.5 px-2 text-xs"
                             >
                               <Edit3 className="size-4" />
-                              Editar rápido
+                              <span className="hidden sm:inline">Editar rápido</span>
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => openEditOrderDialog(order)}
-                              className="h-8 flex-none gap-2 px-3 text-xs"
+                              className="h-8 flex-none gap-1.5 px-2 text-xs"
                             >
                               <Pencil className="size-4" />
-                              Editar
+                              <span className="hidden sm:inline">Editar</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDocumentsOrder(order)}
+                              className="h-8 flex-none gap-1.5 px-2 text-xs"
+                            >
+                              <Paperclip className="size-4" />
+                              <span className="hidden sm:inline">Documentos</span>
                             </Button>
                             <Button
                               variant="ghost"
@@ -1358,10 +1547,10 @@ function AdminOrders() {
                                     ),
                                 })
                               }
-                              className="h-8 flex-none gap-2 px-3 text-xs text-destructive hover:bg-destructive/10"
+                              className="h-8 flex-none gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10"
                             >
                               <Trash2 className="size-4" />
-                              Eliminar
+                              <span className="hidden sm:inline">Eliminar</span>
                             </Button>
                           </>
                         )}
@@ -1371,11 +1560,19 @@ function AdminOrders() {
 
                   {isExpanded && (
                     <TableRow key={`${order.id}-details`}>
-                      <TableCell colSpan={13} className="bg-surface-2/70 p-5">
+                      <TableCell colSpan={10} className="bg-surface-2/70 p-5">
                         <div className="space-y-3 text-sm">
                           <p className="font-medium">Detalle del pedido</p>
 
                           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">Cliente:</span>
+                              <span>{displayCustomer}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">Sector:</span>
+                              <span>{brands[order.brand].shortName}</span>
+                            </div>
                             <div className="flex items-center gap-2">
                               <span className="text-muted-foreground">Correo:</span>
                               <span>{order.email}</span>
@@ -1389,23 +1586,8 @@ function AdminOrders() {
                               <span>{order.paymentMethod}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">Envío:</span>
-                              <span>{displayDeliveryStatus === "Enviado" ? "Sí" : "No"}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">Número:</span>
-                              <input
-                                type="text"
-                                readOnly
-                                value={order.shippingNumber ?? ""}
-                                placeholder="Aún no ingresado"
-                                className={cn(
-                                  "w-full rounded-lg border px-3 py-2 text-sm text-foreground bg-background",
-                                  displayDeliveryStatus !== "Enviado"
-                                    ? "border-border bg-muted/10 text-muted-foreground"
-                                    : "border-border bg-surface",
-                                )}
-                              />
+                              <span className="text-muted-foreground">Método de envío:</span>
+                              <span>{order.shippingMethod ?? "—"}</span>
                             </div>
                           </div>
 
@@ -1436,7 +1618,7 @@ function AdminOrders() {
             })}
             {results.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={13} className="py-16 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={10} className="py-16 text-center text-sm text-muted-foreground">
                   No se encontraron pedidos.
                 </TableCell>
               </TableRow>
@@ -1450,7 +1632,7 @@ function AdminOrders() {
           {visibleResults.length} de {results.length} pedidos mostrados
         </p>
         <div className="flex items-center gap-3">
-          <div className="text-sm text-muted-foreground">Mostrar</div>
+          <div className="text-sm text-muted-foreground">Detalles</div>
           <Input
             type="number"
             min={1}
@@ -1551,63 +1733,22 @@ function AdminOrders() {
                   <Select
                     value={orderForm.paymentMethod}
                     onValueChange={(value) => {
-                      if (!orderForm) return;
                       const nextInstruction = getPaymentInstruction(orderForm.paymentMethod, value);
-                      setOrderForm({
-                        ...orderForm,
-                        paymentMethod: value,
-                      });
+                      setOrderForm({ ...orderForm, paymentMethod: value });
                       setPaymentInstruction(nextInstruction);
                     }}
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar método" />
-                    </SelectTrigger>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Seleccionar método" /></SelectTrigger>
                     <SelectContent>
-                      {paymentMethodOptions.length === 0 ? (
-                        <SelectItem value="">No hay métodos configurados</SelectItem>
-                      ) : (
-                        paymentMethodOptions.map((method) => (
-                          <SelectItem key={method} value={method}>
-                            {method}
-                          </SelectItem>
-                        ))
-                      )}
+                      {paymentMethodOptions.map((method) => <SelectItem key={method} value={method}>{method}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Entrega del producto</Label>
-                  <Select
-                    value={orderForm.deliveryStatus}
-                    onValueChange={(value) => {
-                      if (!orderForm) return;
-                      const nextDeliveryStatus = value as DeliveryStatus;
-                      setOrderForm({
-                        ...orderForm,
-                        deliveryStatus: nextDeliveryStatus,
-                        status: mergeOrderStatus(nextDeliveryStatus, orderForm.paymentStatus),
-                      });
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar entrega" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(["Pendiente", "Enviado"] as DeliveryStatus[]).map((deliveryStatusOption) => (
-                        <SelectItem key={deliveryStatusOption} value={deliveryStatusOption}>
-                          {deliveryStatusOption}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Pago del producto</Label>
+                  <Label>Estado de pago</Label>
                   <Select
                     value={orderForm.paymentStatus}
                     onValueChange={(value) => {
-                      if (!orderForm) return;
                       const nextPaymentStatus = value as PaymentStatus;
                       setOrderForm({
                         ...orderForm,
@@ -1616,42 +1757,58 @@ function AdminOrders() {
                       });
                     }}
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar pago" />
-                    </SelectTrigger>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Seleccionar pago" /></SelectTrigger>
                     <SelectContent>
-                      {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((paymentStatusOption) => (
-                        <SelectItem key={paymentStatusOption} value={paymentStatusOption}>
-                          {paymentStatusOption}
-                        </SelectItem>
+                      {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((status) => (
+                        <SelectItem key={status} value={status}>{status}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
+                  <Label>Estado de envío</Label>
+                  <Select
+                    value={orderForm.deliveryStatus}
+                    onValueChange={(value) => {
+                      const nextDeliveryStatus = value as DeliveryStatus;
+                      setOrderForm({
+                        ...orderForm,
+                        deliveryStatus: nextDeliveryStatus,
+                        status: mergeOrderStatus(nextDeliveryStatus, orderForm.paymentStatus),
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Seleccionar entrega" /></SelectTrigger>
+                    <SelectContent>
+                      {(["Pendiente", "Enviado"] as DeliveryStatus[]).map((status) => (
+                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
                   <Label>Método de envío</Label>
                   <Select
                     value={orderForm.shippingMethod}
-                    onValueChange={(value) => {
-                      if (!orderForm) return;
-                      setOrderForm({ ...orderForm, shippingMethod: value });
-                    }}
+                    onValueChange={(value) => setOrderForm({ ...orderForm, shippingMethod: value })}
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar método" />
-                    </SelectTrigger>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Seleccionar método" /></SelectTrigger>
                     <SelectContent>
-                      {shippingMethodOptions.length === 0 ? (
-                        <SelectItem value="">No hay métodos configurados</SelectItem>
-                      ) : (
-                        shippingMethodOptions.map((method) => (
-                          <SelectItem key={method} value={method}>
-                            {method}
-                          </SelectItem>
-                        ))
-                      )}
+                      {shippingMethodOptions.map((method) => <SelectItem key={method} value={method}>{method}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label>Número de envío</Label>
+                  <Input
+                    value={orderForm.shippingNumber ?? ""}
+                    onChange={(event) => setOrderForm({ ...orderForm, shippingNumber: event.target.value })}
+                    disabled={!isShippingCodeRequiredForBrand(orderForm.brand, orderForm.shippingMethod)}
+                    placeholder={isShippingCodeRequiredForBrand(orderForm.brand, orderForm.shippingMethod) ? "Número de envío" : "Este método de envío no requiere código"}
+                  />
                 </div>
                 <div>
                   <Label>Fecha de entrega</Label>
@@ -1663,21 +1820,6 @@ function AdminOrders() {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label>Número de envío</Label>
-                  <Input
-                    value={orderForm.shippingNumber ?? ""}
-                    onChange={(event) => setOrderForm({ ...orderForm, shippingNumber: event.target.value })}
-                    disabled={!isShippingCodeRequiredForBrand(orderForm.brand, orderForm.shippingMethod)}
-                    placeholder={
-                      isShippingCodeRequiredForBrand(orderForm.brand, orderForm.shippingMethod)
-                        ? "Número de envío"
-                        : "Este método no requiere código"
-                    }
-                  />
-                </div>
-              </div>
 
               <div>
                 <Label>Observaciones</Label>
@@ -1839,6 +1981,47 @@ function AdminOrders() {
               </Button>
             </div>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={documentsOrder !== null} onOpenChange={(open) => !open && setDocumentsOrder(null)}>
+        <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Documentos del pedido</DialogTitle>
+            <DialogDescription>{documentsOrder?.id}</DialogDescription>
+          </DialogHeader>
+          <input
+            ref={documentsInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={async (event) => {
+              await addDocuments(event.target.files);
+              event.target.value = "";
+            }}
+          />
+          <Button type="button" onClick={() => documentsInputRef.current?.click()}>
+            <Paperclip className="size-4" /> Adjuntar archivos
+          </Button>
+          <div className="space-y-2">
+            {(documentsOrder?.attachments ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay documentos adjuntos.</p>
+            ) : (
+              documentsOrder?.attachments?.map((attachment) => (
+                <div key={`${attachment.name}-${attachment.size}`} className="flex items-center justify-between gap-3 rounded-lg border p-2 text-sm">
+                  <span className="min-w-0 truncate">{attachment.name}</span>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <a href={attachment.dataUrl} download={attachment.name} className="rounded p-1 hover:bg-accent" title="Descargar">
+                      <Download className="size-4" />
+                    </a>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => removeDocument(attachment.name)} className="text-destructive">
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </main>

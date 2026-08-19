@@ -45,7 +45,7 @@ function AdminLayout() {
             {/* 'Inicio' link removed per request */}
             <Link to="/" className="mb-4 mt-2 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
               <BrandMark compact brandSlug="store-shop" />
-              LRG Store Shop
+              <span className="font-medium text-foreground">LRG Store Shop</span>
             </Link>
             <nav className="mt-3 space-y-1">
               {navigation.map((item) => {
@@ -99,9 +99,10 @@ function AdminLayout() {
 
         <div className="min-w-0 flex-1">
           <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:hidden">
-            <div className="flex items-center justify-between">
-              <Link to="/">
+            <div className="flex items-center justify-between gap-3">
+              <Link to="/" className="inline-flex items-center gap-2 shrink-0">
                 <BrandMark compact brandSlug="store-shop" />
+                <span className="text-sm font-medium text-foreground">LRG Store Shop</span>
               </Link>
               <nav className="flex gap-1 overflow-x-auto">
                 {navigation.map((item) => {

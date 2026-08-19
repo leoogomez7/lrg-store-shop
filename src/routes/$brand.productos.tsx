@@ -63,7 +63,7 @@ function CatalogPage() {
     minPrice: 0,
     maxPrice: priceLimit,
     inStockOnly: false,
-    sort: "precio-asc",
+    sort: "agregado-asc",
   });
 
   const [showFilters, setShowFilters] = useState(false);
@@ -104,6 +104,14 @@ function CatalogPage() {
         return filtered.sort((a, b) => a.name.localeCompare(b.name));
       case "nombre-desc":
         return filtered.sort((a, b) => b.name.localeCompare(a.name));
+      case "agregado-asc":
+        return filtered.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      case "agregado-desc":
+        return filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      case "descuento-asc":
+        return filtered.sort((a, b) => a.price - b.price);
+      case "descuento-desc":
+        return filtered.sort((a, b) => b.price - a.price);
       default:
         return filtered.sort((a, b) => a.price - b.price);
     }

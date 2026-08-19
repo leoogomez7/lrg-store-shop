@@ -11,7 +11,15 @@ import { Switch } from "@/components/ui/switch";
 import { formatPrice } from "@/lib/format";
 import { brandList, type BrandCategory } from "@/config/brands";
 
-export type SortOption = "precio-asc" | "precio-desc" | "nombre-asc" | "nombre-desc";
+export type SortOption =
+  | "precio-asc"
+  | "precio-desc"
+  | "nombre-asc"
+  | "nombre-desc"
+  | "agregado-asc"
+  | "agregado-desc"
+  | "descuento-asc"
+  | "descuento-desc";
 
 export type CatalogFilters = {
   search: string;
@@ -24,10 +32,12 @@ export type CatalogFilters = {
 };
 
 export const sortLabels: Record<SortOption, string> = {
-  "precio-asc": "Precio: menor a mayor",
-  "precio-desc": "Precio: mayor a menor",
+  "descuento-asc": "Precio: menor a mayor",
+  "descuento-desc": "Precio: mayor a menor",
   "nombre-asc": "Nombre: A-Z",
   "nombre-desc": "Nombre: Z-A",
+  "agregado-asc": "Producto agregado: Antiguo a nuevo",
+  "agregado-desc": "Producto agregado: Nuevo a antiguo",
 };
 
 /** Único componente de filtros para todas las marcas. */
@@ -216,7 +226,12 @@ export function ProductFilters({
       <div className="flex items-center justify-between gap-2 pt-0">
         <p className="text-xs text-muted-foreground">{resultCount} productos encontrados</p>
         {activeCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={onReset} className="ml-auto flex h-8 px-2 text-xs">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onReset}
+            className="ml-auto flex h-8 px-2 text-xs"
+          >
             <X className="mr-1 size-3.5" /> Limpiar
           </Button>
         )}

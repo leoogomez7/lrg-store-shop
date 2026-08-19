@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { orderQueries, type Order } from "@/services/catalog.service";
 import { useMemo, useState } from "react";
-import { Check, Eye, EyeOff, Sheet, FileText, Search } from "lucide-react";
+import { Check, Download, Eye, EyeOff, FileText, Paperclip, Search, Sheet } from "lucide-react";
 import * as XLSX from "xlsx";
+import { useNavigate } from "@tanstack/react-router";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/admin/clientes")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
@@ -171,15 +173,15 @@ function AdminClients() {
         </div>
       </div>
 
-        <div className="glass-panel overflow-x-auto rounded-2xl pb-2">
-        <Table className="text-center w-auto mx-auto">
+        <div className="glass-panel mx-auto w-fit max-w-full overflow-x-auto rounded-2xl pb-2">
+        <Table className="mx-auto w-fit text-center">
           <TableHeader>
             <TableRow>
               <TableHead>Cliente</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Total de pedidos</TableHead>
               <TableHead>Total gastado</TableHead>
-              <TableHead>Detalles</TableHead>
+              <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -205,7 +207,7 @@ function AdminClients() {
           {visibleCustomers.length} de {filteredCustomers.length} clientes mostrados
         </p>
         <div className="flex items-center gap-3">
-          <div className="text-sm text-muted-foreground">Mostrar</div>
+          <div className="text-sm text-muted-foreground">Detalles</div>
           <Input
             type="number"
             min={1}
@@ -261,8 +263,15 @@ function AdminClients() {
   );
 }
 
+function formatPurchaseDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split("-");
+  return year && month && day ? `${day}-${month}-${year}` : value;
+}
+
 function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: string; email: string; orders: Order[] }; totalSpent: number }) {
   const [open, setOpen] = useState(false);
+  const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
+  const navigate = useNavigate();
 
   return (
     <>
@@ -277,24 +286,31 @@ function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: 
             onClick={() => setOpen((v) => !v)}
           >
             {open ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            {open ? "Ocultar" : "Mostrar"}
+            {open ? "Ocultar" : "Detalles"}
           </button>
         </TableCell>
       </TableRow>
 
       {open && (
         <TableRow>
-          <TableCell colSpan={5} className="p-3">
-            <div className="space-y-3">
+          <TableCell colSpan={5} className="p-2">
+            <div className="mx-auto w-fit max-w-full space-y-2">
               {customer.orders.map((o) => (
-                <div key={o.id} className="rounded-md border p-2 text-sm flex items-center justify-between">
+                <div key={o.id} className="flex w-fit max-w-full items-center justify-between rounded-md border p-2 text-sm">
                   <div className="flex items-center gap-4">
-                    <div className="font-medium">{o.id}</div>
-                    <div className="text-xs text-muted-foreground">{o.date}</div>
-                  </div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-4">
-                    <div>Método pago: {o.paymentMethod ?? "-"}</div>
-                    <div>Envío: {o.shippingMethod ?? "-"}</div>
+                    <button
+                      type="button"
+                      className="font-medium text-primary underline-offset-4 hover:underline"
+                      onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                    >
+                      {o.id}
+                    </button>
+                    <div className="text-xs text-muted-foreground">
+                      Fecha de compra: {formatPurchaseDate(o.date)}
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setDocumentsOrder(o)}>
+                      <Paperclip className="size-3.5" /> Documentos
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -302,6 +318,26 @@ function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: 
           </TableCell>
         </TableRow>
       )}
+
+      <Dialog open={documentsOrder !== null} onOpenChange={(value) => !value && setDocumentsOrder(null)}>
+        <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Documentos del pedido</DialogTitle>
+            <DialogDescription>{documentsOrder?.id}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {(documentsOrder?.attachments ?? []).map((attachment) => (
+              <div key={`${attachment.name}-${attachment.size}`} className="flex items-center justify-between gap-3 rounded-lg border p-2 text-sm">
+                <span className="min-w-0 truncate">{attachment.name}</span>
+                <a href={attachment.dataUrl} download={attachment.name} className="rounded p-1 hover:bg-accent" title="Descargar"><Download className="size-4" /></a>
+              </div>
+            ))}
+            {(documentsOrder?.attachments ?? []).length === 0 && (
+              <p className="text-sm text-muted-foreground">No hay documentos adjuntos.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
