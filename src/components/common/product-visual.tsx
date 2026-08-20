@@ -26,13 +26,6 @@ export function ProductVisual({
   const value = hash(seed);
   const pattern = patterns[value % patterns.length];
   const angle = 90 + (value % 180);
-  const initials = label
-    .split(" ")
-    .filter((word) => word.length > 2)
-    .slice(0, 2)
-    .map((word) => word[0])
-    .join("");
-
   return (
     <div
       className={cn("relative overflow-hidden rounded-[inherit] bg-surface-2", className)}
@@ -74,10 +67,7 @@ export function ProductVisual({
           />
         )}
       </div>
-      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/10 to-transparent" />
-      <span className="font-display absolute bottom-3 left-4 text-3xl font-bold text-foreground tracking-tight">
-        {initials || "LRG"}
-      </span>
+      <div className="absolute inset-0 bg-linear-to-t from-background/80 via-background/10 to-transparent" />
     </div>
   );
 }

@@ -13,6 +13,23 @@ export function saveProducts(products: Product[]) {
 
 export type CurrencyCode = "ARS" | "USD";
 
+export type ProductVariant = {
+  id: string;
+  name: string;
+  price: number;
+  priceCurrency?: CurrencyCode;
+  comision?: number;
+  comisionCurrency?: CurrencyCode;
+  gastos?: number;
+  gastosCurrency?: CurrencyCode;
+  description: string;
+  stock: number;
+  features?: string[];
+  deliveryUnit?: "inmediata" | "horas" | "dias";
+  deliveryAmount?: number;
+  discount?: number;
+};
+
 export type Product = {
   id: string;
   slug: string;
@@ -23,6 +40,9 @@ export type Product = {
   category: string;
   price: number;
   priceCurrency?: CurrencyCode;
+  comision?: number;
+  comisionCurrency?: CurrencyCode;
+  variants?: ProductVariant[];
   gastos?: number;
   gastosCurrency?: CurrencyCode;
   usdRate?: number;
@@ -35,6 +55,9 @@ export type Product = {
   description: string;
   features: string[];
   images?: string[];
+  authorizedPaymentMethodIds?: string[];
+  authorizedShippingMethodIds?: string[];
+  interestFreeInstallments?: number;
   createdAt: string;
 };
 

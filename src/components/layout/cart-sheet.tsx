@@ -151,6 +151,9 @@ export function CartSheet({
                               </span>
                               <span className="text-xs font-medium text-muted-foreground">Stock {item.stock}</span>
                             </div>
+                            {item.variantName ? (
+                              <p className="mb-1 text-xs font-medium text-primary">Variante: {item.variantName}</p>
+                            ) : null}
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                               <div className="min-w-0">
                                 <p className="truncate text-base font-semibold text-foreground">{item.name}</p>

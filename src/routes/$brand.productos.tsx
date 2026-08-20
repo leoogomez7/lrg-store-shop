@@ -28,7 +28,7 @@ export const Route = createFileRoute("/$brand/productos")({
   },
   head: ({ params }) => {
     const brand = getBrand(params.brand);
-    const title = brand ? `Catálogo de ${brand.name}` : "Catálogo — LRG Store Shop";
+    const title = brand?.name ?? "LRG Store Shop";
     const description = brand
       ? `Explorá el catálogo completo de ${brand.name}: ${brand.keywords.join(", ")}.`
       : "Catálogo del ecosistema LRG Store Shop.";
@@ -41,6 +41,13 @@ export const Route = createFileRoute("/$brand/productos")({
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
       ],
+      links: [
+        {
+          rel: "icon",
+          href: brand?.favicon ?? "/LRG Store Shop PNG.png",
+          type: "image/png",
+        },
+      ],
     };
   },
   component: CatalogPage,
@@ -51,15 +58,28 @@ function CatalogPage() {
   const search = Route.useSearch();
   const brand = getBrand(params.brand)!;
   const { data: products } = useSuspenseQuery(catalogQueries.byBrand(brand.slug));
+  const [priceCurrencies, setPriceCurrencies] = useState<("ARS" | "USD")[]>(["ARS", "USD"]);
 
   const priceLimit = useMemo(
-    () => Math.ceil(Math.max(...products.map((product) => product.price)) / 50) * 50,
-    [products],
+    () =>
+      Math.max(
+        50,
+        Math.ceil(
+          Math.max(
+            ...products
+              .filter((product) => !priceCurrencies.length || priceCurrencies.includes(product.priceCurrency ?? "ARS"))
+              .map((product) => product.price),
+            0,
+          ) / 50,
+        ) * 50,
+      ),
+    [products, priceCurrencies],
   );
 
   const [filters, setFilters] = useState<CatalogFilters>({
     search: "",
     categories: search.categoria ? [search.categoria] : [],
+    priceCurrencies,
     minPrice: 0,
     maxPrice: priceLimit,
     inStockOnly: false,
@@ -69,6 +89,10 @@ function CatalogPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showSortOptions, setShowSortOptions] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setFilters((current) => ({ ...current, minPrice: 0, maxPrice: priceLimit }));
+  }, [priceLimit]);
 
   useEffect(() => {
     if (!showSortOptions) return;
@@ -89,6 +113,7 @@ function CatalogPage() {
     const filtered = products.filter((product) => {
       if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
       if (filters.categories.length && !filters.categories.includes(product.category)) return false;
+      if (filters.priceCurrencies?.length && !filters.priceCurrencies.includes(product.priceCurrency ?? "ARS")) return false;
       if (product.price < filters.minPrice) return false;
       if (product.price > filters.maxPrice) return false;
       if (filters.inStockOnly && product.stock <= 0) return false;
@@ -191,17 +216,22 @@ function CatalogPage() {
             filters={filters}
             priceLimit={priceLimit}
             resultCount={results.length}
-            onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
-            onReset={() =>
+            onChange={(next) => {
+              if ("priceCurrencies" in next) setPriceCurrencies(next.priceCurrencies ?? []);
+              setFilters((current) => ({ ...current, ...next }));
+            }}
+            onReset={() => {
+                setPriceCurrencies(["ARS", "USD"]);
               setFilters({
                 search: "",
                 categories: [],
+                priceCurrencies: ["ARS", "USD"],
                 minPrice: 0,
                 maxPrice: priceLimit,
                 inStockOnly: false,
                 sort: "precio-asc",
-              })
-            }
+              });
+            }}
             hideSearch
           />
         )}
@@ -215,7 +245,7 @@ function CatalogPage() {
               </p>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-4 lg:grid-cols-8 xl:grid-cols-12 2xl:grid-cols-16">
               {results.map((product, index) => (
                 <ProductCard key={product.id} product={product} index={index} />
               ))}

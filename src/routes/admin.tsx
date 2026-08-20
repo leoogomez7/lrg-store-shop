@@ -2,10 +2,12 @@ import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tan
 import { useEffect, useState } from "react";
 import { LayoutDashboard, Package, Palette, ShoppingCart, Settings, Users } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
+import { BrandFooter } from "@/components/layout/brand-footer";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { logout } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { webDesignConfig } from "@/config/brands/web-design.config";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -127,6 +129,7 @@ function AdminLayout() {
             </div>
           </header>
           <Outlet />
+          <BrandFooter brand={webDesignConfig} />
         </div>
       </div>
     </div>

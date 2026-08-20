@@ -48,6 +48,7 @@ export const Route = createFileRoute("/productos")({
 function ProductosPage() {
   const search = Route.useSearch();
   const { data: products } = useSuspenseQuery(catalogQueries.all());
+  const [priceCurrencies, setPriceCurrencies] = useState<("ARS" | "USD")[]>(["ARS", "USD"]);
 
   const categories = useMemo(() => {
     const map = new Map<string, { slug: string; name: string; description: string }>();
@@ -64,14 +65,26 @@ function ProductosPage() {
   }, []);
 
   const priceLimit = useMemo(
-    () => Math.ceil(Math.max(...products.map((product) => product.price)) / 50) * 50,
-    [products],
+    () =>
+      Math.max(
+        50,
+        Math.ceil(
+          Math.max(
+            ...products
+              .filter((product) => !priceCurrencies.length || priceCurrencies.includes(product.priceCurrency ?? "ARS"))
+              .map((product) => product.price),
+            0,
+          ) / 50,
+        ) * 50,
+      ),
+    [products, priceCurrencies],
   );
 
   const [filters, setFilters] = useState<CatalogFilters>({
     search: "",
     categories: search.categoria ? [search.categoria] : [],
     brands: [],
+    priceCurrencies,
     minPrice: 0,
     maxPrice: priceLimit,
     inStockOnly: false,
@@ -81,6 +94,10 @@ function ProductosPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showSortOptions, setShowSortOptions] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setFilters((current) => ({ ...current, minPrice: 0, maxPrice: priceLimit }));
+  }, [priceLimit]);
 
   useEffect(() => {
     if (!showSortOptions) return;
@@ -102,6 +119,7 @@ function ProductosPage() {
       if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
       if (filters.categories.length && !filters.categories.includes(product.category)) return false;
       if ((filters.brands ?? []).length && !(filters.brands ?? []).includes(product.brand)) return false;
+      if (filters.priceCurrencies?.length && !filters.priceCurrencies.includes(product.priceCurrency ?? "ARS")) return false;
       if (product.price < filters.minPrice) return false;
       if (product.price > filters.maxPrice) return false;
       if (filters.inStockOnly && product.stock <= 0) return false;
@@ -204,18 +222,23 @@ function ProductosPage() {
                 filters={filters}
                 priceLimit={priceLimit}
                 resultCount={results.length}
-                onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
-                onReset={() =>
+                onChange={(next) => {
+                  if ("priceCurrencies" in next) setPriceCurrencies(next.priceCurrencies ?? []);
+                  setFilters((current) => ({ ...current, ...next }));
+                }}
+                onReset={() => {
+                  setPriceCurrencies(["ARS", "USD"]);
                   setFilters({
                     search: "",
                     categories: [],
                     brands: [],
+                    priceCurrencies: ["ARS", "USD"],
                     minPrice: 0,
                     maxPrice: priceLimit,
                     inStockOnly: false,
                     sort: "precio-asc",
-                  })
-                }
+                  });
+                }}
                 hideSearch
                 showBrandFilter
               />
@@ -230,7 +253,7 @@ function ProductosPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-4 lg:grid-cols-8 xl:grid-cols-12 2xl:grid-cols-16">
                   {results.map((product, index) => (
                     <ProductCard key={product.id} product={product} index={index} />
                   ))}

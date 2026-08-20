@@ -1,12 +1,28 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Check, Pencil, X } from "lucide-react";
+import { ArrowUpRight, Check, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { BrandMark } from "@/components/common/brand-mark";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { brandList, setBrandContact } from "@/config/brands";
+import {
+  brandList,
+  getStoreShopContact,
+  getBrandContactPresentation,
+  setBrandContactPresentation,
+  setStoreShopContact,
+  storeShopListing,
+  type StoreShopContactItem,
+  type BrandContactPresentation,
+} from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { catalogQueries } from "@/services/catalog.service";
 
@@ -31,82 +47,97 @@ export const Route = createFileRoute("/admin/marcas")({
 
 function AdminBrands() {
   const { data: products } = useSuspenseQuery(catalogQueries.all());
-  const [contactData, setContactData] = useState<Record<string, { email: string; phone: string; location: string }>>(() => {
-    if (typeof window === "undefined") {
-      return Object.fromEntries(
-        brandList.map((brand) => [brand.slug, { ...brand.contact }]),
-      ) as Record<string, { email: string; phone: string; location: string }>;
-    }
+  const [storeContact, setStoreContact] = useState(getStoreShopContact);
+  const [editingStoreField, setEditingStoreField] = useState<string | null>(null);
+  const [storeDraft, setStoreDraft] = useState<StoreShopContactItem | null>(null);
+  const [editingFieldLabel, setEditingFieldLabel] = useState<string | null>(null);
+  const [brandPresentations, setBrandPresentations] = useState<Record<string, BrandContactPresentation>>(() =>
+    Object.fromEntries(brandList.map((brand) => [brand.slug, getBrandContactPresentation(brand.slug)])),
+  );
+  const [editingBrandPresentation, setEditingBrandPresentation] = useState<string | null>(null);
+  const [brandPresentationDraft, setBrandPresentationDraft] = useState<StoreShopContactItem | null>(null);
 
-    try {
-      const raw = window.localStorage.getItem("lrg-brand-contact-v1");
-      if (!raw) {
-        return Object.fromEntries(
-          brandList.map((brand) => [brand.slug, { ...brand.contact }]),
-        ) as Record<string, { email: string; phone: string; location: string }>;
-      }
-
-      const parsed = JSON.parse(raw) as Record<string, { email: string; phone: string; location: string }>;
-      return Object.fromEntries(
-        brandList.map((brand) => [brand.slug, { ...brand.contact, ...(parsed[brand.slug] ?? {}) }]),
-      ) as Record<string, { email: string; phone: string; location: string }>;
-    } catch {
-      return Object.fromEntries(
-        brandList.map((brand) => [brand.slug, { ...brand.contact }]),
-      ) as Record<string, { email: string; phone: string; location: string }>;
-    }
-  });
-  const [editingField, setEditingField] = useState<{
-    brandSlug: string;
-    field: "email" | "phone" | "location";
-  } | null>(null);
-  const [draftValue, setDraftValue] = useState("");
-
-  const startEditingField = (brandSlug: string, field: "email" | "phone" | "location") => {
-    const currentValue = contactData[brandSlug]?.[field] ?? "";
-    setEditingField({ brandSlug, field });
-    setDraftValue(currentValue);
+  const closeEditor = () => {
+    setEditingStoreField(null);
+    setEditingBrandPresentation(null);
+    setStoreDraft(null);
+    setBrandPresentationDraft(null);
+    setEditingFieldLabel(null);
   };
 
-  const saveEditedField = (brandSlug: string, field: "email" | "phone" | "location") => {
-    const trimmed = draftValue.trim();
-    if (!trimmed) return;
+  const startEditingStoreField = (key: string, label: string, item: StoreShopContactItem) => {
+    setEditingStoreField(key);
+    setStoreDraft({ ...item });
+    setEditingFieldLabel(label);
+  };
 
-    const next = {
-      ...contactData,
-      [brandSlug]: {
-        ...contactData[brandSlug],
-        [field]: trimmed,
-      },
-    };
+  const hasContactItemChanges = (draft: StoreShopContactItem, original: StoreShopContactItem) =>
+    draft.text !== original.text || draft.href !== original.href || draft.logo !== original.logo;
 
-    setContactData(next);
-    setBrandContact(brandSlug as any, { [field]: trimmed });
-    setEditingField(null);
-    setDraftValue("");
+  const saveEditingStoreField = () => {
+    if (!editingStoreField || !storeDraft || !storeDraft.text.trim()) return;
+    const [group, key] = editingStoreField.split(".") as ["contact" | "socials", "email" | "phone" | "location" | "instagram" | "whatsapp" | "tiktok" | "facebook" | "review"];
+    const next = group === "contact"
+      ? setStoreShopContact({ [key]: { ...storeDraft, text: storeDraft.text.trim() } })
+      : setStoreShopContact({ socials: { [key]: { ...storeDraft, text: storeDraft.text.trim() } } });
+    setStoreContact(next);
+    closeEditor();
+  };
+
+  const startEditingBrandPresentation = (key: string, label: string, item: StoreShopContactItem) => {
+    setEditingBrandPresentation(key);
+    setBrandPresentationDraft({ ...item });
+    setEditingFieldLabel(label);
+  };
+
+  const saveEditingBrandPresentation = () => {
+    if (!editingBrandPresentation || !brandPresentationDraft) return;
+    const [slug, group, key] = editingBrandPresentation.split(".") as ["arcade" | "scents" | "web-design", "contact" | "socials", keyof StoreShopContact | keyof StoreShopContact["socials"]];
+    const next = group === "contact"
+      ? setBrandContactPresentation(slug, { [key]: brandPresentationDraft })
+      : setBrandContactPresentation(slug, { socials: { [key]: brandPresentationDraft } });
+    setBrandPresentations((current) => ({ ...current, [slug]: next }));
+    closeEditor();
+  };
+
+  const storeContactFields = [
+    { key: "contact.email", label: "Correo", item: storeContact.email },
+    { key: "contact.phone", label: "Celular", item: storeContact.phone },
+    { key: "contact.location", label: "Ubicación", item: storeContact.location },
+    { key: "socials.instagram", label: "Instagram", item: storeContact.socials.instagram },
+    { key: "socials.whatsapp", label: "WhatsApp", item: storeContact.socials.whatsapp },
+    { key: "socials.tiktok", label: "TikTok", item: storeContact.socials.tiktok },
+    { key: "socials.facebook", label: "Facebook", item: storeContact.socials.facebook },
+    { key: "socials.review", label: "Reseñas", item: storeContact.socials.review },
+  ];
+
+  const activeDraft = storeDraft ?? brandPresentationDraft;
+  const activeOriginal = editingStoreField
+    ? storeContactFields.find((field) => field.key === editingStoreField)?.item
+    : editingBrandPresentation
+      ? (() => {
+          const [slug, group, key] = editingBrandPresentation.split(".") as [keyof typeof brandPresentations, "contact" | "socials", string];
+          return group === "contact"
+            ? brandPresentations[slug][key as keyof BrandContactPresentation]
+            : brandPresentations[slug].socials[key as keyof BrandContactPresentation["socials"]];
+        })()
+      : null;
+  const hasActiveChanges = activeDraft && activeOriginal
+    ? hasContactItemChanges(activeDraft, activeOriginal)
+    : false;
+
+  const updateActiveDraft = (updates: Partial<StoreShopContactItem>) => {
+    if (editingStoreField) {
+      setStoreDraft((current) => current ? { ...current, ...updates } : current);
+    } else {
+      setBrandPresentationDraft((current) => current ? { ...current, ...updates } : current);
+    }
   };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const syncFromStorage = () => {
-        try {
-          const raw = window.localStorage.getItem("lrg-brand-contact-v1");
-          if (!raw) {
-            setContactData(Object.fromEntries(
-              brandList.map((brand) => [brand.slug, { ...brand.contact }]),
-            ) as Record<string, { email: string; phone: string; location: string }>);
-            return;
-          }
-
-          const parsed = JSON.parse(raw) as Record<string, { email: string; phone: string; location: string }>;
-          setContactData(Object.fromEntries(
-            brandList.map((brand) => [brand.slug, { ...brand.contact, ...(parsed[brand.slug] ?? {}) }]),
-          ) as Record<string, { email: string; phone: string; location: string }>);
-        } catch {
-          setContactData(Object.fromEntries(
-            brandList.map((brand) => [brand.slug, { ...brand.contact }]),
-          ) as Record<string, { email: string; phone: string; location: string }>);
-        }
+        setStoreContact(getStoreShopContact());
       };
 
       syncFromStorage();
@@ -122,7 +153,36 @@ function AdminBrands() {
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Sectores</p>
       <h1 className="mt-2 text-3xl font-semibold">Tiendas disponibles</h1>
 
-      <div className="mt-10 grid gap-6 pb-20 lg:grid-cols-3">
+      <div className="mt-10 grid grid-cols-4 gap-3 pb-20">
+        <article className="theme-webdesign glass-panel flex min-w-0 h-full flex-col justify-between rounded-2xl p-3">
+          <div>
+            <div className="flex items-start gap-3">
+              <BrandMark compact brandSlug="store-shop" />
+              <div className="min-h-14">
+                <h2 className="font-display font-semibold">{storeShopListing.name}</h2>
+                <p className="text-xs text-primary">Productos gaming, streaming, perfumería árabe y diseño de páginas web</p>
+              </div>
+            </div>
+            <div className="mt-5 space-y-2 border-t border-border/60 pt-4 text-xs text-muted-foreground">
+              {storeContactFields.map((field) => {
+                return (
+                  <div key={field.key} className="flex items-center justify-between gap-2">
+                    <p className="truncate">{field.label}</p>
+                    <Button variant="ghost" size="sm" onClick={() => startEditingStoreField(field.key, field.label, field.item)} className="h-8 shrink-0 gap-1 px-2 text-white hover:text-white">
+                      <Pencil className="size-4 text-white" /> <span className="text-[11px] text-white">Editar</span>
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <Button asChild variant="secondary" size="sm" className="mt-6 w-full gap-2">
+            <Link to="/">
+              Ir a la tienda <ArrowUpRight className="size-3.5" />
+            </Link>
+          </Button>
+        </article>
+
         {brandList.map((brand) => {
           const brandProducts = products.filter((product) => product.brand === brand.slug);
           const inventoryValue = brandProducts.reduce(
@@ -131,7 +191,7 @@ function AdminBrands() {
           );
 
           return (
-            <article key={brand.slug} className={`${brand.theme} glass-panel rounded-2xl p-6 h-full flex flex-col justify-between`}>
+            <article key={brand.slug} className={`${brand.theme} glass-panel flex min-w-0 h-full flex-col justify-between rounded-2xl p-3`}>
               <div>
                 <div className="flex items-start gap-3">
                   <BrandMark compact brandSlug={brand.slug} />
@@ -141,75 +201,21 @@ function AdminBrands() {
                   </div>
                 </div>
 
-              <div className="mt-5">
-                <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">
-                  Categorías
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {brand.categories.map((category) => (
-                    <Badge key={category.slug} variant="secondary">
-                      {category.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-5 space-y-2 text-xs text-muted-foreground">
+              <div className="mt-5 space-y-2 border-t border-border/60 pt-4 text-xs text-muted-foreground">
                 {([
-                  { key: "email", label: "Correo", value: contactData[brand.slug]?.email ?? brand.contact.email },
-                  { key: "phone", label: "Celular", value: contactData[brand.slug]?.phone ?? brand.contact.phone },
-                  { key: "location", label: "Ubicación", value: contactData[brand.slug]?.location ?? brand.contact.location },
+                  { key: "contact.email", label: "Correo", item: brandPresentations[brand.slug].email },
+                  { key: "contact.phone", label: "Celular", item: brandPresentations[brand.slug].phone },
+                  { key: "contact.location", label: "Ubicación", item: brandPresentations[brand.slug].location },
+                  { key: "socials.instagram", label: "Instagram", item: brandPresentations[brand.slug].socials.instagram },
+                  { key: "socials.whatsapp", label: "WhatsApp", item: brandPresentations[brand.slug].socials.whatsapp },
+                  { key: "socials.tiktok", label: "TikTok", item: brandPresentations[brand.slug].socials.tiktok },
+                  { key: "socials.facebook", label: "Facebook", item: brandPresentations[brand.slug].socials.facebook },
+                  { key: "socials.review", label: "Reseñas", item: brandPresentations[brand.slug].socials.review },
                 ] as const).map((field) => {
-                  const isEditing =
-                    editingField?.brandSlug === brand.slug && editingField.field === field.key;
-
                   return (
                     <div key={field.key} className="flex items-center justify-between gap-2">
-                      {isEditing ? (
-                        <div className="flex w-full items-center gap-2">
-                              <Input
-                                value={draftValue}
-                                onChange={(event) => setDraftValue(event.target.value)}
-                                className="h-8 min-w-0 flex-1"
-                              />
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => saveEditedField(brand.slug, field.key)}
-                                className="h-8 shrink-0 gap-1 px-2"
-                                disabled={!draftValue.trim()}
-                              >
-                                <Check className="h-4 w-4" />
-                                <span className="text-[11px]">Guardar</span>
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingField(null);
-                                  setDraftValue("");
-                                }}
-                                className="h-8 shrink-0 gap-1 px-2 text-destructive hover:bg-destructive/10"
-                              >
-                                <X className="h-4 w-4" />
-                                <span className="text-[11px]">Cancelar</span>
-                              </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="flex-1 truncate">{field.value}</p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => startEditingField(brand.slug, field.key)}
-                            className="h-8 shrink-0 gap-1 px-2"
-                            aria-label={`Editar ${field.label}`}
-                          >
-                            <Pencil className="h-4 w-4" />
-                            <span className="text-[11px]">Editar</span>
-                          </Button>
-                        </>
-                      )}
+                      <p className="truncate">{field.label}</p>
+                      <Button variant="ghost" size="sm" onClick={() => startEditingBrandPresentation(`${brand.slug}.${field.key}`, field.label, field.item)} className="h-8 shrink-0 gap-1 px-2 text-white hover:text-white"><Pencil className="size-4 text-white" /> Editar</Button>
                     </div>
                   );
                 })}
@@ -225,6 +231,53 @@ function AdminBrands() {
           );
         })}
       </div>
+
+      <Dialog open={Boolean(activeDraft && editingFieldLabel)} onOpenChange={(open) => { if (!open) closeEditor(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar {editingFieldLabel}</DialogTitle>
+            <DialogDescription>Actualiza la información de contacto de esta tienda.</DialogDescription>
+          </DialogHeader>
+          {activeDraft && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="contact-text">Texto a mostrar</label>
+                <Input id="contact-text" value={activeDraft.text} onChange={(event) => updateActiveDraft({ text: event.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="contact-link">Link</label>
+                <Input id="contact-link" value={activeDraft.href} onChange={(event) => updateActiveDraft({ href: event.target.value })} />
+              </div>
+              <label className="space-y-2">
+                <span className="block text-sm font-medium">Adjuntar logo</span>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => updateActiveDraft({ logo: String(reader.result ?? "") });
+                    reader.readAsDataURL(file);
+                  }}
+                  className="h-9 cursor-pointer file:mr-3 file:border-0 file:bg-transparent file:text-xs"
+                />
+                {activeDraft.logo && <img src={activeDraft.logo} alt="Vista previa del logo" className="size-10 rounded object-contain" />}
+              </label>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={closeEditor}>Cancelar</Button>
+            <Button
+              onClick={editingStoreField ? saveEditingStoreField : saveEditingBrandPresentation}
+              disabled={!activeDraft?.text.trim() || !hasActiveChanges}
+              className="gap-1"
+            >
+              <Check className="size-4" /> Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

@@ -11,7 +11,7 @@ export const Route = createFileRoute("/$brand")({
   },
   head: ({ params }) => {
     const brand = getBrand(params.brand);
-    const title = brand ? `${brand.name} — ${brand.tagline}` : "LRG Store Shop";
+    const title = brand?.name ?? "LRG Store Shop";
     const description = brand?.description ?? "Ecosistema de marcas LRG Store Shop.";
     const iconHref = brand?.favicon ?? "/LRG Store Shop PNG.png";
     return {
@@ -42,7 +42,7 @@ function BrandLayout() {
     <div className={`${brand.theme} min-h-screen bg-background text-foreground`}>
       <div className="aurora-bg" />
       <div className="relative">
-        <BrandHeader brand={brand} headerTheme="theme-webdesign" />
+        <BrandHeader brand={brand} logoBrandSlug={brand.slug} headerTheme="theme-webdesign" />
         <Outlet />
         <BrandFooter brand={brand} />
       </div>

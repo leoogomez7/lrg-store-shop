@@ -14,7 +14,7 @@ export const Route = createFileRoute("/$brand/")({
   },
   head: ({ params }) => {
     const brand = getBrand(params.brand);
-    const title = brand ? `${brand.name} — ${brand.tagline}` : "LRG Store Shop";
+    const title = brand?.name ?? "LRG Store Shop";
     const description = brand?.description ?? "Ecosistema de marcas LRG Store Shop.";
     return {
       meta: [
@@ -26,7 +26,11 @@ export const Route = createFileRoute("/$brand/")({
         { name: "twitter:card", content: "summary_large_image" },
       ],
       links: [
-        { rel: "icon", href: brand?.favicon ?? "/favicon.ico", type: "image/png" },
+        {
+          rel: "icon",
+          href: brand?.favicon ?? "/favicon.ico",
+          type: "image/png",
+        },
       ],
     };
   },
@@ -57,12 +61,12 @@ function BrandHome() {
                   to="/$brand/productos"
                   params={{ brand: brand.slug }}
                   search={{ categoria: category.slug }}
-                  className="group flex min-h-5.5rem flex-col items-center justify-center rounded-3xl border border-border/60 bg-surface px-4 py-4 text-center text-sm text-foreground shadow-sm transition hover:bg-surface-2"
+                  className="group flex min-h-18 flex-col items-center justify-center rounded-3xl border border-border/60 bg-surface px-3 py-3 text-center text-sm text-foreground shadow-sm transition hover:bg-surface-2"
                 >
                   <span className="block w-full text-sm font-semibold leading-tight text-foreground transition-colors group-hover:text-foreground">
                     {category.name}
                   </span>
-                  <span className="mt-3 block w-full text-xs leading-relaxed text-muted-foreground">
+                  <span className="mt-1.5 block w-full text-xs leading-relaxed text-muted-foreground">
                     {category.description}
                   </span>
                 </Link>

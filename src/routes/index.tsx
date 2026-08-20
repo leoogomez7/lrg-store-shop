@@ -7,7 +7,8 @@ import { Reveal } from "@/components/common/motion-primitives";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandHeader } from "@/components/layout/brand-header";
-import { brandList } from "@/config/brands";
+import { BrandFooter } from "@/components/layout/brand-footer";
+import { getStoreShopCategories, getStoreShopContact } from "@/config/brands";
 import { webDesignConfig } from "@/config/brands/web-design.config";
 import { getStoredActivePanel, getStoredUserDisplayName } from "@/lib/auth";
 import { SectorsContent } from "@/components/sectors-content";
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "icon", href: "/LRG Store Shop PNG.png", type: "image/png" }],
   }),
   component: WelcomePage,
 });
@@ -119,15 +121,8 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   };
   const [sortBy, setSortBy] = useState<"date" | "rating">("date");
   const [sortDirection, setSortDirection] = useState<"newest" | "oldest" | "highest" | "lowest">("newest");
-
-  function handleBrandClick(e: any) {
-    e.preventDefault();
-    if (typeof window !== "undefined" && window.location.pathname === "/") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      navigate({ to: "/" });
-    }
-  }
+  const storeShopCategories = getStoreShopCategories();
+  const storeShopContact = getStoreShopContact();
 
   function parseSpanishDate(dateStr: string): Date {
     const months: { [key: string]: number } = {
@@ -232,6 +227,26 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               Mostrar todos los productos <ArrowRight className="size-4" />
             </Button>
           </div>
+
+          <section className="mt-12">
+            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Categorías</p>
+            <h2 className="mt-3 text-2xl font-semibold">Todo el ecosistema</h2>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {storeShopCategories.map((category) => (
+                <Link
+                  key={`${category.brandSlug}-${category.slug}`}
+                  to="/$brand/productos"
+                  params={{ brand: category.brandSlug }}
+                  search={{ categoria: category.slug }}
+                  className="glass-panel rounded-2xl p-4 transition-colors hover:bg-surface-2"
+                >
+                  <p className="text-sm font-semibold">{category.name}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{category.description}</p>
+                  <p className="mt-3 text-[11px] text-primary">{category.brandName}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
 
           <section className="mt-6 p-4 sm:p-6">
             <div className="flex flex-col gap-4 rounded-[1.75rem] border border-border/60 bg-surface/90 p-4 shadow-sm">
@@ -362,22 +377,11 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           </section>
         </main>
 
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-6 pb-2 text-xs text-muted-foreground">
-          <a href="/" onClick={handleBrandClick} className="hover:underline">© {new Date().getFullYear()} LRG Store Shop</a>
-          <span className="flex flex-wrap gap-4">
-            {brandList.map((brand) => (
-              <Link
-                key={brand.slug}
-                to="/$brand"
-                params={{ brand: brand.slug }}
-                className="transition-colors hover:text-foreground"
-              >
-                {brand.name}
-              </Link>
-            ))}
-          </span>
-        </footer>
       </div>
+      <BrandFooter
+        brand={{ ...webDesignConfig, name: "LRG Store Shop" }}
+        storeContact={storeShopContact}
+      />
     </div>
   );
 }

@@ -16,6 +16,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getBrand } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { catalogQueries } from "@/services/catalog.service";
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/$brand/producto/$slug")({
     );
     if (!product) throw notFound();
     await context.queryClient.ensureQueryData(catalogQueries.related(brand.slug, params.slug));
-    return { name: product.name, short: product.short };
+    return { name: product.name, short: product.short, brandName: brand.name, favicon: brand.favicon };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
@@ -41,12 +42,19 @@ export const Route = createFileRoute("/$brand/producto/$slug")({
     }
     return {
       meta: [
-        { title: `${loaderData.name} — LRG Store Shop` },
+        { title: loaderData.brandName },
         { name: "description", content: loaderData.short },
         { property: "og:title", content: `${loaderData.name} — LRG Store Shop` },
         { property: "og:description", content: loaderData.short },
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
+      ],
+      links: [
+        {
+          rel: "icon",
+          href: loaderData.favicon ?? "/LRG Store Shop PNG.png",
+          type: "image/png",
+        },
       ],
     };
   },
@@ -60,9 +68,27 @@ function ProductDetail() {
   const { data: related } = useSuspenseQuery(catalogQueries.related(brand.slug, params.slug));
   const { addProduct } = useCart();
   const [quantity, setQuantity] = useState(1);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(product?.variants?.[0]?.id);
   const navigate = useNavigate();
 
   if (!product) return null;
+  const selectedVariant = product.variants?.find((variant) => variant.id === selectedVariantId) ?? product.variants?.[0];
+  const activeProduct = selectedVariant
+    ? {
+        ...product,
+        id: `${product.id}::${selectedVariant.id}`,
+        variantName: selectedVariant.name,
+        price: selectedVariant.price,
+        priceCurrency: selectedVariant.priceCurrency ?? product.priceCurrency,
+        comision: selectedVariant.comision,
+        comisionCurrency: selectedVariant.comisionCurrency,
+        gastos: selectedVariant.gastos,
+        gastosCurrency: selectedVariant.gastosCurrency,
+        description: selectedVariant.description,
+        stock: selectedVariant.stock,
+        features: selectedVariant.features ?? product.features,
+      }
+    : product;
   const category = brand.categories.find((item) => item.slug === product.category);
 
   return (
@@ -148,15 +174,29 @@ function ProductDetail() {
             <span>·</span>
             <span>{product.reviews} valoraciones</span>
             <span>·</span>
-            <span>{product.stock > 0 ? `${product.stock} en stock` : "Sin stock"}</span>
+            <span>{activeProduct.stock > 0 ? `${activeProduct.stock} en stock` : "Sin stock"}</span>
           </div>
 
-          <p className="mt-6 leading-relaxed text-muted-foreground">{product.description}</p>
+          {product.variants && product.variants.length > 0 ? (
+            <div className="mt-6 max-w-sm space-y-2">
+              <label className="text-sm font-medium" htmlFor="product-variant">Elegí una variante</label>
+              <Select value={selectedVariant?.id} onValueChange={(value) => { setSelectedVariantId(value); setQuantity(1); }}>
+                <SelectTrigger id="product-variant"><SelectValue placeholder="Seleccionar variante" /></SelectTrigger>
+                <SelectContent>
+                  {product.variants.map((variant) => (
+                    <SelectItem key={variant.id} value={variant.id}>{variant.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+
+          <p className="mt-6 leading-relaxed text-muted-foreground">{activeProduct.description}</p>
 
           <div className="glass-panel mt-8 rounded-2xl p-6">
             <div className="flex items-end gap-3">
               <span className="font-display text-3xl font-semibold">
-                {formatPrice(product.price)}
+                {formatPrice(activeProduct.price)}
               </span>
               {product.compareAtPrice && (
                 <span className="text-sm text-muted-foreground line-through">
@@ -181,9 +221,9 @@ function ProductDetail() {
                   variant="ghost"
                   size="icon"
                   className="size-8"
-                  onClick={() => setQuantity((value) => Math.min(product.stock, value + 1))}
+                  onClick={() => setQuantity((value) => Math.min(activeProduct.stock, value + 1))}
                   aria-label="Sumar unidad"
-                  disabled={product.stock <= 0}
+                  disabled={activeProduct.stock <= 0}
                 >
                   <Plus className="size-3.5" />
                 </Button>
@@ -191,17 +231,17 @@ function ProductDetail() {
               <Button
                 size="lg"
                 className="flex-1"
-                disabled={product.stock <= 0}
-                onClick={() => addProduct(product, quantity)}
+                disabled={activeProduct.stock <= 0}
+                onClick={() => addProduct(activeProduct, quantity)}
               >
-                {product.stock > 0 ? "Agregar al carrito" : "Sin stock"}
+                {activeProduct.stock > 0 ? "Agregar al carrito" : "Sin stock"}
               </Button>
               <Button
                 size="lg"
                 variant="secondary"
                 onClick={() => {
-                  if (product.stock <= 0) return;
-                  addProduct(product, quantity);
+                  if (activeProduct.stock <= 0) return;
+                  addProduct(activeProduct, quantity);
                   navigate({ to: "/checkout" });
                 }}
               >
@@ -227,7 +267,7 @@ function ProductDetail() {
             </TabsList>
             <TabsContent value="features" className="pt-4">
               <ul className="grid gap-2.5 text-sm">
-                {product.features.map((feature) => (
+                {activeProduct.features.map((feature) => (
                   <li key={feature} className="flex items-center gap-2">
                     <Check className="size-4 text-primary" />
                     {feature}

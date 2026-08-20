@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { Star } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductVisual } from "@/components/common/product-visual";
@@ -9,6 +9,7 @@ import type { Product } from "@/data/products";
 
 export function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   const { addProduct } = useCart();
+  const navigate = useNavigate();
   const outOfStock = product.stock <= 0;
   const discountPercent = product.compareAtPrice
     ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
@@ -24,7 +25,25 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
 
   return (
     <article
-      className="glass-panel hover-lift group flex flex-col overflow-hidden rounded-2xl"
+      className="glass-panel hover-lift group flex cursor-pointer flex-col overflow-hidden rounded-2xl"
+      role="link"
+      tabIndex={0}
+      aria-label={`Ver descripción de ${product.name}`}
+      onClick={() =>
+        navigate({
+          to: "/$brand/producto/$slug",
+          params: { brand: product.brand, slug: product.slug },
+        })
+      }
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          navigate({
+            to: "/$brand/producto/$slug",
+            params: { brand: product.brand, slug: product.slug },
+          });
+        }
+      }}
       style={{
         transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 500ms cubic-bezier(0.22, 1, 0.36, 1)",
         opacity: 1,
@@ -39,7 +58,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         <ProductVisual
           seed={product.id}
           label={product.name}
-          className="aspect-4/3 transition-transform duration-500 group-hover:scale-[1.03]"
+          className="aspect-3/2 transition-transform duration-500 group-hover:scale-[1.03]"
         />
         <div className="absolute left-3 top-3 flex flex-col gap-2">
           {discountLabel && (
@@ -55,8 +74,8 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col gap-3 p-5">
-        <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-1 flex-col gap-1.5 p-3">
+        <div>
           <div>
             <h3 className="font-display leading-snug font-semibold">
               <Link
@@ -67,15 +86,10 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
                 {product.name}
               </Link>
             </h3>
-            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{product.short}</p>
           </div>
-          <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-            <Star className="size-3.5 fill-primary text-primary" />
-            {product.rating}
-          </span>
         </div>
 
-        <div className="mt-auto flex items-end justify-between gap-3 pt-2">
+        <div className="mt-auto flex items-end justify-between gap-2 pt-1">
           <div>
             <p className="font-display text-xl font-semibold">{formatPrice(product.price)}</p>
             {product.compareAtPrice && (
@@ -84,7 +98,15 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
               </p>
             )}
           </div>
-          <Button size="sm" disabled={outOfStock} onClick={() => addProduct(product)}>
+          <Button
+            size="sm"
+            disabled={outOfStock}
+            onClick={(event) => {
+              event.stopPropagation();
+              addProduct(product);
+            }}
+          >
+            {!outOfStock && <ShoppingCart className="size-3.5" aria-hidden="true" />}
             {outOfStock ? "Sin stock" : "Agregar"}
           </Button>
         </div>

@@ -1,10 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowUpRight,
-  Banknote,
-  Bitcoin,
-  CreditCard,
-  Currency,
   Facebook,
   Globe,
   Instagram,
@@ -13,7 +9,7 @@ import {
   Phone,
 } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
-import { brandList, type BrandConfig } from "@/config/brands";
+import { getBrandContactPresentation, getStoreNavigation, type BrandConfig, type StoreShopContact, type StoreShopContactItem } from "@/config/brands";
 
 function TikTokIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -24,44 +20,29 @@ function TikTokIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-export function BrandFooter({ brand }: { brand: BrandConfig }) {
+function ContactItem({ item, icon: Icon }: { item: StoreShopContactItem; icon: React.ComponentType<{ className?: string }> }) {
+  const content = (
+    <>
+      {item.logo ? <img src={item.logo} alt="" className="size-4 max-h-4 max-w-4 object-contain" /> : <Icon className="size-4" />}
+      <span>{item.text}</span>
+    </>
+  );
+  return item.href ? (
+    <a href={item.href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">{content}</a>
+  ) : (
+    <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">{content}</span>
+  );
+}
+
+export function BrandFooter({ brand, storeContact }: { brand: BrandConfig; storeContact?: StoreShopContact }) {
+  const contactSettings = storeContact ?? getBrandContactPresentation(brand.slug);
   return (
     <footer className="mt-24 border-t border-border/60 bg-surface/40">
-      <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-4">
+      <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-5">
           <div className="space-y-4">
             <Link to="/" className="inline-flex items-center gap-2.5 transition-colors hover:text-foreground">
               <BrandMark brandSlug="store-shop" label="LRG Store Shop" />
             </Link>
-          <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-            {brand.footerNote}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {brand.payments.map((payment) => {
-              let Icon = CreditCard;
-              let label = payment;
-              const lower = payment.toLowerCase();
-              if (lower.includes("transfer") || lower.includes("transferencia") || lower.includes("bank")) {
-                Icon = Banknote;
-                label = "Transferencia bancaria";
-              } else if (lower.includes("crypto") || lower.includes("wise")) {
-                Icon = Bitcoin;
-              } else if (lower.includes("visa") || lower.includes("mastercard") || lower.includes("amex")) {
-                Icon = CreditCard;
-              } else {
-                Icon = Currency;
-              }
-
-              return (
-                <span
-                  key={payment}
-                  className="glass inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-[0.7rem] text-muted-foreground"
-                >
-                  <Icon className="size-4 text-muted-foreground" />
-                  {label}
-                </span>
-              );
-            })}
-          </div>
         </div>
 
         <div>
@@ -83,24 +64,25 @@ export function BrandFooter({ brand }: { brand: BrandConfig }) {
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold">Ecosistema</h3>
+          <h3 className="text-sm font-semibold">Tiendas</h3>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
-            <li>
-              <Link to="/" className="transition-colors hover:text-foreground">
-                LRG Store Shop
-              </Link>
-            </li>
-            {brandList.map((item) => (
+            {getStoreNavigation().map((item) => (
               <li key={item.slug}>
                 <Link
-                  to="/$brand"
-                  params={{ brand: item.slug }}
+                  to={item.slug === "store-shop" ? "/" : "/$brand"}
+                  params={item.slug === "store-shop" ? undefined : { brand: item.slug }}
                   className="transition-colors hover:text-foreground"
                 >
                   {item.name}
                 </Link>
               </li>
             ))}
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold">Panel</h3>
+          <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
             <li>
               <Link to="/cuenta" className="transition-colors hover:text-foreground">
                 Mi cuenta
@@ -116,6 +98,23 @@ export function BrandFooter({ brand }: { brand: BrandConfig }) {
 
         <div>
           <h3 className="text-sm font-semibold">Contacto</h3>
+          {contactSettings ? (
+            <>
+              <div className="mt-4 flex flex-col items-start gap-2.5">
+                <ContactItem item={contactSettings.email} icon={Mail} />
+                <ContactItem item={contactSettings.phone} icon={Phone} />
+                <ContactItem item={contactSettings.location} icon={MapPin} />
+              </div>
+              <div className="mt-2 flex flex-col items-start gap-2">
+                <ContactItem item={contactSettings.socials.instagram} icon={Instagram} />
+                <ContactItem item={contactSettings.socials.whatsapp} icon={Phone} />
+                <ContactItem item={contactSettings.socials.tiktok} icon={TikTokIcon} />
+                <ContactItem item={contactSettings.socials.facebook} icon={Facebook} />
+                <ContactItem item={contactSettings.socials.review} icon={ArrowUpRight} />
+              </div>
+            </>
+          ) : (
+          <>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
                 <Mail className="size-4 text-muted-foreground" />
@@ -156,6 +155,19 @@ export function BrandFooter({ brand }: { brand: BrandConfig }) {
                   {brand.contact.location}
                 </a>
               </li>
+              {brand.contact.link && (
+                <li className="flex items-center gap-2">
+                  <ArrowUpRight className="size-4 text-muted-foreground" />
+                  <a
+                    href={brand.contact.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Link
+                  </a>
+                </li>
+              )}
             </ul>
           <div className="mt-2 flex flex-col items-start gap-2 text-sm">
             {brand.social.map((social) => {
@@ -191,6 +203,8 @@ export function BrandFooter({ brand }: { brand: BrandConfig }) {
               <span>Reseñas</span>
             </a>
           </div>
+          </>
+          )}
         </div>
       </div>
 

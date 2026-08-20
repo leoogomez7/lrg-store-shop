@@ -42,7 +42,7 @@ export type BrandConfig = {
   categories: BrandCategory[];
   currency: string;
   social: { label: string; href: string }[];
-  contact: { email: string; phone: string; location: string };
+  contact: { email: string; phone: string; location: string; link?: string };
   payments: string[];
   paymentMethods?: BrandPaymentMethod[];
   shipping?: BrandShippingConfig;

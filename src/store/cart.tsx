@@ -8,9 +8,11 @@ export type CartItem = {
   slug: string;
   brand: BrandSlug;
   name: string;
+  variantName?: string;
   price: number;
   quantity: number;
   stock: number;
+  interestFreeInstallments?: number;
 };
 
 type CartState = { items: CartItem[]; hydrated: boolean };
@@ -124,9 +126,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           slug: product.slug,
           brand: product.brand,
           name: product.name,
+          variantName: product.variantName,
           price: product.price,
           quantity: canAdd,
           stock: product.stock,
+          interestFreeInstallments: product.interestFreeInstallments,
         },
       });
       if (canAdd < quantity) {
@@ -145,9 +149,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         slug: product.slug,
         brand: product.brand,
         name: product.name,
+        variantName: product.variantName,
         price: product.price,
         quantity: toAdd,
         stock: product.stock,
+        interestFreeInstallments: product.interestFreeInstallments,
       },
     });
     if (toAdd < quantity) {

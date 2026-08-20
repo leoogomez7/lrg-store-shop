@@ -128,7 +128,7 @@ function BrandHeaderContent({
 
   const defaultLinks: Array<{ label: string; to: string; exact?: boolean }> = [];
 
-  const effectiveSlug = displayBrandName ? (logoBrandSlug ?? "store-shop") : brand.slug;
+  const effectiveSlug = displayBrandName ? (logoBrandSlug ?? brand.slug) : brand.slug;
   const links = defaultLinks;
 
   const brandLabel = displayBrandName ?? brand.name;
@@ -284,7 +284,7 @@ function BrandHeaderContent({
             <DropdownMenu open={openBuyMenu} onOpenChange={setOpenBuyMenu}>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="sm" className="rounded-xl gap-2">
-                  <ShoppingCart className="size-4" />
+                  <ShoppingBag className="size-4" />
                   <span className="hidden sm:inline">Comprar</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -310,7 +310,7 @@ function BrandHeaderContent({
             <DropdownMenu open={openCart} onOpenChange={setOpenCart}>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="sm" className="rounded-xl relative gap-2">
-                  <ShoppingBag className="size-4" />
+                  <ShoppingCart className="size-4" />
                   <span className="hidden sm:inline">Carrito</span>
                   {count > 0 && (
                     <Badge className="absolute -top-2 -right-2 size-5 justify-center rounded-full p-0 text-[0.65rem]">

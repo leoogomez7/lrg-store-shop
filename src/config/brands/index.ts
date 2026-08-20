@@ -5,6 +5,8 @@ import type { BrandCategory, BrandConfig, BrandPaymentMethod, BrandShippingConfi
 
 const CATEGORY_STORAGE_KEY = "lrg-brand-categories-v1";
 const CONTACT_STORAGE_KEY = "lrg-brand-contact-v1";
+const STORE_SHOP_CONTACT_STORAGE_KEY = "lrg-store-shop-contact-v1";
+const BRAND_PRESENTATION_STORAGE_KEY = "lrg-brand-contact-presentation-v1";
 const PAYMENT_METHODS_STORAGE_KEY = "lrg:paymentMethods";
 const SHIPPING_METHODS_STORAGE_KEY = "lrg:shippingMethods";
 const FREE_SHIPPING_THRESHOLD_STORAGE_KEY = "lrg:freeShippingThreshold";
@@ -292,6 +294,133 @@ export function setBrandShippingConfig(slug: BrandSlug, shippingConfig: BrandShi
 
 export let brands: Record<BrandSlug, BrandConfig> = initialBrandState();
 export let brandList: BrandConfig[] = Object.values(brands);
+export const storeShopListing = { slug: "store-shop" as const, name: "LRG Store Shop" };
+export const getStoreNavigation = () => [storeShopListing, ...brandList];
+
+export type StoreShopContactItem = { text: string; href: string; logo: string };
+export type StoreShopContact = {
+  email: StoreShopContactItem;
+  phone: StoreShopContactItem;
+  location: StoreShopContactItem;
+  socials: {
+    instagram: StoreShopContactItem;
+    whatsapp: StoreShopContactItem;
+    tiktok: StoreShopContactItem;
+    facebook: StoreShopContactItem;
+    review: StoreShopContactItem;
+  };
+};
+export type BrandContactPresentation = StoreShopContact;
+
+const defaultStoreShopContact: StoreShopContact = {
+  email: { text: "lrgwebdesign@gmail.com", href: "mailto:lrgwebdesign@gmail.com", logo: "" },
+  phone: { text: "+5491132965583", href: "tel:+5491132965583", logo: "" },
+  location: {
+    text: "Merlo, Buenos Aires, Argentina",
+    href: "https://www.google.com/maps/search/?api=1&query=Merlo%2C%20Buenos%20Aires%2C%20Argentina",
+    logo: "",
+  },
+  socials: {
+    instagram: { text: "Instagram", href: "", logo: "" },
+    whatsapp: { text: "WhatsApp", href: "", logo: "" },
+    tiktok: { text: "TikTok", href: "", logo: "" },
+    facebook: { text: "Facebook", href: "", logo: "" },
+    review: { text: "Reseñas", href: "", logo: "" },
+  },
+};
+
+function normalizeStoreShopContact(raw: unknown): StoreShopContact {
+  const value = (raw ?? {}) as Partial<StoreShopContact> & Record<string, unknown>;
+  const normalizeItem = (key: keyof StoreShopContact, fallback: StoreShopContactItem) => {
+    const item = value[key];
+    if (typeof item === "string") return { ...fallback, text: item };
+    return { ...fallback, ...(item as Partial<StoreShopContactItem> ?? {}) };
+  };
+  return {
+    email: normalizeItem("email", defaultStoreShopContact.email),
+    phone: normalizeItem("phone", defaultStoreShopContact.phone),
+    location: normalizeItem("location", defaultStoreShopContact.location),
+    socials: {
+      ...defaultStoreShopContact.socials,
+      ...(value.socials as Partial<StoreShopContact["socials"]> ?? {}),
+    },
+  };
+}
+
+export function getStoreShopContact() {
+  if (typeof window === "undefined") return defaultStoreShopContact;
+  try {
+    const raw = window.localStorage.getItem(STORE_SHOP_CONTACT_STORAGE_KEY);
+    return raw ? normalizeStoreShopContact(JSON.parse(raw)) : defaultStoreShopContact;
+  } catch {
+    return defaultStoreShopContact;
+  }
+}
+
+export function setStoreShopContact(contact: Partial<StoreShopContact>) {
+  const current = getStoreShopContact();
+  const next = {
+    ...current,
+    ...contact,
+    socials: { ...current.socials, ...(contact.socials ?? {}) },
+  };
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(STORE_SHOP_CONTACT_STORAGE_KEY, JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent("lrg-brand-data-updated"));
+  }
+  return next;
+}
+
+export function getBrandContactPresentation(slug: BrandSlug): BrandContactPresentation {
+  const brand = brands[slug];
+  const fallback: BrandContactPresentation = {
+    email: { text: brand.contact.email, href: `mailto:${brand.contact.email}`, logo: "" },
+    phone: { text: brand.contact.phone, href: `tel:${brand.contact.phone}`, logo: "" },
+    location: {
+      text: brand.contact.location,
+      href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(brand.contact.location)}`,
+      logo: "",
+    },
+    socials: {
+      instagram: { text: "Instagram", href: brand.social.find((item) => item.label.toLowerCase().includes("instagram"))?.href ?? "", logo: "" },
+      whatsapp: { text: "WhatsApp", href: brand.social.find((item) => item.label.toLowerCase().includes("whatsapp"))?.href ?? "", logo: "" },
+      tiktok: { text: "TikTok", href: brand.social.find((item) => item.label.toLowerCase().includes("tiktok"))?.href ?? "", logo: "" },
+      facebook: { text: "Facebook", href: brand.social.find((item) => item.label.toLowerCase().includes("facebook"))?.href ?? "", logo: "" },
+      review: { text: "Reseñas", href: "https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar", logo: "" },
+    },
+  };
+  if (typeof window === "undefined") return fallback;
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(BRAND_PRESENTATION_STORAGE_KEY) ?? "{}") as Record<string, Partial<BrandContactPresentation>>;
+    return {
+      ...fallback,
+      ...(stored[slug] ?? {}),
+      socials: { ...fallback.socials, ...(stored[slug]?.socials ?? {}) },
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+export function setBrandContactPresentation(slug: BrandSlug, presentation: Partial<BrandContactPresentation>) {
+  if (typeof window === "undefined") return getBrandContactPresentation(slug);
+  const stored = JSON.parse(window.localStorage.getItem(BRAND_PRESENTATION_STORAGE_KEY) ?? "{}") as Record<string, BrandContactPresentation>;
+  const current = getBrandContactPresentation(slug);
+  const next = {
+    ...current,
+    ...presentation,
+    socials: { ...current.socials, ...(presentation.socials ?? {}) },
+  };
+  window.localStorage.setItem(BRAND_PRESENTATION_STORAGE_KEY, JSON.stringify({ ...stored, [slug]: next }));
+  window.dispatchEvent(new Event("lrg-brand-data-updated"));
+  return next;
+}
+
+export function getStoreShopCategories() {
+  return brandList.flatMap((brand) =>
+    brand.categories.map((category) => ({ ...category, brandSlug: brand.slug, brandName: brand.name })),
+  );
+}
 
 export function setBrandCategories(slug: BrandSlug, categories: BrandCategory[]) {
   const next = {

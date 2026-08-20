@@ -52,7 +52,12 @@ function AdminConfiguration() {
   const [selectedBrand, setSelectedBrand] = useState(brandList[0]?.slug ?? "");
   const [categories, setCategories] = useState(() => {
     const current = brandList.find((brand) => brand.slug === selectedBrand)?.categories ?? [];
-    return current.map((category) => ({ id: category.slug, name: category.name, enabled: true }));
+    return current.map((category) => ({
+      id: category.slug,
+      name: category.name,
+      description: category.description ?? "",
+      enabled: true,
+    }));
   });
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -97,6 +102,7 @@ function AdminConfiguration() {
 
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [editingCategorySubtitle, setEditingCategorySubtitle] = useState("");
 
   const persistCategories = (nextCategories: typeof categories) => {
     const selectedBrandConfig = brandList.find((brand) => brand.slug === selectedBrand);
@@ -105,7 +111,7 @@ function AdminConfiguration() {
     const updatedCategories = nextCategories.map((category) => ({
       slug: category.id || category.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
       name: category.name.trim(),
-      description: category.name.trim(),
+      description: category.description?.trim() || category.name.trim(),
     }));
 
     setBrandCategories(selectedBrandConfig.slug, updatedCategories);
@@ -114,7 +120,14 @@ function AdminConfiguration() {
 
   const syncCategoriesToSelectedBrand = (brandSlug: string) => {
     const current = brandList.find((brand) => brand.slug === brandSlug)?.categories ?? [];
-    setCategories(current.map((category) => ({ id: category.slug, name: category.name, enabled: true })));
+    setCategories(
+      current.map((category) => ({
+        id: category.slug,
+        name: category.name,
+        description: category.description ?? "",
+        enabled: true,
+      })),
+    );
   };
 
   const addShippingMethod = () => {
@@ -391,7 +404,12 @@ function AdminConfiguration() {
     if (!trimmed) return;
     const next = [
       ...categories,
-      { id: `${Date.now()}-${trimmed}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""), name: trimmed, enabled: true },
+      {
+        id: `${Date.now()}-${trimmed}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
+        name: trimmed,
+        description: "",
+        enabled: true,
+      },
     ];
     persistCategories(next);
     setNewCategory("");
@@ -404,20 +422,24 @@ function AdminConfiguration() {
     persistCategories(next);
   };
 
-  const startEditingCategory = (category: { id: string; name: string }) => {
+  const startEditingCategory = (category: { id: string; name: string; description?: string }) => {
     setEditingCategoryId(category.id);
     setEditingCategoryName(category.name);
+    setEditingCategorySubtitle(category.description ?? "");
   };
 
   const saveEditedCategory = (id: string) => {
     const trimmed = editingCategoryName.trim();
     if (!trimmed) return;
     const next = categories.map((category) =>
-      category.id === id ? { ...category, name: trimmed } : category,
+      category.id === id
+        ? { ...category, name: trimmed, description: editingCategorySubtitle.trim() }
+        : category,
     );
     persistCategories(next);
     setEditingCategoryId(null);
     setEditingCategoryName("");
+    setEditingCategorySubtitle("");
   };
 
   const removeCategory = (id: string) => {
@@ -595,11 +617,11 @@ function AdminConfiguration() {
                     {editingMethodId === method.id ? (
                       <>
                         <Button
-                          variant="secondary"
+                          variant="ghost"
                           size="sm"
                           onClick={() => saveEditedMethod(method.id)}
-                          disabled={!editingMethodName.trim()}
-                          className="gap-2"
+                          disabled={!editingMethodName.trim() || editingMethodName.trim() === method.name}
+                          className="h-8 gap-1 rounded-md border border-transparent bg-transparent px-2 text-sm text-green-600 shadow-none hover:bg-green-100/80 hover:text-green-700 hover:shadow-none disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40 disabled:opacity-100"
                         >
                           <Check className="h-4 w-4" />
                           Guardar
@@ -611,7 +633,7 @@ function AdminConfiguration() {
                             setEditingMethodId(null);
                             setEditingMethodName("");
                           }}
-                          className="gap-2 text-destructive hover:bg-destructive/10"
+                          className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
                         >
                           <X className="h-4 w-4" />
                           Cancelar
@@ -655,7 +677,7 @@ function AdminConfiguration() {
                               onConfirm: () => removeShippingMethod(method.id),
                             })
                           }
-                          className="gap-2 text-destructive hover:bg-destructive/10"
+                          className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="h-4 w-4" />
                           Eliminar
@@ -737,11 +759,11 @@ function AdminConfiguration() {
                     {editingPaymentMethodId === method.id ? (
                       <>
                         <Button
-                          variant="secondary"
+                          variant="ghost"
                           size="sm"
                           onClick={() => saveEditedPaymentMethod(method.id)}
-                          disabled={!editingPaymentMethodName.trim()}
-                          className="gap-2"
+                          disabled={!editingPaymentMethodName.trim() || editingPaymentMethodName.trim() === method.name}
+                          className="h-8 gap-1 rounded-md border border-transparent bg-transparent px-2 text-sm text-green-600 shadow-none hover:bg-green-100/80 hover:text-green-700 hover:shadow-none disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40 disabled:opacity-100"
                         >
                           <Check className="h-4 w-4" />
                           Guardar
@@ -753,7 +775,7 @@ function AdminConfiguration() {
                             setEditingPaymentMethodId(null);
                             setEditingPaymentMethodName("");
                           }}
-                          className="gap-2 text-destructive hover:bg-destructive/10"
+                          className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
                         >
                           <X className="h-4 w-4" />
                           Cancelar
@@ -847,11 +869,27 @@ function AdminConfiguration() {
                 >
                   <div className="min-w-0 flex-1 text-sm font-semibold text-foreground">
                     {editingCategoryId === category.id ? (
-                        <Input
-                        value={editingCategoryName}
-                        onChange={(event) => setEditingCategoryName(event.target.value)}
-                        className="min-w-35 w-full"
-                      />
+                      <div className="grid w-full gap-2 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label htmlFor={`category-name-${category.id}`}>Nombre categoría</Label>
+                          <Input
+                            id={`category-name-${category.id}`}
+                            value={editingCategoryName}
+                            onChange={(event) => setEditingCategoryName(event.target.value)}
+                            className="min-w-35 w-full"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`category-description-${category.id}`}>Descripción</Label>
+                          <Input
+                            id={`category-description-${category.id}`}
+                            value={editingCategorySubtitle}
+                            onChange={(event) => setEditingCategorySubtitle(event.target.value)}
+                            aria-label={`Descripción de ${category.name}`}
+                            className="min-w-35 w-full"
+                          />
+                        </div>
+                      </div>
                     ) : (
                       category.name
                     )}
@@ -861,11 +899,15 @@ function AdminConfiguration() {
                     {editingCategoryId === category.id ? (
                       <>
                         <Button
-                          variant="secondary"
+                          variant="ghost"
                           size="sm"
                           onClick={() => saveEditedCategory(category.id)}
-                          disabled={!editingCategoryName.trim()}
-                          className="gap-2"
+                          disabled={
+                            !editingCategoryName.trim() ||
+                            (editingCategoryName.trim() === category.name &&
+                              editingCategorySubtitle.trim() === (category.description ?? "").trim())
+                          }
+                          className="h-8 gap-1 rounded-md border border-transparent bg-transparent px-2 text-sm text-green-600 shadow-none hover:bg-green-100/80 hover:text-green-700 hover:shadow-none disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40 disabled:opacity-100"
                         >
                           <Check className="h-4 w-4" />
                           Guardar
@@ -876,6 +918,7 @@ function AdminConfiguration() {
                           onClick={() => {
                             setEditingCategoryId(null);
                             setEditingCategoryName("");
+                            setEditingCategorySubtitle("");
                           }}
                           className="gap-2 text-destructive hover:bg-destructive/10"
                         >

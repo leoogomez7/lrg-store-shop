@@ -138,7 +138,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/LRG Store Shop PNG.png", type: "image/png" },
     ],
   }),
   shellComponent: RootShell,

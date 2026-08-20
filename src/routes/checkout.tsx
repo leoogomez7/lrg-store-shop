@@ -6,6 +6,7 @@ import { useCart } from "@/store/cart";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { getBrand } from "@/config/brands";
+import { products } from "@/data/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,29 @@ function CheckoutPage() {
   // Choose brand from first item in cart if available, otherwise default to web-design
   const firstBrandSlug = items[0]?.brand ?? "web-design";
   const brand = getBrand(firstBrandSlug)!;
+  const productsForCart = items.map((item) => products.find((product) => product.id === item.id));
+  const availablePaymentMethods = (brand.paymentMethods ?? brand.payments.map((name) => ({ id: name, name, enabled: true })))
+    .filter((method) => method.enabled && items.every((item, index) => {
+      const storeMethod = getBrand(item.brand)?.paymentMethods?.find((availableMethod) => availableMethod.id === method.id);
+      if (!storeMethod?.enabled) return false;
+      const allowed = productsForCart[index]?.authorizedPaymentMethodIds;
+      return allowed === undefined || allowed.includes(method.id);
+    }));
+  const availableShippingMethods = (brand.shipping?.methods ?? [])
+    .filter((method) => method.enabled && items.every((item, index) => {
+      const storeMethod = getBrand(item.brand)?.shipping?.methods.find((availableMethod) => availableMethod.id === method.id);
+      if (!storeMethod?.enabled) return false;
+      const allowed = productsForCart[index]?.authorizedShippingMethodIds;
+      return allowed === undefined || allowed.includes(method.id);
+    }));
+  const creditCardMethods = availablePaymentMethods.filter((method) => /visa|mastercard|amex|tarjeta\s+de\s+cr[eé]dito/i.test(method.name));
+  const otherPaymentMethods = availablePaymentMethods.filter((method) => !creditCardMethods.includes(method));
+  const interestFreeOptions = Array.from(new Set([
+    1,
+    ...items
+      .map((item) => item.interestFreeInstallments ?? 0)
+      .filter((installments) => installments > 1),
+  ])).sort((first, second) => first - second);
 
   // Ensure header and footer are shown on checkout
   const Header = (
@@ -54,7 +78,11 @@ function CheckoutPage() {
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<string>(brand.payments[0] ?? "Tarjeta");
+  const [paymentMethod, setPaymentMethod] = useState<string>(availablePaymentMethods[0]?.name ?? "Tarjeta");
+  const [creditCardOpen, setCreditCardOpen] = useState(false);
+  const [selectedInstallments, setSelectedInstallments] = useState(1);
+  const isCreditCardSelected = creditCardMethods.some((payment) => payment.name === paymentMethod);
+  const [shippingMethod, setShippingMethod] = useState<string>(availableShippingMethods[0]?.name ?? "");
   const [validationMessage, setValidationMessage] = useState("");
   const validationRef = useRef<HTMLDivElement | null>(null);
 
@@ -75,6 +103,7 @@ function CheckoutPage() {
     if (!city.trim()) missingFields.push("Ciudad");
     if (!address.trim()) missingFields.push("Dirección");
     if (!paymentMethod.trim()) missingFields.push("Método de pago");
+    if (availableShippingMethods.length > 0 && !shippingMethod.trim()) missingFields.push("Método de envío");
 
     if (missingFields.length > 0) {
       setValidationMessage(`Faltan completar: ${missingFields.join(", ")}.`);
@@ -99,6 +128,7 @@ function CheckoutPage() {
       profit: total - expenses,
       status: "pendiente",
       paymentMethod,
+      shippingMethod,
       items: items.map((item) => ({ name: item.name, quantity: item.quantity, price: item.price })),
     };
 
@@ -195,15 +225,78 @@ function CheckoutPage() {
               </div>
             </section>
 
+            {availableShippingMethods.length > 0 && (
+              <section className="glass-panel rounded-2xl p-6">
+                <h2 className="font-display flex items-center gap-2 font-semibold">
+                  <Truck className="size-4 text-primary" /> Método de envío
+                </h2>
+                <RadioGroup value={shippingMethod} onValueChange={setShippingMethod} className="mt-5 space-y-3">
+                  {availableShippingMethods.map((shippingOption) => (
+                    <label key={shippingOption.id} className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-2/60 px-4 py-3 text-sm">
+                      <RadioGroupItem value={shippingOption.name} />
+                      {shippingOption.name}
+                    </label>
+                  ))}
+                </RadioGroup>
+              </section>
+            )}
+
             <section className="glass-panel rounded-2xl p-6">
               <h2 className="font-display flex items-center gap-2 font-semibold">
                 <CreditCard className="size-4 text-primary" /> Método de pago
               </h2>
               <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="mt-5 space-y-3">
-                {brand.payments.map((payment) => (
-                  <label key={payment} className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-2/60 px-4 py-3 text-sm">
-                    <RadioGroupItem value={payment} />
-                    {payment}
+                {creditCardMethods.length > 0 && (
+                  <div className="rounded-xl bg-surface-2/60 px-4 py-3">
+                    <div className="flex items-center gap-3 text-sm">
+                      <RadioGroupItem value={creditCardMethods[0].name} />
+                      <span className="flex-1">Tarjeta de crédito</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCreditCardOpen((current) => !current)}
+                      >
+                        {creditCardOpen ? "Ver menos" : "Ver más"}
+                      </Button>
+                    </div>
+                    {creditCardOpen && (
+                      <div className="mt-3 space-y-3 border-t border-border/60 pt-3">
+                        <p className="text-xs text-muted-foreground">Elegí la tarjeta y la cantidad de cuotas.</p>
+                        <div className="space-y-2">
+                          {creditCardMethods.map((payment) => (
+                            <label key={payment.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/60 px-3 py-2 text-sm">
+                              <RadioGroupItem value={payment.name} />
+                              {payment.name}
+                            </label>
+                          ))}
+                        </div>
+                        {creditCardMethods.some((payment) => payment.name === paymentMethod) && interestFreeOptions.length > 1 && (
+                          <div className="space-y-2">
+                            <Label>Cantidad de cuotas</Label>
+                            <div className="grid gap-2 sm:grid-cols-3">
+                              {interestFreeOptions.map((installments) => (
+                                <label key={installments} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm">
+                                  <input
+                                    type="radio"
+                                    name="installments"
+                                    checked={selectedInstallments === installments}
+                                    onChange={() => setSelectedInstallments(installments)}
+                                  />
+                                  {installments === 1 ? "1 pago" : `${installments} cuotas`}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {otherPaymentMethods.map((payment) => (
+                  <label key={payment.id} className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-2/60 px-4 py-3 text-sm">
+                    <RadioGroupItem value={payment.name} />
+                    {payment.name}
                   </label>
                 ))}
               </RadioGroup>
@@ -216,6 +309,18 @@ function CheckoutPage() {
           <aside className="glass-panel h-fit rounded-2xl p-6 lg:sticky lg:top-24">
             <h2 className="font-display font-semibold">Tu pedido</h2>
             <div className="mt-5 space-y-3 text-sm">
+              {items.map((item) => {
+                const configuredInstallments = item.interestFreeInstallments ?? 0;
+                const appliedInstallments = isCreditCardSelected && selectedInstallments > 1 && configuredInstallments >= selectedInstallments
+                  ? selectedInstallments
+                  : 1;
+                return appliedInstallments > 1 ? (
+                  <div key={item.id} className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{item.name} · {appliedInstallments} cuotas sin interés</span>
+                    <span>{formatPrice((item.price * item.quantity) / appliedInstallments)}</span>
+                  </div>
+                ) : null;
+              })}
               <div className="flex items-center justify-between">
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>

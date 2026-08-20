@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 
 import { formatPrice } from "@/lib/format";
 import { brandList, type BrandCategory } from "@/config/brands";
+import type { CurrencyCode } from "@/data/products";
 
 export type SortOption =
   | "precio-asc"
@@ -25,6 +26,7 @@ export type CatalogFilters = {
   search: string;
   categories: string[];
   brands?: string[];
+  priceCurrencies?: CurrencyCode[];
   minPrice: number;
   maxPrice: number;
   inStockOnly: boolean;
@@ -66,17 +68,26 @@ export function ProductFilters({
     (filters.search ? 1 : 0) +
     filters.categories.length +
     (filters.brands?.length ?? 0) +
+    (filters.priceCurrencies?.length ?? 0) +
     (filters.inStockOnly ? 1 : 0) +
     (filters.minPrice > 0 ? 1 : 0) +
     (filters.maxPrice < priceLimit ? 1 : 0);
 
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [brandsOpen, setBrandsOpen] = useState(false);
+  const [priceOpen, setPriceOpen] = useState(false);
   const activeCatCount = filters.categories.length;
   const activeBrandCount = filters.brands?.length ?? 0;
+  const activePriceCount = (filters.minPrice > 0 ? 1 : 0) + (filters.maxPrice < priceLimit ? 1 : 0);
+  const priceCurrencyLabel =
+    filters.priceCurrencies?.length === 2
+      ? "$/USD"
+      : filters.priceCurrencies?.[0] === "USD"
+        ? "USD"
+        : "$";
 
   return (
-    <aside className="glass-panel h-fit space-y-6 rounded-2xl p-5 lg:sticky lg:top-24">
+    <aside className="glass-panel h-fit w-fit max-w-full space-y-6 rounded-2xl p-5 lg:sticky lg:top-24">
       {!hideSearch && (
         <div className="space-y-2">
           <Label htmlFor="filter-search">Buscar</Label>
@@ -188,28 +199,94 @@ export function ProductFilters({
       )}
 
       <div className="space-y-3">
-        <div className="flex items-center gap-2 text-[11px] font-medium text-foreground/90">
-          <span className="flex-1 border-b border-white/10 pb-1 text-left">
-            Desde {formatPrice(filters.minPrice)}
-          </span>
-          <span className="flex-1 border-b border-white/10 pb-1 text-right">
-            Hasta {formatPrice(filters.maxPrice)}
-          </span>
-        </div>
-        <Slider
-          min={0}
-          max={priceLimit}
-          step={Math.max(1, Math.round(priceLimit / 100))}
-          value={[filters.minPrice, filters.maxPrice]}
-          onValueChange={(value) => {
-            const nextMin = value[0] ?? 0;
-            const nextMax = value[1] ?? priceLimit;
-            onChange({
-              minPrice: Math.min(nextMin, nextMax),
-              maxPrice: Math.max(nextMin, nextMax),
-            });
-          }}
-        />
+        <button
+          type="button"
+          onClick={() => setPriceOpen((s) => !s)}
+          className="flex items-center gap-2 text-sm font-medium"
+          aria-expanded={priceOpen}
+          aria-controls="price-list"
+        >
+          <span>Precio</span>
+          {activePriceCount > 0 && <Badge variant="secondary">{activePriceCount}</Badge>}
+          {priceOpen ? (
+            <ChevronUp className="size-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="size-4 text-muted-foreground" />
+          )}
+        </button>
+
+        {priceOpen && (
+          <div id="price-list" className="space-y-3">
+            <div className="space-y-2.5">
+              {(["ARS", "USD"] as const).map((currency) => (
+                <label key={currency} className="flex cursor-pointer items-start gap-3 text-sm">
+                  <Checkbox
+                    checked={filters.priceCurrencies?.includes(currency) ?? false}
+                    onCheckedChange={(checked) => {
+                      const selected = filters.priceCurrencies ?? [];
+                      onChange({
+                        priceCurrencies: checked
+                          ? [...selected, currency]
+                          : selected.filter((value) => value !== currency),
+                      });
+                    }}
+                  />
+                  <span className="font-medium">
+                    {currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-foreground/90">
+              <label className="flex shrink-0 items-center gap-2">
+                <span>Desde {priceCurrencyLabel}</span>
+                <Input
+                  aria-label={`Precio mínimo en ${priceCurrencyLabel}`}
+                  type="number"
+                  min={0}
+                  max={priceLimit}
+                  value={filters.minPrice}
+                  onChange={(event) => {
+                    const value = Number(event.target.value);
+                    if (!Number.isFinite(value)) return;
+                    onChange({ minPrice: Math.min(Math.max(0, value), filters.maxPrice) });
+                  }}
+                  className="h-8 w-20 px-2 sm:w-24"
+                />
+              </label>
+              <label className="flex shrink-0 items-center justify-end gap-2">
+                <span>Hasta {priceCurrencyLabel}</span>
+                <Input
+                  aria-label={`Precio máximo en ${priceCurrencyLabel}`}
+                  type="number"
+                  min={0}
+                  max={priceLimit}
+                  value={filters.maxPrice}
+                  onChange={(event) => {
+                    const value = Number(event.target.value);
+                    if (!Number.isFinite(value)) return;
+                    onChange({ maxPrice: Math.max(Math.min(priceLimit, value), filters.minPrice) });
+                  }}
+                  className="h-8 w-20 px-2 sm:w-24"
+                />
+              </label>
+            </div>
+            <Slider
+              min={0}
+              max={priceLimit}
+              step={Math.max(1, Math.round(priceLimit / 100))}
+              value={[filters.minPrice, filters.maxPrice]}
+              onValueChange={(value) => {
+                const nextMin = value[0] ?? 0;
+                const nextMax = value[1] ?? priceLimit;
+                onChange({
+                  minPrice: Math.min(nextMin, nextMax),
+                  maxPrice: Math.max(nextMin, nextMax),
+                });
+              }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">

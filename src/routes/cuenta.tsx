@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Heart, MapPin, Package, Pencil, Plus, Trash2, User } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BrandHeader } from "@/components/layout/brand-header";
+import { BrandFooter } from "@/components/layout/brand-footer";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { webDesignConfig } from "@/config/brands/web-design.config";
 import { Badge } from "@/components/ui/badge";
@@ -420,6 +421,7 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             )}
           </TabsContent>
         </Tabs>
+        <BrandFooter brand={webDesignConfig} />
     </div>
   );
 }

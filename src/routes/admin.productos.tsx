@@ -3,8 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronUp, Edit3, Filter, Pencil, Plus, Save, Search, Trash2, X, Copy, Eye, ArrowUpDown, Sheet, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
-import { products as productsData, saveProducts } from "@/data/products";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { products as productsData, saveProducts, type ProductVariant } from "@/data/products";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,8 @@ type ProductFormState = {
   category: string;
   price: number;
   priceCurrency: CurrencyCode;
+  comision: number;
+  comisionCurrency: CurrencyCode;
   stock: number;
   description: string;
   features: string[];
@@ -62,6 +64,10 @@ type ProductFormState = {
   deliveryUnit: DeliveryUnit;
   deliveryAmount: number;
   discount: number;
+  authorizedPaymentMethodIds: string[];
+  authorizedShippingMethodIds: string[];
+  interestFreeInstallments: number;
+  variants: ProductVariant[];
 };
 
 export const Route = createFileRoute("/admin/productos")({
@@ -89,7 +95,7 @@ function AdminProducts() {
   const [query, setQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState<BrandSlug[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
-  const [currencyFilter, setCurrencyFilter] = useState<CurrencyCode[]>([]);
+  const [currencyFilter, setCurrencyFilter] = useState<CurrencyCode[]>(["ARS", "USD"]);
   const [priceMode, setPriceMode] = useState<"price" | "storePrice">("storePrice");
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(0);
@@ -164,6 +170,8 @@ function AdminProducts() {
     category: "",
     price: 0,
     priceCurrency: "ARS",
+    comision: 0,
+    comisionCurrency: "ARS",
     stock: 0,
     description: "",
     features: [],
@@ -174,6 +182,10 @@ function AdminProducts() {
     deliveryUnit: "inmediata",
     deliveryAmount: 0,
     discount: 0,
+    authorizedPaymentMethodIds: [],
+    authorizedShippingMethodIds: [],
+    interestFreeInstallments: 0,
+    variants: [],
   };
 
   const handleUsdRateConfirm = () => {
@@ -197,7 +209,12 @@ function AdminProducts() {
     setCreateChoiceOpen(false);
     setEditingProduct(null);
     setDialogMode("create");
-    setProductForm({ ...defaultFormState, usdRate });
+    setProductForm({
+      ...defaultFormState,
+      usdRate,
+      authorizedPaymentMethodIds: (brands.arcade.paymentMethods ?? []).filter((method) => method.enabled).map((method) => method.id),
+      authorizedShippingMethodIds: (brands.arcade.shipping?.methods ?? []).filter((method) => method.enabled).map((method) => method.id),
+    });
     setDialogOpen(true);
   };
 
@@ -263,6 +280,8 @@ function AdminProducts() {
       category: product.category,
       price: product.price,
       priceCurrency: product.priceCurrency ?? "ARS",
+      comision: product.comision ?? 0,
+      comisionCurrency: product.comisionCurrency ?? "ARS",
       stock: product.stock,
       description: product.description,
       features: product.features ?? [],
@@ -273,6 +292,10 @@ function AdminProducts() {
       deliveryUnit: "inmediata",
       deliveryAmount: 1,
       discount: discounts[product.id] ?? 0,
+      authorizedPaymentMethodIds: product.authorizedPaymentMethodIds ?? (brands[product.brand].paymentMethods ?? []).filter((method) => method.enabled).map((method) => method.id),
+      authorizedShippingMethodIds: product.authorizedShippingMethodIds ?? (brands[product.brand].shipping?.methods ?? []).filter((method) => method.enabled).map((method) => method.id),
+      interestFreeInstallments: product.interestFreeInstallments ?? 0,
+      variants: product.variants ?? [],
     });
     setPendingDiscounts((current) => ({
       ...current,
@@ -386,7 +409,7 @@ function AdminProducts() {
     if (!draft) return;
 
     const nextBrand = draft.brand;
-    const nextName = product.name;
+    const nextName = draft.name.trim() || product.name;
     const nextCategory = draft.category.trim() || product.category;
     const nextPrice = Number(draft.price) || product.price;
     const nextStock = Number(draft.stock) || product.stock;
@@ -461,10 +484,15 @@ function AdminProducts() {
               brand: productForm.brand,
               category: productForm.category,
               price: productForm.price,
+              comision: productForm.comision,
               stock: productForm.stock,
               description: productForm.description,
               features: productForm.features,
               images: productForm.images,
+              authorizedPaymentMethodIds: productForm.authorizedPaymentMethodIds,
+              authorizedShippingMethodIds: productForm.authorizedShippingMethodIds,
+              interestFreeInstallments: productForm.interestFreeInstallments,
+              variants: productForm.variants,
             }
           : item,
       );
@@ -482,6 +510,8 @@ function AdminProducts() {
           category: productForm.category,
           price: productForm.price,
           priceCurrency: productForm.priceCurrency,
+          comision: productForm.comision,
+          comisionCurrency: productForm.comisionCurrency,
           gastos: productForm.gastos,
           gastosCurrency: productForm.gastosCurrency,
           usdRate: productForm.usdRate,
@@ -492,6 +522,10 @@ function AdminProducts() {
           description: productForm.description,
           features: productForm.features,
           images: productForm.images,
+          authorizedPaymentMethodIds: productForm.authorizedPaymentMethodIds,
+          authorizedShippingMethodIds: productForm.authorizedShippingMethodIds,
+          interestFreeInstallments: productForm.interestFreeInstallments,
+          variants: productForm.variants,
           createdAt: new Date().toISOString().slice(0, 10),
         } as Product;
 
@@ -507,6 +541,8 @@ function AdminProducts() {
         existing.category = productForm.category;
         existing.price = productForm.price;
         existing.priceCurrency = productForm.priceCurrency;
+        existing.comision = productForm.comision;
+        existing.comisionCurrency = productForm.comisionCurrency;
         existing.gastos = productForm.gastos;
         existing.gastosCurrency = productForm.gastosCurrency;
         existing.usdRate = productForm.usdRate;
@@ -514,6 +550,10 @@ function AdminProducts() {
         existing.description = productForm.description;
         existing.features = productForm.features;
         existing.images = productForm.images;
+        existing.authorizedPaymentMethodIds = productForm.authorizedPaymentMethodIds;
+        existing.authorizedShippingMethodIds = productForm.authorizedShippingMethodIds;
+        existing.interestFreeInstallments = productForm.interestFreeInstallments;
+        existing.variants = productForm.variants;
       }
 
       return updated;
@@ -633,6 +673,14 @@ function AdminProducts() {
     if (!pageSize || pageSize <= 0) return [] as typeof results;
     return results.slice(page * pageSize, page * pageSize + pageSize);
   }, [results, page, pageSize]);
+  const displayRows = useMemo(
+    () => visibleResults.flatMap((product) =>
+      product.variants && product.variants.length >= 2
+        ? product.variants.map((variant) => ({ product, variant }))
+        : [{ product, variant: undefined }],
+    ),
+    [visibleResults],
+  );
   const totalPages = pageSize && pageSize > 0 ? Math.max(1, Math.ceil(results.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
@@ -650,7 +698,7 @@ function AdminProducts() {
   const resetFilters = () => {
     setCategoryFilter([]);
     setBrandFilter([]);
-    setCurrencyFilter([]);
+    setCurrencyFilter(["ARS", "USD"]);
     setPriceMode("storePrice");
     setPriceMin(0);
     setPriceMax(priceLimit);
@@ -856,7 +904,7 @@ function AdminProducts() {
       </div>
 
       {filtersOpen ? (
-        <div className="glass-panel mt-4 space-y-6 rounded-2xl p-5">
+        <div className="glass-panel mt-4 w-fit max-w-full space-y-6 rounded-2xl p-5">
           <div className="space-y-3">
             <button
               type="button"
@@ -966,56 +1014,56 @@ function AdminProducts() {
                   />
                   <span className="font-medium">Precio en la tienda</span>
                 </label>
+                <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-foreground/90">
+                  <label className="flex shrink-0 items-center gap-2">
+                    <span>Desde {priceCurrencyLabel}</span>
+                    <Input
+                      aria-label="Precio mínimo"
+                      type="number"
+                      min={0}
+                      max={priceLimit}
+                      value={priceMin}
+                      aria-valuetext={formatPrice(priceMin, priceDisplayCurrency)}
+                      onChange={(event) => {
+                        const value = Number(event.target.value);
+                        if (!Number.isFinite(value)) return;
+                        setPriceMin(Math.min(Math.max(0, value), priceMax));
+                      }}
+                      className="h-8 w-20 px-2 sm:w-24"
+                    />
+                  </label>
+                  <label className="flex shrink-0 items-center justify-end gap-2">
+                    <span>Hasta {priceCurrencyLabel}</span>
+                    <Input
+                      aria-label="Precio máximo"
+                      type="number"
+                      min={0}
+                      max={priceLimit}
+                      value={priceMax}
+                      aria-valuetext={formatPrice(priceMax, priceDisplayCurrency)}
+                      onChange={(event) => {
+                        const value = Number(event.target.value);
+                        if (!Number.isFinite(value)) return;
+                        setPriceMax(Math.max(Math.min(priceLimit, value), priceMin));
+                      }}
+                      className="h-8 w-20 px-2 sm:w-24"
+                    />
+                  </label>
+                </div>
+                <Slider
+                  min={0}
+                  max={priceLimit}
+                  step={Math.max(1, Math.round(priceLimit / 100))}
+                  value={[priceMin, priceMax]}
+                  onValueChange={(value) => {
+                    const nextMin = value[0] ?? 0;
+                    const nextMax = value[1] ?? priceLimit;
+                    setPriceMin(Math.min(nextMin, nextMax));
+                    setPriceMax(Math.max(nextMin, nextMax));
+                  }}
+                />
               </div>
             )}
-            <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-foreground/90">
-              <label className="flex shrink-0 items-center gap-2">
-                <span>Desde {priceCurrencyLabel}</span>
-                <Input
-                  aria-label="Precio mínimo"
-                  type="number"
-                  min={0}
-                  max={priceLimit}
-                  value={priceMin}
-                  aria-valuetext={formatPrice(priceMin, priceDisplayCurrency)}
-                  onChange={(event) => {
-                    const value = Number(event.target.value);
-                    if (!Number.isFinite(value)) return;
-                    setPriceMin(Math.min(Math.max(0, value), priceMax));
-                  }}
-                  className="h-8 w-20 px-2 sm:w-24"
-                />
-              </label>
-              <label className="flex shrink-0 items-center justify-end gap-2">
-                <span>Hasta {priceCurrencyLabel}</span>
-                <Input
-                  aria-label="Precio máximo"
-                  type="number"
-                  min={0}
-                  max={priceLimit}
-                  value={priceMax}
-                  aria-valuetext={formatPrice(priceMax, priceDisplayCurrency)}
-                  onChange={(event) => {
-                    const value = Number(event.target.value);
-                    if (!Number.isFinite(value)) return;
-                    setPriceMax(Math.max(Math.min(priceLimit, value), priceMin));
-                  }}
-                  className="h-8 w-20 px-2 sm:w-24"
-                />
-              </label>
-            </div>
-            <Slider
-              min={0}
-              max={priceLimit}
-              step={Math.max(1, Math.round(priceLimit / 100))}
-              value={[priceMin, priceMax]}
-              onValueChange={(value) => {
-                const nextMin = value[0] ?? 0;
-                const nextMax = value[1] ?? priceLimit;
-                setPriceMin(Math.min(nextMin, nextMax));
-                setPriceMax(Math.max(nextMin, nextMax));
-              }}
-            />
           </div>
 
           <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
@@ -1080,9 +1128,11 @@ function AdminProducts() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visibleResults.map((product) => {
-              const discount = discounts[product.id] ?? 0;
-              const discountedPrice = product.price * (1 - discount / 100);
+            {displayRows.map(({ product, variant }) => {
+              const discount = variant?.discount ?? discounts[product.id] ?? 0;
+              const displayPrice = variant?.price ?? product.price;
+              const displayStock = variant?.stock ?? product.stock;
+              const discountedPrice = displayPrice * (1 - discount / 100);
               const isQuickEditing = quickEditProductId === product.id;
               const quickDraft = quickEditForm[product.id] ?? {
                 brand: product.brand,
@@ -1096,15 +1146,19 @@ function AdminProducts() {
               const brandCategoryOptions = brands[activeQuickBrand]?.categories ?? [];
 
               return (
-                <TableRow key={product.id} ref={quickEditProductId === product.id ? quickEditRowRef : undefined}>
+                <TableRow key={`${product.id}-${variant?.id ?? "base"}`} ref={quickEditProductId === product.id ? quickEditRowRef : undefined}>
                   {isQuickEditing ? (
                     <>
                       <TableCell className="align-middle">
                         <Input
                           value={quickDraft.name}
-                          readOnly
-                          disabled
-                          className="w-full min-w-45 cursor-not-allowed bg-muted/40 opacity-80"
+                          onChange={(event) =>
+                            setQuickEditForm((current) => ({
+                              ...current,
+                              [product.id]: { ...quickDraft, name: event.target.value },
+                            }))
+                          }
+                          className="w-full min-w-45"
                         />
                       </TableCell>
                       <TableCell className="align-middle">
@@ -1236,6 +1290,11 @@ function AdminProducts() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{product.name}</span>
+                          {variant ? (
+                            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                              {variant.name}
+                            </span>
+                          ) : null}
                           {product.hidden ? (
                             <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground">Oculto</span>
                           ) : null}
@@ -1243,18 +1302,18 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell>{brands[product.brand].shortName}</TableCell>
                       <TableCell className="text-muted-foreground uppercase">{product.category}</TableCell>
-                      <TableCell>{formatPrice(product.price)}</TableCell>
+                      <TableCell>{formatPrice(displayPrice)}</TableCell>
                       <TableCell>
                         <Badge
                           variant={
-                            product.stock === 0
+                            displayStock === 0
                               ? "destructive"
-                              : product.stock <= 4
+                              : displayStock <= 4
                                 ? "warning"
                                 : "success"
                           }
                         >
-                          {product.stock}
+                          {displayStock}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -1561,6 +1620,10 @@ function ProductEditDialog({
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [confirmExitOpen, setConfirmExitOpen] = useState(false);
   const initialFormRef = useRef<string | null>(null);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [variantNameDraft, setVariantNameDraft] = useState("");
+  const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(null);
+  const [inlineVariantName, setInlineVariantName] = useState("");
 
   useEffect(() => {
     if (!open) {
@@ -1570,6 +1633,7 @@ function ProductEditDialog({
 
     if (productForm) {
       initialFormRef.current = JSON.stringify(productForm);
+      setSelectedVariantId(productForm.variants[0]?.id ?? null);
     }
   }, [open]);
 
@@ -1585,7 +1649,15 @@ function ProductEditDialog({
 
     setProductForm({
       ...productForm,
-      features: [...productForm.features, feature],
+      ...(activeVariant
+        ? {
+            variants: productForm.variants.map((variant) =>
+              variant.id === activeVariant.id
+                ? { ...variant, features: [...activeFeatures, feature] }
+                : variant,
+            ),
+          }
+        : { features: [...activeFeatures, feature] }),
     });
     setNewFeature("");
   };
@@ -1593,7 +1665,7 @@ function ProductEditDialog({
   const handleStartInlineEdit = (index: number) => {
     if (!productForm) return;
     setEditingFeatureIndex(index);
-    setInlineFeatureText(productForm.features[index] ?? "");
+    setInlineFeatureText(activeFeatures[index] ?? "");
   };
 
   const handleSaveInlineEdit = () => {
@@ -1603,9 +1675,15 @@ function ProductEditDialog({
 
     setProductForm({
       ...productForm,
-      features: productForm.features.map((item, index) =>
-        index === editingFeatureIndex ? feature : item,
-      ),
+      ...(activeVariant
+        ? {
+            variants: productForm.variants.map((variant) =>
+              variant.id === activeVariant.id
+                ? { ...variant, features: activeFeatures.map((item, index) => index === editingFeatureIndex ? feature : item) }
+                : variant,
+            ),
+          }
+        : { features: activeFeatures.map((item, index) => index === editingFeatureIndex ? feature : item) }),
     });
     setEditingFeatureIndex(null);
     setInlineFeatureText("");
@@ -1620,7 +1698,15 @@ function ProductEditDialog({
     if (!productForm) return;
     setProductForm({
       ...productForm,
-      features: productForm.features.filter((_, i) => i !== index),
+      ...(activeVariant
+        ? {
+            variants: productForm.variants.map((variant) =>
+              variant.id === activeVariant.id
+                ? { ...variant, features: activeFeatures.filter((_, i) => i !== index) }
+                : variant,
+            ),
+          }
+        : { features: activeFeatures.filter((_, i) => i !== index) }),
     });
     if (editingFeatureIndex === index) {
       handleCancelInlineEdit();
@@ -1630,7 +1716,7 @@ function ProductEditDialog({
   const [confirmDeleteFeatureOpen, setConfirmDeleteFeatureOpen] = useState(false);
   const [featureToDeleteIndex, setFeatureToDeleteIndex] = useState<number | null>(null);
 
-  const requestUsdRateForCurrency = (field: "priceCurrency" | "gastosCurrency", nextCurrency: CurrencyCode) => {
+  const requestUsdRateForCurrency = (field: "priceCurrency" | "comisionCurrency" | "gastosCurrency", nextCurrency: CurrencyCode) => {
     if (!productForm) return;
 
     setProductForm({
@@ -1640,14 +1726,17 @@ function ProductEditDialog({
     });
   };
 
-  const handleAddImageFile = (file: File | null) => {
-    if (!productForm || !file) return;
+  const handleAddImageFiles = (files: FileList | null) => {
+    if (!productForm || !files?.length) return;
 
-    const imageUrl = URL.createObjectURL(file);
+    const imageUrls = Array.from(files)
+      .filter((file) => file.type.startsWith("image/"))
+      .map((file) => URL.createObjectURL(file));
+    if (!imageUrls.length) return;
 
     setProductForm({
       ...productForm,
-      images: [...productForm.images, imageUrl],
+      images: [...productForm.images, ...imageUrls],
     });
   };
 
@@ -1686,8 +1775,95 @@ function ProductEditDialog({
   };
 
   const handleSelectImageFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    handleAddImageFile(file);
+    handleAddImageFiles(event.target.files);
+    event.target.value = "";
+  };
+
+  const addVariant = () => {
+    if (!productForm || !variantNameDraft.trim()) return;
+    const variant: ProductVariant = {
+      id: `variant-${Date.now()}`,
+      name: variantNameDraft.trim(),
+      price: productForm.price,
+      priceCurrency: productForm.priceCurrency,
+      comision: productForm.comision,
+      comisionCurrency: productForm.comisionCurrency,
+      gastos: productForm.gastos,
+      gastosCurrency: productForm.gastosCurrency,
+      description: productForm.description,
+      stock: productForm.stock,
+      features: productForm.features,
+      deliveryUnit: productForm.deliveryUnit,
+      deliveryAmount: productForm.deliveryAmount,
+      discount: productForm.discount,
+    };
+    setProductForm({ ...productForm, variants: [...productForm.variants, variant] });
+    setVariantNameDraft("");
+  };
+
+  const updateVariant = (index: number, updates: Partial<ProductVariant>) => {
+    if (!productForm) return;
+    setProductForm({
+      ...productForm,
+      variants: productForm.variants.map((variant, variantIndex) =>
+        variantIndex === index ? { ...variant, ...updates } : variant,
+      ),
+    });
+  };
+
+  const handleStartVariantEdit = (index: number) => {
+    if (!productForm) return;
+    setEditingVariantIndex(index);
+    setInlineVariantName(productForm.variants[index]?.name ?? "");
+  };
+
+  const handleSaveVariantEdit = () => {
+    if (editingVariantIndex === null || !inlineVariantName.trim()) return;
+    updateVariant(editingVariantIndex, { name: inlineVariantName.trim() });
+    setEditingVariantIndex(null);
+    setInlineVariantName("");
+  };
+
+  const handleCancelVariantEdit = () => {
+    setEditingVariantIndex(null);
+    setInlineVariantName("");
+  };
+
+  const removeVariant = (index: number) => {
+    if (!productForm) return;
+    const removedVariant = productForm.variants[index];
+    setProductForm({
+      ...productForm,
+      variants: productForm.variants.filter((_, variantIndex) => variantIndex !== index),
+    });
+    if (removedVariant?.id === selectedVariantId) {
+      setSelectedVariantId(productForm.variants[index + 1]?.id ?? productForm.variants[index - 1]?.id ?? null);
+    }
+    if (editingVariantIndex === index) handleCancelVariantEdit();
+  };
+
+  const activeVariant = productForm?.variants.find((variant) => variant.id === selectedVariantId);
+  const activeFeatures = activeVariant?.features ?? productForm?.features ?? [];
+  const updateActiveVariant = (updates: Partial<ProductVariant>) => {
+    if (!productForm) return;
+    if (!activeVariant) {
+      setProductForm({ ...productForm, ...updates });
+      return;
+    }
+    setProductForm({
+      ...productForm,
+      variants: productForm.variants.map((variant) =>
+        variant.id === activeVariant.id ? { ...variant, ...updates } : variant,
+      ),
+    });
+  };
+
+  const applyFeaturesToAllVariants = () => {
+    if (!productForm || !activeVariant) return;
+    setProductForm({
+      ...productForm,
+      variants: productForm.variants.map((variant) => ({ ...variant, features: [...activeFeatures] })),
+    });
   };
 
   if (!productForm) return null;
@@ -1698,6 +1874,38 @@ function ProductEditDialog({
     ? "Agregá un producto completo con nombre, stock, precio y categoría."
     : "Actualizá los datos del producto sin afectar el flujo de alta.";
   const availableCategories = brands[productForm.brand]?.categories ?? [];
+  const configuredPaymentMethods = (brands[productForm.brand]?.paymentMethods ?? []).filter((method) => method.enabled);
+  const visiblePaymentMethods = configuredPaymentMethods.filter(
+    (method) => !/^tarjeta\s+de\s+cr[eé]dito$/i.test(method.name.trim()),
+  );
+  const configuredShippingMethods = (brands[productForm.brand]?.shipping?.methods ?? []).filter((method) => method.enabled);
+  const paymentMethodIds = productForm.authorizedPaymentMethodIds;
+  const shippingMethodIds = productForm.authorizedShippingMethodIds;
+  const creditCardMethodIds = configuredPaymentMethods
+    .filter((method) => /visa|mastercard|amex|tarjeta\s+de\s+cr[eé]dito/i.test(method.name))
+    .map((method) => method.id);
+  const creditCardEnabled = creditCardMethodIds.some((id) => paymentMethodIds.includes(id));
+  const toggleAuthorizedPaymentMethod = (methodId: string, checked: boolean) => {
+    const nextPaymentMethodIds = checked
+      ? [...paymentMethodIds, methodId]
+      : paymentMethodIds.filter((id) => id !== methodId);
+    const nextCreditCardEnabled = creditCardMethodIds.some((id) => nextPaymentMethodIds.includes(id));
+    setProductForm({
+      ...productForm,
+      authorizedPaymentMethodIds: nextPaymentMethodIds,
+      interestFreeInstallments: nextCreditCardEnabled ? productForm.interestFreeInstallments : 0,
+    });
+  };
+  const toggleCreditCardAuthorization = (checked: boolean) => {
+    const nextPaymentMethodIds = checked
+      ? Array.from(new Set([...paymentMethodIds, ...creditCardMethodIds]))
+      : paymentMethodIds.filter((id) => !creditCardMethodIds.includes(id));
+    setProductForm({
+      ...productForm,
+      authorizedPaymentMethodIds: nextPaymentMethodIds,
+      interestFreeInstallments: checked ? productForm.interestFreeInstallments : 0,
+    });
+  };
   const usdRate = productForm.usdRate > 0 ? productForm.usdRate : 0;
   const toLocalCurrency = (amount: number, currency: CurrencyCode) =>
     currency === "USD" ? (usdRate > 0 ? amount * usdRate : 0) : amount;
@@ -1713,11 +1921,55 @@ function ProductEditDialog({
   const priceValue = String(productForm.price);
   const gastosValue = String(productForm.gastos);
   const discountValue = String(productForm.discount);
+  const comisionValue = String(productForm.comision);
   const stockValue = String(productForm.stock);
   const deliveryAmountValue = String(productForm.deliveryAmount);
   const conversionHint =
     usdRate > 0 ? `Tipo de cambio USD: 1 USD = ${formatPrice(usdRate)}` : "Ingresá el valor de 1 USD para convertir";
-  const showUsdRateInput = productForm.priceCurrency === "USD" || productForm.gastosCurrency === "USD";
+  const showUsdRateInput = productForm.priceCurrency === "USD" || productForm.comisionCurrency === "USD" || productForm.gastosCurrency === "USD";
+  const activeCommission = activeVariant?.comision ?? productForm.comision;
+  const activeCommissionCurrency = activeVariant?.comisionCurrency ?? productForm.comisionCurrency;
+  const activeExpenses = activeVariant?.gastos ?? productForm.gastos;
+  const activeExpensesCurrency = activeVariant?.gastosCurrency ?? productForm.gastosCurrency;
+  const activeDiscount = activeVariant?.discount ?? productForm.discount;
+  const activeStock = activeVariant?.stock ?? productForm.stock;
+  const activeDeliveryUnit = activeVariant?.deliveryUnit ?? productForm.deliveryUnit;
+  const activeDeliveryAmount = activeVariant?.deliveryAmount ?? productForm.deliveryAmount;
+  const activeDescription = activeVariant?.description ?? productForm.description;
+  const activePriceCurrency = activeVariant?.priceCurrency ?? productForm.priceCurrency;
+  const samePricingCurrency = activeCommissionCurrency === activeExpensesCurrency;
+  const activeOutputCurrency = samePricingCurrency ? activeCommissionCurrency : "ARS";
+  const activeCommissionValue = samePricingCurrency
+    ? activeCommission
+    : toLocalCurrency(activeCommission, activeCommissionCurrency);
+  const activeExpensesValue = samePricingCurrency
+    ? activeExpenses
+    : toLocalCurrency(activeExpenses, activeExpensesCurrency);
+  const activePriceValue = activeCommissionValue + activeExpensesValue;
+  const activeStorePrice = activePriceValue * (1 - activeDiscount / 100);
+  const activeProfit = activeCommissionValue - activeExpensesValue;
+  const activeUsdRequired = activeCommissionCurrency === "USD" || activeExpensesCurrency === "USD";
+  const updateActivePricing = (updates: Partial<ProductVariant>) => {
+    if (!productForm) return;
+    if (!activeVariant) {
+      const next = { ...productForm, ...updates } as ProductFormState;
+      const commissionLocal = toLocalCurrency(next.comision, next.comisionCurrency);
+      const expensesLocal = toLocalCurrency(next.gastos, next.gastosCurrency);
+      setProductForm({ ...next, price: commissionLocal + expensesLocal, priceCurrency: "ARS" });
+      return;
+    }
+    const nextVariant = { ...activeVariant, ...updates };
+    const commissionLocal = toLocalCurrency(nextVariant.comision ?? 0, nextVariant.comisionCurrency ?? "ARS");
+    const expensesLocal = toLocalCurrency(nextVariant.gastos ?? 0, nextVariant.gastosCurrency ?? "ARS");
+    setProductForm({
+      ...productForm,
+      variants: productForm.variants.map((variant) =>
+        variant.id === activeVariant.id
+          ? { ...nextVariant, price: commissionLocal + expensesLocal, priceCurrency: "ARS" }
+          : variant,
+      ),
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1727,8 +1979,8 @@ function ProductEditDialog({
           <DialogDescription>{modeDescription}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-border/60 bg-surface/40 p-4">
+        <div className="flex flex-col gap-4">
+          <div className="order-1 rounded-2xl border border-border/60 bg-surface/40 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                 {isNewProduct ? "Alta" : "Edición"}
@@ -1740,8 +1992,8 @@ function ProductEditDialog({
               ) : null}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
                 <Label htmlFor="new-name">Nombre</Label>
                 <Input
                   id="new-name"
@@ -1751,8 +2003,8 @@ function ProductEditDialog({
                 />
               </div>
 
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="new-sector">Seleccionar sector</Label>
+              <div className="space-y-2">
+                <Label htmlFor="new-sector">Tienda</Label>
                 <Select
                   value={productForm.brand}
                   onValueChange={(value) => {
@@ -1763,6 +2015,12 @@ function ProductEditDialog({
                       ...productForm,
                       brand: nextBrand,
                       category: nextCategory,
+                      authorizedPaymentMethodIds: (brands[nextBrand].paymentMethods ?? [])
+                        .filter((method) => method.enabled)
+                        .map((method) => method.id),
+                      authorizedShippingMethodIds: (brands[nextBrand].shipping?.methods ?? [])
+                        .filter((method) => method.enabled)
+                        .map((method) => method.id),
                     });
                   }}
                 >
@@ -1798,6 +2056,7 @@ function ProductEditDialog({
                 </Select>
               </div>
 
+              {false && (<>
               {showUsdRateInput ? (
                 <div className="h-full space-y-2 sm:col-span-2">
                   <Label htmlFor="usd-rate">Tipo de cambio USD</Label>
@@ -1858,6 +2117,37 @@ function ProductEditDialog({
 
               <div className="h-full space-y-2">
                 <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="new-comision">Comisión para mí</Label>
+                  <Select
+                    value={productForm.comisionCurrency}
+                    onValueChange={(value) =>
+                      requestUsdRateForCurrency("comisionCurrency", value as CurrencyCode)
+                    }
+                  >
+                    <SelectTrigger className="h-8 w-28">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ARS">$ (ARS)</SelectItem>
+                      <SelectItem value="USD">USD (Dólar)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Input
+                  id="new-comision"
+                  type="number"
+                  min={0}
+                  value={comisionValue}
+                  onFocus={(event) => event.target.select()}
+                  onChange={(event) =>
+                    setProductForm({ ...productForm, comision: Number(event.target.value) })
+                  }
+                  placeholder="Comisión para mí"
+                />
+              </div>
+
+              <div className="h-full space-y-2">
+                <div className="flex items-center justify-between gap-2">
                   <Label htmlFor="new-gastos">Gastos</Label>
                   <Select
                     value={productForm.gastosCurrency}
@@ -1914,7 +2204,7 @@ function ProductEditDialog({
                     {productForm.priceCurrency}
                   </span>
                 </div>
-                <div className="flex h-9 items-center rounded-md border border-input bg-muted/20 px-3 text-sm text-foreground opacity-80">
+                <div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm text-foreground opacity-80">
                   {formatLockedNumber(precioConDescuento)}
                 </div>
               </div>
@@ -1926,11 +2216,70 @@ function ProductEditDialog({
                     {productForm.priceCurrency}
                   </span>
                 </div>
-                <div className="flex h-9 items-center rounded-md border border-input bg-muted/20 px-3 text-sm text-foreground opacity-80">
+                <div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm text-foreground opacity-80">
                   {ganancias >= 0
                     ? formatLockedNumber(ganancias)
                     : `-${formatLockedNumber(Math.abs(ganancias))}`}
                 </div>
+              </div>
+
+              <div className="space-y-3 rounded-xl border border-border/60 bg-background/40 p-3 sm:col-span-3">
+                <div>
+                  <Label>Métodos de pagos autorizados</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">Sólo se muestran los medios habilitados en la configuración de esta tienda.</p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {visiblePaymentMethods.length > 0 ? visiblePaymentMethods.map((method) => (
+                    <label key={method.id} className="flex items-center gap-2 rounded-lg bg-surface-2/60 px-3 py-2 text-sm">
+                      <Checkbox
+                        checked={paymentMethodIds.includes(method.id)}
+                        onCheckedChange={(checked) => toggleAuthorizedPaymentMethod(method.id, checked === true)}
+                      />
+                      {method.name}
+                    </label>
+                  )) : <p className="text-sm text-muted-foreground">No hay medios de pago habilitados.</p>}
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-xl border border-border/60 bg-background/40 p-3 sm:col-span-3">
+                <div>
+                  <Label>Métodos de envío autorizados</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">Sólo se muestran los medios habilitados en la configuración de esta tienda.</p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {configuredShippingMethods.length > 0 ? configuredShippingMethods.map((method) => (
+                    <label key={method.id} className="flex items-center gap-2 rounded-lg bg-surface-2/60 px-3 py-2 text-sm">
+                      <Checkbox
+                        checked={shippingMethodIds.includes(method.id)}
+                        onCheckedChange={(checked) => setProductForm({
+                          ...productForm,
+                          authorizedShippingMethodIds: checked
+                            ? [...shippingMethodIds, method.id]
+                            : shippingMethodIds.filter((id) => id !== method.id),
+                        })}
+                      />
+                      {method.name}
+                    </label>
+                  )) : <p className="text-sm text-muted-foreground">No hay medios de envío habilitados.</p>}
+                </div>
+              </div>
+
+              <div className="h-full space-y-2 sm:col-span-3">
+                <Label htmlFor="interest-free-installments">Cuotas sin interés disponibles</Label>
+                <Input
+                  id="interest-free-installments"
+                  type="number"
+                  min={0}
+                  max={24}
+                  disabled={!creditCardEnabled}
+                  value={productForm.interestFreeInstallments || ""}
+                  onChange={(event) => setProductForm({
+                    ...productForm,
+                    interestFreeInstallments: Math.max(0, Math.min(24, Number(event.target.value) || 0)),
+                  })}
+                  placeholder="Ej: 3"
+                />
+                <p className="text-xs text-muted-foreground">La promoción se aplicará únicamente a este producto en el carrito.</p>
               </div>
 
               <div className="h-full space-y-2">
@@ -2007,18 +2356,233 @@ function ProductEditDialog({
                   placeholder="Descripción del producto"
                 />
               </div>
+              </>)}
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border/60 bg-surface/40 p-4">
+          <div className="order-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">Precios</span>
+              <Select value={selectedVariantId ?? "base"} onValueChange={(value) => setSelectedVariantId(value === "base" ? null : value)}>
+                <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Elegir variante" /></SelectTrigger>
+                <SelectContent>
+                  {!productForm.variants.length && <SelectItem value="base">Producto base</SelectItem>}
+                  {productForm.variants.map((variant) => <SelectItem key={variant.id} value={variant.id}>{variant.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {activeUsdRequired && <div className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/5 p-3 text-xs text-muted-foreground">{conversionHint}</div>}
+            <div className="grid items-start gap-4 sm:grid-cols-3">
+              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Comisión para mí</Label><Select value={activeCommissionCurrency} onValueChange={(value) => updateActivePricing({ comisionCurrency: value as CurrencyCode })}><SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ARS">$ (ARS)</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent></Select></div><Input type="number" min={0} value={activeCommission} onChange={(event) => updateActivePricing({ comision: Number(event.target.value) || 0 })} /></div>
+              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Gastos</Label><Select value={activeExpensesCurrency} onValueChange={(value) => updateActivePricing({ gastosCurrency: value as CurrencyCode })}><SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ARS">$ (ARS)</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent></Select></div><Input type="number" min={0} value={activeExpenses} onChange={(event) => updateActivePricing({ gastos: Number(event.target.value) || 0 })} /></div>
+              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Precio</Label><span className="text-xs text-muted-foreground">{activeOutputCurrency}</span></div><div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm opacity-80">{formatLockedNumber(activePriceValue)}</div></div>
+            </div>
+            <div className="mt-4 grid items-start gap-4 sm:grid-cols-3">
+              <div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Descuento (%)</Label><Input type="number" min={0} max={100} value={activeDiscount} onChange={(event) => updateActiveVariant({ discount: Number(event.target.value) || 0 })} /></div>
+              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Precio tienda</Label><span className="text-xs text-muted-foreground">{activeOutputCurrency}</span></div><div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm opacity-80">{formatLockedNumber(activeStorePrice)}</div></div>
+              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Ganancias</Label><span className="text-xs text-muted-foreground">{activeOutputCurrency}</span></div><div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm opacity-80">{formatLockedNumber(activeProfit)}</div></div>
+            </div>
+            <div className={`mt-4 grid items-start gap-4 ${activeDeliveryUnit === "inmediata" ? "sm:grid-cols-2" : "sm:grid-cols-4"}`}>
+              <div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Stock</Label><Input type="number" min={0} value={activeStock} onChange={(event) => updateActiveVariant({ stock: Number(event.target.value) || 0 })} /></div>
+              <div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Tiempo de entrega</Label><Select value={activeDeliveryUnit} onValueChange={(value) => updateActiveVariant({ deliveryUnit: value as DeliveryUnit })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="inmediata">Inmediata</SelectItem><SelectItem value="horas">Horas</SelectItem><SelectItem value="dias">Días</SelectItem></SelectContent></Select></div>
+              {activeDeliveryUnit !== "inmediata" && <><div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Cantidad de entrega</Label><Input type="number" min={1} value={activeDeliveryAmount} onChange={(event) => updateActiveVariant({ deliveryAmount: Number(event.target.value) || 0 })} /></div><div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Entrega</Label><div className="flex h-9 items-center rounded-md border border-input px-3 text-sm opacity-60">{`${activeDeliveryAmount} ${activeDeliveryUnit}`}</div></div></>}
+            </div>
+          </div>
+
+          <div className="order-2 rounded-2xl border border-border/60 bg-surface/40 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
-                Características
+                Variantes
               </span>
             </div>
 
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <Input
+                  value={variantNameDraft}
+                  onChange={(event) => setVariantNameDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addVariant();
+                    }
+                  }}
+                  placeholder="Escribir nueva variante"
+                />
+                <Button type="button" onClick={addVariant} className="whitespace-nowrap">
+                  <Plus className="h-4 w-4" /> Agregar
+                </Button>
+              </div>
+
+              {productForm.variants.length > 0 && (
+                <div className="space-y-2">
+                {productForm.variants.map((variant, index) => (
+                  <div key={variant.id} className="flex items-center justify-between gap-2 rounded-xl border border-input p-3">
+                    {editingVariantIndex === index ? (
+                      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+                        <Input
+                          value={inlineVariantName}
+                          onChange={(event) => setInlineVariantName(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              handleSaveVariantEdit();
+                            }
+                          }}
+                          className="min-w-0 flex-1"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={!inlineVariantName.trim() || inlineVariantName.trim() === variant.name}
+                            className="h-8 gap-2 px-3 text-sm text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                            onClick={handleSaveVariantEdit}
+                          >
+                            <Check className="size-4" /> Guardar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
+                            onClick={handleCancelVariantEdit}
+                          >
+                            <X className="size-4" /> Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <button type="button" className="min-w-0 truncate text-left text-sm font-medium" onClick={() => setSelectedVariantId(variant.id)}>
+                            {variant.name}
+                          </button>
+                          {selectedVariantId === variant.id && <Badge className="shrink-0 border-emerald-300 bg-emerald-500 text-black">Activa</Badge>}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button type="button" variant={selectedVariantId === variant.id ? "secondary" : "ghost"} size="sm" onClick={() => setSelectedVariantId(variant.id)} className="h-8 gap-2 px-3 text-sm" disabled={selectedVariantId === variant.id}>
+                            {selectedVariantId === variant.id ? "Seleccionado" : "Seleccionar"}
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => handleStartVariantEdit(index)} className="h-8 gap-2 px-3 text-sm">
+                            <Pencil className="size-4" /> Editar
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => removeVariant(index)} className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10">
+                            <Trash2 className="size-4" /> Eliminar
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="order-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
+            <div className="flex flex-col gap-5">
+              <div className="order-2">
+                <h3 className="font-display font-semibold">Métodos de pagos autorizados</h3>
+                <p className="mt-1 text-xs text-muted-foreground">Se muestran los medios habilitados en la configuración de esta tienda.</p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {visiblePaymentMethods.length > 0 ? visiblePaymentMethods.map((method, index) => (
+                  <Fragment key={method.id}>
+                    <label className="flex items-center gap-2 rounded-lg bg-surface-2/60 px-3 py-2 text-sm">
+                      <Checkbox
+                        checked={paymentMethodIds.includes(method.id)}
+                        onCheckedChange={(checked) => toggleAuthorizedPaymentMethod(method.id, checked === true)}
+                      />
+                      {method.name}
+                    </label>
+                    {index === 1 && creditCardMethodIds.length > 0 && (
+                      <label className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-medium">
+                        <Checkbox
+                          checked={creditCardEnabled}
+                          onCheckedChange={(checked) => toggleCreditCardAuthorization(checked === true)}
+                        />
+                        Tarjeta de crédito
+                      </label>
+                    )}
+                  </Fragment>
+                )) : <p className="text-sm text-muted-foreground">No hay medios de pago habilitados.</p>}
+                {visiblePaymentMethods.length < 2 && creditCardMethodIds.length > 0 && (
+                  <label className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-medium">
+                    <Checkbox
+                      checked={creditCardEnabled}
+                      onCheckedChange={(checked) => toggleCreditCardAuthorization(checked === true)}
+                    />
+                    Tarjeta de crédito
+                  </label>
+                )}
+              </div>
+            </div>
+
+              <div className="order-1 space-y-3">
+              <div>
+                <h3 className="font-display font-semibold">Métodos de envío autorizados</h3>
+                <p className="mt-1 text-xs text-muted-foreground">Se muestran los medios habilitados en la configuración de esta tienda.</p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {configuredShippingMethods.length > 0 ? configuredShippingMethods.map((method) => (
+                  <label key={method.id} className="flex items-center gap-2 rounded-lg bg-surface-2/60 px-3 py-2 text-sm">
+                    <Checkbox
+                      checked={shippingMethodIds.includes(method.id)}
+                      onCheckedChange={(checked) => setProductForm({
+                        ...productForm,
+                        authorizedShippingMethodIds: checked
+                          ? [...shippingMethodIds, method.id]
+                          : shippingMethodIds.filter((id) => id !== method.id),
+                      })}
+                    />
+                    {method.name}
+                  </label>
+                )) : <p className="text-sm text-muted-foreground">No hay medios de envío habilitados.</p>}
+              </div>
+            </div>
+
+            <div className="order-3 space-y-2">
+              <Label htmlFor="interest-free-installments-visible">Cuotas sin interés disponibles</Label>
+              <Input
+                id="interest-free-installments-visible"
+                type="number"
+                min={0}
+                max={24}
+                disabled={!creditCardEnabled}
+                aria-disabled={!creditCardEnabled}
+                className={!creditCardEnabled ? "cursor-not-allowed opacity-50" : undefined}
+                value={productForm.interestFreeInstallments || ""}
+                onChange={(event) => setProductForm({
+                  ...productForm,
+                  interestFreeInstallments: Math.max(0, Math.min(24, Number(event.target.value) || 0)),
+                })}
+                placeholder="Ej: 3"
+              />
+              <p className="text-xs text-muted-foreground">
+                {creditCardEnabled
+                  ? "La promoción se aplica únicamente a este producto."
+                  : "Bloqueado: No se aceptan cuotas."}
+              </p>
+            </div>
+          </div>
+
+          <div className="order-4 rounded-2xl border border-border/60 bg-surface/40 p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                Características
+              </span>
+              <Select value={selectedVariantId ?? "base"} onValueChange={(value) => setSelectedVariantId(value === "base" ? null : value)}>
+                <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Elegir variante" /></SelectTrigger>
+                <SelectContent>
+                  {!productForm.variants.length && <SelectItem value="base">Producto base</SelectItem>}
+                  {productForm.variants.map((variant) => <SelectItem key={variant.id} value={variant.id}>{variant.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="new-feature">Características</Label>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <Input
                   id="new-feature"
@@ -2037,9 +2601,9 @@ function ProductEditDialog({
                 </Button>
               </div>
 
-              {productForm.features.length > 0 && (
+              {activeFeatures.length > 0 && (
                 <div className="grid gap-2">
-                  {productForm.features.map((feature, index) => (
+                  {activeFeatures.map((feature, index) => (
                     <div
                       key={`${feature}-${index}`}
                       className="flex flex-col gap-2 rounded-lg border border-input px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
@@ -2063,7 +2627,7 @@ function ProductEditDialog({
                               variant="ghost"
                               size="sm"
                               disabled={
-                                inlineFeatureText.trim() === (productForm.features[editingFeatureIndex] ?? "") ||
+                                inlineFeatureText.trim() === (activeFeatures[editingFeatureIndex] ?? "") ||
                                 !inlineFeatureText.trim()
                               }
                               className="h-8 gap-2 px-3 text-sm text-green-600 hover:text-green-700 bg-transparent hover:bg-green-100/80"
@@ -2122,10 +2686,17 @@ function ProductEditDialog({
                   ))}
                 </div>
               )}
+              <div className="space-y-2">
+                <Label>Descripción</Label>
+                <Textarea value={activeDescription} rows={3} onChange={(event) => updateActiveVariant({ description: event.target.value })} placeholder="Descripción de esta variante" />
+              </div>
+              <Button type="button" variant="outline" onClick={applyFeaturesToAllVariants} disabled={!activeVariant || productForm.variants.length < 2}>
+                Aplicar a todos
+              </Button>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border/60 bg-surface/40 p-4">
+          <div className="order-5 rounded-2xl border border-border/60 bg-surface/40 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                 Imágenes
@@ -2133,13 +2704,13 @@ function ProductEditDialog({
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="new-image">Imágenes</Label>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="relative">
                   <Input
                     id="new-image"
                     type="file"
                     accept="image/*"
+                    multiple
                     onChange={handleSelectImageFile}
                     className="sr-only"
                   />
@@ -2176,7 +2747,6 @@ function ProductEditDialog({
                             variant="outline"
                             size="sm"
                             onClick={() => handleRemoveImage(index)}
-                            disabled
                           >
                             Eliminar
                           </Button>
@@ -2185,7 +2755,7 @@ function ProductEditDialog({
                             variant="ghost"
                             size="sm"
                             onClick={() => moveImage(index, index - 1)}
-                            disabled
+                            disabled={index === 0}
                           >
                             <ArrowUp className="size-4" />
                             Arriba
@@ -2195,7 +2765,7 @@ function ProductEditDialog({
                             variant="ghost"
                             size="sm"
                             onClick={() => moveImage(index, index + 1)}
-                            disabled
+                            disabled={index === productForm.images.length - 1}
                           >
                             <ArrowDown className="size-4" />
                             Abajo
@@ -2215,7 +2785,7 @@ function ProductEditDialog({
           onOpenChange={(open) => setConfirmDeleteFeatureOpen(open)}
           title={
             featureToDeleteIndex !== null
-              ? `Eliminar "${productForm.features[featureToDeleteIndex]}"?`
+              ? `Eliminar "${activeFeatures[featureToDeleteIndex]}"?`
               : "Eliminar característica?"
           }
           description="Esta acción no se puede deshacer."
