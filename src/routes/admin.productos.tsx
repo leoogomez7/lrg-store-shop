@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronUp, Edit3, Filter, Pencil, Plus, Save, Search, Trash2, X, Copy, Eye, ArrowUpDown, Sheet, FileText } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronUp, Edit3, Eye, EyeOff, FileText, Filter, Pencil, Plus, Save, Search, Sheet, Trash2, X, Copy, ArrowUpDown } from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { products as productsData, saveProducts, type ProductVariant } from "@/data/products";
@@ -44,11 +44,10 @@ import { catalogQueries, type Product } from "@/services/catalog.service";
 
 type DeliveryUnit = "inmediata" | "horas" | "dias";
 type CurrencyCode = "ARS" | "USD";
-
 type ProductFormState = {
   id: string;
   name: string;
-  brand: BrandSlug;
+  brand: BrandSlug | "";
   category: string;
   price: number;
   priceCurrency: CurrencyCode;
@@ -61,14 +60,13 @@ type ProductFormState = {
   gastos: number;
   gastosCurrency: CurrencyCode;
   usdRate: number;
-  deliveryUnit: DeliveryUnit;
+  deliveryUnit: DeliveryUnit | "";
   deliveryAmount: number;
   discount: number;
   variants: ProductVariant[];
 };
 
 export const Route = createFileRoute("/admin/productos")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(catalogQueries.all()),
   head: () => ({
     meta: [
       { title: "LRG Store Shop - Administrador" },
@@ -107,10 +105,14 @@ function AdminProducts() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("createdAt_desc");
   const [discounts, setDiscounts] = useState<Record<string, number>>({});
   const [pendingDiscounts, setPendingDiscounts] = useState<Record<string, string>>({});
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [createChoiceOpen, setCreateChoiceOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [bulkEditQueue, setBulkEditQueue] = useState<string[]>([]);
+  const [bulkEditPosition, setBulkEditPosition] = useState(0);
+  const [initialVariantId, setInitialVariantId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState | null>(null);
   const [usdRate, setUsdRate] = useState<number>(() => {
     if (typeof window === "undefined") return 0;
@@ -120,6 +122,7 @@ function AdminProducts() {
   const [usdRatePromptValue, setUsdRatePromptValue] = useState("");
   const multiProductInputRef = useRef<HTMLInputElement | null>(null);
   const [quickEditProductId, setQuickEditProductId] = useState<string | null>(null);
+  const [quickEditVariantId, setQuickEditVariantId] = useState<string | null>(null);
   const [quickEditForm, setQuickEditForm] = useState<
     Record<
       string,
@@ -136,6 +139,8 @@ function AdminProducts() {
     >
   >({});
   const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
+  const productsTableRef = useRef<HTMLDivElement | null>(null);
+  const [isProductsHeaderSticky, setIsProductsHeaderSticky] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
   const sortButtonRef = useRef<HTMLButtonElement | null>(null);
   const [page, setPage] = useState(0);
@@ -143,6 +148,26 @@ function AdminProducts() {
   const [pageSize, setPageSize] = useState<number>(10);
   // `pageSizeInput` is the editable input value the user types before confirming
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+
+  useEffect(() => {
+    const updateProductsHeaderState = () => {
+      const table = productsTableRef.current;
+      if (!table) return;
+
+      const topOffset = window.innerWidth >= 1024 ? 0 : 56;
+      const bounds = table.getBoundingClientRect();
+      setIsProductsHeaderSticky(bounds.top <= topOffset && bounds.bottom > topOffset + 48);
+    };
+
+    updateProductsHeaderState();
+    window.addEventListener("scroll", updateProductsHeaderState, { passive: true });
+    window.addEventListener("resize", updateProductsHeaderState);
+    return () => {
+      window.removeEventListener("scroll", updateProductsHeaderState);
+      window.removeEventListener("resize", updateProductsHeaderState);
+    };
+  }, []);
+
   const priceLimit = useMemo(() => {
     const values = products
       .filter((product) => !currencyFilter.length || currencyFilter.includes(product.priceCurrency ?? "ARS"))
@@ -172,7 +197,7 @@ function AdminProducts() {
   const defaultFormState: ProductFormState = {
     id: "",
     name: "",
-    brand: "arcade",
+    brand: "",
     category: "",
     price: 0,
     priceCurrency: "ARS",
@@ -185,7 +210,7 @@ function AdminProducts() {
     gastos: 0,
     gastosCurrency: "ARS",
     usdRate: 0,
-    deliveryUnit: "inmediata",
+    deliveryUnit: "",
     deliveryAmount: 0,
     discount: 0,
     variants: [],
@@ -211,12 +236,12 @@ function AdminProducts() {
   const openSingleProductDialog = () => {
     setCreateChoiceOpen(false);
     setEditingProduct(null);
-    setDialogMode("create");
+    setInitialVariantId(null);
     setProductForm({
       ...defaultFormState,
       usdRate,
     });
-    setDialogOpen(true);
+    setCreateDialogOpen(true);
   };
 
   const handleImportMultipleProducts = (files: FileList | null) => {
@@ -271,9 +296,9 @@ function AdminProducts() {
     });
   };
 
-  const openEditProductDialog = (product: Product) => {
+  const openEditProductDialog = (product: Product, variant?: ProductVariant) => {
     setEditingProduct(product);
-    setDialogMode("edit");
+    setInitialVariantId(variant?.id ?? null);
     setProductForm({
       id: product.id,
       name: product.name,
@@ -299,7 +324,7 @@ function AdminProducts() {
       ...current,
       [product.id]: String(discounts[product.id] ?? 0),
     }));
-    setDialogOpen(true);
+    setEditDialogOpen(true);
   };
 
   const handleDeleteProduct = (productId: string) => {
@@ -354,6 +379,65 @@ function AdminProducts() {
     saveProducts(productsData as Product[]);
   };
 
+  const getProductSelectionKey = (product: Product, variant?: ProductVariant) =>
+    `${product.id}:${variant?.id ?? "base"}`;
+
+  const getProductIdFromSelectionKey = (selectionKey: string) => selectionKey.split(":")[0] ?? selectionKey;
+
+  const toggleProductSelection = (selectionKey: string, checked: boolean) => {
+    setSelectedProductIds((current) =>
+      checked ? (current.includes(selectionKey) ? current : [...current, selectionKey]) : current.filter((key) => key !== selectionKey),
+    );
+  };
+
+  const handleBulkDeleteProducts = () => {
+    const ids = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
+    setEditableProducts((current) => current.filter((product) => !ids.has(product.id)));
+    for (const productId of ids) {
+      const index = (productsData as Product[]).findIndex((product) => product.id === productId);
+      if (index !== -1) (productsData as Product[]).splice(index, 1);
+    }
+    saveProducts(productsData as Product[]);
+    setSelectedProductIds([]);
+  };
+
+  const handleBulkToggleProducts = (hidden: boolean) => {
+    const ids = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
+    const nextProducts = (productsData as Product[]).map((product) => ids.has(product.id) ? { ...product, hidden } : product);
+    productsData.splice(0, productsData.length, ...nextProducts);
+    setEditableProducts((current) => current.map((product) => ids.has(product.id) ? { ...product, hidden } : product));
+    saveProducts(productsData as Product[]);
+  };
+
+  const handleBulkDuplicateProducts = () => {
+    const selectedIds = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
+    const selected = editableProducts.filter((product) => selectedIds.has(product.id));
+    selected.forEach(handleDuplicateProduct);
+    setSelectedProductIds([]);
+  };
+
+  const handleBulkEditProducts = () => {
+    const firstSelectionKey = selectedProductIds[0];
+    const firstProductId = firstSelectionKey ? getProductIdFromSelectionKey(firstSelectionKey) : undefined;
+    const product = editableProducts.find((item) => item.id === firstProductId);
+    if (!product) return;
+    setBulkEditQueue(selectedProductIds);
+    setBulkEditPosition(0);
+    const variantId = firstSelectionKey?.split(":")[1];
+    openEditProductDialog(product, variantId && variantId !== "base" ? product.variants?.find((variant) => variant.id === variantId) : undefined);
+  };
+
+  const navigateBulkEditProduct = (direction: -1 | 1) => {
+    const nextPosition = bulkEditPosition + direction;
+    const nextSelectionKey = bulkEditQueue[nextPosition];
+    if (!nextSelectionKey) return;
+    const nextProduct = editableProducts.find((product) => product.id === getProductIdFromSelectionKey(nextSelectionKey));
+    if (!nextProduct) return;
+    setBulkEditPosition(nextPosition);
+    const variantId = nextSelectionKey.split(":")[1];
+    openEditProductDialog(nextProduct, variantId && variantId !== "base" ? nextProduct.variants?.find((variant) => variant.id === variantId) : undefined);
+  };
+
   const handleApplyDiscount = (productId: string) => {
     const text = pendingDiscounts[productId] ?? String(discounts[productId] ?? 0);
     const nextDiscount = Math.max(0, Math.min(100, Number(text) || 0));
@@ -372,28 +456,35 @@ function AdminProducts() {
     });
   };
 
-  const startQuickEdit = (product: Product) => {
+  const getQuickEditKey = (product: Product, variant?: ProductVariant) =>
+    `${product.id}:${variant?.id ?? "base"}`;
+
+  const startQuickEdit = (product: Product, variant?: ProductVariant) => {
+    const key = getQuickEditKey(product, variant);
+    const source = variant ?? product;
     setQuickEditProductId(product.id);
+    setQuickEditVariantId(variant?.id ?? null);
     setQuickEditForm((current) => ({
       ...current,
-      [product.id]: {
+      [key]: {
         brand: product.brand,
-        name: product.name,
+        name: source.name,
         category: product.category,
-        price: product.price,
-        comision: product.comision ?? 0,
-        gastos: product.gastos ?? 0,
-        stock: product.stock,
-        discount: discounts[product.id] ?? 0,
+        price: source.price,
+        comision: source.comision ?? 0,
+        gastos: source.gastos ?? 0,
+        stock: source.stock,
+        discount: variant?.discount ?? discounts[product.id] ?? 0,
       },
     }));
   };
 
   const cancelQuickEdit = () => {
     setQuickEditProductId(null);
+    setQuickEditVariantId(null);
     setQuickEditForm((current) => {
       const next = { ...current };
-      if (quickEditProductId) delete next[quickEditProductId];
+      if (quickEditProductId) delete next[getQuickEditKey({ id: quickEditProductId } as Product, quickEditVariantId ? { id: quickEditVariantId } as ProductVariant : undefined)];
       return next;
     });
   };
@@ -404,8 +495,9 @@ function AdminProducts() {
     });
   };
 
-  const saveQuickEdit = (product: Product) => {
-    const draft = quickEditForm[product.id];
+  const saveQuickEdit = (product: Product, variant?: ProductVariant) => {
+    const key = getQuickEditKey(product, variant);
+    const draft = quickEditForm[key];
     if (!draft) return;
 
     const nextBrand = draft.brand;
@@ -417,33 +509,39 @@ function AdminProducts() {
     const nextStock = Number(draft.stock) || product.stock;
     const nextDiscount = Math.max(0, Math.min(100, Number(draft.discount) || 0));
 
-    setEditableProducts((current) =>
-      current.map((item) =>
-        item.id === product.id
-          ? {
-              ...item,
-              brand: nextBrand,
-              name: nextName,
-              category: nextCategory,
-              price: nextPrice,
-              comision: nextComision,
-              gastos: nextGastos,
-              stock: nextStock,
-            }
-          : item,
-      ),
-    );
+    setEditableProducts((current) => current.map((item) => {
+      if (item.id !== product.id) return item;
+      if (variant) {
+        return {
+          ...item,
+          variants: item.variants?.map((itemVariant) =>
+            itemVariant.id === variant.id
+              ? { ...itemVariant, name: nextName, price: nextPrice, comision: nextComision, gastos: nextGastos, stock: nextStock, discount: nextDiscount }
+              : itemVariant,
+          ),
+        };
+      }
+      return { ...item, brand: nextBrand, name: nextName, category: nextCategory, price: nextPrice, comision: nextComision, gastos: nextGastos, stock: nextStock };
+    }));
 
     const productIndex = (productsData as Product[]).findIndex((item) => item.id === product.id);
     if (productIndex !== -1) {
       const existing = (productsData as Product[])[productIndex] as Product;
-      existing.brand = nextBrand;
-      existing.name = nextName;
-      existing.category = nextCategory;
-      existing.price = nextPrice;
-      existing.comision = nextComision;
-      existing.gastos = nextGastos;
-      existing.stock = nextStock;
+      if (variant) {
+        existing.variants = existing.variants?.map((itemVariant) =>
+          itemVariant.id === variant.id
+            ? { ...itemVariant, name: nextName, price: nextPrice, comision: nextComision, gastos: nextGastos, stock: nextStock, discount: nextDiscount }
+            : itemVariant,
+        );
+      } else {
+        existing.brand = nextBrand;
+        existing.name = nextName;
+        existing.category = nextCategory;
+        existing.price = nextPrice;
+        existing.comision = nextComision;
+        existing.gastos = nextGastos;
+        existing.stock = nextStock;
+      }
       saveProducts(productsData as Product[]);
     }
 
@@ -457,9 +555,10 @@ function AdminProducts() {
     }));
 
     setQuickEditProductId(null);
+    setQuickEditVariantId(null);
     setQuickEditForm((current) => {
       const next = { ...current };
-      delete next[product.id];
+      delete next[key];
       return next;
     });
   };
@@ -567,7 +666,25 @@ function AdminProducts() {
     }
 
     saveProducts(productsData as Product[]);
-    setDialogOpen(false);
+    const currentBulkSelectionKey = bulkEditQueue[bulkEditPosition];
+    const remainingBulkQueue = currentBulkSelectionKey
+      ? bulkEditQueue.filter((selectionKey) => selectionKey !== currentBulkSelectionKey)
+      : [];
+    const nextBulkSelectionKey = remainingBulkQueue[0];
+    if (nextBulkSelectionKey) {
+      const nextProduct = editableProducts.find((product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey));
+      if (nextProduct) {
+        setBulkEditQueue(remainingBulkQueue);
+        setBulkEditPosition(0);
+        const variantId = nextBulkSelectionKey.split(":")[1];
+        openEditProductDialog(nextProduct, variantId && variantId !== "base" ? nextProduct.variants?.find((variant) => variant.id === variantId) : undefined);
+        return;
+      }
+    }
+    setBulkEditQueue([]);
+    setBulkEditPosition(0);
+    setCreateDialogOpen(false);
+    setEditDialogOpen(false);
   };
 
   useEffect(() => {
@@ -585,7 +702,7 @@ function AdminProducts() {
 
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [quickEditProductId]);
+  }, [quickEditProductId, quickEditVariantId]);
 
   useEffect(() => {
     if (!sortMenuOpen) return;
@@ -681,6 +798,10 @@ function AdminProducts() {
     ),
     [visibleResults],
   );
+  const visibleProductSelectionKeys = displayRows.map(({ product, variant }) => getProductSelectionKey(product, variant));
+  const selectedVisibleProductKeys = visibleProductSelectionKeys.filter((key) => selectedProductIds.includes(key));
+  const allVisibleProductsSelected = visibleProductSelectionKeys.length > 0 && selectedVisibleProductKeys.length === visibleProductSelectionKeys.length;
+  const someVisibleProductsSelected = selectedVisibleProductKeys.length > 0 && !allVisibleProductsSelected;
   const totalPages = pageSize && pageSize > 0 ? Math.max(1, Math.ceil(results.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
@@ -800,7 +921,7 @@ function AdminProducts() {
           </Button>
 
           <Button
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
+            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {
               const rows: (string | number)[][] = [["ID","Nombre","Marca","Categoria","Precio","Stock","Descuento"]];
 
@@ -829,7 +950,7 @@ function AdminProducts() {
           </Button>
 
           <Button
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
+            className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
             onClick={() => {
               const rows = results.map((p) => {
                 const discounted = discounts[p.id] ?? 0;
@@ -1113,19 +1234,51 @@ function AdminProducts() {
 
       
 
-      <div className="glass-panel mt-6 overflow-x-auto rounded-2xl pb-2">
-        <Table className="w-full table-fixed text-center [&_td]:align-middle [&_th]:align-middle">
-          <TableHeader>
+      <div ref={productsTableRef} className="glass-panel mt-6 overflow-visible rounded-2xl pb-2">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border/60 p-3">
+          <span className="text-sm font-medium">Seleccionar</span>
+          <Checkbox
+            checked={allVisibleProductsSelected ? true : someVisibleProductsSelected ? "indeterminate" : false}
+            onCheckedChange={(checked) => {
+              const shouldSelect = checked === true || checked === "indeterminate";
+              setSelectedProductIds((current) => shouldSelect
+                ? [...new Set([...current, ...visibleProductSelectionKeys])]
+                : current.filter((key) => !visibleProductSelectionKeys.includes(key)));
+            }}
+            aria-label="Seleccionar productos visibles"
+          />
+          {selectedProductIds.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">{selectedProductIds.length} seleccionados</span>
+              <Button size="sm" variant="outline" onClick={handleBulkEditProducts}><Pencil className="size-4" /> Editar</Button>
+              <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(false)}><Eye className="size-4" /> Disponible</Button>
+              <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(true)}><EyeOff className="size-4" /> No disponible</Button>
+              <Button size="sm" variant="outline" onClick={handleBulkDuplicateProducts}><Copy className="size-4" /> Duplicar</Button>
+              <Button size="sm" variant="destructive" onClick={() => setConfirmState({ open: true, title: "Eliminar productos seleccionados?", description: "Esta acción no se puede deshacer.", onConfirm: handleBulkDeleteProducts })}><Trash2 className="size-4" /> Eliminar</Button>
+            </div>
+          ) : null}
+        </div>
+        <Table
+          containerClassName="overflow-visible"
+          className="w-full table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
+        >
+          <TableHeader
+            className={`[&_th]:sticky [&_th]:top-14 [&_th]:z-20 [&_th]:shadow-[0_1px_0_var(--border)] lg:[&_th]:top-0 ${
+              isProductsHeaderSticky ? "[&_th]:bg-background" : ""
+            }`}
+          >
             <TableRow>
+              <TableHead className="w-10"><span className="sr-only">Seleccionar</span></TableHead>
               <TableHead className="text-center w-28">Producto</TableHead>
               <TableHead className="text-center w-20">Sector</TableHead>
               <TableHead className="text-center w-24">Categoría</TableHead>
               <TableHead className="text-center w-16">Stock</TableHead>
-              <TableHead className="text-center w-20">Precio</TableHead>
-              <TableHead className="text-center w-24">Comisión para mí</TableHead>
+              <TableHead className="text-center w-24">Mi comisión</TableHead>
               <TableHead className="text-center w-20">Gastos</TableHead>
+              <TableHead className="text-center w-20">Precio</TableHead>
               <TableHead className="text-center w-20">Descuento</TableHead>
               <TableHead className="text-center w-24">Precio tienda</TableHead>
+              <TableHead className="text-center w-24">Ganancias</TableHead>
               <TableHead className="text-center flex-1">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -1136,11 +1289,20 @@ function AdminProducts() {
               const displayStock = variant?.stock ?? product.stock;
               const displayComision = variant?.comision ?? product.comision ?? 0;
               const displayGastos = variant?.gastos ?? product.gastos ?? 0;
+              const displayPriceCurrency = variant?.priceCurrency ?? product.priceCurrency ?? "ARS";
               const displayComisionCurrency = variant?.comisionCurrency ?? product.comisionCurrency ?? "ARS";
               const displayGastosCurrency = variant?.gastosCurrency ?? product.gastosCurrency ?? "ARS";
+              const displayUsdRate = product.usdRate ?? 0;
               const discountedPrice = displayPrice * (1 - discount / 100);
-              const isQuickEditing = quickEditProductId === product.id;
-              const quickDraft = quickEditForm[product.id] ?? {
+              const discountedPriceInArs = displayPriceCurrency === "USD" ? discountedPrice * displayUsdRate : discountedPrice;
+              const gastosInArs = displayGastosCurrency === "USD" ? displayGastos * displayUsdRate : displayGastos;
+              const displayProfit = displayPriceCurrency === displayGastosCurrency
+                ? discountedPrice - displayGastos
+                : discountedPriceInArs - gastosInArs;
+              const displayProfitCurrency = displayPriceCurrency === displayGastosCurrency ? displayPriceCurrency : "ARS";
+              const quickEditKey = getQuickEditKey(product, variant);
+              const isQuickEditing = quickEditProductId === product.id && quickEditVariantId === (variant?.id ?? null);
+              const quickDraft = quickEditForm[quickEditKey] ?? {
                 brand: product.brand,
                 name: product.name,
                 category: product.category,
@@ -1154,7 +1316,14 @@ function AdminProducts() {
               const brandCategoryOptions = brands[activeQuickBrand]?.categories ?? [];
 
               return (
-                <TableRow key={`${product.id}-${variant?.id ?? "base"}`} ref={quickEditProductId === product.id ? quickEditRowRef : undefined}>
+                <TableRow key={`${product.id}-${variant?.id ?? "base"}`} ref={isQuickEditing ? quickEditRowRef : undefined}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedProductIds.includes(getProductSelectionKey(product, variant))}
+                      onCheckedChange={(checked) => toggleProductSelection(getProductSelectionKey(product, variant), checked === true)}
+                      aria-label={`Seleccionar ${product.name}`}
+                    />
+                  </TableCell>
                   {isQuickEditing ? (
                     <>
                       <TableCell className="align-middle">
@@ -1163,10 +1332,10 @@ function AdminProducts() {
                           onChange={(event) =>
                             setQuickEditForm((current) => ({
                               ...current,
-                              [product.id]: { ...quickDraft, name: event.target.value },
+                              [quickEditKey]: { ...quickDraft, name: event.target.value },
                             }))
                           }
-                          className="w-full min-w-45"
+                          className="w-full min-w-0"
                         />
                       </TableCell>
                       <TableCell className="align-middle">
@@ -1177,7 +1346,7 @@ function AdminProducts() {
                             const nextCategory = brands[nextBrand].categories[0]?.slug ?? quickDraft.category;
                             setQuickEditForm((current) => ({
                               ...current,
-                              [product.id]: {
+                              [quickEditKey]: {
                                 ...quickDraft,
                                 brand: nextBrand,
                                 category: nextCategory,
@@ -1185,7 +1354,7 @@ function AdminProducts() {
                             }));
                           }}
                         >
-                          <SelectTrigger className="min-w-30">
+                          <SelectTrigger className="w-full min-w-0">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1203,11 +1372,11 @@ function AdminProducts() {
                           onValueChange={(value) =>
                             setQuickEditForm((current) => ({
                               ...current,
-                              [product.id]: { ...quickDraft, category: value },
+                              [quickEditKey]: { ...quickDraft, category: value },
                             }))
                           }
                         >
-                          <SelectTrigger className="min-w-35">
+                          <SelectTrigger className="w-full min-w-0">
                             <SelectValue placeholder="Seleccionar categoría" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1227,24 +1396,10 @@ function AdminProducts() {
                           onChange={(event) =>
                             setQuickEditForm((current) => ({
                               ...current,
-                              [product.id]: { ...quickDraft, stock: Number(event.target.value) },
+                              [quickEditKey]: { ...quickDraft, stock: Number(event.target.value) },
                             }))
                           }
-                          className="w-20 text-center"
-                        />
-                      </TableCell>
-                      <TableCell className="align-middle">
-                        <Input
-                          type="number"
-                          min={0}
-                          value={quickDraft.price}
-                          onChange={(event) =>
-                            setQuickEditForm((current) => ({
-                              ...current,
-                              [product.id]: { ...quickDraft, price: Number(event.target.value) },
-                            }))
-                          }
-                          className="w-24 text-center"
+                          className="w-full min-w-0 text-center"
                         />
                       </TableCell>
                       <TableCell className="align-middle">
@@ -1255,10 +1410,10 @@ function AdminProducts() {
                           onChange={(event) =>
                             setQuickEditForm((current) => ({
                               ...current,
-                              [product.id]: { ...quickDraft, comision: Number(event.target.value) },
+                              [quickEditKey]: { ...quickDraft, comision: Number(event.target.value) },
                             }))
                           }
-                          className="w-24 text-center"
+                          className="w-full min-w-0 text-center"
                         />
                       </TableCell>
                       <TableCell className="align-middle">
@@ -1269,11 +1424,16 @@ function AdminProducts() {
                           onChange={(event) =>
                             setQuickEditForm((current) => ({
                               ...current,
-                              [product.id]: { ...quickDraft, gastos: Number(event.target.value) },
+                              [quickEditKey]: { ...quickDraft, gastos: Number(event.target.value) },
                             }))
                           }
-                          className="w-20 text-center"
+                          className="w-full min-w-0 text-center"
                         />
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        <div className="flex h-9 items-center justify-center text-sm text-foreground">
+                          {formatPrice(quickDraft.price)}
+                        </div>
                       </TableCell>
                       <TableCell className="align-middle">
                         <Input
@@ -1284,13 +1444,16 @@ function AdminProducts() {
                           onChange={(event) =>
                             setQuickEditForm((current) => ({
                               ...current,
-                              [product.id]: { ...quickDraft, discount: Number(event.target.value) },
+                              [quickEditKey]: { ...quickDraft, discount: Number(event.target.value) },
                             }))
                           }
-                          className="w-20 text-center"
+                          className="w-full min-w-0 text-center"
                         />
                       </TableCell>
                       <TableCell className="align-middle">{formatPrice(Math.max(0, quickDraft.price * (1 - quickDraft.discount / 100)))}</TableCell>
+                      <TableCell className="align-middle">
+                        {formatPrice(quickDraft.price * (1 - quickDraft.discount / 100) - quickDraft.gastos)}
+                      </TableCell>
                       <TableCell className="align-middle">
                         <div className="flex flex-wrap items-center justify-center gap-1">
                           <Button
@@ -1301,7 +1464,7 @@ function AdminProducts() {
                                 open: true,
                                 title: `Guardar cambios de "${product.name}"?`,
                                 description: undefined,
-                                onConfirm: () => saveQuickEdit(product),
+                                onConfirm: () => saveQuickEdit(product, variant),
                               })
                             }
                             className="h-7 flex-none gap-1 bg-transparent px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700"
@@ -1351,9 +1514,9 @@ function AdminProducts() {
                           {displayStock}
                         </Badge>
                       </TableCell>
-                      <TableCell>{formatPrice(displayPrice)}</TableCell>
                       <TableCell>{formatPrice(displayComision, displayComisionCurrency)}</TableCell>
                       <TableCell>{formatPrice(displayGastos, displayGastosCurrency)}</TableCell>
+                      <TableCell>{formatPrice(displayPrice)}</TableCell>
                       <TableCell>
                         <Input
                           type="number"
@@ -1369,6 +1532,7 @@ function AdminProducts() {
                         />
                       </TableCell>
                       <TableCell>{formatPrice(Math.max(0, discountedPrice))}</TableCell>
+                      <TableCell>{formatPrice(displayProfit, displayProfitCurrency)}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center justify-center gap-1.5">
                           <label className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
@@ -1389,7 +1553,7 @@ function AdminProducts() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => startQuickEdit(product)}
+                            onClick={() => startQuickEdit(product, variant)}
                             className="h-7 gap-1 px-2 text-xs"
                           >
                             <Edit3 className="h-3.5 w-3.5" />
@@ -1399,7 +1563,7 @@ function AdminProducts() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openEditProductDialog(product)}
+                            onClick={() => openEditProductDialog(product, variant)}
                             className="h-7 gap-1 px-2 text-xs"
                           >
                             <Pencil className="h-3.5 w-3.5" />
@@ -1442,7 +1606,7 @@ function AdminProducts() {
             })}
             {results.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-16 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={12} className="py-16 text-center text-sm text-muted-foreground">
                   No se encontraron productos.
                 </TableCell>
               </TableRow>
@@ -1574,12 +1738,29 @@ function AdminProducts() {
       </Dialog>
 
       <ProductEditDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        mode={dialogMode}
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        mode="create"
         productForm={productForm}
         setProductForm={setProductForm}
         configuredUsdRate={usdRate}
+        initialVariantId={null}
+        bulkEditPosition={-1}
+        bulkEditCount={0}
+        onNavigateBulkEdit={() => {}}
+        onSave={handleSaveProduct}
+      />
+      <ProductEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        mode="edit"
+        productForm={productForm}
+        setProductForm={setProductForm}
+        configuredUsdRate={usdRate}
+        initialVariantId={initialVariantId}
+        bulkEditPosition={bulkEditQueue.length > 0 ? bulkEditPosition : -1}
+        bulkEditCount={bulkEditQueue.length}
+        onNavigateBulkEdit={navigateBulkEditProduct}
         onSave={handleSaveProduct}
       />
       <Dialog open={usdRatePromptOpen} onOpenChange={setUsdRatePromptOpen}>
@@ -1642,6 +1823,10 @@ function ProductEditDialog({
   productForm,
   setProductForm,
   configuredUsdRate,
+  initialVariantId,
+  bulkEditPosition,
+  bulkEditCount,
+  onNavigateBulkEdit,
   onSave,
 }: {
   open: boolean;
@@ -1650,6 +1835,10 @@ function ProductEditDialog({
   productForm: ProductFormState | null;
   setProductForm: (form: ProductFormState | null) => void;
   configuredUsdRate: number;
+  initialVariantId: string | null;
+  bulkEditPosition: number;
+  bulkEditCount: number;
+  onNavigateBulkEdit: (direction: -1 | 1) => void;
   onSave: () => void;
 }) {
   const [newFeature, setNewFeature] = useState("");
@@ -1662,6 +1851,11 @@ function ProductEditDialog({
   const [variantNameDraft, setVariantNameDraft] = useState("");
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(null);
   const [inlineVariantName, setInlineVariantName] = useState("");
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [descriptionConfirmed, setDescriptionConfirmed] = useState(true);
+  const descriptionInitialRef = useRef("");
+  const descriptionAppliedRef = useRef("");
+  const featuresAppliedRef = useRef("");
 
   useEffect(() => {
     if (!open) {
@@ -1671,9 +1865,20 @@ function ProductEditDialog({
 
     if (productForm) {
       initialFormRef.current = JSON.stringify(productForm);
-      setSelectedVariantId(productForm.variants[0]?.id ?? null);
+      setSelectedVariantId(initialVariantId ?? productForm.variants[0]?.id ?? null);
     }
-  }, [open]);
+  }, [open, initialVariantId, productForm?.id]);
+
+  useEffect(() => {
+    if (!productForm) return;
+    const selectedVariant = productForm.variants.find((variant) => variant.id === selectedVariantId);
+    const description = selectedVariant?.description ?? productForm.description;
+    setDescriptionDraft(description);
+    setDescriptionConfirmed(true);
+    descriptionInitialRef.current = description;
+    descriptionAppliedRef.current = description;
+    featuresAppliedRef.current = JSON.stringify(selectedVariant?.features ?? productForm.features);
+  }, [open, selectedVariantId]);
 
   const hasChanges = useMemo(
     () => (productForm ? JSON.stringify(productForm) !== initialFormRef.current : false),
@@ -1896,12 +2101,47 @@ function ProductEditDialog({
     });
   };
 
+  const applyDescriptionToAllVariants = () => {
+    if (!productForm || !activeVariant) return;
+    setProductForm({
+      ...productForm,
+      variants: productForm.variants.map((variant) => ({
+        ...variant,
+        description: descriptionDraft,
+      })),
+    });
+    descriptionAppliedRef.current = descriptionDraft;
+    toast.success("Descripción aplicada a todas las variantes");
+  };
+
   const applyFeaturesToAllVariants = () => {
     if (!productForm || !activeVariant) return;
     setProductForm({
       ...productForm,
-      variants: productForm.variants.map((variant) => ({ ...variant, features: [...activeFeatures] })),
+      variants: productForm.variants.map((variant) => ({
+        ...variant,
+        features: [...activeFeatures],
+      })),
     });
+    featuresAppliedRef.current = JSON.stringify(activeFeatures);
+    toast.success("Características aplicadas a todas las variantes");
+  };
+
+  const canApplyDescription =
+    Boolean(activeVariant) &&
+    productForm.variants.length >= 2 &&
+    descriptionConfirmed &&
+    descriptionDraft !== descriptionAppliedRef.current;
+  const canApplyFeatures =
+    Boolean(activeVariant) &&
+    productForm.variants.length >= 2 &&
+    JSON.stringify(activeFeatures) !== featuresAppliedRef.current;
+
+  const confirmDescription = () => {
+    if (!productForm || descriptionDraft === descriptionInitialRef.current) return;
+    updateActiveVariant({ description: descriptionDraft });
+    setDescriptionConfirmed(true);
+    descriptionInitialRef.current = descriptionDraft;
   };
 
   if (!productForm) return null;
@@ -1911,7 +2151,19 @@ function ProductEditDialog({
   const modeDescription = isNewProduct
     ? "Agregá un producto completo con nombre, stock, precio y categoría."
     : "Actualizá los datos del producto sin afectar el flujo de alta.";
-  const availableCategories = brands[productForm.brand]?.categories ?? [];
+  const availableCategories = productForm.brand
+    ? brands[productForm.brand].categories.map((category) => ({
+        ...category,
+        brandSlug: productForm.brand,
+        brandName: brands[productForm.brand].name,
+      }))
+    : brandList.flatMap((brand) =>
+        brand.categories.map((category) => ({
+          ...category,
+          brandSlug: brand.slug,
+          brandName: brand.name,
+        })),
+      );
   const usdRate = productForm.usdRate > 0 ? productForm.usdRate : 0;
   const toLocalCurrency = (amount: number, currency: CurrencyCode) =>
     currency === "USD" ? (usdRate > 0 ? amount * usdRate : 0) : amount;
@@ -1941,7 +2193,7 @@ function ProductEditDialog({
   const activeStock = activeVariant?.stock ?? productForm.stock;
   const activeDeliveryUnit = activeVariant?.deliveryUnit ?? productForm.deliveryUnit;
   const activeDeliveryAmount = activeVariant?.deliveryAmount ?? productForm.deliveryAmount;
-  const activeDescription = activeVariant?.description ?? productForm.description;
+  const showsDeliveryDetails = activeDeliveryUnit === "horas" || activeDeliveryUnit === "dias";
   const activePriceCurrency = activeVariant?.priceCurrency ?? productForm.priceCurrency;
   const samePricingCurrency = activeCommissionCurrency === activeExpensesCurrency;
   const activeOutputCurrency = samePricingCurrency ? activeCommissionCurrency : "ARS";
@@ -1955,6 +2207,9 @@ function ProductEditDialog({
   const activeStorePrice = activePriceValue * (1 - activeDiscount / 100);
   const activeProfit = activeStorePrice - activeExpensesValue;
   const activeUsdRequired = activeCommissionCurrency === "USD" || activeExpensesCurrency === "USD";
+  const hasBulkNavigation = bulkEditCount > 1;
+  const canNavigatePrevious = bulkEditPosition > 0;
+  const canNavigateNext = hasBulkNavigation && bulkEditPosition < bulkEditCount - 1;
   const updateActivePricing = (updates: Partial<ProductVariant>) => {
     if (!productForm) return;
     if (!activeVariant) {
@@ -1981,7 +2236,20 @@ function ProductEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl sm:max-w-4xl">
         <DialogHeader className="space-y-2">
-          <DialogTitle>{modeTitle}</DialogTitle>
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle>{modeTitle}</DialogTitle>
+            {hasBulkNavigation ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Button type="button" variant="outline" size="sm" onClick={() => onNavigateBulkEdit(-1)} disabled={!canNavigatePrevious} aria-label="Producto anterior">
+                  <ArrowLeft className="size-4" /> Anterior
+                </Button>
+                <span>{bulkEditPosition + 1} / {bulkEditCount}</span>
+                <Button type="button" variant="outline" size="sm" onClick={() => onNavigateBulkEdit(1)} disabled={!canNavigateNext} aria-label="Producto siguiente">
+                  Siguiente <ArrowRight className="size-4" />
+                </Button>
+              </div>
+            ) : null}
+          </div>
           <DialogDescription>{modeDescription}</DialogDescription>
         </DialogHeader>
 
@@ -2005,7 +2273,6 @@ function ProductEditDialog({
                   id="new-name"
                   value={productForm.name}
                   onChange={(event) => setProductForm({ ...productForm, name: event.target.value })}
-                  placeholder="Nombre del producto"
                 />
               </div>
 
@@ -2015,17 +2282,16 @@ function ProductEditDialog({
                   value={productForm.brand}
                   onValueChange={(value) => {
                     const nextBrand = value as BrandSlug;
-                    const nextCategory = brands[nextBrand].categories[0]?.slug ?? "";
 
                     setProductForm({
                       ...productForm,
                       brand: nextBrand,
-                      category: nextCategory,
+                      category: "",
                     });
                   }}
                 >
                   <SelectTrigger id="new-sector" className="w-full">
-                    <SelectValue />
+                    <SelectValue placeholder="Seleccionar tienda" />
                   </SelectTrigger>
                   <SelectContent>
                     {brandList.map((brand) => (
@@ -2041,7 +2307,14 @@ function ProductEditDialog({
                 <Label htmlFor="new-category">Categoría</Label>
                 <Select
                   value={productForm.category}
-                  onValueChange={(value) => setProductForm({ ...productForm, category: value })}
+                  onValueChange={(value) => {
+                    const selectedCategory = availableCategories.find((category) => category.slug === value);
+                    setProductForm({
+                      ...productForm,
+                      brand: productForm.brand || selectedCategory?.brandSlug || "",
+                      category: value,
+                    });
+                  }}
                 >
                   <SelectTrigger id="new-category" className="w-full">
                     <SelectValue placeholder="Seleccionar categoría" />
@@ -2049,7 +2322,7 @@ function ProductEditDialog({
                   <SelectContent>
                     {availableCategories.map((category) => (
                       <SelectItem key={category.slug} value={category.slug}>
-                        {category.name}
+                        {productForm.brand ? category.name : `${category.name} (${category.brandName})`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -2117,7 +2390,7 @@ function ProductEditDialog({
 
               <div className="h-full space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor="new-comision">Comisión para mí</Label>
+                  <Label htmlFor="new-comision">Mi comisión</Label>
                   <Select
                     value={productForm.comisionCurrency}
                     onValueChange={(value) =>
@@ -2142,7 +2415,7 @@ function ProductEditDialog({
                   onChange={(event) =>
                     setProductForm({ ...productForm, comision: Number(event.target.value) })
                   }
-                  placeholder="Comisión para mí"
+                  placeholder="Mi comisión"
                 />
               </div>
 
@@ -2244,7 +2517,7 @@ function ProductEditDialog({
 
               {!isImmediate && (
                 <div className="h-full space-y-2">
-                  <Label htmlFor="delivery-amount">Cantidad de entrega</Label>
+                  <Label htmlFor="delivery-amount">Cantidad</Label>
                   <Input
                     id="delivery-amount"
                     type="number"
@@ -2314,19 +2587,19 @@ function ProductEditDialog({
             </div>
             {activeUsdRequired && <div className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/5 p-3 text-xs text-muted-foreground">{conversionHint}</div>}
             <div className="grid items-start gap-4 sm:grid-cols-3">
-              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Comisión para mí</Label><Select value={activeCommissionCurrency} onValueChange={(value) => updateActivePricing({ comisionCurrency: value as CurrencyCode })}><SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ARS">$ (ARS)</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent></Select></div><Input type="number" min={0} value={activeCommission} onChange={(event) => updateActivePricing({ comision: Number(event.target.value) || 0 })} /></div>
-              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Gastos</Label><Select value={activeExpensesCurrency} onValueChange={(value) => updateActivePricing({ gastosCurrency: value as CurrencyCode })}><SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ARS">$ (ARS)</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent></Select></div><Input type="number" min={0} value={activeExpenses} onChange={(event) => updateActivePricing({ gastos: Number(event.target.value) || 0 })} /></div>
+              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Mi comisión</Label><Select value={activeCommissionCurrency} onValueChange={(value) => updateActivePricing({ comisionCurrency: value as CurrencyCode })}><SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ARS">$ (ARS)</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent></Select></div><Input type="number" min={0} value={isNewProduct && activeCommission === 0 ? "" : activeCommission} onChange={(event) => updateActivePricing({ comision: Number(event.target.value) || 0 })} /></div>
+              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Gastos</Label><Select value={activeExpensesCurrency} onValueChange={(value) => updateActivePricing({ gastosCurrency: value as CurrencyCode })}><SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ARS">$ (ARS)</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent></Select></div><Input type="number" min={0} value={isNewProduct && activeExpenses === 0 ? "" : activeExpenses} onChange={(event) => updateActivePricing({ gastos: Number(event.target.value) || 0 })} /></div>
               <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Precio</Label><span className="text-xs text-muted-foreground">{activeOutputCurrency}</span></div><div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm opacity-80">{formatLockedNumber(activePriceValue)}</div></div>
             </div>
             <div className="mt-4 grid items-start gap-4 sm:grid-cols-3">
-              <div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Descuento (%)</Label><Input type="number" min={0} max={100} value={activeDiscount} onChange={(event) => updateActiveVariant({ discount: Number(event.target.value) || 0 })} /></div>
+              <div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Descuento (%)</Label><Input type="number" min={0} max={100} value={isNewProduct && activeDiscount === 0 ? "" : activeDiscount} onChange={(event) => updateActiveVariant({ discount: Number(event.target.value) || 0 })} /></div>
               <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Precio tienda</Label><span className="text-xs text-muted-foreground">{activeOutputCurrency}</span></div><div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm opacity-80">{formatLockedNumber(activeStorePrice)}</div></div>
               <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Ganancias</Label><span className="text-xs text-muted-foreground">{activeOutputCurrency}</span></div><div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm opacity-80">{formatLockedNumber(activeProfit)}</div></div>
             </div>
-            <div className={`mt-4 grid items-start gap-4 ${activeDeliveryUnit === "inmediata" ? "sm:grid-cols-2" : "sm:grid-cols-4"}`}>
-              <div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Stock</Label><Input type="number" min={0} value={activeStock} onChange={(event) => updateActiveVariant({ stock: Number(event.target.value) || 0 })} /></div>
-              <div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Tiempo de entrega</Label><Select value={activeDeliveryUnit} onValueChange={(value) => updateActiveVariant({ deliveryUnit: value as DeliveryUnit })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="inmediata">Inmediata</SelectItem><SelectItem value="horas">Horas</SelectItem><SelectItem value="dias">Días</SelectItem></SelectContent></Select></div>
-              {activeDeliveryUnit !== "inmediata" && <><div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Cantidad de entrega</Label><Input type="number" min={1} value={activeDeliveryAmount} onChange={(event) => updateActiveVariant({ deliveryAmount: Number(event.target.value) || 0 })} /></div><div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Entrega</Label><div className="flex h-9 items-center rounded-md border border-input px-3 text-sm opacity-60">{`${activeDeliveryAmount} ${activeDeliveryUnit}`}</div></div></>}
+            <div className={`mt-4 grid items-start gap-4 ${showsDeliveryDetails ? "sm:grid-cols-4" : "sm:grid-cols-2"}`}>
+              <div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Stock</Label><Input type="number" min={0} value={isNewProduct && activeStock === 0 ? "" : activeStock} onChange={(event) => updateActiveVariant({ stock: Number(event.target.value) || 0 })} /></div>
+              <div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Tiempo de entrega</Label><Select value={activeDeliveryUnit} onValueChange={(value) => updateActiveVariant({ deliveryUnit: value as DeliveryUnit })}><SelectTrigger><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger><SelectContent><SelectItem value="inmediata">Entrega inmediata</SelectItem><SelectItem value="horas">Horas</SelectItem><SelectItem value="dias">Días</SelectItem></SelectContent></Select></div>
+              {showsDeliveryDetails && <><div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Cantidad</Label><Input type="number" min={1} value={activeDeliveryAmount === 0 ? "" : activeDeliveryAmount} onChange={(event) => updateActiveVariant({ deliveryAmount: Number(event.target.value) || 0 })} /></div><div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Entrega</Label><div className="flex h-9 items-center rounded-md border border-input px-3 text-sm opacity-60">{activeDeliveryAmount > 0 ? `${activeDeliveryAmount} ${activeDeliveryUnit}` : ""}</div></div></>}
             </div>
           </div>
 
@@ -2540,13 +2813,53 @@ function ProductEditDialog({
                   ))}
                 </div>
               )}
-              <div className="space-y-2">
-                <Label>Descripción</Label>
-                <Textarea value={activeDescription} rows={3} onChange={(event) => updateActiveVariant({ description: event.target.value })} placeholder="Descripción de esta variante" />
-              </div>
-              <Button type="button" variant="outline" onClick={applyFeaturesToAllVariants} disabled={!activeVariant || productForm.variants.length < 2}>
+              <Button
+                type="button"
+                size="sm"
+                variant="default"
+                onClick={applyFeaturesToAllVariants}
+                disabled={!canApplyFeatures}
+                className="text-sm"
+              >
+                <Check className="mr-2 size-3.5" />
                 Aplicar a todos
               </Button>
+              <div className="space-y-2">
+                <Label>Descripción</Label>
+                <Textarea
+                  value={descriptionDraft}
+                  rows={3}
+                  onChange={(event) => {
+                    setDescriptionDraft(event.target.value);
+                    setDescriptionConfirmed(false);
+                  }}
+                  placeholder="Descripción de esta variante"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="default"
+                    onClick={confirmDescription}
+                    disabled={descriptionDraft === descriptionInitialRef.current}
+                    className="text-sm"
+                  >
+                    <Check className="mr-2 size-3.5" />
+                    Confirmar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="default"
+                    onClick={applyDescriptionToAllVariants}
+                    disabled={!canApplyDescription}
+                    className="text-sm"
+                  >
+                    <Check className="mr-2 size-3.5" />
+                    Aplicar a todos
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2684,6 +2997,16 @@ function ProductEditDialog({
           </div>
         </DialogFooter>
 
+              {hasBulkNavigation ? (
+                <div className="mr-auto flex items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => onNavigateBulkEdit(-1)} disabled={!canNavigatePrevious} aria-label="Producto anterior">
+                    <ArrowLeft className="size-4" /> Anterior
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => onNavigateBulkEdit(1)} disabled={!canNavigateNext} aria-label="Producto siguiente">
+                    Siguiente <ArrowRight className="size-4" />
+                  </Button>
+                </div>
+              ) : null}
         <ConfirmDialog
           open={confirmSaveOpen}
           onOpenChange={(open) => setConfirmSaveOpen(open)}

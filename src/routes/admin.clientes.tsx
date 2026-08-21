@@ -71,7 +71,7 @@ function AdminClients() {
 
         <div className="flex items-center gap-2">
           <Button
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
+            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {
               const rows: (string | number)[][] = [["Cliente", "Email", "Total de pedidos", "Total gastado"]];
 
@@ -104,7 +104,7 @@ function AdminClients() {
           </Button>
 
           <Button
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
+            className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
             onClick={() => {
               const rows = visibleCustomers.map((customer) => {
                 const total = customer.orders.reduce((s, o) => s + (o.total || 0), 0);

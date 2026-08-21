@@ -2,7 +2,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { ArrowUpDown, Check, ChevronDown, ChevronUp, Edit3, Filter, Lock, Paperclip, Pencil, Plus, Save, Search, Trash2, X, Eye, EyeOff, Download } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowUpDown, Check, ChevronDown, ChevronUp, Copy, Edit3, Filter, Lock, Paperclip, Pencil, Plus, Save, Search, Trash2, X, Eye, EyeOff, Download } from "lucide-react";
 import { Sheet, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Badge } from "@/components/ui/badge";
@@ -124,11 +125,15 @@ if (typeof window !== "undefined") {
       const svgSheet = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sheet size-4" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" x2="21" y1="9" y2="9"></line><line x1="3" x2="21" y1="15" y2="15"></line><line x1="9" x2="9" y1="9" y2="21"></line><line x1="15" x2="15" y1="9" y2="21"></line></svg>`;
       const svgFileText = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text size-4" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>`;
 
-      const btnClass = "justify-center whitespace-nowrap cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90";
+      const excelBtnClass = "justify-center whitespace-nowrap cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700";
+      const pdfBtnClass = "justify-center whitespace-nowrap cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700";
 
       const makeBtn = (label: string, svgMarkup: string, onClick: () => void) => {
         const b = document.createElement("button");
-        b.className = btnClass;
+        const isExcel = label.includes("Excel");
+        b.className = isExcel ? excelBtnClass : pdfBtnClass;
+        b.style.backgroundColor = isExcel ? "#059669" : "#dc2626";
+        b.style.color = "#ffffff";
         b.innerHTML = svgMarkup + label;
         b.onclick = onClick;
         return b;
@@ -183,14 +188,18 @@ if (typeof window !== "undefined") {
       container.className = "relative flex flex-wrap items-center gap-2";
 
 
-      const btnClass = "justify-center whitespace-nowrap cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90";
+      const excelBtnClass = "justify-center whitespace-nowrap cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700";
+      const pdfBtnClass = "justify-center whitespace-nowrap cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700";
 
       const svgSheet = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sheet size-4" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" x2="21" y1="9" y2="9"></line><line x1="3" x2="21" y1="15" y2="15"></line><line x1="9" x2="9" y1="9" y2="21"></line><line x1="15" x2="15" y1="9" y2="21"></line></svg>`;
       const svgFileText = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text size-4" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>`;
 
       const makeBtn = (label, svgMarkup, onClick) => {
         const b = document.createElement("button");
-        b.className = btnClass;
+        const isExcel = label.includes("Excel");
+        b.className = isExcel ? excelBtnClass : pdfBtnClass;
+        b.style.backgroundColor = isExcel ? "#059669" : "#dc2626";
+        b.style.color = "#ffffff";
         b.innerHTML = svgMarkup + label;
         b.onclick = onClick;
         return b;
@@ -417,6 +426,8 @@ function AdminOrders() {
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [bulkOrderEditQueue, setBulkOrderEditQueue] = useState<string[]>([]);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
   const documentsInputRef = useRef<HTMLInputElement | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -431,6 +442,7 @@ function AdminOrders() {
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
   const sortButtonRef = useRef<HTMLButtonElement | null>(null);
   const [orderForm, setOrderForm] = useState<EditableOrder | null>(null);
+  const initialOrderFormSnapshot = useRef<string | null>(null);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [paymentInstruction, setPaymentInstruction] = useState<string>("");
   const [confirmState, setConfirmState] = useState<{
@@ -725,6 +737,10 @@ function AdminOrders() {
     if (!pageSize || pageSize <= 0) return [] as typeof results;
     return results.slice(page * pageSize, page * pageSize + pageSize);
   }, [results, page, pageSize]);
+  const visibleOrderIds = visibleResults.map((order) => order.id);
+  const selectedVisibleOrderIds = visibleOrderIds.filter((id) => selectedOrderIds.includes(id));
+  const allVisibleOrdersSelected = visibleOrderIds.length > 0 && selectedVisibleOrderIds.length === visibleOrderIds.length;
+  const someVisibleOrdersSelected = selectedVisibleOrderIds.length > 0 && !allVisibleOrdersSelected;
 
   useEffect(() => {
     if (!search.pedido || !pageSize || pageSize <= 0) return;
@@ -880,6 +896,7 @@ function AdminOrders() {
     cloned.total = totals.total;
     cloned.expenses = totals.expenses;
     cloned.profit = totals.profit;
+    initialOrderFormSnapshot.current = JSON.stringify(cloned);
     setOrderForm(cloned);
     setIsCreatingOrder(false);
     setPaymentInstruction("");
@@ -887,25 +904,26 @@ function AdminOrders() {
   };
 
   const openNewOrderDialog = () => {
-    const today = new Date().toISOString().slice(0, 10);
-    setOrderForm({
+    const newOrder: EditableOrder = {
       id: `LRG-${Date.now()}`,
       brand: "arcade",
       customer: "",
       email: "",
       phone: "",
       extraInfo: "",
-      date: today,
+      date: "",
       total: 0,
       expenses: 0,
       profit: 0,
       status: "pendiente",
-      deliveryStatus: "Pendiente",
-      paymentStatus: "Pendiente",
-      paymentMethod: availablePaymentMethods[0] ?? "",
-      shippingMethod: availableShippingMethods[0] ?? "",
+      deliveryStatus: "" as DeliveryStatus,
+      paymentStatus: "" as PaymentStatus,
+      paymentMethod: "",
+      shippingMethod: "",
       items: [],
-    });
+    };
+    initialOrderFormSnapshot.current = JSON.stringify(newOrder);
+    setOrderForm(newOrder);
     setIsCreatingOrder(true);
     setPaymentInstruction("");
     setDialogOpen(true);
@@ -1095,9 +1113,17 @@ function AdminOrders() {
           (item.stock === undefined || item.quantity <= item.stock),
       )
     : true;
+  const hasOrderChanges = orderForm
+    ? JSON.stringify(orderForm) !== initialOrderFormSnapshot.current
+    : false;
 
   const handleSaveOrder = () => {
-    if (!orderForm || !isOrderFormValid) return;
+    if (!orderForm) return;
+    if (isCreatingOrder && !orderForm.date.trim()) {
+      toast.error("La fecha de compra es obligatoria.");
+      return;
+    }
+    if (!isOrderFormValid) return;
     setEditableOrders((current) => {
       const nextOrders = isCreatingOrder
         ? [orderForm, ...current]
@@ -1105,8 +1131,57 @@ function AdminOrders() {
       saveOrders(nextOrders);
       return nextOrders;
     });
+    const nextBulkOrderId = bulkOrderEditQueue.slice(1).find((id) => editableOrders.some((order) => order.id === id));
+    if (bulkOrderEditQueue.length > 1 && nextBulkOrderId) {
+      const nextOrder = editableOrders.find((order) => order.id === nextBulkOrderId);
+      if (nextOrder) {
+        setBulkOrderEditQueue((current) => current.slice(1));
+        openEditOrderDialog(nextOrder);
+        return;
+      }
+    }
+    setBulkOrderEditQueue([]);
     setDialogOpen(false);
     setIsCreatingOrder(false);
+  };
+
+  const toggleOrderSelection = (orderId: string, checked: boolean) => {
+    setSelectedOrderIds((current) =>
+      checked ? (current.includes(orderId) ? current : [...current, orderId]) : current.filter((id) => id !== orderId),
+    );
+  };
+
+  const handleBulkDeleteOrders = () => {
+    const ids = new Set(selectedOrderIds);
+    setEditableOrders((current) => {
+      const next = current.filter((order) => !ids.has(order.id));
+      saveOrders(next);
+      return next;
+    });
+    setSelectedOrderIds([]);
+  };
+
+  const handleBulkDuplicateOrders = () => {
+    setEditableOrders((current) => {
+      const selected = current.filter((order) => selectedOrderIds.includes(order.id));
+      const duplicates = selected.map((order) => ({
+        ...order,
+        id: `LRG-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        date: "",
+      }));
+      const next = [...duplicates, ...current];
+      saveOrders(next);
+      return next;
+    });
+    setSelectedOrderIds([]);
+  };
+
+  const handleBulkEditOrders = () => {
+    const order = editableOrders.find((item) => item.id === selectedOrderIds[0]);
+    if (order) {
+      setBulkOrderEditQueue(selectedOrderIds);
+      openEditOrderDialog(order);
+    }
   };
 
   return (
@@ -1199,7 +1274,7 @@ function AdminOrders() {
 
           <div id="lrg-export-pedidos-buttons" className="flex items-center gap-2">
             <Button
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
+              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
               onClick={() => {
                 try {
                   exportOrdersExcel(results);
@@ -1214,7 +1289,7 @@ function AdminOrders() {
             </Button>
 
             <Button
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-black shadow-none hover:bg-primary/90"
+              className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
               onClick={() => {
                 try {
                   exportOrdersPdf(results);
@@ -1369,9 +1444,31 @@ function AdminOrders() {
       ) : null}
 
       <div className="glass-panel mt-8 overflow-x-auto rounded-2xl">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border/60 p-3">
+          <span className="text-sm font-medium">Seleccionar</span>
+          <Checkbox
+            checked={allVisibleOrdersSelected ? true : someVisibleOrdersSelected ? "indeterminate" : false}
+            onCheckedChange={(checked) => {
+              const shouldSelect = checked === true || checked === "indeterminate";
+              setSelectedOrderIds((current) => shouldSelect
+                ? [...new Set([...current, ...visibleOrderIds])]
+                : current.filter((id) => !visibleOrderIds.includes(id)));
+            }}
+            aria-label="Seleccionar pedidos visibles"
+          />
+          {selectedOrderIds.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">{selectedOrderIds.length} seleccionados</span>
+              <Button size="sm" variant="outline" onClick={handleBulkEditOrders}><Pencil className="size-4" /> Editar</Button>
+              <Button size="sm" variant="outline" onClick={handleBulkDuplicateOrders}><Copy className="size-4" /> Duplicar</Button>
+              <Button size="sm" variant="destructive" onClick={() => setConfirmState({ open: true, title: "Eliminar pedidos seleccionados?", description: "Esta acción no se puede deshacer.", onConfirm: handleBulkDeleteOrders })}><Trash2 className="size-4" /> Eliminar</Button>
+            </div>
+          ) : null}
+        </div>
         <Table className="w-full table-fixed text-center [&_td]:align-middle [&_th]:align-middle">
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10"><span className="sr-only">Seleccionar</span></TableHead>
               <TableHead className="w-16">Pedido</TableHead>
               <TableHead className="w-24">Fecha de venta</TableHead>
               <TableHead className="w-24">Estado de pago</TableHead>
@@ -1418,6 +1515,13 @@ function AdminOrders() {
                     ref={isQuickEditing ? quickEditRowRef : undefined}
                     className={highlightedOrderId === order.id ? "animate-pulse bg-amber-500/20 ring-2 ring-amber-400" : undefined}
                   >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedOrderIds.includes(order.id)}
+                        onCheckedChange={(checked) => toggleOrderSelection(order.id, checked === true)}
+                        aria-label={`Seleccionar pedido ${order.id}`}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{order.id}</TableCell>
                     <TableCell>{formatDate(order.date)}</TableCell>
                     <TableCell>
@@ -1621,7 +1725,7 @@ function AdminOrders() {
 
                   {isExpanded && (
                     <TableRow key={`${order.id}-details`}>
-                      <TableCell colSpan={10} className="bg-surface-2/70 p-5">
+                      <TableCell colSpan={11} className="bg-surface-2/70 p-5">
                         <div className="space-y-3 text-sm">
                           <p className="font-medium">Detalle del pedido</p>
 
@@ -1679,7 +1783,7 @@ function AdminOrders() {
             })}
             {results.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="py-16 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={11} className="py-16 text-center text-sm text-muted-foreground">
                   No se encontraron pedidos.
                 </TableCell>
               </TableRow>
@@ -1747,7 +1851,7 @@ function AdminOrders() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="shadow-none">
+        <DialogContent key={isCreatingOrder ? "new-order-dialog" : "edit-order-dialog"} className="shadow-none">
           <DialogHeader>
             <DialogTitle>{isCreatingOrder ? "Nuevo pedido" : "Editar pedido"}</DialogTitle>
           </DialogHeader>
@@ -1770,7 +1874,11 @@ function AdminOrders() {
               <div className="grid items-start gap-3 sm:grid-cols-2">
                 <div className="flex min-w-0 flex-col gap-0">
                   <Label className="min-h-5">Fecha de compra</Label>
-                  <Input value={formatDate(orderForm.date)} disabled />
+                  <Input
+                    type="date"
+                    value={orderForm.date}
+                    onChange={(event) => setOrderForm({ ...orderForm, date: event.target.value })}
+                  />
                 </div>
                 <div className="flex min-w-0 flex-col gap-0">
                   <Label className="min-h-5">Fecha de entrega</Label>
@@ -1829,7 +1937,7 @@ function AdminOrders() {
                       });
                     }}
                   >
-                    <SelectTrigger className="w-full"><SelectValue placeholder="Seleccionar pago" /></SelectTrigger>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
                     <SelectContent>
                       {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((status) => (
                         <SelectItem key={status} value={status}>{status}</SelectItem>
@@ -1865,7 +1973,7 @@ function AdminOrders() {
                       });
                     }}
                   >
-                    <SelectTrigger className="w-full"><SelectValue placeholder="Seleccionar entrega" /></SelectTrigger>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
                     <SelectContent>
                       {["Pendiente", "Enviado"].map((status) => (
                         <SelectItem key={status} value={status}>{status}</SelectItem>
@@ -2065,7 +2173,7 @@ function AdminOrders() {
               <Button
                 variant="default"
                 onClick={handleSaveOrder}
-                disabled={!isOrderFormValid}
+                disabled={!hasOrderChanges || !isOrderFormValid}
                 className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50"
                 style={{ boxShadow: "none" }}
               >
