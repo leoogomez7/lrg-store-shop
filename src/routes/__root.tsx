@@ -130,10 +130,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "LRG Store Shop" },
       { name: "twitter:description", content: "Un negocio, tres sectores: gaming, perfumería árabe y software. Conectá con tus pasiones y descubrí una nueva forma de pontenciar tu día a día." },
-      { property: "og:image", content: "/favicon.ico" },
-      { name: "twitter:image", content: "/favicon.ico" },
+      { property: "og:image", content: "/LRG Store Shop PNG.png" },
+      { name: "twitter:image", content: "/LRG Store Shop PNG.png" },
     ],
     links: [
+      {
+        rel: "icon",
+        href: "/LRG Store Shop PNG.png",
+        type: "image/png",
+      },
       {
         rel: "stylesheet",
         href: appCss,
