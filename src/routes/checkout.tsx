@@ -6,7 +6,6 @@ import { useCart } from "@/store/cart";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { getBrand } from "@/config/brands";
-import { products } from "@/data/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,29 +39,13 @@ function CheckoutPage() {
   // Choose brand from first item in cart if available, otherwise default to web-design
   const firstBrandSlug = items[0]?.brand ?? "web-design";
   const brand = getBrand(firstBrandSlug)!;
-  const productsForCart = items.map((item) => products.find((product) => product.id === item.id));
   const availablePaymentMethods = (brand.paymentMethods ?? brand.payments.map((name) => ({ id: name, name, enabled: true })))
-    .filter((method) => method.enabled && items.every((item, index) => {
-      const storeMethod = getBrand(item.brand)?.paymentMethods?.find((availableMethod) => availableMethod.id === method.id);
-      if (!storeMethod?.enabled) return false;
-      const allowed = productsForCart[index]?.authorizedPaymentMethodIds;
-      return allowed === undefined || allowed.includes(method.id);
-    }));
+    .filter((method) => method.enabled);
   const availableShippingMethods = (brand.shipping?.methods ?? [])
-    .filter((method) => method.enabled && items.every((item, index) => {
-      const storeMethod = getBrand(item.brand)?.shipping?.methods.find((availableMethod) => availableMethod.id === method.id);
-      if (!storeMethod?.enabled) return false;
-      const allowed = productsForCart[index]?.authorizedShippingMethodIds;
-      return allowed === undefined || allowed.includes(method.id);
-    }));
+    .filter((method) => method.enabled);
   const creditCardMethods = availablePaymentMethods.filter((method) => /visa|mastercard|amex|tarjeta\s+de\s+cr[eé]dito/i.test(method.name));
   const otherPaymentMethods = availablePaymentMethods.filter((method) => !creditCardMethods.includes(method));
-  const interestFreeOptions = Array.from(new Set([
-    1,
-    ...items
-      .map((item) => item.interestFreeInstallments ?? 0)
-      .filter((installments) => installments > 1),
-  ])).sort((first, second) => first - second);
+  const interestFreeOptions = [1];
 
   // Ensure header and footer are shown on checkout
   const Header = (
@@ -310,10 +293,7 @@ function CheckoutPage() {
             <h2 className="font-display font-semibold">Tu pedido</h2>
             <div className="mt-5 space-y-3 text-sm">
               {items.map((item) => {
-                const configuredInstallments = item.interestFreeInstallments ?? 0;
-                const appliedInstallments = isCreditCardSelected && selectedInstallments > 1 && configuredInstallments >= selectedInstallments
-                  ? selectedInstallments
-                  : 1;
+                const appliedInstallments = isCreditCardSelected ? selectedInstallments : 1;
                 return appliedInstallments > 1 ? (
                   <div key={item.id} className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{item.name} · {appliedInstallments} cuotas sin interés</span>

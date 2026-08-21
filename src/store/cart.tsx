@@ -12,7 +12,6 @@ export type CartItem = {
   price: number;
   quantity: number;
   stock: number;
-  interestFreeInstallments?: number;
 };
 
 type CartState = { items: CartItem[]; hydrated: boolean };
@@ -130,7 +129,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           price: product.price,
           quantity: canAdd,
           stock: product.stock,
-          interestFreeInstallments: product.interestFreeInstallments,
         },
       });
       if (canAdd < quantity) {
@@ -153,7 +151,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         price: product.price,
         quantity: toAdd,
         stock: product.stock,
-        interestFreeInstallments: product.interestFreeInstallments,
       },
     });
     if (toAdd < quantity) {

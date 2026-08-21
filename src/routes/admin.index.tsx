@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, CreditCard, DollarSign, Package, ShoppingCart, TrendingUp } from "lucide-react";
+import { Check, CreditCard, DollarSign, Package, Search, ShoppingCart, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -186,11 +186,20 @@ function AdminDashboard() {
 
   const stockItems = [...filteredProducts].sort((a, b) => a.stock - b.stock);
   const totalStockUnits = stockItems.reduce((sum, product) => sum + product.stock, 0);
+  const [stockSearch, setStockSearch] = useState("");
+  const normalizedStockSearch = stockSearch.trim().toLowerCase();
+  const searchedStockItems = normalizedStockSearch
+    ? stockItems.filter((product) =>
+        [product.name, product.category, product.brand].some((value) =>
+          value.toLowerCase().includes(normalizedStockSearch),
+        ),
+      )
+    : stockItems;
   const [stockPage, setStockPage] = useState(0);
   const [stockPageSize, setStockPageSize] = useState<number>(10);
   const [stockPageSizeInput, setStockPageSizeInput] = useState<string>("10");
-  const stockPages = Math.max(1, Math.ceil(stockItems.length / stockPageSize));
-  const currentStockItems = stockItems.slice(
+  const stockPages = Math.max(1, Math.ceil(searchedStockItems.length / stockPageSize));
+  const currentStockItems = searchedStockItems.slice(
     stockPage * stockPageSize,
     stockPage * stockPageSize + stockPageSize,
   );
@@ -460,11 +469,27 @@ function AdminDashboard() {
         </div>
 
         <div className="glass-panel overflow-hidden rounded-2xl">
-          <div className="flex items-center justify-between gap-4 border-b border-border/60 p-5">
-            <h2 className="font-display font-semibold">Stock total</h2>
-            <span className="rounded-full bg-secondary/60 px-3 py-1 text-sm font-medium text-foreground">
-              {formatNumber(totalStockUnits)} total
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 p-5">
+            <div className="flex items-center gap-3">
+              <h2 className="font-display font-semibold">Stock total</h2>
+              <span className="rounded-full bg-secondary/60 px-3 py-1 text-sm font-medium text-foreground">
+                {formatNumber(totalStockUnits)} total
+              </span>
+            </div>
+            <div className="relative w-full sm:w-64">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                value={stockSearch}
+                onChange={(event) => {
+                  setStockSearch(event.target.value);
+                  setStockPage(0);
+                }}
+                placeholder="Buscar productos..."
+                aria-label="Buscar productos en stock"
+                className="pl-9"
+              />
+            </div>
           </div>
           <ul className="divide-y divide-border/60">
             {currentStockItems.map((product) => (
@@ -475,18 +500,18 @@ function AdminDashboard() {
                 </Badge>
               </li>
             ))}
-            {stockItems.length === 0 ? (
+            {searchedStockItems.length === 0 ? (
               <li className="px-5 py-6 text-sm text-muted-foreground">
-                No hay productos disponibles.
+                {normalizedStockSearch ? "No se encontraron productos." : "No hay productos disponibles."}
               </li>
             ) : null}
           </ul>
-          {stockItems.length > 0 && (
+          {searchedStockItems.length > 0 && (
             <div className="border-t border-border/60 px-5 py-4">
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <p className="text-xs text-muted-foreground">
-                    {currentStockItems.length} de {stockItems.length} productos mostrados
+                    {currentStockItems.length} de {searchedStockItems.length} productos mostrados
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

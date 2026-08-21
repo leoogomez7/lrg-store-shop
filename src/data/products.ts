@@ -55,9 +55,6 @@ export type Product = {
   description: string;
   features: string[];
   images?: string[];
-  authorizedPaymentMethodIds?: string[];
-  authorizedShippingMethodIds?: string[];
-  interestFreeInstallments?: number;
   createdAt: string;
 };
 

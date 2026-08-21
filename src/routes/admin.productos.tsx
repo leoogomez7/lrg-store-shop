@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronUp, Edit3, Filter, Penci
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { products as productsData, saveProducts, type ProductVariant } from "@/data/products";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,9 +64,6 @@ type ProductFormState = {
   deliveryUnit: DeliveryUnit;
   deliveryAmount: number;
   discount: number;
-  authorizedPaymentMethodIds: string[];
-  authorizedShippingMethodIds: string[];
-  interestFreeInstallments: number;
   variants: ProductVariant[];
 };
 
@@ -126,7 +123,16 @@ function AdminProducts() {
   const [quickEditForm, setQuickEditForm] = useState<
     Record<
       string,
-      { brand: BrandSlug; name: string; category: string; price: number; stock: number; discount: number }
+      {
+        brand: BrandSlug;
+        name: string;
+        category: string;
+        price: number;
+        comision: number;
+        gastos: number;
+        stock: number;
+        discount: number;
+      }
     >
   >({});
   const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
@@ -182,9 +188,6 @@ function AdminProducts() {
     deliveryUnit: "inmediata",
     deliveryAmount: 0,
     discount: 0,
-    authorizedPaymentMethodIds: [],
-    authorizedShippingMethodIds: [],
-    interestFreeInstallments: 0,
     variants: [],
   };
 
@@ -212,8 +215,6 @@ function AdminProducts() {
     setProductForm({
       ...defaultFormState,
       usdRate,
-      authorizedPaymentMethodIds: (brands.arcade.paymentMethods ?? []).filter((method) => method.enabled).map((method) => method.id),
-      authorizedShippingMethodIds: (brands.arcade.shipping?.methods ?? []).filter((method) => method.enabled).map((method) => method.id),
     });
     setDialogOpen(true);
   };
@@ -292,9 +293,6 @@ function AdminProducts() {
       deliveryUnit: "inmediata",
       deliveryAmount: 1,
       discount: discounts[product.id] ?? 0,
-      authorizedPaymentMethodIds: product.authorizedPaymentMethodIds ?? (brands[product.brand].paymentMethods ?? []).filter((method) => method.enabled).map((method) => method.id),
-      authorizedShippingMethodIds: product.authorizedShippingMethodIds ?? (brands[product.brand].shipping?.methods ?? []).filter((method) => method.enabled).map((method) => method.id),
-      interestFreeInstallments: product.interestFreeInstallments ?? 0,
       variants: product.variants ?? [],
     });
     setPendingDiscounts((current) => ({
@@ -383,6 +381,8 @@ function AdminProducts() {
         name: product.name,
         category: product.category,
         price: product.price,
+        comision: product.comision ?? 0,
+        gastos: product.gastos ?? 0,
         stock: product.stock,
         discount: discounts[product.id] ?? 0,
       },
@@ -412,6 +412,8 @@ function AdminProducts() {
     const nextName = draft.name.trim() || product.name;
     const nextCategory = draft.category.trim() || product.category;
     const nextPrice = Number(draft.price) || product.price;
+    const nextComision = Math.max(0, Number(draft.comision) || 0);
+    const nextGastos = Math.max(0, Number(draft.gastos) || 0);
     const nextStock = Number(draft.stock) || product.stock;
     const nextDiscount = Math.max(0, Math.min(100, Number(draft.discount) || 0));
 
@@ -424,6 +426,8 @@ function AdminProducts() {
               name: nextName,
               category: nextCategory,
               price: nextPrice,
+              comision: nextComision,
+              gastos: nextGastos,
               stock: nextStock,
             }
           : item,
@@ -437,6 +441,8 @@ function AdminProducts() {
       existing.name = nextName;
       existing.category = nextCategory;
       existing.price = nextPrice;
+      existing.comision = nextComision;
+      existing.gastos = nextGastos;
       existing.stock = nextStock;
       saveProducts(productsData as Product[]);
     }
@@ -485,13 +491,13 @@ function AdminProducts() {
               category: productForm.category,
               price: productForm.price,
               comision: productForm.comision,
+              comisionCurrency: productForm.comisionCurrency,
+              gastos: productForm.gastos,
+              gastosCurrency: productForm.gastosCurrency,
               stock: productForm.stock,
               description: productForm.description,
               features: productForm.features,
               images: productForm.images,
-              authorizedPaymentMethodIds: productForm.authorizedPaymentMethodIds,
-              authorizedShippingMethodIds: productForm.authorizedShippingMethodIds,
-              interestFreeInstallments: productForm.interestFreeInstallments,
               variants: productForm.variants,
             }
           : item,
@@ -522,9 +528,6 @@ function AdminProducts() {
           description: productForm.description,
           features: productForm.features,
           images: productForm.images,
-          authorizedPaymentMethodIds: productForm.authorizedPaymentMethodIds,
-          authorizedShippingMethodIds: productForm.authorizedShippingMethodIds,
-          interestFreeInstallments: productForm.interestFreeInstallments,
           variants: productForm.variants,
           createdAt: new Date().toISOString().slice(0, 10),
         } as Product;
@@ -550,9 +553,6 @@ function AdminProducts() {
         existing.description = productForm.description;
         existing.features = productForm.features;
         existing.images = productForm.images;
-        existing.authorizedPaymentMethodIds = productForm.authorizedPaymentMethodIds;
-        existing.authorizedShippingMethodIds = productForm.authorizedShippingMethodIds;
-        existing.interestFreeInstallments = productForm.interestFreeInstallments;
         existing.variants = productForm.variants;
       }
 
@@ -1120,8 +1120,10 @@ function AdminProducts() {
               <TableHead className="text-center w-28">Producto</TableHead>
               <TableHead className="text-center w-20">Sector</TableHead>
               <TableHead className="text-center w-24">Categoría</TableHead>
-              <TableHead className="text-center w-20">Precio</TableHead>
               <TableHead className="text-center w-16">Stock</TableHead>
+              <TableHead className="text-center w-20">Precio</TableHead>
+              <TableHead className="text-center w-24">Comisión para mí</TableHead>
+              <TableHead className="text-center w-20">Gastos</TableHead>
               <TableHead className="text-center w-20">Descuento</TableHead>
               <TableHead className="text-center w-24">Precio tienda</TableHead>
               <TableHead className="text-center flex-1">Acciones</TableHead>
@@ -1132,6 +1134,10 @@ function AdminProducts() {
               const discount = variant?.discount ?? discounts[product.id] ?? 0;
               const displayPrice = variant?.price ?? product.price;
               const displayStock = variant?.stock ?? product.stock;
+              const displayComision = variant?.comision ?? product.comision ?? 0;
+              const displayGastos = variant?.gastos ?? product.gastos ?? 0;
+              const displayComisionCurrency = variant?.comisionCurrency ?? product.comisionCurrency ?? "ARS";
+              const displayGastosCurrency = variant?.gastosCurrency ?? product.gastosCurrency ?? "ARS";
               const discountedPrice = displayPrice * (1 - discount / 100);
               const isQuickEditing = quickEditProductId === product.id;
               const quickDraft = quickEditForm[product.id] ?? {
@@ -1139,6 +1145,8 @@ function AdminProducts() {
                 name: product.name,
                 category: product.category,
                 price: product.price,
+                comision: product.comision ?? 0,
+                gastos: product.gastos ?? 0,
                 stock: product.stock,
                 discount,
               };
@@ -1215,6 +1223,20 @@ function AdminProducts() {
                         <Input
                           type="number"
                           min={0}
+                          value={quickDraft.stock}
+                          onChange={(event) =>
+                            setQuickEditForm((current) => ({
+                              ...current,
+                              [product.id]: { ...quickDraft, stock: Number(event.target.value) },
+                            }))
+                          }
+                          className="w-20 text-center"
+                        />
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        <Input
+                          type="number"
+                          min={0}
                           value={quickDraft.price}
                           onChange={(event) =>
                             setQuickEditForm((current) => ({
@@ -1229,11 +1251,25 @@ function AdminProducts() {
                         <Input
                           type="number"
                           min={0}
-                          value={quickDraft.stock}
+                          value={quickDraft.comision}
                           onChange={(event) =>
                             setQuickEditForm((current) => ({
                               ...current,
-                              [product.id]: { ...quickDraft, stock: Number(event.target.value) },
+                              [product.id]: { ...quickDraft, comision: Number(event.target.value) },
+                            }))
+                          }
+                          className="w-24 text-center"
+                        />
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        <Input
+                          type="number"
+                          min={0}
+                          value={quickDraft.gastos}
+                          onChange={(event) =>
+                            setQuickEditForm((current) => ({
+                              ...current,
+                              [product.id]: { ...quickDraft, gastos: Number(event.target.value) },
                             }))
                           }
                           className="w-20 text-center"
@@ -1302,7 +1338,6 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell>{brands[product.brand].shortName}</TableCell>
                       <TableCell className="text-muted-foreground uppercase">{product.category}</TableCell>
-                      <TableCell>{formatPrice(displayPrice)}</TableCell>
                       <TableCell>
                         <Badge
                           variant={
@@ -1316,6 +1351,9 @@ function AdminProducts() {
                           {displayStock}
                         </Badge>
                       </TableCell>
+                      <TableCell>{formatPrice(displayPrice)}</TableCell>
+                      <TableCell>{formatPrice(displayComision, displayComisionCurrency)}</TableCell>
+                      <TableCell>{formatPrice(displayGastos, displayGastosCurrency)}</TableCell>
                       <TableCell>
                         <Input
                           type="number"
@@ -1874,38 +1912,6 @@ function ProductEditDialog({
     ? "Agregá un producto completo con nombre, stock, precio y categoría."
     : "Actualizá los datos del producto sin afectar el flujo de alta.";
   const availableCategories = brands[productForm.brand]?.categories ?? [];
-  const configuredPaymentMethods = (brands[productForm.brand]?.paymentMethods ?? []).filter((method) => method.enabled);
-  const visiblePaymentMethods = configuredPaymentMethods.filter(
-    (method) => !/^tarjeta\s+de\s+cr[eé]dito$/i.test(method.name.trim()),
-  );
-  const configuredShippingMethods = (brands[productForm.brand]?.shipping?.methods ?? []).filter((method) => method.enabled);
-  const paymentMethodIds = productForm.authorizedPaymentMethodIds;
-  const shippingMethodIds = productForm.authorizedShippingMethodIds;
-  const creditCardMethodIds = configuredPaymentMethods
-    .filter((method) => /visa|mastercard|amex|tarjeta\s+de\s+cr[eé]dito/i.test(method.name))
-    .map((method) => method.id);
-  const creditCardEnabled = creditCardMethodIds.some((id) => paymentMethodIds.includes(id));
-  const toggleAuthorizedPaymentMethod = (methodId: string, checked: boolean) => {
-    const nextPaymentMethodIds = checked
-      ? [...paymentMethodIds, methodId]
-      : paymentMethodIds.filter((id) => id !== methodId);
-    const nextCreditCardEnabled = creditCardMethodIds.some((id) => nextPaymentMethodIds.includes(id));
-    setProductForm({
-      ...productForm,
-      authorizedPaymentMethodIds: nextPaymentMethodIds,
-      interestFreeInstallments: nextCreditCardEnabled ? productForm.interestFreeInstallments : 0,
-    });
-  };
-  const toggleCreditCardAuthorization = (checked: boolean) => {
-    const nextPaymentMethodIds = checked
-      ? Array.from(new Set([...paymentMethodIds, ...creditCardMethodIds]))
-      : paymentMethodIds.filter((id) => !creditCardMethodIds.includes(id));
-    setProductForm({
-      ...productForm,
-      authorizedPaymentMethodIds: nextPaymentMethodIds,
-      interestFreeInstallments: checked ? productForm.interestFreeInstallments : 0,
-    });
-  };
   const usdRate = productForm.usdRate > 0 ? productForm.usdRate : 0;
   const toLocalCurrency = (amount: number, currency: CurrencyCode) =>
     currency === "USD" ? (usdRate > 0 ? amount * usdRate : 0) : amount;
@@ -1947,7 +1953,7 @@ function ProductEditDialog({
     : toLocalCurrency(activeExpenses, activeExpensesCurrency);
   const activePriceValue = activeCommissionValue + activeExpensesValue;
   const activeStorePrice = activePriceValue * (1 - activeDiscount / 100);
-  const activeProfit = activeCommissionValue - activeExpensesValue;
+  const activeProfit = activeStorePrice - activeExpensesValue;
   const activeUsdRequired = activeCommissionCurrency === "USD" || activeExpensesCurrency === "USD";
   const updateActivePricing = (updates: Partial<ProductVariant>) => {
     if (!productForm) return;
@@ -2015,12 +2021,6 @@ function ProductEditDialog({
                       ...productForm,
                       brand: nextBrand,
                       category: nextCategory,
-                      authorizedPaymentMethodIds: (brands[nextBrand].paymentMethods ?? [])
-                        .filter((method) => method.enabled)
-                        .map((method) => method.id),
-                      authorizedShippingMethodIds: (brands[nextBrand].shipping?.methods ?? [])
-                        .filter((method) => method.enabled)
-                        .map((method) => method.id),
                     });
                   }}
                 >
@@ -2223,65 +2223,6 @@ function ProductEditDialog({
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-xl border border-border/60 bg-background/40 p-3 sm:col-span-3">
-                <div>
-                  <Label>Métodos de pagos autorizados</Label>
-                  <p className="mt-1 text-xs text-muted-foreground">Sólo se muestran los medios habilitados en la configuración de esta tienda.</p>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {visiblePaymentMethods.length > 0 ? visiblePaymentMethods.map((method) => (
-                    <label key={method.id} className="flex items-center gap-2 rounded-lg bg-surface-2/60 px-3 py-2 text-sm">
-                      <Checkbox
-                        checked={paymentMethodIds.includes(method.id)}
-                        onCheckedChange={(checked) => toggleAuthorizedPaymentMethod(method.id, checked === true)}
-                      />
-                      {method.name}
-                    </label>
-                  )) : <p className="text-sm text-muted-foreground">No hay medios de pago habilitados.</p>}
-                </div>
-              </div>
-
-              <div className="space-y-3 rounded-xl border border-border/60 bg-background/40 p-3 sm:col-span-3">
-                <div>
-                  <Label>Métodos de envío autorizados</Label>
-                  <p className="mt-1 text-xs text-muted-foreground">Sólo se muestran los medios habilitados en la configuración de esta tienda.</p>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {configuredShippingMethods.length > 0 ? configuredShippingMethods.map((method) => (
-                    <label key={method.id} className="flex items-center gap-2 rounded-lg bg-surface-2/60 px-3 py-2 text-sm">
-                      <Checkbox
-                        checked={shippingMethodIds.includes(method.id)}
-                        onCheckedChange={(checked) => setProductForm({
-                          ...productForm,
-                          authorizedShippingMethodIds: checked
-                            ? [...shippingMethodIds, method.id]
-                            : shippingMethodIds.filter((id) => id !== method.id),
-                        })}
-                      />
-                      {method.name}
-                    </label>
-                  )) : <p className="text-sm text-muted-foreground">No hay medios de envío habilitados.</p>}
-                </div>
-              </div>
-
-              <div className="h-full space-y-2 sm:col-span-3">
-                <Label htmlFor="interest-free-installments">Cuotas sin interés disponibles</Label>
-                <Input
-                  id="interest-free-installments"
-                  type="number"
-                  min={0}
-                  max={24}
-                  disabled={!creditCardEnabled}
-                  value={productForm.interestFreeInstallments || ""}
-                  onChange={(event) => setProductForm({
-                    ...productForm,
-                    interestFreeInstallments: Math.max(0, Math.min(24, Number(event.target.value) || 0)),
-                  })}
-                  placeholder="Ej: 3"
-                />
-                <p className="text-xs text-muted-foreground">La promoción se aplicará únicamente a este producto en el carrito.</p>
-              </div>
-
               <div className="h-full space-y-2">
                 <Label htmlFor="delivery-unit">Tiempo de entrega</Label>
                 <Select
@@ -2478,93 +2419,6 @@ function ProductEditDialog({
                 ))}
                 </div>
               )}
-            </div>
-          </div>
-
-          <div className="order-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
-            <div className="flex flex-col gap-5">
-              <div className="order-2">
-                <h3 className="font-display font-semibold">Métodos de pagos autorizados</h3>
-                <p className="mt-1 text-xs text-muted-foreground">Se muestran los medios habilitados en la configuración de esta tienda.</p>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {visiblePaymentMethods.length > 0 ? visiblePaymentMethods.map((method, index) => (
-                  <Fragment key={method.id}>
-                    <label className="flex items-center gap-2 rounded-lg bg-surface-2/60 px-3 py-2 text-sm">
-                      <Checkbox
-                        checked={paymentMethodIds.includes(method.id)}
-                        onCheckedChange={(checked) => toggleAuthorizedPaymentMethod(method.id, checked === true)}
-                      />
-                      {method.name}
-                    </label>
-                    {index === 1 && creditCardMethodIds.length > 0 && (
-                      <label className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-medium">
-                        <Checkbox
-                          checked={creditCardEnabled}
-                          onCheckedChange={(checked) => toggleCreditCardAuthorization(checked === true)}
-                        />
-                        Tarjeta de crédito
-                      </label>
-                    )}
-                  </Fragment>
-                )) : <p className="text-sm text-muted-foreground">No hay medios de pago habilitados.</p>}
-                {visiblePaymentMethods.length < 2 && creditCardMethodIds.length > 0 && (
-                  <label className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-medium">
-                    <Checkbox
-                      checked={creditCardEnabled}
-                      onCheckedChange={(checked) => toggleCreditCardAuthorization(checked === true)}
-                    />
-                    Tarjeta de crédito
-                  </label>
-                )}
-              </div>
-            </div>
-
-              <div className="order-1 space-y-3">
-              <div>
-                <h3 className="font-display font-semibold">Métodos de envío autorizados</h3>
-                <p className="mt-1 text-xs text-muted-foreground">Se muestran los medios habilitados en la configuración de esta tienda.</p>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {configuredShippingMethods.length > 0 ? configuredShippingMethods.map((method) => (
-                  <label key={method.id} className="flex items-center gap-2 rounded-lg bg-surface-2/60 px-3 py-2 text-sm">
-                    <Checkbox
-                      checked={shippingMethodIds.includes(method.id)}
-                      onCheckedChange={(checked) => setProductForm({
-                        ...productForm,
-                        authorizedShippingMethodIds: checked
-                          ? [...shippingMethodIds, method.id]
-                          : shippingMethodIds.filter((id) => id !== method.id),
-                      })}
-                    />
-                    {method.name}
-                  </label>
-                )) : <p className="text-sm text-muted-foreground">No hay medios de envío habilitados.</p>}
-              </div>
-            </div>
-
-            <div className="order-3 space-y-2">
-              <Label htmlFor="interest-free-installments-visible">Cuotas sin interés disponibles</Label>
-              <Input
-                id="interest-free-installments-visible"
-                type="number"
-                min={0}
-                max={24}
-                disabled={!creditCardEnabled}
-                aria-disabled={!creditCardEnabled}
-                className={!creditCardEnabled ? "cursor-not-allowed opacity-50" : undefined}
-                value={productForm.interestFreeInstallments || ""}
-                onChange={(event) => setProductForm({
-                  ...productForm,
-                  interestFreeInstallments: Math.max(0, Math.min(24, Number(event.target.value) || 0)),
-                })}
-                placeholder="Ej: 3"
-              />
-              <p className="text-xs text-muted-foreground">
-                {creditCardEnabled
-                  ? "La promoción se aplica únicamente a este producto."
-                  : "Bloqueado: No se aceptan cuotas."}
-              </p>
             </div>
           </div>
 
