@@ -41,6 +41,7 @@ import {
 import { brandList, brands, type BrandSlug } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { catalogQueries, type Product } from "@/services/catalog.service";
+import { moveToTrash } from "@/data/trash";
 
 type DeliveryUnit = "inmediata" | "horas" | "dias";
 type CurrencyCode = "ARS" | "USD";
@@ -328,6 +329,8 @@ function AdminProducts() {
   };
 
   const handleDeleteProduct = (productId: string) => {
+    const product = (productsData as Product[]).find((item) => item.id === productId);
+    if (product) moveToTrash({ type: "producto", id: product.id, item: product });
     setEditableProducts((current) => current.filter((product) => product.id !== productId));
     setDiscounts((current) => {
       const next = { ...current };
@@ -392,6 +395,9 @@ function AdminProducts() {
 
   const handleBulkDeleteProducts = () => {
     const ids = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
+    (productsData as Product[])
+      .filter((product) => ids.has(product.id))
+      .forEach((product) => moveToTrash({ type: "producto", id: product.id, item: product }));
     setEditableProducts((current) => current.filter((product) => !ids.has(product.id)));
     for (const productId of ids) {
       const index = (productsData as Product[]).findIndex((product) => product.id === productId);
@@ -1234,30 +1240,31 @@ function AdminProducts() {
 
       
 
-      <div ref={productsTableRef} className="glass-panel mt-6 overflow-visible rounded-2xl pb-2">
-        <div className="flex flex-wrap items-center gap-3 border-b border-border/60 p-3">
-          <span className="text-sm font-medium">Seleccionar</span>
-          <Checkbox
-            checked={allVisibleProductsSelected ? true : someVisibleProductsSelected ? "indeterminate" : false}
-            onCheckedChange={(checked) => {
-              const shouldSelect = checked === true || checked === "indeterminate";
-              setSelectedProductIds((current) => shouldSelect
-                ? [...new Set([...current, ...visibleProductSelectionKeys])]
-                : current.filter((key) => !visibleProductSelectionKeys.includes(key)));
-            }}
-            aria-label="Seleccionar productos visibles"
-          />
-          {selectedProductIds.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted-foreground">{selectedProductIds.length} seleccionados</span>
-              <Button size="sm" variant="outline" onClick={handleBulkEditProducts}><Pencil className="size-4" /> Editar</Button>
-              <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(false)}><Eye className="size-4" /> Disponible</Button>
-              <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(true)}><EyeOff className="size-4" /> No disponible</Button>
-              <Button size="sm" variant="outline" onClick={handleBulkDuplicateProducts}><Copy className="size-4" /> Duplicar</Button>
-              <Button size="sm" variant="destructive" onClick={() => setConfirmState({ open: true, title: "Eliminar productos seleccionados?", description: "Esta acción no se puede deshacer.", onConfirm: handleBulkDeleteProducts })}><Trash2 className="size-4" /> Eliminar</Button>
-            </div>
-          ) : null}
-        </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm font-medium">Seleccionar</span>
+        <Checkbox
+          checked={allVisibleProductsSelected ? true : someVisibleProductsSelected ? "indeterminate" : false}
+          onCheckedChange={(checked) => {
+            const shouldSelect = checked === true || checked === "indeterminate";
+            setSelectedProductIds((current) => shouldSelect
+              ? [...new Set([...current, ...visibleProductSelectionKeys])]
+              : current.filter((key) => !visibleProductSelectionKeys.includes(key)));
+          }}
+          aria-label="Seleccionar productos visibles"
+        />
+        {selectedProductIds.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">{selectedProductIds.length} seleccionados</span>
+            <Button size="sm" variant="outline" onClick={handleBulkEditProducts}><Pencil className="size-4" /> Editar</Button>
+            <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(false)}><Eye className="size-4" /> Disponible</Button>
+            <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(true)}><EyeOff className="size-4" /> No disponible</Button>
+            <Button size="sm" variant="outline" onClick={handleBulkDuplicateProducts}><Copy className="size-4" /> Duplicar</Button>
+            <Button size="sm" variant="destructive" onClick={() => setConfirmState({ open: true, title: "Eliminar productos seleccionados?", description: "Esta acción no se puede deshacer.", onConfirm: handleBulkDeleteProducts })}><Trash2 className="size-4" /> Eliminar</Button>
+          </div>
+        ) : null}
+      </div>
+
+      <div ref={productsTableRef} className="glass-panel mt-3 overflow-visible rounded-2xl pb-2">
         <Table
           containerClassName="overflow-visible"
           className="w-full table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
@@ -1268,8 +1275,7 @@ function AdminProducts() {
             }`}
           >
             <TableRow>
-              <TableHead className="w-10"><span className="sr-only">Seleccionar</span></TableHead>
-              <TableHead className="text-center w-28">Producto</TableHead>
+              <TableHead className="text-center w-40">Producto</TableHead>
               <TableHead className="text-center w-20">Sector</TableHead>
               <TableHead className="text-center w-24">Categoría</TableHead>
               <TableHead className="text-center w-16">Stock</TableHead>
@@ -1317,26 +1323,26 @@ function AdminProducts() {
 
               return (
                 <TableRow key={`${product.id}-${variant?.id ?? "base"}`} ref={isQuickEditing ? quickEditRowRef : undefined}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedProductIds.includes(getProductSelectionKey(product, variant))}
-                      onCheckedChange={(checked) => toggleProductSelection(getProductSelectionKey(product, variant), checked === true)}
-                      aria-label={`Seleccionar ${product.name}`}
-                    />
-                  </TableCell>
                   {isQuickEditing ? (
                     <>
                       <TableCell className="align-middle">
-                        <Input
-                          value={quickDraft.name}
-                          onChange={(event) =>
-                            setQuickEditForm((current) => ({
-                              ...current,
-                              [quickEditKey]: { ...quickDraft, name: event.target.value },
-                            }))
-                          }
-                          className="w-full min-w-0"
-                        />
+                        <div className="flex min-w-0 items-center gap-2 text-left">
+                          <Checkbox
+                            checked={selectedProductIds.includes(getProductSelectionKey(product, variant))}
+                            onCheckedChange={(checked) => toggleProductSelection(getProductSelectionKey(product, variant), checked === true)}
+                            aria-label={`Seleccionar ${product.name}`}
+                          />
+                          <Input
+                            value={quickDraft.name}
+                            onChange={(event) =>
+                              setQuickEditForm((current) => ({
+                                ...current,
+                                [quickEditKey]: { ...quickDraft, name: event.target.value },
+                              }))
+                            }
+                            className="w-full min-w-0"
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="align-middle">
                         <Select
@@ -1487,8 +1493,14 @@ function AdminProducts() {
                   ) : (
                     <>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{product.name}</span>
+                        <div className="flex min-w-0 items-center gap-2 text-left">
+                          <Checkbox
+                            className="shrink-0"
+                            checked={selectedProductIds.includes(getProductSelectionKey(product, variant))}
+                            onCheckedChange={(checked) => toggleProductSelection(getProductSelectionKey(product, variant), checked === true)}
+                            aria-label={`Seleccionar ${product.name}`}
+                          />
+                          <span className="min-w-0 break-words font-medium">{product.name}</span>
                           {variant ? (
                             <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                               {variant.name}

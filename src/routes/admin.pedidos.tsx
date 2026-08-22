@@ -41,6 +41,7 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { catalogQueries, orderQueries, type Product } from "@/services/catalog.service";
 import { cn } from "@/lib/utils";
 import { saveOrders, type Order, type OrderAttachment, type OrderStatus } from "@/data/orders";
+import { moveToTrash } from "@/data/trash";
 
 // Export helpers (summary only — no `items` field)
 function buildExportRowsFromOrders(ordersList: Order[]) {
@@ -1153,6 +1154,9 @@ function AdminOrders() {
 
   const handleBulkDeleteOrders = () => {
     const ids = new Set(selectedOrderIds);
+    editableOrders.filter((order) => ids.has(order.id)).forEach((order) => {
+      moveToTrash({ type: "pedido", id: order.id, item: order });
+    });
     setEditableOrders((current) => {
       const next = current.filter((order) => !ids.has(order.id));
       saveOrders(next);
@@ -1443,33 +1447,33 @@ function AdminOrders() {
         </div>
       ) : null}
 
-      <div className="glass-panel mt-8 overflow-x-auto rounded-2xl">
-        <div className="flex flex-wrap items-center gap-3 border-b border-border/60 p-3">
-          <span className="text-sm font-medium">Seleccionar</span>
-          <Checkbox
-            checked={allVisibleOrdersSelected ? true : someVisibleOrdersSelected ? "indeterminate" : false}
-            onCheckedChange={(checked) => {
-              const shouldSelect = checked === true || checked === "indeterminate";
-              setSelectedOrderIds((current) => shouldSelect
-                ? [...new Set([...current, ...visibleOrderIds])]
-                : current.filter((id) => !visibleOrderIds.includes(id)));
-            }}
-            aria-label="Seleccionar pedidos visibles"
-          />
-          {selectedOrderIds.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted-foreground">{selectedOrderIds.length} seleccionados</span>
-              <Button size="sm" variant="outline" onClick={handleBulkEditOrders}><Pencil className="size-4" /> Editar</Button>
-              <Button size="sm" variant="outline" onClick={handleBulkDuplicateOrders}><Copy className="size-4" /> Duplicar</Button>
-              <Button size="sm" variant="destructive" onClick={() => setConfirmState({ open: true, title: "Eliminar pedidos seleccionados?", description: "Esta acción no se puede deshacer.", onConfirm: handleBulkDeleteOrders })}><Trash2 className="size-4" /> Eliminar</Button>
-            </div>
-          ) : null}
-        </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm font-medium">Seleccionar</span>
+        <Checkbox
+          checked={allVisibleOrdersSelected ? true : someVisibleOrdersSelected ? "indeterminate" : false}
+          onCheckedChange={(checked) => {
+            const shouldSelect = checked === true || checked === "indeterminate";
+            setSelectedOrderIds((current) => shouldSelect
+              ? [...new Set([...current, ...visibleOrderIds])]
+              : current.filter((id) => !visibleOrderIds.includes(id)));
+          }}
+          aria-label="Seleccionar pedidos visibles"
+        />
+        {selectedOrderIds.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">{selectedOrderIds.length} seleccionados</span>
+            <Button size="sm" variant="outline" onClick={handleBulkEditOrders}><Pencil className="size-4" /> Editar</Button>
+            <Button size="sm" variant="outline" onClick={handleBulkDuplicateOrders}><Copy className="size-4" /> Duplicar</Button>
+            <Button size="sm" variant="destructive" onClick={() => setConfirmState({ open: true, title: "Eliminar pedidos seleccionados?", description: "Esta acción no se puede deshacer.", onConfirm: handleBulkDeleteOrders })}><Trash2 className="size-4" /> Eliminar</Button>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="glass-panel mt-3 overflow-x-auto rounded-2xl">
         <Table className="w-full table-fixed text-center [&_td]:align-middle [&_th]:align-middle">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10"><span className="sr-only">Seleccionar</span></TableHead>
-              <TableHead className="w-16">Pedido</TableHead>
+              <TableHead className="w-32">Pedido</TableHead>
               <TableHead className="w-24">Fecha de venta</TableHead>
               <TableHead className="w-24">Estado de pago</TableHead>
               <TableHead className="w-28">Número de envío</TableHead>
@@ -1515,14 +1519,17 @@ function AdminOrders() {
                     ref={isQuickEditing ? quickEditRowRef : undefined}
                     className={highlightedOrderId === order.id ? "animate-pulse bg-amber-500/20 ring-2 ring-amber-400" : undefined}
                   >
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedOrderIds.includes(order.id)}
-                        onCheckedChange={(checked) => toggleOrderSelection(order.id, checked === true)}
-                        aria-label={`Seleccionar pedido ${order.id}`}
-                      />
+                    <TableCell className="w-32 font-medium">
+                      <div className="flex min-w-0 items-center justify-start gap-2 text-left">
+                        <Checkbox
+                          className="shrink-0"
+                          checked={selectedOrderIds.includes(order.id)}
+                          onCheckedChange={(checked) => toggleOrderSelection(order.id, checked === true)}
+                          aria-label={`Seleccionar pedido ${order.id}`}
+                        />
+                        <span className="min-w-0 break-all">{order.id}</span>
+                      </div>
                     </TableCell>
-                    <TableCell className="font-medium">{order.id}</TableCell>
                     <TableCell>{formatDate(order.date)}</TableCell>
                     <TableCell>
                       {isQuickEditing ? (

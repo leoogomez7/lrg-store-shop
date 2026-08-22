@@ -26,7 +26,7 @@ import { brandList, brands, type BrandSlug } from "@/config/brands";
 import { formatDate, formatNumber, formatPrice } from "@/lib/format";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 
-export const Route = createFileRoute("/admin/")({
+export const Route = createFileRoute("/admin/panel")({
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(orderQueries.list()),
@@ -238,14 +238,14 @@ function AdminDashboard() {
         </Select>
       </div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
         {cards.map((card) => (
-          <div key={card.label} className="glass-panel rounded-2xl p-5">
-            <span className="gradient-brand grid size-9 place-items-center rounded-lg">
-              <card.icon className="size-4 text-primary-foreground" />
+          <div key={card.label} className="glass-panel rounded-xl p-3">
+            <span className="gradient-brand grid size-7 place-items-center rounded-md">
+              <card.icon className="size-3.5 text-primary-foreground" />
             </span>
-            <p className="mt-4 text-xs text-muted-foreground">{card.label}</p>
-            <p className="font-display mt-1 text-2xl font-semibold">{card.value}</p>
+            <p className="mt-2 text-[11px] leading-tight text-muted-foreground">{card.label}</p>
+            <p className="font-display mt-1 text-lg font-semibold leading-tight">{card.value}</p>
           </div>
         ))}
       </div>

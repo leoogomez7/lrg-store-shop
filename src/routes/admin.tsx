@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Package, Palette, ShoppingCart, Settings, Users } from "lucide-react";
+import { LayoutDashboard, Package, Palette, ShoppingCart, Settings, Trash2, Users } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,13 @@ export const Route = createFileRoute("/admin")({
 });
 
 const navigation = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/admin/panel", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/productos", label: "Productos", icon: Package, exact: false },
   { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingCart, exact: false },
   { to: "/admin/clientes", label: "Clientes", icon: Users, exact: false },
   { to: "/admin/marcas", label: "Tiendas disponibles", icon: Palette, exact: false },
   { to: "/admin/configuracion", label: "Configuración", icon: Settings, exact: false },
+  { to: "/admin/papelera", label: "Papelera", icon: Trash2, exact: false },
 ] as const;
 
 function AdminLayout() {

@@ -89,7 +89,7 @@ export function BrandFooter({ brand, storeContact }: { brand: BrandConfig; store
               </Link>
             </li>
             <li>
-              <Link to="/admin" className="transition-colors hover:text-foreground">
+              <Link to="/admin/panel" className="transition-colors hover:text-foreground">
                 Administrador
               </Link>
             </li>

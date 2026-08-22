@@ -21,10 +21,11 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as SectoresRouteImport } from './routes/sectores'
 import { Route as BrandIndexRouteImport } from './routes/$brand.index'
 import { Route as BrandProductosRouteImport } from './routes/$brand.productos'
-import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 import { Route as AdminConfiguracionRouteImport } from './routes/admin.configuracion'
 import { Route as AdminMarcasRouteImport } from './routes/admin.marcas'
+import { Route as AdminPanelRouteImport } from './routes/admin.panel'
+import { Route as AdminPapeleraRouteImport } from './routes/admin.papelera'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminProductosRouteImport } from './routes/admin.productos'
 import { Route as BrandProductoSlugRouteImport } from './routes/$brand.producto.$slug'
@@ -89,11 +90,6 @@ const BrandProductosRoute = BrandProductosRouteImport.update({
   path: '/productos',
   getParentRoute: () => BrandRoute,
 } as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminClientesRoute = AdminClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -107,6 +103,16 @@ const AdminConfiguracionRoute = AdminConfiguracionRouteImport.update({
 const AdminMarcasRoute = AdminMarcasRouteImport.update({
   id: '/marcas',
   path: '/marcas',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPanelRoute = AdminPanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPapeleraRoute = AdminPapeleraRouteImport.update({
+  id: '/papelera',
+  path: '/papelera',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPedidosRoute = AdminPedidosRouteImport.update({
@@ -140,14 +146,16 @@ export interface FileRoutesByFullPath {
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
   '/admin/marcas': typeof AdminMarcasRoute
+  '/admin/panel': typeof AdminPanelRoute
+  '/admin/papelera': typeof AdminPapeleraRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/$brand/': typeof BrandIndexRoute
-  '/admin/': typeof AdminIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/carrito': typeof CarritoRoute
   '/checkout': typeof CheckoutRoute
   '/cuenta': typeof CuentaRoute
@@ -159,10 +167,11 @@ export interface FileRoutesByTo {
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
   '/admin/marcas': typeof AdminMarcasRoute
+  '/admin/panel': typeof AdminPanelRoute
+  '/admin/papelera': typeof AdminPapeleraRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/$brand': typeof BrandIndexRoute
-  '/admin': typeof AdminIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
 }
 export interface FileRoutesById {
@@ -181,10 +190,11 @@ export interface FileRoutesById {
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
   '/admin/marcas': typeof AdminMarcasRoute
+  '/admin/panel': typeof AdminPanelRoute
+  '/admin/papelera': typeof AdminPapeleraRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/$brand/': typeof BrandIndexRoute
-  '/admin/': typeof AdminIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
 }
 export interface FileRouteTypes {
@@ -204,14 +214,16 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/configuracion'
     | '/admin/marcas'
+    | '/admin/panel'
+    | '/admin/papelera'
     | '/admin/pedidos'
     | '/admin/productos'
     | '/$brand/'
-    | '/admin/'
     | '/$brand/producto/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/carrito'
     | '/checkout'
     | '/cuenta'
@@ -223,10 +235,11 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/configuracion'
     | '/admin/marcas'
+    | '/admin/panel'
+    | '/admin/papelera'
     | '/admin/pedidos'
     | '/admin/productos'
     | '/$brand'
-    | '/admin'
     | '/$brand/producto/$slug'
   id:
     | '__root__'
@@ -244,10 +257,11 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/configuracion'
     | '/admin/marcas'
+    | '/admin/panel'
+    | '/admin/papelera'
     | '/admin/pedidos'
     | '/admin/productos'
     | '/$brand/'
-    | '/admin/'
     | '/$brand/producto/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -350,13 +364,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrandProductosRouteImport
       parentRoute: typeof BrandRoute
     }
-    '/admin/': {
-      id: '/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/clientes': {
       id: '/admin/clientes'
       path: '/clientes'
@@ -376,6 +383,20 @@ declare module '@tanstack/react-router' {
       path: '/marcas'
       fullPath: '/admin/marcas'
       preLoaderRoute: typeof AdminMarcasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/panel': {
+      id: '/admin/panel'
+      path: '/panel'
+      fullPath: '/admin/panel'
+      preLoaderRoute: typeof AdminPanelRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/papelera': {
+      id: '/admin/papelera'
+      path: '/papelera'
+      fullPath: '/admin/papelera'
+      preLoaderRoute: typeof AdminPapeleraRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pedidos': {
@@ -420,18 +441,20 @@ interface AdminRouteChildren {
   AdminClientesRoute: typeof AdminClientesRoute
   AdminConfiguracionRoute: typeof AdminConfiguracionRoute
   AdminMarcasRoute: typeof AdminMarcasRoute
+  AdminPanelRoute: typeof AdminPanelRoute
+  AdminPapeleraRoute: typeof AdminPapeleraRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminProductosRoute: typeof AdminProductosRoute
-  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminClientesRoute: AdminClientesRoute,
   AdminConfiguracionRoute: AdminConfiguracionRoute,
   AdminMarcasRoute: AdminMarcasRoute,
+  AdminPanelRoute: AdminPanelRoute,
+  AdminPapeleraRoute: AdminPapeleraRoute,
   AdminPedidosRoute: AdminPedidosRoute,
   AdminProductosRoute: AdminProductosRoute,
-  AdminIndexRoute: AdminIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
