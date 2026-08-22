@@ -8,6 +8,7 @@ import {
   type Product,
 } from "@/data/products";
 import { orders, revenueByMonth, type Order } from "@/data/orders";
+import { readTrash } from "@/data/trash";
 
 /**
  * Capa de servicios. Los componentes nunca acceden a los datos directamente:
@@ -31,7 +32,14 @@ export const catalogService = {
 };
 
 export const orderService = {
-  list: () => simulate(orders, 240),
+  list: () => {
+    const trashedOrderIds = new Set(
+      readTrash()
+        .filter((entry) => entry.type === "pedido")
+        .map((entry) => entry.id),
+    );
+    return simulate(orders.filter((order) => !trashedOrderIds.has(order.id)), 240);
+  },
   revenue: () => simulate(revenueByMonth, 200),
   create: (order: Order) => {
     orders.unshift(order);

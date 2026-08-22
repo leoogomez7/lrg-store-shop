@@ -30,6 +30,13 @@ export type ProductVariant = {
   discount?: number;
 };
 
+export type ProductSupplier = {
+  name: string;
+  phone: string;
+  social: string;
+  purchaseDate: string;
+};
+
 export type Product = {
   id: string;
   slug: string;
@@ -43,6 +50,7 @@ export type Product = {
   comision?: number;
   comisionCurrency?: CurrencyCode;
   variants?: ProductVariant[];
+  supplier?: ProductSupplier;
   gastos?: number;
   gastosCurrency?: CurrencyCode;
   usdRate?: number;

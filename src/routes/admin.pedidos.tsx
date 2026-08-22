@@ -467,6 +467,27 @@ function AdminOrders() {
   >>({});
   const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
   const quickEditOriginalSnapshots = useRef<Record<string, string>>({});
+  const ordersTableRef = useRef<HTMLDivElement | null>(null);
+  const [isOrdersHeaderSticky, setIsOrdersHeaderSticky] = useState(false);
+
+  useEffect(() => {
+    const updateOrdersHeaderState = () => {
+      const table = ordersTableRef.current;
+      if (!table) return;
+
+      const topOffset = window.innerWidth >= 1024 ? 0 : 56;
+      const bounds = table.getBoundingClientRect();
+      setIsOrdersHeaderSticky(bounds.top <= topOffset && bounds.bottom > topOffset + 48);
+    };
+
+    updateOrdersHeaderState();
+    window.addEventListener("scroll", updateOrdersHeaderState, { passive: true });
+    window.addEventListener("resize", updateOrdersHeaderState);
+    return () => {
+      window.removeEventListener("scroll", updateOrdersHeaderState);
+      window.removeEventListener("resize", updateOrdersHeaderState);
+    };
+  }, []);
 
   useEffect(() => {
     if (!sortMenuOpen) return;
@@ -1165,6 +1186,15 @@ function AdminOrders() {
     setSelectedOrderIds([]);
   };
 
+  const handleDeleteOrder = (order: Order) => {
+    moveToTrash({ type: "pedido", id: order.id, item: order });
+    setEditableOrders((currentOrders) => {
+      const nextOrders = currentOrders.filter((currentOrder) => currentOrder.id !== order.id);
+      saveOrders(nextOrders);
+      return nextOrders;
+    });
+  };
+
   const handleBulkDuplicateOrders = () => {
     setEditableOrders((current) => {
       const selected = current.filter((order) => selectedOrderIds.includes(order.id));
@@ -1186,6 +1216,16 @@ function AdminOrders() {
       setBulkOrderEditQueue(selectedOrderIds);
       openEditOrderDialog(order);
     }
+  };
+
+  const getSupplierForItem = (itemName: string) => {
+    const normalizedName = itemName.trim().toLowerCase();
+    const product = allProducts.find(
+      (candidate) =>
+        candidate.name.toLowerCase() === normalizedName ||
+        candidate.variants?.some((variant) => variant.name.toLowerCase() === normalizedName),
+    );
+    return product ? { productName: product.name, supplier: product.supplier } : undefined;
   };
 
   return (
@@ -1469,9 +1509,16 @@ function AdminOrders() {
         ) : null}
       </div>
 
-      <div className="glass-panel mt-3 overflow-x-auto rounded-2xl">
-        <Table className="w-full table-fixed text-center [&_td]:align-middle [&_th]:align-middle">
-          <TableHeader>
+      <div ref={ordersTableRef} className="glass-panel mt-3 overflow-visible rounded-2xl pb-2">
+        <Table
+          containerClassName="overflow-visible"
+          className="w-full table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
+        >
+          <TableHeader
+            className={`[&_th]:sticky [&_th]:top-14 [&_th]:z-20 [&_th]:shadow-[0_1px_0_var(--border)] lg:[&_th]:top-0 ${
+              isOrdersHeaderSticky ? "[&_th]:bg-background" : ""
+            }`}
+          >
             <TableRow>
               <TableHead className="w-32">Pedido</TableHead>
               <TableHead className="w-24">Fecha de venta</TableHead>
@@ -1713,10 +1760,7 @@ function AdminOrders() {
                                   open: true,
                                   title: `Eliminar pedido ${order.id}?`,
                                   description: `Esta acción no se puede deshacer.`,
-                                  onConfirm: () =>
-                                    setEditableOrders((currentOrders) =>
-                                      currentOrders.filter((currentOrder) => currentOrder.id !== order.id),
-                                    ),
+                                  onConfirm: () => handleDeleteOrder(order),
                                 })
                               }
                               className="h-8 flex-none gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10"
@@ -1761,6 +1805,19 @@ function AdminOrders() {
                               <span className="text-muted-foreground">Método de envío:</span>
                               <span>{order.shippingMethod ?? "—"}</span>
                             </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 text-sm">
+                            <span className="text-muted-foreground">Proveedor:</span>
+                            <span>
+                              {Array.from(
+                                new Set(
+                                  order.items
+                                    .map((item) => getSupplierForItem(item.name)?.supplier?.name)
+                                    .filter((name): name is string => Boolean(name)),
+                                ),
+                              ).join(", ") || "Sin proveedor asignado"}
+                            </span>
                           </div>
 
                           <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -1885,6 +1942,7 @@ function AdminOrders() {
                     type="date"
                     value={orderForm.date}
                     onChange={(event) => setOrderForm({ ...orderForm, date: event.target.value })}
+                    className="[&::-webkit-calendar-picker-indicator]:invert"
                   />
                 </div>
                 <div className="flex min-w-0 flex-col gap-0">
@@ -1893,6 +1951,7 @@ function AdminOrders() {
                     type="date"
                     value={orderForm.deliveryDate ?? ""}
                     onChange={(event) => setOrderForm({ ...orderForm, deliveryDate: event.target.value })}
+                    className="[&::-webkit-calendar-picker-indicator]:invert"
                   />
                 </div>
               </div>
@@ -2163,6 +2222,37 @@ function AdminOrders() {
                   <Label>Total</Label>
                   <Input value={formatPrice(orderForm.total)} disabled />
                 </div>
+              </div>
+
+              <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
+                <p className="font-semibold">Proveedor</p>
+                {Array.from(
+                  new Map(
+                    orderForm.items.map((item) => {
+                      const match = getSupplierForItem(item.name);
+                      return [item.name, match] as const;
+                    }),
+                  ).entries(),
+                ).map(([itemName, match]) => (
+                  <div key={itemName} className="grid gap-3 sm:grid-cols-4">
+                    <div>
+                      <Label>Producto</Label>
+                      <Input value={itemName} disabled />
+                    </div>
+                    <div>
+                      <Label>Nombre</Label>
+                      <Input value={match?.supplier?.name ?? ""} disabled />
+                    </div>
+                    <div>
+                      <Label>Celular</Label>
+                      <Input value={match?.supplier?.phone ?? ""} disabled />
+                    </div>
+                    <div>
+                      <Label>Red social</Label>
+                      <Input value={match?.supplier?.social ?? ""} disabled />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ) : null}

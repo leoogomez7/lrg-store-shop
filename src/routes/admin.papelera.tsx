@@ -27,9 +27,10 @@ function AdminTrash() {
       products.push(entry.item);
       saveProducts(products);
     } else {
-      if (orders.some((order) => order.id === entry.item.id)) return;
-      orders.push(entry.item);
-      saveOrders(orders);
+      if (!orders.some((order) => order.id === entry.item.id)) {
+        orders.push(entry.item);
+        saveOrders(orders);
+      }
     }
     removeFromTrash(entry);
     void queryClient.invalidateQueries({ queryKey: entry.type === "producto" ? ["products"] : ["orders"] });
@@ -38,7 +39,25 @@ function AdminTrash() {
 
   const deletePermanently = () => {
     if (!entryToDelete) return;
+
+    if (entryToDelete.type === "producto") {
+      const productIndex = products.findIndex((product) => product.id === entryToDelete.item.id);
+      if (productIndex >= 0) {
+        products.splice(productIndex, 1);
+        saveProducts(products);
+      }
+    } else {
+      const orderIndex = orders.findIndex((order) => order.id === entryToDelete.item.id);
+      if (orderIndex >= 0) {
+        orders.splice(orderIndex, 1);
+        saveOrders(orders);
+      }
+    }
+
     removeFromTrash(entryToDelete);
+    void queryClient.invalidateQueries({
+      queryKey: entryToDelete.type === "producto" ? ["products"] : ["orders"],
+    });
     setEntries((current) => current.filter((item) => item.id !== entryToDelete.id || item.type !== entryToDelete.type));
     setEntryToDelete(null);
   };

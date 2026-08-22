@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronUp, Edit3, Eye, EyeOff, FileText, Filter, Pencil, Plus, Save, Search, Sheet, Trash2, X, Copy, ArrowUpDown } from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
-import { products as productsData, saveProducts, type ProductVariant } from "@/data/products";
+import { products as productsData, saveProducts, type ProductSupplier, type ProductVariant } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +65,7 @@ type ProductFormState = {
   deliveryAmount: number;
   discount: number;
   variants: ProductVariant[];
+  supplier: ProductSupplier;
 };
 
 export const Route = createFileRoute("/admin/productos")({
@@ -215,6 +216,7 @@ function AdminProducts() {
     deliveryAmount: 0,
     discount: 0,
     variants: [],
+    supplier: { name: "", phone: "", social: "", purchaseDate: "" },
   };
 
   const handleUsdRateConfirm = () => {
@@ -320,6 +322,7 @@ function AdminProducts() {
       deliveryAmount: 1,
       discount: discounts[product.id] ?? 0,
       variants: product.variants ?? [],
+      supplier: product.supplier ?? { name: "", phone: "", social: "", purchaseDate: "" },
     });
     setPendingDiscounts((current) => ({
       ...current,
@@ -328,8 +331,18 @@ function AdminProducts() {
     setEditDialogOpen(true);
   };
 
-  const handleDeleteProduct = (productId: string) => {
+  const handleDeleteProduct = (productId: string, variantId?: string) => {
     const product = (productsData as Product[]).find((item) => item.id === productId);
+    if (product && variantId) {
+      product.variants = (product.variants ?? []).filter((variant) => variant.id !== variantId);
+      setEditableProducts((current) =>
+        current.map((currentProduct) =>
+          currentProduct.id === productId ? { ...currentProduct, variants: product.variants } : currentProduct,
+        ),
+      );
+      saveProducts(productsData as Product[]);
+      return;
+    }
     if (product) moveToTrash({ type: "producto", id: product.id, item: product });
     setEditableProducts((current) => current.filter((product) => product.id !== productId));
     setDiscounts((current) => {
@@ -604,6 +617,7 @@ function AdminProducts() {
               features: productForm.features,
               images: productForm.images,
               variants: productForm.variants,
+              supplier: productForm.supplier,
             }
           : item,
       );
@@ -634,6 +648,7 @@ function AdminProducts() {
           features: productForm.features,
           images: productForm.images,
           variants: productForm.variants,
+          supplier: productForm.supplier,
           createdAt: new Date().toISOString().slice(0, 10),
         } as Product;
 
@@ -659,6 +674,7 @@ function AdminProducts() {
         existing.features = productForm.features;
         existing.images = productForm.images;
         existing.variants = productForm.variants;
+        existing.supplier = productForm.supplier;
       }
 
       return updated;
@@ -1598,9 +1614,9 @@ function AdminProducts() {
                             onClick={() =>
                               setConfirmState({
                                 open: true,
-                                title: `Eliminar "${product.name}"?`,
+                                title: variant ? `Eliminar variante "${variant.name}"?` : `Eliminar "${product.name}"?`,
                                 description: "Esta acción no se puede deshacer.",
-                                onConfirm: () => handleDeleteProduct(product.id),
+                                onConfirm: () => handleDeleteProduct(product.id, variant?.id),
                               })
                             }
                             aria-label={`Eliminar ${product.name}`}
@@ -2278,7 +2294,7 @@ function ProductEditDialog({
               ) : null}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-4">
               <div className="space-y-2">
                 <Label htmlFor="new-name">Nombre</Label>
                 <Input
@@ -2704,6 +2720,32 @@ function ProductEditDialog({
                 ))}
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="order-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                Proveedores
+              </span>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-4">
+              <div className="flex min-w-0 flex-col gap-1">
+                <Label>Nombre</Label>
+                <Input value={productForm.supplier.name} onChange={(event) => setProductForm({ ...productForm, supplier: { ...productForm.supplier, name: event.target.value } })} />
+              </div>
+              <div className="flex min-w-0 flex-col gap-1">
+                <Label>Celular</Label>
+                <Input value={productForm.supplier.phone} onChange={(event) => setProductForm({ ...productForm, supplier: { ...productForm.supplier, phone: event.target.value } })} />
+              </div>
+              <div className="flex min-w-0 flex-col gap-1">
+                <Label>Red social</Label>
+                <Input value={productForm.supplier.social} onChange={(event) => setProductForm({ ...productForm, supplier: { ...productForm.supplier, social: event.target.value } })} />
+              </div>
+              <div className="flex min-w-0 flex-col gap-1">
+                <Label>Fecha de compra</Label>
+                <Input type="date" value={productForm.supplier.purchaseDate} onChange={(event) => setProductForm({ ...productForm, supplier: { ...productForm.supplier, purchaseDate: event.target.value } })} className="[&::-webkit-calendar-picker-indicator]:invert" />
+              </div>
             </div>
           </div>
 

@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, CreditCard, DollarSign, Package, Search, ShoppingCart, TrendingUp } from "lucide-react";
+import { Check, ChevronDown, CreditCard, DollarSign, Package, Search, ShoppingCart, TrendingUp, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -71,6 +70,13 @@ function AdminDashboard() {
   const total = filteredOrders.reduce((sum, order) => sum + order.total, 0);
   const deliveredOrders = filteredOrders.filter((order) => order.status === "entregado").length;
   const pendingOrders = filteredOrders.filter((order) => order.status !== "entregado").length;
+  const totalCustomers = new Set(
+    filteredOrders.map((order) => order.email || order.customer || order.phone || order.id),
+  ).size;
+  const totalProducts = filteredProducts.reduce(
+    (count, product) => count + Math.max(1, product.variants?.length ?? 0),
+    0,
+  );
   const inactiveProducts = filteredProducts.filter((product) => product.hidden).length;
   const activeProducts = filteredProducts.filter((product) => !product.hidden).length;
   const totalExpenses = filteredOrders.reduce((sum, order) => sum + order.expenses, 0);
@@ -107,6 +113,8 @@ function AdminDashboard() {
   >("ingresos");
   const [selectedMonth, setSelectedMonth] = useState("todos");
   const [range, setRange] = useState<DateRange | undefined>(undefined);
+  const [draftRange, setDraftRange] = useState<DateRange | undefined>(undefined);
+  const [rangePopoverOpen, setRangePopoverOpen] = useState(false);
 
   const reportMetricLabelMap: Record<
     "ingresos" | "gastos" | "ganancias" | "pedidosEntregados" | "pedidosSinEntregar",
@@ -178,14 +186,30 @@ function AdminDashboard() {
     { label: "Ingresos", value: formatPrice(total), icon: DollarSign },
     { label: "Gastos", value: formatPrice(totalExpenses), icon: CreditCard },
     { label: "Ganancias", value: formatPrice(totalProfit), icon: TrendingUp },
+    { label: "Pedidos", value: formatNumber(deliveredOrders + pendingOrders), icon: ShoppingCart },
     { label: "Pedidos entregados", value: formatNumber(deliveredOrders), icon: ShoppingCart },
     { label: "Pedidos sin entregar", value: formatNumber(pendingOrders), icon: ShoppingCart },
+    { label: "Clientes", value: formatNumber(totalCustomers), icon: Users },
+    { label: "Productos", value: formatNumber(totalProducts), icon: Package },
     { label: "Productos activos", value: formatNumber(activeProducts), icon: Package },
     { label: "Productos inactivos", value: formatNumber(inactiveProducts), icon: Package },
   ];
 
-  const stockItems = [...filteredProducts].sort((a, b) => a.stock - b.stock);
-  const totalStockUnits = stockItems.reduce((sum, product) => sum + product.stock, 0);
+  const stockItems = filteredProducts
+    .flatMap((product) =>
+      product.variants?.length
+        ? product.variants.map((variant) => ({
+            id: `${product.id}-${variant.id}`,
+            name: product.name,
+            variantName: variant.name,
+            category: product.category,
+            brand: product.brand,
+            stock: variant.stock,
+          }))
+        : [{ id: product.id, name: product.name, variantName: undefined, category: product.category, brand: product.brand, stock: product.stock }],
+    )
+    .sort((a, b) => a.stock - b.stock);
+  const totalStockUnits = stockItems.reduce((sum, item) => sum + item.stock, 0);
   const [stockSearch, setStockSearch] = useState("");
   const normalizedStockSearch = stockSearch.trim().toLowerCase();
   const searchedStockItems = normalizedStockSearch
@@ -238,9 +262,9 @@ function AdminDashboard() {
         </Select>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
         {cards.map((card) => (
-          <div key={card.label} className="glass-panel rounded-xl p-3">
+          <div key={card.label} className="glass-panel w-3/4 rounded-xl p-3">
             <span className="gradient-brand grid size-7 place-items-center rounded-md">
               <card.icon className="size-3.5 text-primary-foreground" />
             </span>
@@ -262,77 +286,123 @@ function AdminDashboard() {
                 <label className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Tipo
                 </label>
-                <select
-                  className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                <Select
                   value={reportMetric}
-                  onChange={(event) => {
-                    setReportMetric(event.target.value as typeof reportMetric);
+                  onValueChange={(value) => {
+                    setReportMetric(value as typeof reportMetric);
                     setSelectedMonth("todos");
                     setRange(undefined);
                   }}
                 >
-                  <option value="ingresos">Ingresos por mes</option>
-                  <option value="gastos">Gastos por mes</option>
-                  <option value="ganancias">Ganancias por mes</option>
-                  <option value="pedidosEntregados">Pedidos entregados por mes</option>
-                  <option value="pedidosSinEntregar">Pedidos sin entregar por mes</option>
-                </select>
+                  <SelectTrigger className="mt-2 w-full rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ingresos">Ingresos por mes</SelectItem>
+                    <SelectItem value="gastos">Gastos por mes</SelectItem>
+                    <SelectItem value="ganancias">Ganancias por mes</SelectItem>
+                    <SelectItem value="pedidosEntregados">Pedidos entregados por mes</SelectItem>
+                    <SelectItem value="pedidosSinEntregar">Pedidos sin entregar por mes</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Mes
                 </label>
-                <select
-                  className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                <Select
                   value={selectedMonth}
-                  onChange={(event) => {
-                    setSelectedMonth(event.target.value);
+                  onValueChange={(value) => {
+                    setSelectedMonth(value);
                     setRange(undefined);
                   }}
                 >
-                  <option value="todos">Todos</option>
-                  {monthOptions.map((month) => (
-                    <option key={month} value={month}>
-                      {month}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="mt-2 w-full rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {monthOptions.map((month) => (
+                      <SelectItem key={month} value={month}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Rango de fechas
                 </label>
                 <div className="mt-2">
-                  <Popover>
+                  <Popover
+                    open={rangePopoverOpen}
+                    onOpenChange={(open) => {
+                      setRangePopoverOpen(open);
+                      if (open) setDraftRange(range);
+                    }}
+                  >
                     <PopoverTrigger asChild>
                       <Button
-                        variant="outline"
-                        className="w-full justify-between text-left"
+                        variant="ghost"
+                        className="h-9 w-full justify-between gap-2 rounded-xl border border-input bg-transparent px-3 py-2 text-left text-sm font-normal shadow-sm hover:bg-transparent hover:text-foreground"
                         onClick={() => setSelectedMonth("todos")}
                       >
-                        {range && range.from && range.to
-                          ? `${formatDate(range.from.toISOString())} - ${formatDate(range.to.toISOString())}`
-                          : range && range.from
-                          ? `${formatDate(range.from.toISOString())}`
-                          : "Seleccionar rango"}
+                        <span>
+                          {range?.from && range?.to
+                            ? `${formatDate(range.from.toISOString())} - ${formatDate(range.to.toISOString())}`
+                            : range?.from
+                            ? `${formatDate(range.from.toISOString())} - dd/mm/aaaa`
+                            : "Seleccionar rango"}
+                        </span>
+                        <ChevronDown className="h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-88 p-0">
-                      <Calendar
-                        mode="range"
-                        selected={range}
-                        onSelect={(value) => {
-                          setRange(value as DateRange | undefined);
-                          setSelectedMonth("todos");
-                        }}
-                      />
-                      <div className="flex items-center justify-between gap-2 border-t border-border/60 bg-background p-3">
+                    <PopoverContent className="w-88 p-4">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Fecha inicial</label>
+                          <Input
+                            type="date"
+                            value={draftRange?.from ? draftRange.from.toISOString().slice(0, 10) : ""}
+                            onChange={(event) => {
+                              const from = event.target.value ? new Date(`${event.target.value}T00:00:00`) : undefined;
+                              setDraftRange((current) => ({ from, to: current?.to }));
+                            }}
+                            className="[&::-webkit-calendar-picker-indicator]:invert"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Fecha final</label>
+                          <Input
+                            type="date"
+                            value={draftRange?.to ? draftRange.to.toISOString().slice(0, 10) : ""}
+                            min={draftRange?.from ? draftRange.from.toISOString().slice(0, 10) : undefined}
+                            onChange={(event) => {
+                              const to = event.target.value ? new Date(`${event.target.value}T00:00:00`) : undefined;
+                              setDraftRange((current) => ({ from: current?.from, to }));
+                            }}
+                            className="[&::-webkit-calendar-picker-indicator]:invert"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-center justify-center gap-1.5 border-t border-border/60 p-3">
                         <Button
                           variant="ghost"
-                          className="w-full"
-                          onClick={() => setRange(undefined)}
+                          className="w-auto px-4"
+                          onClick={() => setDraftRange(undefined)}
                         >
                           Limpiar
+                        </Button>
+                        <Button
+                          className="w-auto px-4"
+                          onClick={() => {
+                            setRange(draftRange);
+                            setSelectedMonth("todos");
+                            setRangePopoverOpen(false);
+                          }}
+                        >
+                          Aplicar
                         </Button>
                       </div>
                     </PopoverContent>
@@ -375,27 +445,29 @@ function AdminDashboard() {
           <div className="flex items-center justify-between gap-4 border-b border-border/60 p-5">
             <h2 className="font-display font-semibold">Últimos pedidos</h2>
           </div>
-          <Table>
+          <Table className="text-center [&_td]:text-center [&_th]:text-center">
             <TableHeader>
               <TableRow>
                 <TableHead>Pedido</TableHead>
+                <TableHead>Cliente</TableHead>
                 <TableHead>Sector</TableHead>
                 <TableHead>Fecha</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+                <TableHead>Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {currentOrders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">{order.id}</TableCell>
+                  <TableCell>{order.customer}</TableCell>
                   <TableCell>{brands[order.brand].shortName}</TableCell>
                   <TableCell>{formatDate(order.date)}</TableCell>
-                  <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
+                  <TableCell>{formatPrice(order.total)}</TableCell>
                 </TableRow>
               ))}
               {recentOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
                     No hay pedidos disponibles.
                   </TableCell>
                 </TableRow>
@@ -492,11 +564,18 @@ function AdminDashboard() {
             </div>
           </div>
           <ul className="divide-y divide-border/60">
-            {currentStockItems.map((product) => (
-              <li key={product.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
-                <span className="min-w-0 flex-1 truncate text-sm">{product.name}</span>
-                <Badge variant={product.stock === 0 ? "destructive" : "secondary"}>
-                  {product.stock} unidades
+            {currentStockItems.map((item) => (
+              <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+                <span className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+                  <span className="min-w-0 truncate">{item.name}</span>
+                  {item.variantName ? (
+                    <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+                      {item.variantName}
+                    </span>
+                  ) : null}
+                </span>
+                <Badge variant={item.stock === 0 ? "destructive" : "secondary"}>
+                  {item.stock} unidades
                 </Badge>
               </li>
             ))}

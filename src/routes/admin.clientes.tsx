@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { orderQueries, type Order } from "@/services/catalog.service";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Download, Eye, EyeOff, FileText, Paperclip, Search, Sheet } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useNavigate } from "@tanstack/react-router";
@@ -22,6 +22,27 @@ function AdminClients() {
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
   const [query, setQuery] = useState("");
+  const clientsTableRef = useRef<HTMLDivElement | null>(null);
+  const [isClientsHeaderSticky, setIsClientsHeaderSticky] = useState(false);
+
+  useEffect(() => {
+    const updateClientsHeaderState = () => {
+      const table = clientsTableRef.current;
+      if (!table) return;
+
+      const topOffset = window.innerWidth >= 1024 ? 0 : 56;
+      const bounds = table.getBoundingClientRect();
+      setIsClientsHeaderSticky(bounds.top <= topOffset && bounds.bottom > topOffset + 48);
+    };
+
+    updateClientsHeaderState();
+    window.addEventListener("scroll", updateClientsHeaderState, { passive: true });
+    window.addEventListener("resize", updateClientsHeaderState);
+    return () => {
+      window.removeEventListener("scroll", updateClientsHeaderState);
+      window.removeEventListener("resize", updateClientsHeaderState);
+    };
+  }, []);
 
   type Customer = { key: string; name: string; email: string; orders: Order[] };
 
@@ -173,9 +194,13 @@ function AdminClients() {
         </div>
       </div>
 
-        <div className="glass-panel mx-auto w-fit max-w-full overflow-x-auto rounded-2xl pb-2">
-        <Table className="mx-auto w-fit text-center">
-          <TableHeader>
+        <div ref={clientsTableRef} className="glass-panel mx-auto w-fit max-w-full overflow-visible rounded-2xl pb-2">
+        <Table containerClassName="overflow-visible" className="mx-auto w-fit text-center">
+          <TableHeader
+            className={`[&_th]:sticky [&_th]:top-14 [&_th]:z-20 [&_th]:shadow-[0_1px_0_var(--border)] lg:[&_th]:top-0 ${
+              isClientsHeaderSticky ? "[&_th]:bg-background" : ""
+            }`}
+          >
             <TableRow>
               <TableHead>Cliente</TableHead>
               <TableHead>Email</TableHead>

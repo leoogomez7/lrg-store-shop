@@ -28,6 +28,7 @@ import { Route as AdminPanelRouteImport } from './routes/admin.panel'
 import { Route as AdminPapeleraRouteImport } from './routes/admin.papelera'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminProductosRouteImport } from './routes/admin.productos'
+import { Route as AdminProveedoresRouteImport } from './routes/admin.proveedores'
 import { Route as BrandProductoSlugRouteImport } from './routes/$brand.producto.$slug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -125,6 +126,11 @@ const AdminProductosRoute = AdminProductosRouteImport.update({
   path: '/productos',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminProveedoresRoute = AdminProveedoresRouteImport.update({
+  id: '/proveedores',
+  path: '/proveedores',
+  getParentRoute: () => AdminRoute,
+} as any)
 const BrandProductoSlugRoute = BrandProductoSlugRouteImport.update({
   id: '/producto/$slug',
   path: '/producto/$slug',
@@ -150,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/admin/papelera': typeof AdminPapeleraRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
+  '/admin/proveedores': typeof AdminProveedoresRoute
   '/$brand/': typeof BrandIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
 }
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/admin/papelera': typeof AdminPapeleraRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
+  '/admin/proveedores': typeof AdminProveedoresRoute
   '/$brand': typeof BrandIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
 }
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/admin/papelera': typeof AdminPapeleraRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
+  '/admin/proveedores': typeof AdminProveedoresRoute
   '/$brand/': typeof BrandIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
 }
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
     | '/admin/papelera'
     | '/admin/pedidos'
     | '/admin/productos'
+    | '/admin/proveedores'
     | '/$brand/'
     | '/$brand/producto/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -239,6 +249,7 @@ export interface FileRouteTypes {
     | '/admin/papelera'
     | '/admin/pedidos'
     | '/admin/productos'
+    | '/admin/proveedores'
     | '/$brand'
     | '/$brand/producto/$slug'
   id:
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/admin/papelera'
     | '/admin/pedidos'
     | '/admin/productos'
+    | '/admin/proveedores'
     | '/$brand/'
     | '/$brand/producto/$slug'
   fileRoutesById: FileRoutesById
@@ -413,6 +425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProductosRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/proveedores': {
+      id: '/admin/proveedores'
+      path: '/proveedores'
+      fullPath: '/admin/proveedores'
+      preLoaderRoute: typeof AdminProveedoresRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/$brand/producto/$slug': {
       id: '/$brand/producto/$slug'
       path: '/producto/$slug'
@@ -445,6 +464,7 @@ interface AdminRouteChildren {
   AdminPapeleraRoute: typeof AdminPapeleraRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminProductosRoute: typeof AdminProductosRoute
+  AdminProveedoresRoute: typeof AdminProveedoresRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -455,6 +475,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPapeleraRoute: AdminPapeleraRoute,
   AdminPedidosRoute: AdminPedidosRoute,
   AdminProductosRoute: AdminProductosRoute,
+  AdminProveedoresRoute: AdminProveedoresRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
