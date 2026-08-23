@@ -430,6 +430,7 @@ function AdminOrders() {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [bulkOrderEditQueue, setBulkOrderEditQueue] = useState<string[]>([]);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
+  const [pendingAttachments, setPendingAttachments] = useState<OrderAttachment[]>([]);
   const documentsInputRef = useRef<HTMLInputElement | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deliveryFilterOpen, setDeliveryFilterOpen] = useState(false);
@@ -578,16 +579,27 @@ function AdminOrders() {
           }),
       ),
     );
+    setPendingAttachments((current) => [...current, ...attachments]);
+  };
+
+  const cancelDocuments = () => {
+    setPendingAttachments([]);
+    setDocumentsOrder(null);
+  };
+
+  const saveDocuments = () => {
+    if (!documentsOrder || pendingAttachments.length === 0) return;
     setEditableOrders((current) => {
       const next = current.map((order) =>
         order.id === documentsOrder.id
-          ? { ...order, attachments: [...(order.attachments ?? []), ...attachments] }
+          ? { ...order, attachments: [...(order.attachments ?? []), ...pendingAttachments] }
           : order,
       );
       saveOrders(next);
       setDocumentsOrder(next.find((order) => order.id === documentsOrder.id) ?? null);
       return next;
     });
+    setPendingAttachments([]);
   };
 
   const removeDocument = (attachmentName: string) => {
@@ -1746,7 +1758,7 @@ function AdminOrders() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setDocumentsOrder(order)}
+                              onClick={() => { setDocumentsOrder(order); setPendingAttachments([]); }}
                               className="h-8 flex-none gap-1.5 px-2 text-xs"
                             >
                               <Paperclip className="size-4" />
@@ -2281,7 +2293,7 @@ function AdminOrders() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={documentsOrder !== null} onOpenChange={(open) => !open && setDocumentsOrder(null)}>
+      <Dialog open={documentsOrder !== null} onOpenChange={(open) => !open && cancelDocuments()}>
         <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader>
             <DialogTitle>Documentos del pedido</DialogTitle>
@@ -2301,10 +2313,10 @@ function AdminOrders() {
             <Paperclip className="size-4" /> Adjuntar archivos
           </Button>
           <div className="space-y-2">
-            {(documentsOrder?.attachments ?? []).length === 0 ? (
+            {([...((documentsOrder?.attachments ?? [])), ...pendingAttachments]).length === 0 ? (
               <p className="text-sm text-muted-foreground">No hay documentos adjuntos.</p>
             ) : (
-              documentsOrder?.attachments?.map((attachment) => (
+              [...(documentsOrder?.attachments ?? []), ...pendingAttachments].map((attachment) => (
                 <div key={`${attachment.name}-${attachment.size}`} className="flex items-center justify-between gap-3 rounded-lg border p-2 text-sm">
                   <span className="min-w-0 truncate">{attachment.name}</span>
                   <div className="flex shrink-0 items-center gap-1">
@@ -2318,6 +2330,14 @@ function AdminOrders() {
                 </div>
               ))
             )}
+          </div>
+          <div className="flex justify-end gap-2 border-t border-border/60 pt-4">
+            <Button type="button" variant="outline" onClick={cancelDocuments}>
+              <X className="size-4" /> Cancelar
+            </Button>
+            <Button type="button" onClick={saveDocuments} disabled={pendingAttachments.length === 0}>
+              <Save className="size-4" /> Guardar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

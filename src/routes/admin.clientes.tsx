@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { orderQueries, type Order } from "@/services/catalog.service";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Download, Eye, EyeOff, FileText, Paperclip, Search, Sheet } from "lucide-react";
+import { Check, Download, Eye, EyeOff, FileText, Paperclip, Search, Sheet, Save, X } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useNavigate } from "@tanstack/react-router";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { saveOrders, orders as ordersData, type OrderAttachment } from "@/data/orders";
 
 export const Route = createFileRoute("/admin/clientes")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
@@ -296,6 +297,7 @@ function formatPurchaseDate(value: string) {
 function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: string; email: string; orders: Order[] }; totalSpent: number }) {
   const [open, setOpen] = useState(false);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
+  const [pendingAttachments, setPendingAttachments] = useState<OrderAttachment[]>([]);
   const navigate = useNavigate();
 
   return (
@@ -333,7 +335,7 @@ function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: 
                     <div className="text-xs text-muted-foreground">
                       Fecha de compra: {formatPurchaseDate(o.date)}
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setDocumentsOrder(o)}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => { setDocumentsOrder(o); setPendingAttachments([]); }}>
                       <Paperclip className="size-3.5" /> Documentos
                     </Button>
                   </div>
@@ -344,23 +346,55 @@ function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: 
         </TableRow>
       )}
 
-      <Dialog open={documentsOrder !== null} onOpenChange={(value) => !value && setDocumentsOrder(null)}>
+      <Dialog open={documentsOrder !== null} onOpenChange={(value) => { if (!value) { setDocumentsOrder(null); setPendingAttachments([]); } }}>
         <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader>
             <DialogTitle>Documentos del pedido</DialogTitle>
             <DialogDescription>{documentsOrder?.id}</DialogDescription>
           </DialogHeader>
+          <div className="flex justify-end gap-2 border-b border-border/60 pb-4">
+            <Button type="button" variant="outline" onClick={() => { setDocumentsOrder(null); setPendingAttachments([]); }}>
+              <X className="size-4" /> Cancelar
+            </Button>
+            <Button type="button" onClick={() => {
+              if (!documentsOrder || pendingAttachments.length === 0) return;
+              const updatedOrder = { ...documentsOrder, attachments: [...(documentsOrder.attachments ?? []), ...pendingAttachments] };
+              saveOrders(ordersData.map((order) => order.id === updatedOrder.id ? updatedOrder : order));
+              setDocumentsOrder(updatedOrder);
+              setPendingAttachments([]);
+            }} disabled={pendingAttachments.length === 0}>
+              <Save className="size-4" /> Guardar
+            </Button>
+          </div>
           <div className="space-y-2">
-            {(documentsOrder?.attachments ?? []).map((attachment) => (
+            {[...(documentsOrder?.attachments ?? []), ...pendingAttachments].map((attachment) => (
               <div key={`${attachment.name}-${attachment.size}`} className="flex items-center justify-between gap-3 rounded-lg border p-2 text-sm">
                 <span className="min-w-0 truncate">{attachment.name}</span>
-                <a href={attachment.dataUrl} download={attachment.name} className="rounded p-1 hover:bg-accent" title="Descargar"><Download className="size-4" /></a>
+                {attachment.dataUrl ? <a href={attachment.dataUrl} download={attachment.name} className="rounded p-1 hover:bg-accent" title="Descargar"><Download className="size-4" /></a> : null}
               </div>
             ))}
-            {(documentsOrder?.attachments ?? []).length === 0 && (
+            {(documentsOrder?.attachments ?? []).length === 0 && pendingAttachments.length === 0 && (
               <p className="text-sm text-muted-foreground">No hay documentos adjuntos.</p>
             )}
           </div>
+          <Input
+            type="file"
+            multiple
+            onChange={(event) => {
+              const files = Array.from(event.target.files ?? []);
+              files.forEach((file) => {
+                const reader = new FileReader();
+                reader.onload = () => setPendingAttachments((current) => [...current, {
+                  name: file.name,
+                  type: file.type,
+                  size: file.size,
+                  dataUrl: String(reader.result ?? ""),
+                }]);
+                reader.readAsDataURL(file);
+              });
+              event.target.value = "";
+            }}
+          />
         </DialogContent>
       </Dialog>
     </>

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, CreditCard, Lock, Truck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CreditCard, Lock, Tag, Truck } from "lucide-react";
 import { useCart } from "@/store/cart";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
@@ -43,8 +43,8 @@ function CheckoutPage() {
     .filter((method) => method.enabled);
   const availableShippingMethods = (brand.shipping?.methods ?? [])
     .filter((method) => method.enabled);
-  const creditCardMethods = availablePaymentMethods.filter((method) => /visa|mastercard|amex|tarjeta\s+de\s+cr[eé]dito/i.test(method.name));
-  const otherPaymentMethods = availablePaymentMethods.filter((method) => !creditCardMethods.includes(method));
+  const cardPaymentMethods = availablePaymentMethods.filter((method) => /visa|mastercard|amex|tarjeta|d[eé]bito|cr[eé]dito/i.test(method.name));
+  const otherPaymentMethods = availablePaymentMethods.filter((method) => !cardPaymentMethods.includes(method));
   const interestFreeOptions = [1];
 
   // Ensure header and footer are shown on checkout
@@ -64,7 +64,12 @@ function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<string>(availablePaymentMethods[0]?.name ?? "Tarjeta");
   const [creditCardOpen, setCreditCardOpen] = useState(false);
   const [selectedInstallments, setSelectedInstallments] = useState(1);
-  const isCreditCardSelected = creditCardMethods.some((payment) => payment.name === paymentMethod);
+  const isCardPaymentSelected = cardPaymentMethods.some((payment) => payment.name === paymentMethod);
+  const isCardPayment = /tarjeta|visa|mastercard|amex|d[eé]bito|cr[eé]dito/i.test(paymentMethod);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponPercentage, setCouponPercentage] = useState(0);
+  const [couponMessage, setCouponMessage] = useState("");
   const [shippingMethod, setShippingMethod] = useState<string>(availableShippingMethods[0]?.name ?? "");
   const [validationMessage, setValidationMessage] = useState("");
   const validationRef = useRef<HTMLDivElement | null>(null);
@@ -96,7 +101,9 @@ function CheckoutPage() {
     setValidationMessage("");
     if (items.length === 0) return;
     const id = `LRG-${Math.floor(10000 + Math.random() * 89999)}`;
-    const total = subtotal + shipping;
+    const discountedSubtotal = couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal;
+    const cardFee = isCardPayment ? discountedSubtotal * 0.1 : 0;
+    const total = discountedSubtotal + shipping + cardFee;
     const expenses = Math.round(total * 0.65);
     const order = {
       id,
@@ -111,6 +118,9 @@ function CheckoutPage() {
       profit: total - expenses,
       status: "pendiente",
       paymentMethod,
+      installments: isCardPayment ? selectedInstallments : 1,
+      discountCode: couponApplied ? couponCode.trim().toUpperCase() : undefined,
+      cardFee,
       shippingMethod,
       items: items.map((item) => ({ name: item.name, quantity: item.quantity, price: item.price })),
     };
@@ -208,6 +218,39 @@ function CheckoutPage() {
               </div>
             </section>
 
+            <section className="glass-panel rounded-2xl p-6">
+              <h2 className="font-display flex items-center gap-2 font-semibold">
+                <Tag className="size-4 text-primary" /> Descuento
+              </h2>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <Input
+                  aria-label="Código de descuento"
+                  placeholder="Código de descuento"
+                  value={couponCode}
+                  onChange={(event) => {
+                    setCouponCode(event.target.value);
+                    setCouponMessage("");
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    const matchingCoupon = (brand.discounts ?? []).find(
+                      (discount) => discount.enabled && discount.code === couponCode.trim().toUpperCase(),
+                    );
+                    const isValid = Boolean(matchingCoupon);
+                    setCouponApplied(isValid);
+                    setCouponPercentage(matchingCoupon?.percentage ?? 0);
+                    setCouponMessage(isValid ? `Código aplicado: ${matchingCoupon?.percentage}% de descuento.` : "El código no es válido.");
+                  }}
+                >
+                  Aplicar
+                </Button>
+              </div>
+              {couponMessage && <p className={`mt-2 text-xs ${couponApplied ? "text-green-600" : "text-destructive"}`}>{couponMessage}</p>}
+            </section>
+
             {availableShippingMethods.length > 0 && (
               <section className="glass-panel rounded-2xl p-6">
                 <h2 className="font-display flex items-center gap-2 font-semibold">
@@ -229,11 +272,11 @@ function CheckoutPage() {
                 <CreditCard className="size-4 text-primary" /> Método de pago
               </h2>
               <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="mt-5 space-y-3">
-                {creditCardMethods.length > 0 && (
+                {cardPaymentMethods.length > 0 && (
                   <div className="rounded-xl bg-surface-2/60 px-4 py-3">
                     <div className="flex items-center gap-3 text-sm">
-                      <RadioGroupItem value={creditCardMethods[0].name} />
-                      <span className="flex-1">Tarjeta de crédito</span>
+                      <RadioGroupItem value={cardPaymentMethods[0].name} />
+                      <span className="flex-1">Tarjeta de crédito o débito</span>
                       <Button
                         type="button"
                         variant="ghost"
@@ -247,14 +290,14 @@ function CheckoutPage() {
                       <div className="mt-3 space-y-3 border-t border-border/60 pt-3">
                         <p className="text-xs text-muted-foreground">Elegí la tarjeta y la cantidad de cuotas.</p>
                         <div className="space-y-2">
-                          {creditCardMethods.map((payment) => (
+                          {cardPaymentMethods.map((payment) => (
                             <label key={payment.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/60 px-3 py-2 text-sm">
                               <RadioGroupItem value={payment.name} />
                               {payment.name}
                             </label>
                           ))}
                         </div>
-                        {creditCardMethods.some((payment) => payment.name === paymentMethod) && interestFreeOptions.length > 1 && (
+                        {isCardPaymentSelected && interestFreeOptions.length > 1 && (
                           <div className="space-y-2">
                             <Label>Cantidad de cuotas</Label>
                             <div className="grid gap-2 sm:grid-cols-3">
@@ -293,7 +336,7 @@ function CheckoutPage() {
             <h2 className="font-display font-semibold">Tu pedido</h2>
             <div className="mt-5 space-y-3 text-sm">
               {items.map((item) => {
-                const appliedInstallments = isCreditCardSelected ? selectedInstallments : 1;
+                const appliedInstallments = isCardPaymentSelected ? selectedInstallments : 1;
                 return appliedInstallments > 1 ? (
                   <div key={item.id} className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{item.name} · {appliedInstallments} cuotas sin interés</span>
@@ -305,13 +348,25 @@ function CheckoutPage() {
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
+              {couponApplied && (
+                <div className="flex items-center justify-between text-green-600">
+                  <span>Descuento ({couponPercentage}%)</span>
+                  <span>-{formatPrice(subtotal * couponPercentage / 100)}</span>
+                </div>
+              )}
+              {isCardPayment && (
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Comisión tarjeta (10%)</span>
+                  <span>{formatPrice((couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal) * 0.1)}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span>Envío estimado</span>
                 <span>{shipping === 0 ? "Gratis" : formatPrice(shipping)}</span>
               </div>
               <div className="flex items-center justify-between font-semibold text-foreground">
                 <span>Total</span>
-                <span>{formatPrice(subtotal + shipping)}</span>
+                <span>{formatPrice((couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal) + shipping + (isCardPayment ? (couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal) * 0.1 : 0))}</span>
               </div>
               <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">Confirmar pedido</Button>
             </div>

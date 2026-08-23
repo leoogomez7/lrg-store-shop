@@ -1,15 +1,19 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingCart } from "lucide-react";
+import { Heart, ShoppingCart } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductVisual } from "@/components/common/product-visual";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import type { Product } from "@/data/products";
+import { getFavoriteProductIds, toggleFavoriteProduct } from "@/lib/favorites";
 
 export function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   const { addProduct } = useCart();
   const navigate = useNavigate();
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteOwner, setFavoriteOwner] = useState("guest");
   const outOfStock = product.stock <= 0;
   const discountPercent = product.compareAtPrice
     ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
@@ -22,6 +26,12 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
     if (match) return `Entrega ${match[1]} días`;
     return undefined;
   })();
+
+  useEffect(() => {
+    const owner = window.sessionStorage.getItem("userFullName") || "guest";
+    setFavoriteOwner(owner);
+    setIsFavorite(getFavoriteProductIds(owner).includes(product.id));
+  }, [product.id]);
 
   return (
     <article
@@ -50,29 +60,37 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         transform: "translateY(0)",
       }}
     >
-      <Link
-        to="/$brand/producto/$slug"
-        params={{ brand: product.brand, slug: product.slug }}
-        className="relative block"
-      >
-        <ProductVisual
-          seed={product.id}
-          label={product.name}
-          className="aspect-3/2 transition-transform duration-500 group-hover:scale-[1.03]"
-        />
-        <div className="absolute left-3 top-3 flex flex-col gap-2">
-          {discountLabel && (
-            <Badge className="glass border-0 text-foreground backdrop-blur">
-              {discountLabel}
-            </Badge>
-          )}
-          {deliveryLabel && (
-            <Badge className="glass border-0 text-foreground backdrop-blur">
-              {deliveryLabel}
-            </Badge>
-          )}
-        </div>
-      </Link>
+      <div className="relative">
+        <Link
+          to="/$brand/producto/$slug"
+          params={{ brand: product.brand, slug: product.slug }}
+          className="relative block"
+        >
+          <ProductVisual
+            seed={product.id}
+            label={product.name}
+            className="aspect-3/2 transition-transform duration-500 group-hover:scale-[1.03]"
+          />
+          <div className="absolute left-3 top-3 flex flex-col gap-2">
+            {discountLabel && <Badge className="glass border-0 text-foreground backdrop-blur">{discountLabel}</Badge>}
+            {deliveryLabel && <Badge className="glass border-0 text-foreground backdrop-blur">{deliveryLabel}</Badge>}
+          </div>
+        </Link>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={isFavorite ? `Quitar ${product.name} de favoritos` : `Agregar ${product.name} a favoritos`}
+          title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+          className="absolute right-3 top-3 z-10 rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur hover:bg-background"
+          onClick={(event) => {
+            event.stopPropagation();
+            setIsFavorite(toggleFavoriteProduct(favoriteOwner, product.id).includes(product.id));
+          }}
+        >
+          <Heart className={isFavorite ? "fill-current text-rose-500" : ""} />
+        </Button>
+      </div>
 
       <div className="flex flex-1 flex-col gap-1.5 p-3">
         <div>

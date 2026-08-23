@@ -1,15 +1,17 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Heart, MapPin, Package, Pencil, Plus, Trash2, User } from "lucide-react";
+import { ArrowLeft, Download, Eye, Heart, MapPin, Package, Pencil, Paperclip, Plus, Trash2, User } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
+import { ProductCard } from "@/components/product/product-card";
 import { webDesignConfig } from "@/config/brands/web-design.config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,7 +27,9 @@ import { brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
 import { getStoredUserDisplayName } from "@/lib/auth";
 import { saveKindeUserToTurso } from "@/lib/user";
-import { orderQueries } from "@/services/catalog.service";
+import { catalogQueries, orderQueries } from "@/services/catalog.service";
+import type { Order } from "@/data/orders";
+import { getFavoriteProductIds } from "@/lib/favorites";
 
 export const Route = createFileRoute("/cuenta")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
@@ -47,14 +51,6 @@ export const Route = createFileRoute("/cuenta")({
   component: AccountPage,
 });
 
-const statusVariant: Record<string, "default" | "secondary" | "destructive" | "success" | "warning" | "outline"> = {
-  pendiente: "outline",
-  pagado: "success",
-  enviado: "warning",
-  entregado: "default",
-  cancelado: "destructive",
-};
-
 type Address = {
   label: string;
   value: string;
@@ -70,6 +66,7 @@ function AccountPage() {
 
 function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
   const { data: orders } = useSuspenseQuery(orderQueries.list());
+  const { data: products } = useSuspenseQuery(catalogQueries.all());
   const navigate = useNavigate();
   const { user, isAuthenticated, logout: kindeLogout } = auth ?? {
     user: null,
@@ -78,7 +75,10 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   };
   const [userName, setUserName] = useState<string | null>(null);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [attachmentsOrder, setAttachmentsOrder] = useState<Order | null>(null);
   const visibleOrders = userName ? orders.filter((order) => order.customer === userName) : [];
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const favoriteProducts = products.filter((product) => favoriteIds.includes(product.id));
   const [addresses, setAddresses] = useState<Address[]>([
     { label: "Casa", value: "Av. Siempre Viva 742, Buenos Aires" },
     { label: "Oficina", value: "Corrientes 1234, Piso 8, CABA" },
@@ -115,11 +115,19 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     }
   }, [user, isAuthenticated]);
 
+  useEffect(() => {
+    const owner = userName || "guest";
+    const refreshFavorites = () => setFavoriteIds(getFavoriteProductIds(owner));
+    refreshFavorites();
+    window.addEventListener("lrg-favorites-updated", refreshFavorites);
+    return () => window.removeEventListener("lrg-favorites-updated", refreshFavorites);
+  }, [userName]);
+
   return (
     <div className="theme-webdesign relative min-h-screen bg-background text-foreground">
       <BrandHeader brand={webDesignConfig} displayBrandName="LRG Store Shop" logoBrandSlug="store-shop" />
       <div className="aurora-bg" />
-      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 sm:px-6 pt-20">
+      <div className="relative mx-auto flex w-full max-w-6xl flex-col px-4 pt-20 sm:px-6">
           <div className="mt-6 flex flex-wrap items-center gap-4">
             <span className="gradient-brand grid size-14 place-items-center rounded-2xl">
               <User className="size-6 text-primary-foreground" />
@@ -135,7 +143,7 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           </div>
         </div>
 
-        <Tabs defaultValue="orders" className="mt-10 pb-20">
+        <Tabs defaultValue="orders" className="mt-6 pb-12">
           <TabsList>
             <TabsTrigger value="orders">Pedidos</TabsTrigger>
             <TabsTrigger value="profile">Perfil</TabsTrigger>
@@ -144,15 +152,16 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           </TabsList>
 
           <TabsContent value="orders" className="pt-6">
-            <div className="glass-panel overflow-hidden rounded-2xl">
-              <Table>
-                <TableHeader>
+            <div className="glass-panel overflow-visible rounded-2xl">
+              <Table containerClassName="overflow-visible">
+                <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background [&_th]:shadow-[0_1px_0_var(--border)]">
                   <TableRow>
                     <TableHead>Pedido</TableHead>
-                    <TableHead>Sector</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Estado</TableHead>
+                    <TableHead>Tienda</TableHead>
+                    <TableHead>Fecha de compra</TableHead>
+                    <TableHead>Estado de envío</TableHead>
                     <TableHead className="text-right">Total</TableHead>
+                    <TableHead>Archivos adjuntos</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -163,16 +172,21 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                         <TableCell>{brands[order.brand].shortName}</TableCell>
                         <TableCell>{formatDate(order.date)}</TableCell>
                         <TableCell>
-                          <Badge className="capitalize" variant={statusVariant[order.status] ?? "secondary"}>
-                            {order.status}
+                          <Badge className="capitalize" variant={order.deliveryStatus === "Enviado" ? "success" : "outline"}>
+                            {order.deliveryStatus ?? "Pendiente"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
+                        <TableCell>
+                          <Button type="button" variant="ghost" size="sm" disabled={!order.attachments?.length} onClick={() => setAttachmentsOrder(order)} className="gap-1.5 text-xs">
+                            <Paperclip className="size-4" /> Mostrar
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="p-6 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
                         {userName ? "No tenés pedidos registrados aún." : "Inicia sesión para ver tus pedidos."}
                       </TableCell>
                     </TableRow>
@@ -180,6 +194,28 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 </TableBody>
               </Table>
             </div>
+            <Dialog open={attachmentsOrder !== null} onOpenChange={(open) => !open && setAttachmentsOrder(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Archivos adjuntos</DialogTitle>
+                  <DialogDescription>Documentos del pedido {attachmentsOrder?.id}.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2">
+                  {attachmentsOrder?.attachments?.map((attachment) => (
+                    <div key={`${attachment.name}-${attachment.size}`} className="flex items-center gap-3 rounded-xl border border-border/60 p-3">
+                      <Paperclip className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate text-sm">{attachment.name}</span>
+                      <Button asChild type="button" variant="ghost" size="sm" className="gap-1.5 text-xs">
+                        <a href={attachment.dataUrl} target="_blank" rel="noreferrer"><Eye className="size-4" /> Ver</a>
+                      </Button>
+                      <Button asChild type="button" variant="ghost" size="sm" className="gap-1.5 text-xs">
+                        <a href={attachment.dataUrl} download={attachment.name}><Download className="size-4" /> Descargar</a>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="profile" className="pt-6">
@@ -403,17 +439,17 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
           <TabsContent value="favorites" className="pt-6">
             {userName ? (
-              <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl p-14 text-center">
-                <Heart className="size-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.
-                </p>
-                <Button asChild size="sm">
-                  <Link to="/sectores">
-                    <Package className="mr-2 size-4" /> Explorar sectores
-                  </Link>
-                </Button>
-              </div>
+              favoriteProducts.length > 0 ? (
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {favoriteProducts.map((product, index) => <ProductCard key={product.id} product={product} index={index} />)}
+                </div>
+              ) : (
+                <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl p-14 text-center">
+                  <Heart className="size-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.</p>
+                  <Button asChild size="sm"><Link to="/sectores"><Package className="mr-2 size-4" /> Explorar sectores</Link></Button>
+                </div>
+              )
             ) : (
               <div className="glass-panel rounded-2xl p-10 text-center text-base text-muted-foreground">
                 Inicia sesión para ver tus favoritos.

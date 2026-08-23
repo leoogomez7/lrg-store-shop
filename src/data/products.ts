@@ -28,6 +28,7 @@ export type ProductVariant = {
   deliveryUnit?: "inmediata" | "horas" | "dias";
   deliveryAmount?: number;
   discount?: number;
+  supplier?: ProductSupplier;
 };
 
 export type ProductSupplier = {
@@ -45,6 +46,7 @@ export type Product = {
   hidden?: boolean;
   name: string;
   category: string;
+  subcategory?: string;
   price: number;
   priceCurrency?: CurrencyCode;
   comision?: number;

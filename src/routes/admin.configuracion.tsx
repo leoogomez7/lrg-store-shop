@@ -3,17 +3,21 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Check, CreditCard, Package, Pencil, Settings, Store, Tag, Trash2, Truck, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   BrandPaymentMethod,
+  type BrandDiscount,
   brandList,
   getBrand,
   setBrandCategories,
   setBrandPaymentMethods,
   setBrandShippingConfig,
+  setBrandDiscounts,
+  type BrandSlug,
 } from "@/config/brands";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +53,13 @@ function AdminConfiguration() {
   const [editingPaymentMethodId, setEditingPaymentMethodId] = useState<string | null>(null);
   const [editingPaymentMethodName, setEditingPaymentMethodName] = useState("");
   const [newCategory, setNewCategory] = useState("");
+  const [subcategoryDialogCategoryId, setSubcategoryDialogCategoryId] = useState<string | null>(null);
+  const [newSubcategoryName, setNewSubcategoryName] = useState("");
+  const [editingSubcategoryKey, setEditingSubcategoryKey] = useState<string | null>(null);
+  const [editingSubcategoryName, setEditingSubcategoryName] = useState("");
+  const [newDiscountCode, setNewDiscountCode] = useState("");
+  const [newDiscountPercentage, setNewDiscountPercentage] = useState(10);
+  const [discounts, setDiscounts] = useState<BrandDiscount[]>([]);
   const [selectedBrand, setSelectedBrand] = useState(brandList[0]?.slug ?? "");
   const [categories, setCategories] = useState(() => {
     const current = brandList.find((brand) => brand.slug === selectedBrand)?.categories ?? [];
@@ -88,6 +99,8 @@ function AdminConfiguration() {
       ],
     );
 
+    setDiscounts(brand.discounts ?? []);
+
     setFreeShippingThreshold(brand.shipping?.freeShippingThreshold ?? 300);
     setPendingFreeShippingThreshold(String(brand.shipping?.freeShippingThreshold ?? 300));
     setFreeShippingConfirmationStatus(null);
@@ -112,6 +125,7 @@ function AdminConfiguration() {
       slug: category.id || category.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
       name: category.name.trim(),
       description: category.description?.trim() || category.name.trim(),
+      subcategories: category.subcategories ?? [],
     }));
 
     setBrandCategories(selectedBrandConfig.slug, updatedCategories);
@@ -125,9 +139,33 @@ function AdminConfiguration() {
         id: category.slug,
         name: category.name,
         description: category.description ?? "",
+        subcategories: category.subcategories ?? [],
         enabled: true,
       })),
     );
+  };
+
+  const persistDiscounts = (nextDiscounts: BrandDiscount[]) => {
+    setDiscounts(nextDiscounts);
+    if (isInitialized) setBrandDiscounts(selectedBrand as BrandSlug, nextDiscounts);
+  };
+
+  const addDiscount = () => {
+    const code = newDiscountCode.trim().toUpperCase();
+    const percentage = Math.max(1, Math.min(100, Number(newDiscountPercentage) || 0));
+    if (!code || !percentage || discounts.some((discount) => discount.code === code)) return;
+    persistDiscounts([...discounts, { id: `${Date.now()}-${code}`, code, percentage, enabled: true }]);
+    setNewDiscountCode("");
+    setNewDiscountPercentage(10);
+    toast.success("Descuento agregado", { description: `${code} aplica ${percentage}% en ${getBrand(selectedBrand)?.name}.` });
+  };
+
+  const toggleDiscount = (id: string) => {
+    persistDiscounts(discounts.map((discount) => discount.id === id ? { ...discount, enabled: !discount.enabled } : discount));
+  };
+
+  const removeDiscount = (id: string) => {
+    persistDiscounts(discounts.filter((discount) => discount.id !== id));
   };
 
   const addShippingMethod = () => {
@@ -422,6 +460,41 @@ function AdminConfiguration() {
     persistCategories(next);
   };
 
+  const addSubcategory = (categoryId: string) => {
+    const name = newSubcategoryName.trim();
+    if (!name) return;
+    const subcategory = {
+      slug: `${categoryId}-${name}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
+      name,
+    };
+    persistCategories(categories.map((category) =>
+      category.id === categoryId
+        ? { ...category, subcategories: [...(category.subcategories ?? []), subcategory] }
+        : category,
+    ));
+    setNewSubcategoryName("");
+  };
+
+  const removeSubcategory = (categoryId: string, subcategorySlug: string) => {
+    persistCategories(categories.map((category) =>
+      category.id === categoryId
+        ? { ...category, subcategories: (category.subcategories ?? []).filter((item) => item.slug !== subcategorySlug) }
+        : category,
+    ));
+  };
+
+  const saveSubcategory = (categoryId: string, subcategorySlug: string) => {
+    const name = editingSubcategoryName.trim();
+    if (!name) return;
+    persistCategories(categories.map((category) =>
+      category.id === categoryId
+        ? { ...category, subcategories: (category.subcategories ?? []).map((item) => item.slug === subcategorySlug ? { ...item, name } : item) }
+        : category,
+    ));
+    setEditingSubcategoryKey(null);
+    setEditingSubcategoryName("");
+  };
+
   const startEditingCategory = (category: { id: string; name: string; description?: string }) => {
     setEditingCategoryId(category.id);
     setEditingCategoryName(category.name);
@@ -456,6 +529,7 @@ function AdminConfiguration() {
   };
 
   const selectedBrandName = brandList.find((brand) => brand.slug === selectedBrand)?.name ?? "Sin tienda seleccionada";
+  const subcategoryDialogCategory = categories.find((category) => category.id === subcategoryDialogCategoryId);
 
   useEffect(() => {
     return () => {
@@ -702,6 +776,43 @@ function AdminConfiguration() {
           </div>
         </section>
 
+        <Dialog open={subcategoryDialogCategoryId !== null} onOpenChange={(open) => { if (!open) setSubcategoryDialogCategoryId(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Subcategorías{subcategoryDialogCategory ? ` de ${subcategoryDialogCategory.name}` : ""}</DialogTitle>
+              <DialogDescription>Agregá y administrá las subcategorías de esta categoría.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              {subcategoryDialogCategory?.subcategories?.map((subcategory) => {
+                const editing = editingSubcategoryKey === `${subcategoryDialogCategory.id}|${subcategory.slug}`;
+                return (
+                  <div key={subcategory.slug} className="flex items-center gap-2 rounded-xl border border-input p-3">
+                    {editing ? (
+                      <>
+                        <Input value={editingSubcategoryName} onChange={(event) => setEditingSubcategoryName(event.target.value)} className="h-8 min-w-0 flex-1 text-sm" />
+                        <Button type="button" variant="ghost" size="sm" disabled={!editingSubcategoryName.trim()} onClick={() => saveSubcategory(subcategoryDialogCategory.id, subcategory.slug)} className="h-8 gap-1 px-2 text-sm text-green-600 hover:bg-green-100/80 hover:text-green-700"><Check className="size-4" /> Guardar</Button>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => { setEditingSubcategoryKey(null); setEditingSubcategoryName(""); }} className="h-8 gap-1 px-2 text-sm text-destructive hover:bg-destructive/10"><X className="size-4" /> Cancelar</Button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="min-w-0 flex-1 text-sm font-medium">{subcategory.name}</span>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => { setEditingSubcategoryKey(`${subcategoryDialogCategory.id}|${subcategory.slug}`); setEditingSubcategoryName(subcategory.name); }} className="h-8 gap-1 px-2 text-sm"><Pencil className="size-4" /> Editar</Button>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeSubcategory(subcategoryDialogCategory.id, subcategory.slug)} className="h-8 gap-1 px-2 text-sm text-destructive hover:bg-destructive/10"><Trash2 className="size-4" /> Eliminar</Button>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+              {!subcategoryDialogCategory?.subcategories?.length && <p className="py-3 text-center text-sm text-muted-foreground">Todavía no hay subcategorías.</p>}
+              <div className="flex gap-2 pt-2">
+                <Input value={newSubcategoryName} onChange={(event) => setNewSubcategoryName(event.target.value)} placeholder="Nueva subcategoría" className="h-9" />
+                <Button type="button" onClick={() => subcategoryDialogCategoryId && addSubcategory(subcategoryDialogCategoryId)} disabled={!newSubcategoryName.trim()} className="h-9 shrink-0 gap-2"><Plus className="size-4" /> Agregar</Button>
+              </div>
+            </div>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setSubcategoryDialogCategoryId(null)}>Cerrar</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <section className="glass-panel rounded-3xl p-6">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
@@ -891,11 +1002,23 @@ function AdminConfiguration() {
                         </div>
                       </div>
                     ) : (
-                      category.name
+                      <div className="space-y-3">
+                        <div>{category.name}</div>
+                        {(category.subcategories ?? []).length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {(category.subcategories ?? []).map((subcategory) => (
+                              <span key={subcategory.slug} className="rounded-md bg-primary/10 px-2 py-1 text-xs font-normal text-primary">{subcategory.name}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => { setSubcategoryDialogCategoryId(category.id); setNewSubcategoryName(""); }} className="h-8 gap-1 px-2 text-xs">
+                      <Plus className="size-3" /> Subcategorías
+                    </Button>
                     {editingCategoryId === category.id ? (
                       <>
                         <Button
@@ -965,6 +1088,45 @@ function AdminConfiguration() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="glass-panel rounded-3xl p-6">
+          <div className="flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Tag className="size-5" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">Descuentos</h2>
+              <p className="text-sm text-muted-foreground">Agregar códigos de descuento propios para {getBrand(selectedBrand)?.name ?? "esta tienda"}.</p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="newDiscountCode">Código</Label>
+              <Input id="newDiscountCode" value={newDiscountCode} onChange={(event) => setNewDiscountCode(event.target.value)} placeholder="Ej: LRG10" autoComplete="off" />
+            </div>
+            <div className="w-full space-y-2 sm:w-32">
+              <Label htmlFor="newDiscountPercentage">Porcentaje</Label>
+              <Input id="newDiscountPercentage" type="number" min={1} max={100} value={newDiscountPercentage} onChange={(event) => setNewDiscountPercentage(Number(event.target.value))} />
+            </div>
+            <Button onClick={addDiscount} disabled={!newDiscountCode.trim() || newDiscountPercentage < 1} className="h-9 shrink-0 gap-2">
+              <Plus className="size-4" /> Agregar
+            </Button>
+          </div>
+
+          <div className="mt-5 grid gap-2">
+            {discounts.map((discount) => (
+              <div key={discount.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/80 p-4">
+                <div className="flex items-center gap-3"><span className="font-semibold">{discount.code}</span><span className="text-sm text-muted-foreground">{discount.percentage}% de descuento</span></div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3"><span className="text-sm">{discount.enabled ? "Activo" : "Inactivo"}</span><Switch checked={discount.enabled} onCheckedChange={() => toggleDiscount(discount.id)} /></label>
+                  <Button variant="ghost" size="sm" className="gap-2 text-destructive hover:bg-destructive/10" onClick={() => removeDiscount(discount.id)}><Trash2 className="size-4" /> Eliminar</Button>
+                </div>
+              </div>
+            ))}
+            {discounts.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No hay descuentos configurados para esta tienda.</p>}
           </div>
         </section>
       </div>

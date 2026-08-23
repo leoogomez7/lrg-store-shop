@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronUp, Edit3, Eye, EyeOff, FileText, Filter, Pencil, Plus, Save, Search, Sheet, Trash2, X, Copy, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronUp, Edit3, Eye, EyeOff, FileText, Filter, Pencil, Plus, Save, Search, Sheet, Trash2, X, Copy, ArrowUpDown, CreditCard, RotateCcw, Tag } from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { products as productsData, saveProducts, type ProductSupplier, type ProductVariant } from "@/data/products";
@@ -50,6 +50,7 @@ type ProductFormState = {
   name: string;
   brand: BrandSlug | "";
   category: string;
+  subcategory: string;
   price: number;
   priceCurrency: CurrencyCode;
   comision: number;
@@ -66,6 +67,14 @@ type ProductFormState = {
   discount: number;
   variants: ProductVariant[];
   supplier: ProductSupplier;
+};
+
+const getSupplierKey = (supplier: ProductSupplier) => `${supplier.name}|${supplier.phone}|${supplier.social}`;
+
+type AppliedProductActions = {
+  coupon: boolean;
+  interestFree: boolean;
+  cardCommission: boolean;
 };
 
 export const Route = createFileRoute("/admin/productos")({
@@ -107,6 +116,7 @@ function AdminProducts() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("createdAt_desc");
   const [discounts, setDiscounts] = useState<Record<string, number>>({});
   const [pendingDiscounts, setPendingDiscounts] = useState<Record<string, string>>({});
+  const [appliedProductActions, setAppliedProductActions] = useState<Record<string, AppliedProductActions>>({});
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [createChoiceOpen, setCreateChoiceOpen] = useState(false);
@@ -201,6 +211,7 @@ function AdminProducts() {
     name: "",
     brand: "",
     category: "",
+    subcategory: "",
     price: 0,
     priceCurrency: "ARS",
     comision: 0,
@@ -307,6 +318,7 @@ function AdminProducts() {
       name: product.name,
       brand: product.brand,
       category: product.category,
+      subcategory: product.subcategory ?? "",
       price: product.price,
       priceCurrency: product.priceCurrency ?? "ARS",
       comision: product.comision ?? 0,
@@ -475,6 +487,22 @@ function AdminProducts() {
     });
   };
 
+  const handleResetDiscount = (productId: string) => {
+    setDiscounts((current) => ({ ...current, [productId]: 0 }));
+    setPendingDiscounts((current) => ({ ...current, [productId]: "0" }));
+    setAppliedProductActions((current) => {
+      const next = { ...current };
+      Object.keys(next)
+        .filter((key) => key.startsWith(`${productId}:`))
+        .forEach((key) => delete next[key]);
+      return next;
+    });
+    const resetProduct = products.find((product) => product.id === productId);
+    toast.success("Aplicaciones restablecidas", {
+      description: `Se restablecieron las opciones seleccionadas de "${resetProduct?.name ?? productId}".`,
+    });
+  };
+
   const getQuickEditKey = (product: Product, variant?: ProductVariant) =>
     `${product.id}:${variant?.id ?? "base"}`;
 
@@ -607,6 +635,7 @@ function AdminProducts() {
               name: productForm.name,
               brand: productForm.brand,
               category: productForm.category,
+              subcategory: productForm.subcategory || undefined,
               price: productForm.price,
               comision: productForm.comision,
               comisionCurrency: productForm.comisionCurrency,
@@ -633,6 +662,7 @@ function AdminProducts() {
           brand: productForm.brand,
           name: productForm.name,
           category: productForm.category,
+          subcategory: productForm.subcategory || undefined,
           price: productForm.price,
           priceCurrency: productForm.priceCurrency,
           comision: productForm.comision,
@@ -662,6 +692,7 @@ function AdminProducts() {
         existing.name = productForm.name;
         existing.brand = productForm.brand;
         existing.category = productForm.category;
+        existing.subcategory = productForm.subcategory || undefined;
         existing.price = productForm.price;
         existing.priceCurrency = productForm.priceCurrency;
         existing.comision = productForm.comision;
@@ -1293,7 +1324,6 @@ function AdminProducts() {
             <TableRow>
               <TableHead className="text-center w-40">Producto</TableHead>
               <TableHead className="text-center w-20">Sector</TableHead>
-              <TableHead className="text-center w-24">Categoría</TableHead>
               <TableHead className="text-center w-16">Stock</TableHead>
               <TableHead className="text-center w-24">Mi comisión</TableHead>
               <TableHead className="text-center w-20">Gastos</TableHead>
@@ -1301,6 +1331,7 @@ function AdminProducts() {
               <TableHead className="text-center w-20">Descuento</TableHead>
               <TableHead className="text-center w-24">Precio tienda</TableHead>
               <TableHead className="text-center w-24">Ganancias</TableHead>
+              <TableHead className="text-center w-56">Aplicar</TableHead>
               <TableHead className="text-center flex-1">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -1335,7 +1366,6 @@ function AdminProducts() {
                 discount,
               };
               const activeQuickBrand = quickDraft.brand ?? product.brand;
-              const brandCategoryOptions = brands[activeQuickBrand]?.categories ?? [];
 
               return (
                 <TableRow key={`${product.id}-${variant?.id ?? "base"}`} ref={isQuickEditing ? quickEditRowRef : undefined}>
@@ -1383,28 +1413,6 @@ function AdminProducts() {
                             {brandList.map((brand) => (
                               <SelectItem key={brand.slug} value={brand.slug}>
                                 {brand.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="align-middle">
-                        <Select
-                          value={quickDraft.category}
-                          onValueChange={(value) =>
-                            setQuickEditForm((current) => ({
-                              ...current,
-                              [quickEditKey]: { ...quickDraft, category: value },
-                            }))
-                          }
-                        >
-                          <SelectTrigger className="w-full min-w-0">
-                            <SelectValue placeholder="Seleccionar categoría" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {brandCategoryOptions.map((category) => (
-                              <SelectItem key={category.slug} value={category.slug}>
-                                {category.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1476,6 +1484,7 @@ function AdminProducts() {
                       <TableCell className="align-middle">
                         {formatPrice(quickDraft.price * (1 - quickDraft.discount / 100) - quickDraft.gastos)}
                       </TableCell>
+                      <TableCell className="align-middle">-</TableCell>
                       <TableCell className="align-middle">
                         <div className="flex flex-wrap items-center justify-center gap-1">
                           <Button
@@ -1528,7 +1537,6 @@ function AdminProducts() {
                         </div>
                       </TableCell>
                       <TableCell>{brands[product.brand].shortName}</TableCell>
-                      <TableCell className="text-muted-foreground uppercase">{product.category}</TableCell>
                       <TableCell>
                         <Badge
                           variant={
@@ -1561,6 +1569,39 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell>{formatPrice(Math.max(0, discountedPrice))}</TableCell>
                       <TableCell>{formatPrice(displayProfit, displayProfitCurrency)}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          const actionKey = getQuickEditKey(product, variant);
+                          const actions = appliedProductActions[actionKey] ?? { coupon: false, interestFree: false, cardCommission: false };
+                          const activeActionClass = "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white";
+                          return <div className="flex flex-wrap items-center justify-center gap-1">
+                          <Button variant="outline" size="sm" className={`h-7 gap-1 px-2 text-[11px] ${actions.coupon ? activeActionClass : ""}`} onClick={() => {
+                            const nextCouponState = !actions.coupon;
+                            setAppliedProductActions((current) => ({ ...current, [actionKey]: { ...actions, coupon: nextCouponState } }));
+                            toast.success(nextCouponState ? "Cupón aplicado" : "Cupón desactivado", { description: nextCouponState ? "El código válido se descontará del precio final en checkout." : "El cupón ya no se aplicará." });
+                          }}>
+                            <Tag className="size-3" /> Cupón
+                          </Button>
+                          <Button variant="outline" size="sm" className={`h-7 gap-1 px-2 text-[11px] ${actions.interestFree ? activeActionClass : ""}`} onClick={() => {
+                            const nextInterestFreeState = !actions.interestFree;
+                            setAppliedProductActions((current) => ({ ...current, [actionKey]: { ...actions, interestFree: nextInterestFreeState } }));
+                            toast.success(nextInterestFreeState ? "Cuotas sin interés aplicadas" : "Cuotas sin interés desactivadas", { description: nextInterestFreeState ? "El cliente abonará el mismo valor final." : "La opción fue desactivada." });
+                          }}>
+                            <CreditCard className="size-3" /> Cuotas s/int
+                          </Button>
+                          <Button variant="outline" size="sm" className={`h-7 gap-1 px-2 text-[11px] ${actions.cardCommission ? activeActionClass : ""}`} onClick={() => {
+                            const nextCardCommissionState = !actions.cardCommission;
+                            setAppliedProductActions((current) => ({ ...current, [actionKey]: { ...actions, cardCommission: nextCardCommissionState } }));
+                            toast.success(nextCardCommissionState ? "Comisión de tarjeta aplicada" : "Comisión de tarjeta desactivada", { description: nextCardCommissionState ? "Se sumará un 10% al pagar con débito o crédito." : "La comisión ya no se aplicará." });
+                          }}>
+                            <span className="text-sm font-semibold">$</span> Comisión tarjeta
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-7 gap-1 px-2 text-[11px]" onClick={() => handleResetDiscount(product.id)}>
+                            <RotateCcw className="size-3" /> Restablecer
+                          </Button>
+                        </div>;
+                        })()}
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center justify-center gap-1.5">
                           <label className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
@@ -1634,7 +1675,7 @@ function AdminProducts() {
             })}
             {results.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} className="py-16 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={11} className="py-16 text-center text-sm text-muted-foreground">
                   No se encontraron productos.
                 </TableCell>
               </TableRow>
@@ -1777,6 +1818,7 @@ function AdminProducts() {
         bulkEditCount={0}
         onNavigateBulkEdit={() => {}}
         onSave={handleSaveProduct}
+        supplierProducts={products}
       />
       <ProductEditDialog
         open={editDialogOpen}
@@ -1790,6 +1832,7 @@ function AdminProducts() {
         bulkEditCount={bulkEditQueue.length}
         onNavigateBulkEdit={navigateBulkEditProduct}
         onSave={handleSaveProduct}
+        supplierProducts={products}
       />
       <Dialog open={usdRatePromptOpen} onOpenChange={setUsdRatePromptOpen}>
         <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
@@ -1856,6 +1899,7 @@ function ProductEditDialog({
   bulkEditCount,
   onNavigateBulkEdit,
   onSave,
+  supplierProducts,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -1868,6 +1912,7 @@ function ProductEditDialog({
   bulkEditCount: number;
   onNavigateBulkEdit: (direction: -1 | 1) => void;
   onSave: () => void;
+  supplierProducts: Product[];
 }) {
   const [newFeature, setNewFeature] = useState("");
   const [editingFeatureIndex, setEditingFeatureIndex] = useState<number | null>(null);
@@ -1884,6 +1929,61 @@ function ProductEditDialog({
   const descriptionInitialRef = useRef("");
   const descriptionAppliedRef = useRef("");
   const featuresAppliedRef = useRef("");
+  const [supplierOptions, setSupplierOptions] = useState<ProductSupplier[]>([]);
+  const [newSupplierOpen, setNewSupplierOpen] = useState(false);
+  const [newSupplier, setNewSupplier] = useState<ProductSupplier>({ name: "", phone: "", social: "", purchaseDate: "" });
+
+  useEffect(() => {
+    const productSuppliers = supplierProducts
+      .flatMap((product) => [product.supplier, ...(product.variants ?? []).map((variant) => variant.supplier)])
+      .filter((supplier): supplier is ProductSupplier => Boolean(supplier?.name || supplier?.phone || supplier?.social));
+    let standaloneSuppliers: ProductSupplier[] = [];
+    try {
+      const stored = window.localStorage.getItem("lrg:suppliers");
+      standaloneSuppliers = stored ? (JSON.parse(stored) as ProductSupplier[]).map((supplier) => ({ ...supplier, purchaseDate: supplier.purchaseDate ?? "" })) : [];
+    } catch {
+      standaloneSuppliers = [];
+    }
+    const unique = new Map<string, ProductSupplier>();
+    [...productSuppliers, ...standaloneSuppliers].forEach((supplier) => unique.set(getSupplierKey(supplier), supplier));
+    setSupplierOptions(Array.from(unique.values()));
+  }, [supplierProducts]);
+
+  const selectSupplier = (value: string) => {
+    if (!productForm) return;
+    if (value === "add") {
+      setNewSupplier({ name: "", phone: "", social: "", purchaseDate: "" });
+      setNewSupplierOpen(true);
+      return;
+    }
+    const selectedSupplier = supplierOptions.find((supplier) => getSupplierKey(supplier) === value);
+    if (selectedSupplier) {
+      const supplier = { ...selectedSupplier, purchaseDate: activeSupplier.purchaseDate };
+      setProductForm({
+        ...productForm,
+        ...(activeVariant
+          ? { variants: productForm.variants.map((variant) => variant.id === activeVariant.id ? { ...variant, supplier } : variant) }
+          : { supplier }),
+      });
+    }
+  };
+
+  const addSupplierFromProduct = () => {
+    const supplier = { name: newSupplier.name.trim(), phone: newSupplier.phone.trim(), social: newSupplier.social.trim(), purchaseDate: "" };
+    if (!supplier.name || !supplier.phone || !supplier.social) return;
+    const next = [...supplierOptions, supplier];
+    setSupplierOptions(next);
+    window.localStorage.setItem("lrg:suppliers", JSON.stringify(next));
+    if (productForm) {
+      setProductForm({
+        ...productForm,
+        ...(activeVariant
+          ? { variants: productForm.variants.map((variant) => variant.id === activeVariant.id ? { ...variant, supplier } : variant) }
+          : { supplier }),
+      });
+    }
+    setNewSupplierOpen(false);
+  };
 
   useEffect(() => {
     if (!open) {
@@ -2114,6 +2214,7 @@ function ProductEditDialog({
   };
 
   const activeVariant = productForm?.variants.find((variant) => variant.id === selectedVariantId);
+  const activeSupplier = activeVariant?.supplier ?? productForm?.supplier ?? { name: "", phone: "", social: "", purchaseDate: "" };
   const activeFeatures = activeVariant?.features ?? productForm?.features ?? [];
   const updateActiveVariant = (updates: Partial<ProductVariant>) => {
     if (!productForm) return;
@@ -2192,6 +2293,7 @@ function ProductEditDialog({
           brandName: brand.name,
         })),
       );
+  const availableSubcategories = availableCategories.find((category) => category.slug === productForm.category)?.subcategories ?? [];
   const usdRate = productForm.usdRate > 0 ? productForm.usdRate : 0;
   const toLocalCurrency = (amount: number, currency: CurrencyCode) =>
     currency === "USD" ? (usdRate > 0 ? amount * usdRate : 0) : amount;
@@ -2315,6 +2417,7 @@ function ProductEditDialog({
                       ...productForm,
                       brand: nextBrand,
                       category: "",
+                      subcategory: "",
                     });
                   }}
                 >
@@ -2341,6 +2444,7 @@ function ProductEditDialog({
                       ...productForm,
                       brand: productForm.brand || selectedCategory?.brandSlug || "",
                       category: value,
+                      subcategory: "",
                     });
                   }}
                 >
@@ -2356,6 +2460,18 @@ function ProductEditDialog({
                   </SelectContent>
                 </Select>
               </div>
+
+              {productForm.category && (
+                <div className="space-y-2">
+                  <Label htmlFor="new-subcategory">Subcategoría</Label>
+                  <Select disabled={availableSubcategories.length === 0} value={productForm.subcategory} onValueChange={(value) => setProductForm({ ...productForm, subcategory: value })}>
+                    <SelectTrigger id="new-subcategory" className="w-full"><SelectValue placeholder={availableSubcategories.length ? "Seleccionar subcategoría" : "Sin subcategorías"} /></SelectTrigger>
+                    <SelectContent>
+                      {availableSubcategories.map((subcategory) => <SelectItem key={subcategory.slug} value={subcategory.slug}>{subcategory.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {false && (<>
               {showUsdRateInput ? (
@@ -2732,22 +2848,54 @@ function ProductEditDialog({
             <div className="grid gap-4 sm:grid-cols-4">
               <div className="flex min-w-0 flex-col gap-1">
                 <Label>Nombre</Label>
-                <Input value={productForm.supplier.name} onChange={(event) => setProductForm({ ...productForm, supplier: { ...productForm.supplier, name: event.target.value } })} />
+                <Select value={getSupplierKey(activeSupplier)} onValueChange={selectSupplier}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar proveedor" /></SelectTrigger>
+                  <SelectContent>
+                    {supplierOptions.map((supplier) => <SelectItem key={getSupplierKey(supplier)} value={getSupplierKey(supplier)}>{supplier.name}</SelectItem>)}
+                    <SelectItem value="add">Agregar proveedor</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex min-w-0 flex-col gap-1">
                 <Label>Celular</Label>
-                <Input value={productForm.supplier.phone} onChange={(event) => setProductForm({ ...productForm, supplier: { ...productForm.supplier, phone: event.target.value } })} />
+                <Input value={activeSupplier.phone} readOnly />
               </div>
               <div className="flex min-w-0 flex-col gap-1">
                 <Label>Red social</Label>
-                <Input value={productForm.supplier.social} onChange={(event) => setProductForm({ ...productForm, supplier: { ...productForm.supplier, social: event.target.value } })} />
+                <Input value={activeSupplier.social} readOnly />
               </div>
               <div className="flex min-w-0 flex-col gap-1">
                 <Label>Fecha de compra</Label>
-                <Input type="date" value={productForm.supplier.purchaseDate} onChange={(event) => setProductForm({ ...productForm, supplier: { ...productForm.supplier, purchaseDate: event.target.value } })} className="[&::-webkit-calendar-picker-indicator]:invert" />
+                <Input type="date" value={activeSupplier.purchaseDate} onChange={(event) => {
+                  const supplier = { ...activeSupplier, purchaseDate: event.target.value };
+                  setProductForm({
+                    ...productForm,
+                    ...(activeVariant
+                      ? { variants: productForm.variants.map((variant) => variant.id === activeVariant.id ? { ...variant, supplier } : variant) }
+                      : { supplier }),
+                  });
+                }} className="[&::-webkit-calendar-picker-indicator]:invert" />
               </div>
             </div>
           </div>
+
+          <Dialog open={newSupplierOpen} onOpenChange={setNewSupplierOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Nuevo proveedor</DialogTitle>
+                <DialogDescription>Ingresá los datos del nuevo proveedor.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2"><Label htmlFor="product-supplier-name">Nombre</Label><Input id="product-supplier-name" value={newSupplier.name} onChange={(event) => setNewSupplier((current) => ({ ...current, name: event.target.value }))} /></div>
+                <div className="space-y-2"><Label htmlFor="product-supplier-phone">Celular</Label><Input id="product-supplier-phone" value={newSupplier.phone} onChange={(event) => setNewSupplier((current) => ({ ...current, phone: event.target.value }))} /></div>
+                <div className="space-y-2"><Label htmlFor="product-supplier-social">Red social</Label><Input id="product-supplier-social" value={newSupplier.social} onChange={(event) => setNewSupplier((current) => ({ ...current, social: event.target.value }))} /></div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setNewSupplierOpen(false)}><X className="size-4" /> Cancelar</Button>
+                <Button type="button" onClick={addSupplierFromProduct} disabled={!newSupplier.name.trim() || !newSupplier.phone.trim() || !newSupplier.social.trim()}><Save className="size-4" /> Guardar proveedor</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <div className="order-4 rounded-2xl border border-border/60 bg-surface/40 p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">

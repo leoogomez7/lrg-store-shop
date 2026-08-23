@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowRight, ArrowUpRight, Boxes, Layers, ShieldCheck, Sparkles, Star, Zap } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { Reveal } from "@/components/common/motion-primitives";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
@@ -121,6 +122,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   };
   const [sortBy, setSortBy] = useState<"date" | "rating">("date");
   const [sortDirection, setSortDirection] = useState<"newest" | "oldest" | "highest" | "lowest">("newest");
+  const [constructionNoticeOpen, setConstructionNoticeOpen] = useState(true);
   const storeShopContact = getStoreShopContact();
 
   function parseSpanishDate(dateStr: string): Date {
@@ -162,6 +164,31 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
   return (
     <div className="theme-webdesign relative min-h-screen overflow-hidden bg-background text-foreground">
+      <Dialog open={constructionNoticeOpen} onOpenChange={setConstructionNoticeOpen}>
+        <DialogContent className="max-w-md overflow-hidden border-primary/40 bg-background/95 p-0 shadow-2xl shadow-primary/20">
+          <div className="h-2 bg-primary" />
+          <div className="p-7 sm:p-9">
+            <DialogHeader className="items-center text-center">
+              <div className="mb-4 grid size-20 place-items-center rounded-full bg-primary/15 ring-8 ring-primary/5">
+                <img
+                  src="/LRG Store Shop PNG.png"
+                  alt="LRG Store Shop"
+                  className="size-16 rounded-full object-contain"
+                />
+              </div>
+              <DialogTitle className="text-2xl sm:text-3xl">Página web en proceso</DialogTitle>
+              <DialogDescription className="pt-3 text-base leading-relaxed">
+                Estamos preparando una nueva experiencia para vos. La página se habilitará por completo muy pronto.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-7 sm:justify-center">
+              <Button type="button" size="lg" className="w-full sm:w-auto" onClick={() => setConstructionNoticeOpen(false)}>
+                Quiero ver como está quedando
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
       <div className="aurora-bg" />
       <div className="pointer-events-none absolute inset-0 grid-lines opacity-60" />
 

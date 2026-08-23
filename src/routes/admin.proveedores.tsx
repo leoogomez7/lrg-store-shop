@@ -1,10 +1,12 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
-import { Download, Eye, EyeOff, FileText, Search } from "lucide-react";
+import { Download, Eye, EyeOff, FileText, Plus, Save, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 import { formatPrice } from "@/lib/format";
@@ -29,37 +31,79 @@ type SupplierRow = {
   sales: number;
 };
 
+type StandaloneSupplier = Pick<SupplierRow, "name" | "phone" | "social">;
+
+const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
+
 function AdminSuppliers() {
   const { data: products } = useSuspenseQuery(catalogQueries.all());
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const [query, setQuery] = React.useState("");
   const [expandedSupplierKey, setExpandedSupplierKey] = React.useState<string | null>(null);
+  const [standaloneSuppliers, setStandaloneSuppliers] = React.useState<StandaloneSupplier[]>([]);
+  const [newSupplierOpen, setNewSupplierOpen] = React.useState(false);
+  const [newSupplier, setNewSupplier] = React.useState<StandaloneSupplier>({ name: "", phone: "", social: "" });
+
+  React.useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(SUPPLIERS_STORAGE_KEY);
+      if (stored) setStandaloneSuppliers(JSON.parse(stored) as StandaloneSupplier[]);
+    } catch {
+      setStandaloneSuppliers([]);
+    }
+  }, []);
 
   const rows = React.useMemo<SupplierRow[]>(() => {
     const grouped = new Map<string, SupplierRow>();
     for (const product of products) {
-      const supplier = product.supplier;
-      const name = supplier?.name ?? "";
-      const phone = supplier?.phone ?? "";
-      const social = supplier?.social ?? "";
-      if (!name && !phone && !social) continue;
-      const key = `${name}|${phone}|${social}`;
-      const productNames = [product.name, ...(product.variants ?? []).map((variant) => variant.name)];
-      const sales = orders.reduce(
-        (sum, order) =>
-          sum + order.items.reduce((itemSum, item) => {
-            const matches = productNames.some((productName) => productName.toLowerCase() === item.name.toLowerCase());
-            return matches ? itemSum + item.price * item.quantity : itemSum;
-          }, 0),
-        0,
-      );
-      const current = grouped.get(key) ?? { key, name, phone, social, products: [], sales: 0 };
-      current.products.push(product.name);
-      current.sales += sales;
-      grouped.set(key, current);
+      const assignments = product.variants?.length
+        ? product.variants.map((variant) => ({ supplier: variant.supplier ?? product.supplier, productName: `${product.name} · ${variant.name}`, variantName: variant.name }))
+        : [{ supplier: product.supplier, productName: product.name, variantName: product.name }];
+      for (const assignment of assignments) {
+        const supplier = assignment.supplier;
+        const name = supplier?.name ?? "";
+        const phone = supplier?.phone ?? "";
+        const social = supplier?.social ?? "";
+        if (!name && !phone && !social) continue;
+        const key = `${name}|${phone}|${social}`;
+        const sales = orders.reduce(
+          (sum, order) =>
+            sum + order.items.reduce((itemSum, item) => {
+              const itemName = item.name.toLowerCase();
+              const itemVariantName = item.variantName?.toLowerCase();
+              const matches = itemName === assignment.productName.toLowerCase()
+                || itemVariantName === assignment.variantName.toLowerCase()
+                || (!product.variants?.length && itemName === product.name.toLowerCase());
+              return matches ? itemSum + item.price * item.quantity : itemSum;
+            }, 0),
+          0,
+        );
+        const current = grouped.get(key) ?? { key, name, phone, social, products: [], sales: 0 };
+        if (!current.products.includes(assignment.productName)) current.products.push(assignment.productName);
+        current.sales += sales;
+        grouped.set(key, current);
+      }
+    }
+    for (const supplier of standaloneSuppliers) {
+      const key = `${supplier.name}|${supplier.phone}|${supplier.social}`;
+      if (!grouped.has(key)) grouped.set(key, { key, ...supplier, products: [], sales: 0 });
     }
     return Array.from(grouped.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [orders, products]);
+  }, [orders, products, standaloneSuppliers]);
+
+  const addSupplier = () => {
+    const supplier = {
+      name: newSupplier.name.trim(),
+      phone: newSupplier.phone.trim(),
+      social: newSupplier.social.trim(),
+    };
+    if (!supplier.name || !supplier.phone || !supplier.social) return;
+    const nextSuppliers = [...standaloneSuppliers, supplier];
+    setStandaloneSuppliers(nextSuppliers);
+    window.localStorage.setItem(SUPPLIERS_STORAGE_KEY, JSON.stringify(nextSuppliers));
+    setNewSupplier({ name: "", phone: "", social: "" });
+    setNewSupplierOpen(false);
+  };
 
   const filteredRows = rows.filter((row) =>
     [row.name, row.phone, row.social, ...row.products].some((value) => value.toLowerCase().includes(query.toLowerCase())),
@@ -85,8 +129,22 @@ function AdminSuppliers() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div><p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Proveedores</p><h1 className="mt-2 text-3xl font-semibold">Listado de proveedores</h1></div>
         <div className="relative min-w-55 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar proveedor" className="h-9 pl-9" /></div>
-        <div className="flex items-center gap-2"><Button onClick={exportExcel} className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"><Download className="size-4" />Exportar Excel</Button><Button onClick={exportPdf} className="gap-2 bg-red-600 text-white hover:bg-red-700"><FileText className="size-4" />Exportar PDF</Button></div>
+        <div className="flex flex-wrap items-center gap-2"><Button onClick={() => { setNewSupplier({ name: "", phone: "", social: "" }); setNewSupplierOpen(true); }} className="h-9 gap-2"><Plus className="size-4" />Nuevo proveedor</Button><Button onClick={exportExcel} className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"><Download className="size-4" />Exportar Excel</Button><Button onClick={exportPdf} className="gap-2 bg-red-600 text-white hover:bg-red-700"><FileText className="size-4" />Exportar PDF</Button></div>
       </div>
+      <Dialog open={newSupplierOpen} onOpenChange={setNewSupplierOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nuevo proveedor</DialogTitle>
+            <DialogDescription>Ingresá los datos del nuevo proveedor.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2"><Label htmlFor="supplier-name">Nombre</Label><Input id="supplier-name" name="new-supplier-name" autoComplete="off" value={newSupplier.name} onChange={(event) => setNewSupplier((current) => ({ ...current, name: event.target.value }))} /></div>
+            <div className="space-y-2"><Label htmlFor="supplier-phone">Celular</Label><Input id="supplier-phone" name="new-supplier-phone" autoComplete="off" value={newSupplier.phone} onChange={(event) => setNewSupplier((current) => ({ ...current, phone: event.target.value }))} /></div>
+            <div className="space-y-2"><Label htmlFor="supplier-social">Red social</Label><Input id="supplier-social" name="new-supplier-social" autoComplete="off" value={newSupplier.social} onChange={(event) => setNewSupplier((current) => ({ ...current, social: event.target.value }))} /></div>
+          </div>
+          <DialogFooter><Button type="button" onClick={addSupplier} disabled={!newSupplier.name.trim() || !newSupplier.phone.trim() || !newSupplier.social.trim()}><Save className="size-4" />Guardar proveedor</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="glass-panel overflow-hidden rounded-2xl">
         <Table className="text-center [&_td]:text-center [&_th]:text-center">
           <TableHeader>
@@ -130,6 +188,9 @@ function AdminSuppliers() {
                               {product}
                             </span>
                           ))}
+                          {row.products.length === 0 && (
+                            <p className="text-sm text-muted-foreground">Este proveedor todavía no tiene productos asignados.</p>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

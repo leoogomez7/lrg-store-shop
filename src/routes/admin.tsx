@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ContactRound, LayoutDashboard, Package, Palette, ShoppingCart, Settings, Trash2, Users } from "lucide-react";
+import { ContactRound, House, LayoutDashboard, LogOut, Package, PanelLeftClose, PanelLeftOpen, ShoppingCart, Settings, Store, Trash2, Users } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,13 @@ export const Route = createFileRoute("/admin")({
 });
 
 const navigation = [
+  { to: "/", label: "Inicio", icon: House, exact: true },
   { to: "/admin/panel", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/productos", label: "Productos", icon: Package, exact: false },
   { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingCart, exact: false },
   { to: "/admin/clientes", label: "Clientes", icon: Users, exact: false },
   { to: "/admin/proveedores", label: "Proveedores", icon: ContactRound, exact: false },
-  { to: "/admin/marcas", label: "Tiendas disponibles", icon: Palette, exact: false },
+  { to: "/admin/marcas", label: "Tiendas disponibles", icon: Store, exact: false },
   { to: "/admin/configuracion", label: "Configuración", icon: Settings, exact: false },
   { to: "/admin/papelera", label: "Papelera", icon: Trash2, exact: false },
 ] as const;
@@ -28,6 +29,7 @@ function AdminLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     // preserve any existing active admin session, but do not create a default one
@@ -44,45 +46,51 @@ function AdminLayout() {
   return (
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
       <div className="relative flex min-h-screen">
-        <aside className="hidden w-64 shrink-0 border-r border-border/60 bg-surface/40 lg:block">
-          <div className="sticky top-0 flex h-screen flex-col p-5">
-            {/* 'Inicio' link removed per request */}
-            <Link to="/" className="mb-4 mt-2 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <aside className={cn("hidden shrink-0 border-r border-border/60 bg-surface/40 transition-[width] duration-200 lg:block", sidebarCollapsed ? "w-20" : "w-64")}>
+          <div className={cn("sticky top-0 flex h-screen flex-col p-5", sidebarCollapsed && "items-center px-3")}>
+            <div className={cn("mb-4 mt-2 flex w-full items-center", sidebarCollapsed ? "justify-center" : "justify-between gap-2")}>
+              <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground" title="LRG Store Shop">
               <BrandMark compact brandSlug="store-shop" />
-              <span className="font-medium text-foreground">LRG Store Shop</span>
-            </Link>
-            <nav className="mt-3 space-y-1">
+              {!sidebarCollapsed && <span className="font-medium text-foreground">LRG Store Shop</span>}
+              </Link>
+              {!sidebarCollapsed && <Button type="button" variant="ghost" size="icon" onClick={() => setSidebarCollapsed(true)} title="Minimizar menú"><PanelLeftClose className="size-4" /></Button>}
+            </div>
+            {sidebarCollapsed && <Button type="button" variant="ghost" size="icon" onClick={() => setSidebarCollapsed(false)} title="Expandir menú" className="mb-2"><PanelLeftOpen className="size-4" /></Button>}
+            <nav className="mt-3 w-full space-y-1">
               {navigation.map((item) => {
                 const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
                 return (
                   <Link
                     key={item.to}
                     to={item.to}
+                    title={sidebarCollapsed ? item.label : undefined}
                     className={cn(
                       "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                      sidebarCollapsed && "justify-center px-2",
                       active
                         ? "bg-surface-2 text-foreground"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    <item.icon className="size-4" />
-                    {item.label}
+                    <item.icon className="size-4 shrink-0" />
+                    {!sidebarCollapsed && item.label}
                   </Link>
                 );
               })}
             </nav>
-            <div className="mt-auto flex gap-2">
-              <Button asChild variant="secondary" size="sm" className="gap-2">
-                  <Link to="/">Inicio</Link>
-                </Button>
+            <div className={cn("mt-auto flex gap-2", sidebarCollapsed && "justify-center")}>
               <>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-red-600"
+                  className={cn(
+                    "text-red-600 hover:border-red-500 hover:bg-red-500/10 hover:text-red-600",
+                    sidebarCollapsed && "size-9 px-0",
+                  )}
+                  title={sidebarCollapsed ? "Cerrar sesión" : undefined}
                   onClick={() => setLogoutOpen(true)}
                 >
-                  Cerrar sesión
+                  {sidebarCollapsed ? <LogOut className="size-4" /> : "Cerrar sesión"}
                 </Button>
                 <ConfirmDialog
                   open={logoutOpen}

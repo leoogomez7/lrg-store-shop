@@ -6,6 +6,7 @@ export type BrandCategory = {
   slug: string;
   name: string;
   description: string;
+  subcategories?: { slug: string; name: string }[];
 };
 
 export type BrandPaymentMethod = {
@@ -18,6 +19,13 @@ export type BrandPaymentMethod = {
 export type BrandShippingConfig = {
   freeShippingThreshold: number;
   methods: BrandPaymentMethod[];
+};
+
+export type BrandDiscount = {
+  id: string;
+  code: string;
+  percentage: number;
+  enabled: boolean;
 };
 
 export type BrandConfig = {
@@ -46,6 +54,7 @@ export type BrandConfig = {
   payments: string[];
   paymentMethods?: BrandPaymentMethod[];
   shipping?: BrandShippingConfig;
+  discounts?: BrandDiscount[];
   footerNote: string;
   /** optional path to favicon/logo shown in browser tab (public/) */
   favicon?: string;
