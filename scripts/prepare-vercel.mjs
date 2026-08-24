@@ -32,21 +32,13 @@ for (const file of [...jsFiles, ...cssFiles]) {
   }
 }
 
-const html = `<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0b0f1a" />
-    <title>LRG Store Shop</title>
-    ${cssEntry ? `<link rel="stylesheet" href="/assets/${cssEntry}" />` : ''}
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/assets/${jsEntry}"></script>
-  </body>
-</html>
-`;
+const { default: server } = await import('../dist/server/server.js');
+const response = await server.fetch(new Request('https://lrg-store-shop.local/'), {}, {});
 
+if (!response.ok) {
+  throw new Error(`No se pudo prerenderizar la pagina principal: ${response.status}`);
+}
+
+const html = await response.text();
 writeFileSync(path.join(distDir, 'index.html'), html, 'utf8');
 console.log(`index.html generado en ${path.join(distDir, 'index.html')}`);
