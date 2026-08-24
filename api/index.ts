@@ -25,7 +25,7 @@ function readBody(request: VercelRequest): Promise<Buffer> {
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  const host = request.headers.host ?? "localhost";
+  const host = request.headers["host"] ?? "localhost";
   const protocol = request.headers["x-forwarded-proto"] ?? "https";
   const protocolValue = Array.isArray(protocol) ? protocol[0] : protocol;
   const requestUrl = new URL(request.url ?? "/", `${protocolValue}://${host}`);
@@ -40,7 +40,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const webRequest = new Request(requestUrl, {
     method,
     headers,
-    body: body?.length ? body.toString() : undefined,
+    body: body?.length ? body.toString() : null,
   });
   const webResponse = await server.fetch(webRequest, {}, {});
 
