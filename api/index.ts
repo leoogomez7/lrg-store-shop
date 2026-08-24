@@ -1,4 +1,4 @@
-import server from "../src/server";
+import server from "../dist/server/server.js";
 
 type VercelRequest = {
   method?: string;
