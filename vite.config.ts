@@ -8,6 +8,10 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  // The provided environment file lives next to the project directory.
+  envDir: "..",
+  // Kinde identifiers are public client configuration; database tokens are not.
+  envPrefix: ["VITE_", "KINDE_"],
   plugins: [tailwindcss(), TanStackRouterVite(), react()],
   resolve: {
     alias: {

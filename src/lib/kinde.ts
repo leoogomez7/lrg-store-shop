@@ -2,7 +2,7 @@ const PLACEHOLDER_PATTERN = /(placeholder|example|test|changeme|undefined)/i;
 
 export function getKindeConfig() {
   const clientId = import.meta.env.KINDE_USER?.trim();
-  const domain = import.meta.env.KINDE_USER_ADMIN?.trim();
+  const domain = import.meta.env.KINDE_DOMAIN_USER?.trim();
 
   return {
     clientId: clientId || "",

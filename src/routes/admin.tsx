@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { ContactRound, House, LayoutDashboard, LogOut, Package, PanelLeftClose, PanelLeftOpen, ShoppingCart, Settings, Store, Trash2, Users } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { BrandFooter } from "@/components/layout/brand-footer";
@@ -8,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { logout } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { webDesignConfig } from "@/config/brands/web-design.config";
+import { verifyAdminPassword } from "@/server/admin-auth";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -30,6 +32,9 @@ function AdminLayout() {
   const navigate = useNavigate();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   useEffect(() => {
     // preserve any existing active admin session, but do not create a default one
@@ -38,10 +43,54 @@ function AdminLayout() {
       if (activePanel !== "admin") {
         return;
       }
+      setAdminUnlocked(true);
     } catch (e) {
       // ignore
     }
   }, []);
+
+  async function unlockAdmin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPasswordError("");
+    const valid = await verifyAdminPassword({ data: { password } });
+    if (!valid) {
+      setPasswordError("La contraseña no es válida.");
+      return;
+    }
+    sessionStorage.setItem("activePanel", "admin");
+    setAdminUnlocked(true);
+    setPassword("");
+  }
+
+  if (!adminUnlocked) {
+    return (
+      <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+        <form onSubmit={unlockAdmin} className="glass-card w-full max-w-md space-y-5 p-6">
+          <div>
+            <p className="text-sm text-muted-foreground">Acceso restringido</p>
+            <h1 className="mt-1 text-2xl font-semibold">Administrador</h1>
+          </div>
+          <label className="block text-sm font-medium" htmlFor="admin-password">
+            Contraseña
+            <input
+              id="admin-password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="mt-2 h-11 w-full rounded-md border border-border bg-background px-3"
+              autoComplete="current-password"
+              required
+            />
+          </label>
+          {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
+          <Button type="submit" className="w-full">Continuar</Button>
+          <Button type="button" variant="ghost" className="w-full" onClick={() => navigate({ to: "/" })}>
+            Volver a la tienda
+          </Button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
