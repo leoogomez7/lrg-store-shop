@@ -1,14 +1,7 @@
 import type { BrandSlug } from "@/config/brands";
 
-const PRODUCTS_STORAGE_KEY = "lrg:products";
-
 export function saveProducts(products: Product[]) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
-  } catch {
-    // ignore storage errors
-  }
+  void products;
 }
 
 export type CurrencyCode = "ARS" | "USD";
@@ -574,25 +567,7 @@ const defaultProducts: Product[] = [
 ];
 
 function readStoredProducts(): Product[] {
-  if (typeof window === "undefined") {
-    return defaultProducts;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(PRODUCTS_STORAGE_KEY);
-    if (!raw) {
-      return defaultProducts;
-    }
-
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return defaultProducts;
-    }
-
-    return parsed;
-  } catch {
-    return defaultProducts;
-  }
+  return [];
 }
 
 export const products: Product[] = readStoredProducts();

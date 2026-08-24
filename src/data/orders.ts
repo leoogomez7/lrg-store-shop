@@ -1,7 +1,5 @@
 import type { BrandSlug } from "@/config/brands";
 
-const ORDERS_STORAGE_KEY = "lrg:orders";
-
 export type OrderStatus = "pendiente" | "pagado" | "enviado" | "entregado" | "cancelado";
 
 export type OrderAttachment = {
@@ -34,34 +32,11 @@ export type Order = {
 };
 
 function readStoredOrders(): Order[] {
-  if (typeof window === "undefined") {
-    return defaultOrders;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(ORDERS_STORAGE_KEY);
-    if (!raw) {
-      return defaultOrders;
-    }
-
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return defaultOrders;
-    }
-
-    return parsed;
-  } catch {
-    return defaultOrders;
-  }
+  return [];
 }
 
 export function saveOrders(orders: Order[]) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
-  } catch {
-    // ignore storage errors
-  }
+  void orders;
 }
 
 const defaultOrders: Order[] = [

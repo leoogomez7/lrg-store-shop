@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,7 +12,7 @@ export default defineConfig({
   envDir: "..",
   // Kinde identifiers are public client configuration; database tokens are not.
   envPrefix: ["VITE_", "KINDE_"],
-  plugins: [tailwindcss(), TanStackRouterVite(), react()],
+  plugins: [tanstackStart(), tailwindcss(), react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
