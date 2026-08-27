@@ -1,16 +1,18 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getBrand } from "@/config/brands";
 import { catalogQueries } from "@/services/catalog.service";
 
 export const Route = createFileRoute("/$brand/")({
-  loader: async ({ params, context }) => {
+  loader: ({ params }) => {
     const brand = getBrand(params.brand);
     if (!brand) throw notFound();
-    await context.queryClient.ensureQueryData(catalogQueries.byBrand(brand.slug));
-    return { brandSlug: brand.slug };
+    throw redirect({
+      to: "/$brand/productos",
+      params: { brand: brand.slug },
+    });
   },
   head: ({ params }) => {
     const brand = getBrand(params.brand);

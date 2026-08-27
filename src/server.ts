@@ -28,7 +28,9 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   const body = await response.clone().text();
   if (!isH3SwallowedErrorBody(body)) return response;
 
-  console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`));
+  const capturedError = consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`);
+  if (isRequestAborted(capturedError)) return new Response(null, { status: 499 });
+  console.error(capturedError);
   return new Response(renderErrorPage(), {
     status: 500,
     headers: { "content-type": "text/html; charset=utf-8" },
@@ -51,6 +53,7 @@ export default {
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
+      if (isRequestAborted(error)) return new Response(null, { status: 499 });
       console.error(error);
       return new Response(renderErrorPage(), {
         status: 500,
@@ -59,3 +62,19 @@ export default {
     }
   },
 };
+
+function isRequestAborted(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 3 && current instanceof Error; depth++) {
+    const candidate = current as Error & { code?: unknown };
+    if (
+      candidate.name === "AbortError" ||
+      candidate.code === "ECONNRESET" ||
+      candidate.message.toLowerCase() === "aborted"
+    ) {
+      return true;
+    }
+    current = candidate.cause;
+  }
+  return false;
+}
