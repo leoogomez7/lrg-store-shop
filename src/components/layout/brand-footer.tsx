@@ -1,48 +1,80 @@
 import { Link } from "@tanstack/react-router";
-import {
-  ArrowUpRight,
-  Facebook,
-  Globe,
-  Instagram,
-  Mail,
-  MapPin,
-  Phone,
-} from "lucide-react";
+import { ArrowUpRight, Facebook, Globe, Instagram, Mail, MapPin, Phone } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
-import { getBrandContactPresentation, getStoreNavigation, type BrandConfig, type StoreShopContact, type StoreShopContactItem } from "@/config/brands";
+import {
+  getBrandContactPresentation,
+  getStoreNavigation,
+  type BrandConfig,
+  type StoreShopContact,
+  type StoreShopContactItem,
+} from "@/config/brands";
 
 function TikTokIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
       <path d="M9 18a3 3 0 1 0 0-6h1v6" />
       <path d="M13 8v6a3 3 0 1 0 3 3V7h-3" />
     </svg>
   );
 }
 
-function ContactItem({ item, icon: Icon }: { item: StoreShopContactItem; icon: React.ComponentType<{ className?: string }> }) {
+function ContactItem({
+  item,
+  icon: Icon,
+}: {
+  item: StoreShopContactItem;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
   const content = (
     <>
-      {item.logo ? <img src={item.logo} alt="" className="size-4 max-h-4 max-w-4 object-contain" /> : <Icon className="size-4" />}
+      {item.logo ? (
+        <img src={item.logo} alt="" className="size-4 max-h-4 max-w-4 object-contain" />
+      ) : (
+        <Icon className="size-4" />
+      )}
       <span>{item.text}</span>
     </>
   );
   return item.href ? (
-    <a href={item.href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">{content}</a>
+    <a
+      href={item.href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+    >
+      {content}
+    </a>
   ) : (
     <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">{content}</span>
   );
 }
 
-export function BrandFooter({ brand, storeContact }: { brand: BrandConfig; storeContact?: StoreShopContact }) {
+export function BrandFooter({
+  brand,
+  storeContact,
+}: {
+  brand: BrandConfig;
+  storeContact?: StoreShopContact;
+}) {
   const contactSettings = storeContact ?? getBrandContactPresentation(brand.slug);
   return (
     <footer className="mt-24 border-t border-border/60 bg-surface/40">
       <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-5">
-          <div className="space-y-4">
-            <Link to="/" className="inline-flex items-center gap-2.5 transition-colors hover:text-foreground">
-              <BrandMark brandSlug="store-shop" label="LRG Store Shop" />
-            </Link>
+        <div className="space-y-4">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2.5 transition-colors hover:text-foreground"
+          >
+            <BrandMark brandSlug="store-shop" label="LRG Store Shop" />
+          </Link>
         </div>
 
         <div>
@@ -114,96 +146,104 @@ export function BrandFooter({ brand, storeContact }: { brand: BrandConfig; store
               </div>
             </>
           ) : (
-          <>
-          <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <Mail className="size-4 text-muted-foreground" />
-                <a
-                  href={"https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(brand.contact.email)}
-                  onClick={(e) => {
+            <>
+              <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <Mail className="size-4 text-muted-foreground" />
+                  <a
+                    href={
+                      "https://mail.google.com/mail/?view=cm&fs=1&to=" +
+                      encodeURIComponent(brand.contact.email)
+                    }
+                    onClick={(e) => {
                       e.preventDefault();
-                      const gmailUrl = "https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(brand.contact.email);
+                      const gmailUrl =
+                        "https://mail.google.com/mail/?view=cm&fs=1&to=" +
+                        encodeURIComponent(brand.contact.email);
                       const opened = window.open(gmailUrl, "_blank");
                       if (!opened) {
                         window.location.href = "mailto:" + encodeURIComponent(brand.contact.email);
                       }
                     }}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {brand.contact.email}
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="size-4 text-muted-foreground" />
-                <a href={`tel:${brand.contact.phone}`} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  {brand.contact.phone}
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <MapPin className="size-4 text-muted-foreground" />
-                <a
-                  href={
-                    "https://www.google.com/maps/search/?api=1&query=" +
-                    encodeURIComponent(brand.contact.location)
-                  }
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {brand.contact.location}
-                </a>
-              </li>
-              {brand.contact.link && (
-                <li className="flex items-center gap-2">
-                  <ArrowUpRight className="size-4 text-muted-foreground" />
-                  <a
-                    href={brand.contact.link}
                     target="_blank"
                     rel="noreferrer"
                     className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    Link
+                    {brand.contact.email}
                   </a>
                 </li>
-              )}
-            </ul>
-          <div className="mt-2 flex flex-col items-start gap-2 text-sm">
-            {brand.social.map((social) => {
-              const key = social.label.toLowerCase();
-              let Icon: any = null;
-              if (key.includes("instagram")) Icon = Instagram;
-              else if (key.includes("whatsapp")) Icon = Phone;
-              else if (key.includes("tiktok")) Icon = TikTokIcon;
-              else if (key.includes("facebook")) Icon = Facebook;
+                <li className="flex items-center gap-2">
+                  <Phone className="size-4 text-muted-foreground" />
+                  <a
+                    href={`tel:${brand.contact.phone}`}
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {brand.contact.phone}
+                  </a>
+                </li>
+                <li className="flex items-center gap-2">
+                  <MapPin className="size-4 text-muted-foreground" />
+                  <a
+                    href={
+                      "https://www.google.com/maps/search/?api=1&query=" +
+                      encodeURIComponent(brand.contact.location)
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {brand.contact.location}
+                  </a>
+                </li>
+                {brand.contact.link && (
+                  <li className="flex items-center gap-2">
+                    <ArrowUpRight className="size-4 text-muted-foreground" />
+                    <a
+                      href={brand.contact.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      Link
+                    </a>
+                  </li>
+                )}
+              </ul>
+              <div className="mt-2 flex flex-col items-start gap-2 text-sm">
+                {brand.social.map((social) => {
+                  const key = social.label.toLowerCase();
+                  let Icon: any = null;
+                  if (key.includes("instagram")) Icon = Instagram;
+                  else if (key.includes("whatsapp")) Icon = Phone;
+                  else if (key.includes("tiktok")) Icon = TikTokIcon;
+                  else if (key.includes("facebook")) Icon = Facebook;
 
-              return (
+                  return (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={social.label}
+                      className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground w-auto self-start"
+                    >
+                      {Icon ? <Icon className="size-4 text-muted-foreground" /> : null}
+                      <span>{social.label}</span>
+                    </a>
+                  );
+                })}
                 <a
-                  key={social.label}
-                  href={social.href}
+                  href="https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar"
                   target="_blank"
                   rel="noreferrer"
-                  aria-label={social.label}
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground w-auto self-start"
+                  aria-label="Reseñas"
+                  className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground w-auto self-start"
                 >
-                  {Icon ? <Icon className="size-4 text-muted-foreground" /> : null}
-                  <span>{social.label}</span>
+                  <span className="">⭐</span>
+                  <span>Reseñas</span>
                 </a>
-              );
-            })}
-            <a
-              href="https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Reseñas"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground w-auto self-start"
-            >
-              <span className="">⭐</span>
-              <span>Reseñas</span>
-            </a>
-          </div>
-          </>
+              </div>
+            </>
           )}
         </div>
       </div>

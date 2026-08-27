@@ -51,11 +51,17 @@ function AdminBrands() {
   const [editingStoreField, setEditingStoreField] = useState<string | null>(null);
   const [storeDraft, setStoreDraft] = useState<StoreShopContactItem | null>(null);
   const [editingFieldLabel, setEditingFieldLabel] = useState<string | null>(null);
-  const [brandPresentations, setBrandPresentations] = useState<Record<string, BrandContactPresentation>>(() =>
-    Object.fromEntries(brandList.map((brand) => [brand.slug, getBrandContactPresentation(brand.slug)])),
+  const [brandPresentations, setBrandPresentations] = useState<
+    Record<string, BrandContactPresentation>
+  >(() =>
+    Object.fromEntries(
+      brandList.map((brand) => [brand.slug, getBrandContactPresentation(brand.slug)]),
+    ),
   );
   const [editingBrandPresentation, setEditingBrandPresentation] = useState<string | null>(null);
-  const [brandPresentationDraft, setBrandPresentationDraft] = useState<StoreShopContactItem | null>(null);
+  const [brandPresentationDraft, setBrandPresentationDraft] = useState<StoreShopContactItem | null>(
+    null,
+  );
 
   const closeEditor = () => {
     setEditingStoreField(null);
@@ -76,15 +82,25 @@ function AdminBrands() {
 
   const saveEditingStoreField = () => {
     if (!editingStoreField || !storeDraft || !storeDraft.text.trim()) return;
-    const [group, key] = editingStoreField.split(".") as ["contact" | "socials", "email" | "phone" | "location" | "instagram" | "whatsapp" | "tiktok" | "facebook" | "review"];
-    const next = group === "contact"
-      ? setStoreShopContact({ [key]: { ...storeDraft, text: storeDraft.text.trim() } })
-      : setStoreShopContact({ socials: { [key]: { ...storeDraft, text: storeDraft.text.trim() } } });
+    const [group, key] = editingStoreField.split(".") as [
+      "contact" | "socials",
+      "email" | "phone" | "location" | "instagram" | "whatsapp" | "tiktok" | "facebook" | "review",
+    ];
+    const next =
+      group === "contact"
+        ? setStoreShopContact({ [key]: { ...storeDraft, text: storeDraft.text.trim() } })
+        : setStoreShopContact({
+            socials: { [key]: { ...storeDraft, text: storeDraft.text.trim() } },
+          });
     setStoreContact(next);
     closeEditor();
   };
 
-  const startEditingBrandPresentation = (key: string, label: string, item: StoreShopContactItem) => {
+  const startEditingBrandPresentation = (
+    key: string,
+    label: string,
+    item: StoreShopContactItem,
+  ) => {
     setEditingBrandPresentation(key);
     setBrandPresentationDraft({ ...item });
     setEditingFieldLabel(label);
@@ -92,10 +108,15 @@ function AdminBrands() {
 
   const saveEditingBrandPresentation = () => {
     if (!editingBrandPresentation || !brandPresentationDraft) return;
-    const [slug, group, key] = editingBrandPresentation.split(".") as ["arcade" | "scents" | "web-design", "contact" | "socials", keyof StoreShopContact | keyof StoreShopContact["socials"]];
-    const next = group === "contact"
-      ? setBrandContactPresentation(slug, { [key]: brandPresentationDraft })
-      : setBrandContactPresentation(slug, { socials: { [key]: brandPresentationDraft } });
+    const [slug, group, key] = editingBrandPresentation.split(".") as [
+      "arcade" | "scents" | "web-design",
+      "contact" | "socials",
+      keyof StoreShopContact | keyof StoreShopContact["socials"],
+    ];
+    const next =
+      group === "contact"
+        ? setBrandContactPresentation(slug, { [key]: brandPresentationDraft })
+        : setBrandContactPresentation(slug, { socials: { [key]: brandPresentationDraft } });
     setBrandPresentations((current) => ({ ...current, [slug]: next }));
     closeEditor();
   };
@@ -116,21 +137,24 @@ function AdminBrands() {
     ? storeContactFields.find((field) => field.key === editingStoreField)?.item
     : editingBrandPresentation
       ? (() => {
-          const [slug, group, key] = editingBrandPresentation.split(".") as [keyof typeof brandPresentations, "contact" | "socials", string];
+          const [slug, group, key] = editingBrandPresentation.split(".") as [
+            keyof typeof brandPresentations,
+            "contact" | "socials",
+            string,
+          ];
           return group === "contact"
             ? brandPresentations[slug][key as keyof BrandContactPresentation]
             : brandPresentations[slug].socials[key as keyof BrandContactPresentation["socials"]];
         })()
       : null;
-  const hasActiveChanges = activeDraft && activeOriginal
-    ? hasContactItemChanges(activeDraft, activeOriginal)
-    : false;
+  const hasActiveChanges =
+    activeDraft && activeOriginal ? hasContactItemChanges(activeDraft, activeOriginal) : false;
 
   const updateActiveDraft = (updates: Partial<StoreShopContactItem>) => {
     if (editingStoreField) {
-      setStoreDraft((current) => current ? { ...current, ...updates } : current);
+      setStoreDraft((current) => (current ? { ...current, ...updates } : current));
     } else {
-      setBrandPresentationDraft((current) => current ? { ...current, ...updates } : current);
+      setBrandPresentationDraft((current) => (current ? { ...current, ...updates } : current));
     }
   };
 
@@ -138,6 +162,11 @@ function AdminBrands() {
     if (typeof window !== "undefined") {
       const syncFromStorage = () => {
         setStoreContact(getStoreShopContact());
+        setBrandPresentations(
+          Object.fromEntries(
+            brandList.map((brand) => [brand.slug, getBrandContactPresentation(brand.slug)]),
+          ),
+        );
       };
 
       syncFromStorage();
@@ -160,7 +189,9 @@ function AdminBrands() {
               <BrandMark compact brandSlug="store-shop" />
               <div className="min-h-14">
                 <h2 className="font-display font-semibold">{storeShopListing.name}</h2>
-                <p className="text-xs text-primary">Productos gaming, streaming, perfumería árabe y diseño de páginas web</p>
+                <p className="text-xs text-primary">
+                  Productos gaming, streaming, perfumería árabe y diseño de páginas web
+                </p>
               </div>
             </div>
             <div className="mt-5 space-y-2 border-t border-border/60 pt-4 text-xs text-muted-foreground">
@@ -168,8 +199,14 @@ function AdminBrands() {
                 return (
                   <div key={field.key} className="flex items-center justify-between gap-2">
                     <p className="truncate">{field.label}</p>
-                    <Button variant="ghost" size="sm" onClick={() => startEditingStoreField(field.key, field.label, field.item)} className="h-8 shrink-0 gap-1 px-2 text-white hover:text-white">
-                      <Pencil className="size-4 text-white" /> <span className="text-[11px] text-white">Editar</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => startEditingStoreField(field.key, field.label, field.item)}
+                      className="h-8 shrink-0 gap-1 px-2 text-white hover:text-white"
+                    >
+                      <Pencil className="size-4 text-white" />{" "}
+                      <span className="text-[11px] text-white">Editar</span>
                     </Button>
                   </div>
                 );
@@ -191,7 +228,10 @@ function AdminBrands() {
           );
 
           return (
-            <article key={brand.slug} className={`${brand.theme} glass-panel flex min-w-0 h-full flex-col justify-between rounded-2xl p-3`}>
+            <article
+              key={brand.slug}
+              className={`${brand.theme} glass-panel flex min-w-0 h-full flex-col justify-between rounded-2xl p-3`}
+            >
               <div>
                 <div className="flex items-start gap-3">
                   <BrandMark compact brandSlug={brand.slug} />
@@ -201,26 +241,73 @@ function AdminBrands() {
                   </div>
                 </div>
 
-              <div className="mt-5 space-y-2 border-t border-border/60 pt-4 text-xs text-muted-foreground">
-                {([
-                  { key: "contact.email", label: "Correo", item: brandPresentations[brand.slug].email },
-                  { key: "contact.phone", label: "Celular", item: brandPresentations[brand.slug].phone },
-                  { key: "contact.location", label: "Ubicación", item: brandPresentations[brand.slug].location },
-                  { key: "socials.instagram", label: "Instagram", item: brandPresentations[brand.slug].socials.instagram },
-                  { key: "socials.whatsapp", label: "WhatsApp", item: brandPresentations[brand.slug].socials.whatsapp },
-                  { key: "socials.tiktok", label: "TikTok", item: brandPresentations[brand.slug].socials.tiktok },
-                  { key: "socials.facebook", label: "Facebook", item: brandPresentations[brand.slug].socials.facebook },
-                  { key: "socials.review", label: "Reseñas", item: brandPresentations[brand.slug].socials.review },
-                ] as const).map((field) => {
-                  return (
-                    <div key={field.key} className="flex items-center justify-between gap-2">
-                      <p className="truncate">{field.label}</p>
-                      <Button variant="ghost" size="sm" onClick={() => startEditingBrandPresentation(`${brand.slug}.${field.key}`, field.label, field.item)} className="h-8 shrink-0 gap-1 px-2 text-white hover:text-white"><Pencil className="size-4 text-white" /> Editar</Button>
-                    </div>
-                  );
-                })}
+                <div className="mt-5 space-y-2 border-t border-border/60 pt-4 text-xs text-muted-foreground">
+                  {(
+                    [
+                      {
+                        key: "contact.email",
+                        label: "Correo",
+                        item: brandPresentations[brand.slug].email,
+                      },
+                      {
+                        key: "contact.phone",
+                        label: "Celular",
+                        item: brandPresentations[brand.slug].phone,
+                      },
+                      {
+                        key: "contact.location",
+                        label: "Ubicación",
+                        item: brandPresentations[brand.slug].location,
+                      },
+                      {
+                        key: "socials.instagram",
+                        label: "Instagram",
+                        item: brandPresentations[brand.slug].socials.instagram,
+                      },
+                      {
+                        key: "socials.whatsapp",
+                        label: "WhatsApp",
+                        item: brandPresentations[brand.slug].socials.whatsapp,
+                      },
+                      {
+                        key: "socials.tiktok",
+                        label: "TikTok",
+                        item: brandPresentations[brand.slug].socials.tiktok,
+                      },
+                      {
+                        key: "socials.facebook",
+                        label: "Facebook",
+                        item: brandPresentations[brand.slug].socials.facebook,
+                      },
+                      {
+                        key: "socials.review",
+                        label: "Reseñas",
+                        item: brandPresentations[brand.slug].socials.review,
+                      },
+                    ] as const
+                  ).map((field) => {
+                    return (
+                      <div key={field.key} className="flex items-center justify-between gap-2">
+                        <p className="truncate">{field.label}</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            startEditingBrandPresentation(
+                              `${brand.slug}.${field.key}`,
+                              field.label,
+                              field.item,
+                            )
+                          }
+                          className="h-8 shrink-0 gap-1 px-2 text-white hover:text-white"
+                        >
+                          <Pencil className="size-4 text-white" /> Editar
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
               <Button asChild variant="secondary" size="sm" className="mt-6 w-full gap-2">
                 <Link to="/$brand" params={{ brand: brand.slug }}>
@@ -232,21 +319,40 @@ function AdminBrands() {
         })}
       </div>
 
-      <Dialog open={Boolean(activeDraft && editingFieldLabel)} onOpenChange={(open) => { if (!open) closeEditor(); }}>
+      <Dialog
+        open={Boolean(activeDraft && editingFieldLabel)}
+        onOpenChange={(open) => {
+          if (!open) closeEditor();
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar {editingFieldLabel}</DialogTitle>
-            <DialogDescription>Actualiza la información de contacto de esta tienda.</DialogDescription>
+            <DialogDescription>
+              Actualiza la información de contacto de esta tienda.
+            </DialogDescription>
           </DialogHeader>
           {activeDraft && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="contact-text">Texto a mostrar</label>
-                <Input id="contact-text" value={activeDraft.text} onChange={(event) => updateActiveDraft({ text: event.target.value })} />
+                <label className="text-sm font-medium" htmlFor="contact-text">
+                  Texto a mostrar
+                </label>
+                <Input
+                  id="contact-text"
+                  value={activeDraft.text}
+                  onChange={(event) => updateActiveDraft({ text: event.target.value })}
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="contact-link">Link</label>
-                <Input id="contact-link" value={activeDraft.href} onChange={(event) => updateActiveDraft({ href: event.target.value })} />
+                <label className="text-sm font-medium" htmlFor="contact-link">
+                  Link
+                </label>
+                <Input
+                  id="contact-link"
+                  value={activeDraft.href}
+                  onChange={(event) => updateActiveDraft({ href: event.target.value })}
+                />
               </div>
               <label className="space-y-2">
                 <span className="block text-sm font-medium">Adjuntar logo</span>
@@ -262,12 +368,20 @@ function AdminBrands() {
                   }}
                   className="h-9 cursor-pointer file:mr-3 file:border-0 file:bg-transparent file:text-xs"
                 />
-                {activeDraft.logo && <img src={activeDraft.logo} alt="Vista previa del logo" className="size-10 rounded object-contain" />}
+                {activeDraft.logo && (
+                  <img
+                    src={activeDraft.logo}
+                    alt="Vista previa del logo"
+                    className="size-10 rounded object-contain"
+                  />
+                )}
               </label>
             </div>
           )}
           <DialogFooter>
-            <Button variant="ghost" onClick={closeEditor}>Cancelar</Button>
+            <Button variant="ghost" onClick={closeEditor}>
+              Cancelar
+            </Button>
             <Button
               onClick={editingStoreField ? saveEditingStoreField : saveEditingBrandPresentation}
               disabled={!activeDraft?.text.trim() || !hasActiveChanges}

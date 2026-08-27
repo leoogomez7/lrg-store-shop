@@ -1,7 +1,8 @@
 import type { BrandSlug } from "@/config/brands";
+import { saveAdminProducts } from "@/server/persistence";
 
 export function saveProducts(products: Product[]) {
-  void products;
+  void saveAdminProducts({ data: { products } });
 }
 
 export type CurrencyCode = "ARS" | "USD";
@@ -63,7 +64,9 @@ export type Product = {
 
 const p = (product: Product): Product => product;
 
-const defaultProducts: Product[] = [
+const defaultProducts: Product[] = [];
+/*
+const legacyDefaultProducts: Product[] = [
   // ---------------- LRG Arcade ----------------
   p({
     id: "arc-001",
@@ -112,7 +115,7 @@ const defaultProducts: Product[] = [
     short: "Pantalla OLED de 7 pulgadas y dock con LAN integrada.",
     description:
       "Pantalla OLED de 7 pulgadas con colores intensos, base con puerto LAN, 64 GB de almacenamiento interno y soporte ajustable de ancho completo.",
-    features: ["OLED 7\"", "64 GB", "Dock con LAN", "Joy-Con incluidos"],
+    features: ['OLED 7"', "64 GB", "Dock con LAN", "Joy-Con incluidos"],
     createdAt: "2026-03-30",
   }),
   p({
@@ -565,28 +568,38 @@ const defaultProducts: Product[] = [
     createdAt: "2026-06-15",
   }),
 ];
+*/
 
 function readStoredProducts(): Product[] {
   return [];
 }
 
-export const products: Product[] = readStoredProducts();
+export const products: Product[] = [];
 
 export function getProductsByBrand(brand: BrandSlug): Product[] {
   return products.filter((product) => product.brand === brand && !product.hidden);
 }
 
 export function getProduct(brand: BrandSlug, slug: string): Product | undefined {
-  return products.find((product) => product.brand === brand && product.slug === slug && !product.hidden);
+  return products.find(
+    (product) => product.brand === brand && product.slug === slug && !product.hidden,
+  );
 }
 
 export function getRelatedProducts(product: Product, limit = 4): Product[] {
   const sameCategory = products.filter(
     (item) =>
-      item.brand === product.brand && item.id !== product.id && item.category === product.category && !item.hidden,
+      item.brand === product.brand &&
+      item.id !== product.id &&
+      item.category === product.category &&
+      !item.hidden,
   );
   const fallback = products.filter(
-    (item) => item.brand === product.brand && item.id !== product.id && !sameCategory.includes(item) && !item.hidden,
+    (item) =>
+      item.brand === product.brand &&
+      item.id !== product.id &&
+      !sameCategory.includes(item) &&
+      !item.hidden,
   );
   return [...sameCategory, ...fallback].slice(0, limit);
 }

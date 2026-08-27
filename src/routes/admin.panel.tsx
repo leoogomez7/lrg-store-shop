@@ -1,7 +1,18 @@
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, ChevronDown, CreditCard, DollarSign, Package, Search, ShoppingCart, TrendingUp, Users } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  CreditCard,
+  DollarSign,
+  Package,
+  Search,
+  ShoppingCart,
+  TrendingUp,
+  Users,
+  Eye,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +35,12 @@ import {
 import { brandList, brands, type BrandSlug } from "@/config/brands";
 import { formatDate, formatNumber, formatPrice } from "@/lib/format";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
+import { loadSiteStats } from "@/server/persistence";
+
+const siteStatsQuery = {
+  queryKey: ["site-stats"],
+  queryFn: () => loadSiteStats({ data: {} }),
+};
 
 export const Route = createFileRoute("/admin/panel")({
   loader: async ({ context }) => {
@@ -31,6 +48,7 @@ export const Route = createFileRoute("/admin/panel")({
       context.queryClient.ensureQueryData(orderQueries.list()),
       context.queryClient.ensureQueryData(orderQueries.revenue()),
       context.queryClient.ensureQueryData(catalogQueries.all()),
+      context.queryClient.ensureQueryData(siteStatsQuery),
     ]);
   },
   head: () => ({
@@ -54,6 +72,7 @@ function AdminDashboard() {
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const { data: revenue } = useSuspenseQuery(orderQueries.revenue());
   const { data: products } = useSuspenseQuery(catalogQueries.all());
+  const { data: siteStats } = useSuspenseQuery(siteStatsQuery);
   const [ecosystem, setEcosystem] = useState<"todos" | BrandSlug>("todos");
 
   const revenueKeyMap: Record<BrandSlug, "arcade" | "scents" | "webDesign"> = {
@@ -127,7 +146,7 @@ function AdminDashboard() {
     pedidosSinEntregar: "Pedidos sin entregar por mes",
   };
 
-  const getMetricValue = (order: typeof filteredOrders[number]) => {
+  const getMetricValue = (order: (typeof filteredOrders)[number]) => {
     switch (reportMetric) {
       case "gastos":
         return order.expenses;
@@ -162,7 +181,8 @@ function AdminDashboard() {
   const reportTitle = reportMetricLabelMap[reportMetric];
   const monthOptions = revenueSeries.map((entry) => entry.month);
   const isRangeActive = Boolean(range?.from && range?.to);
-  const isCountMetric = reportMetric === "pedidosEntregados" || reportMetric === "pedidosSinEntregar";
+  const isCountMetric =
+    reportMetric === "pedidosEntregados" || reportMetric === "pedidosSinEntregar";
 
   const reportSeries = (() => {
     if (isRangeActive && range?.from && range?.to) {
@@ -193,6 +213,16 @@ function AdminDashboard() {
     { label: "Productos", value: formatNumber(totalProducts), icon: Package },
     { label: "Productos activos", value: formatNumber(activeProducts), icon: Package },
     { label: "Productos inactivos", value: formatNumber(inactiveProducts), icon: Package },
+    {
+      label: "Visitas totales",
+      value: formatNumber(siteStats.totalVisits),
+      icon: Eye,
+    },
+    {
+      label: "Visitantes únicos",
+      value: formatNumber(siteStats.uniqueVisitors),
+      icon: Users,
+    },
   ];
 
   const stockItems = filteredProducts
@@ -206,7 +236,16 @@ function AdminDashboard() {
             brand: product.brand,
             stock: variant.stock,
           }))
-        : [{ id: product.id, name: product.name, variantName: undefined, category: product.category, brand: product.brand, stock: product.stock }],
+        : [
+            {
+              id: product.id,
+              name: product.name,
+              variantName: undefined,
+              category: product.category,
+              brand: product.brand,
+              stock: product.stock,
+            },
+          ],
     )
     .sort((a, b) => a.stock - b.stock);
   const totalStockUnits = stockItems.reduce((sum, item) => sum + item.stock, 0);
@@ -247,7 +286,10 @@ function AdminDashboard() {
         <div>
           <h1 className="mt-2 text-3xl font-semibold">Panel Administrativo</h1>
         </div>
-        <Select value={ecosystem} onValueChange={(value) => setEcosystem(value as "todos" | BrandSlug)}>
+        <Select
+          value={ecosystem}
+          onValueChange={(value) => setEcosystem(value as "todos" | BrandSlug)}
+        >
           <SelectTrigger className="w-55">
             <SelectValue />
           </SelectTrigger>
@@ -266,7 +308,7 @@ function AdminDashboard() {
         {cards.map((card) => (
           <div key={card.label} className="glass-panel w-3/4 rounded-xl p-3">
             <span className="gradient-brand grid size-7 place-items-center rounded-md">
-              <card.icon className="size-3.5 text-primary-foreground" />
+              <card.icon className="size-3.5 text-white" />
             </span>
             <p className="mt-2 text-[11px] leading-tight text-muted-foreground">{card.label}</p>
             <p className="font-display mt-1 text-lg font-semibold leading-tight">{card.value}</p>
@@ -279,7 +321,9 @@ function AdminDashboard() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="font-display font-semibold">{reportTitle}</h2>
-              <p className="text-sm text-muted-foreground">Selecciona un tipo de reporte, un mes o un rango de fechas.</p>
+              <p className="text-sm text-muted-foreground">
+                Selecciona un tipo de reporte, un mes o un rango de fechas.
+              </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3 w-full max-w-3xl">
               <div>
@@ -352,8 +396,8 @@ function AdminDashboard() {
                           {range?.from && range?.to
                             ? `${formatDate(range.from.toISOString())} - ${formatDate(range.to.toISOString())}`
                             : range?.from
-                            ? `${formatDate(range.from.toISOString())} - dd/mm/aaaa`
-                            : "Seleccionar rango"}
+                              ? `${formatDate(range.from.toISOString())} - dd/mm/aaaa`
+                              : "Seleccionar rango"}
                         </span>
                         <ChevronDown className="h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
                       </Button>
@@ -361,25 +405,39 @@ function AdminDashboard() {
                     <PopoverContent className="w-88 p-4">
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
-                          <label className="text-xs font-medium text-muted-foreground">Fecha inicial</label>
+                          <label className="text-xs font-medium text-muted-foreground">
+                            Fecha inicial
+                          </label>
                           <Input
                             type="date"
-                            value={draftRange?.from ? draftRange.from.toISOString().slice(0, 10) : ""}
+                            value={
+                              draftRange?.from ? draftRange.from.toISOString().slice(0, 10) : ""
+                            }
                             onChange={(event) => {
-                              const from = event.target.value ? new Date(`${event.target.value}T00:00:00`) : undefined;
+                              const from = event.target.value
+                                ? new Date(`${event.target.value}T00:00:00`)
+                                : undefined;
                               setDraftRange((current) => ({ from, to: current?.to }));
                             }}
                             className="[&::-webkit-calendar-picker-indicator]:invert"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-xs font-medium text-muted-foreground">Fecha final</label>
+                          <label className="text-xs font-medium text-muted-foreground">
+                            Fecha final
+                          </label>
                           <Input
                             type="date"
                             value={draftRange?.to ? draftRange.to.toISOString().slice(0, 10) : ""}
-                            min={draftRange?.from ? draftRange.from.toISOString().slice(0, 10) : undefined}
+                            min={
+                              draftRange?.from
+                                ? draftRange.from.toISOString().slice(0, 10)
+                                : undefined
+                            }
                             onChange={(event) => {
-                              const to = event.target.value ? new Date(`${event.target.value}T00:00:00`) : undefined;
+                              const to = event.target.value
+                                ? new Date(`${event.target.value}T00:00:00`)
+                                : undefined;
                               setDraftRange((current) => ({ from: current?.from, to }));
                             }}
                             className="[&::-webkit-calendar-picker-indicator]:invert"
@@ -414,7 +472,8 @@ function AdminDashboard() {
 
           <div className="mt-6 space-y-4">
             <div className="rounded-2xl bg-surface/80 p-4 text-sm text-muted-foreground">
-              Total: <span className="font-semibold text-foreground">
+              Total:{" "}
+              <span className="font-semibold text-foreground">
                 {isCountMetric ? formatNumber(reportTotal) : formatPrice(reportTotal)}
               </span>
             </div>
@@ -425,7 +484,10 @@ function AdminDashboard() {
                 </li>
               ) : (
                 reportSeries.map((entry) => (
-                  <li key={entry.month} className="flex items-center justify-between rounded-2xl border border-border/60 bg-background px-4 py-3 text-sm">
+                  <li
+                    key={entry.month}
+                    className="flex items-center justify-between rounded-2xl border border-border/60 bg-background px-4 py-3 text-sm"
+                  >
                     <span className="text-xs text-muted-foreground">{entry.month}</span>
                     <span className="font-medium">
                       {isCountMetric ? formatNumber(entry.total) : formatPrice(entry.total)}
@@ -467,7 +529,10 @@ function AdminDashboard() {
               ))}
               {recentOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={5}
+                    className="py-10 text-center text-sm text-muted-foreground"
+                  >
                     No hay pedidos disponibles.
                   </TableCell>
                 </TableRow>
@@ -496,7 +561,9 @@ function AdminDashboard() {
                     {(() => {
                       const v = Number(ordersPageSizeInput);
                       const isValid = Number.isFinite(v) && v >= 1;
-                      const isChanged = ordersPageSizeInput !== "" && String(Math.floor(v)) !== String(ordersPageSize);
+                      const isChanged =
+                        ordersPageSizeInput !== "" &&
+                        String(Math.floor(v)) !== String(ordersPageSize);
                       return (
                         <Button
                           type="button"
@@ -509,13 +576,20 @@ function AdminDashboard() {
                           }}
                           disabled={!isValid || !isChanged}
                         >
-                          <Check className="mr-2 h-4 w-4" />Confirmar
+                          <Check className="mr-2 h-4 w-4" />
+                          Confirmar
                         </Button>
                       );
                     })()}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => setOrdersPage(0)} disabled={ordersPage === 0}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setOrdersPage(0)}
+                      disabled={ordersPage === 0}
+                    >
                       Principio
                     </Button>
                     <div className="flex items-center gap-1 rounded-full border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm">
@@ -530,7 +604,13 @@ function AdminDashboard() {
                         </button>
                       ))}
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setOrdersPage(ordersPages - 1)} disabled={ordersPage >= ordersPages - 1}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setOrdersPage(ordersPages - 1)}
+                      disabled={ordersPage >= ordersPages - 1}
+                    >
                       Último
                     </Button>
                   </div>
@@ -581,7 +661,9 @@ function AdminDashboard() {
             ))}
             {searchedStockItems.length === 0 ? (
               <li className="px-5 py-6 text-sm text-muted-foreground">
-                {normalizedStockSearch ? "No se encontraron productos." : "No hay productos disponibles."}
+                {normalizedStockSearch
+                  ? "No se encontraron productos."
+                  : "No hay productos disponibles."}
               </li>
             ) : null}
           </ul>
@@ -607,7 +689,9 @@ function AdminDashboard() {
                     {(() => {
                       const v = Number(stockPageSizeInput);
                       const isValid = Number.isFinite(v) && v >= 1;
-                      const isChanged = stockPageSizeInput !== "" && String(Math.floor(v)) !== String(stockPageSize);
+                      const isChanged =
+                        stockPageSizeInput !== "" &&
+                        String(Math.floor(v)) !== String(stockPageSize);
                       return (
                         <Button
                           type="button"
@@ -620,7 +704,8 @@ function AdminDashboard() {
                           }}
                           disabled={!isValid || !isChanged}
                         >
-                          <Check className="mr-2 h-4 w-4" />Confirmar
+                          <Check className="mr-2 h-4 w-4" />
+                          Confirmar
                         </Button>
                       );
                     })()}

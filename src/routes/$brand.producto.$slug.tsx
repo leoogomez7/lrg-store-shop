@@ -16,7 +16,13 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getBrand } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { catalogQueries } from "@/services/catalog.service";
@@ -32,7 +38,12 @@ export const Route = createFileRoute("/$brand/producto/$slug")({
     );
     if (!product) throw notFound();
     await context.queryClient.ensureQueryData(catalogQueries.related(brand.slug, params.slug));
-    return { name: product.name, short: product.short, brandName: brand.name, favicon: brand.favicon };
+    return {
+      name: product.name,
+      short: product.short,
+      brandName: brand.name,
+      favicon: brand.favicon,
+    };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
@@ -68,11 +79,14 @@ function ProductDetail() {
   const { data: related } = useSuspenseQuery(catalogQueries.related(brand.slug, params.slug));
   const { addProduct } = useCart();
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(product?.variants?.[0]?.id);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
+    product?.variants?.[0]?.id,
+  );
   const navigate = useNavigate();
 
   if (!product) return null;
-  const selectedVariant = product.variants?.find((variant) => variant.id === selectedVariantId) ?? product.variants?.[0];
+  const selectedVariant =
+    product.variants?.find((variant) => variant.id === selectedVariantId) ?? product.variants?.[0];
   const activeProduct = selectedVariant
     ? {
         ...product,
@@ -179,12 +193,24 @@ function ProductDetail() {
 
           {product.variants && product.variants.length > 0 ? (
             <div className="mt-6 max-w-sm space-y-2">
-              <label className="text-sm font-medium" htmlFor="product-variant">Elegí una variante</label>
-              <Select value={selectedVariant?.id} onValueChange={(value) => { setSelectedVariantId(value); setQuantity(1); }}>
-                <SelectTrigger id="product-variant"><SelectValue placeholder="Seleccionar variante" /></SelectTrigger>
+              <label className="text-sm font-medium" htmlFor="product-variant">
+                Elegí una variante
+              </label>
+              <Select
+                value={selectedVariant?.id}
+                onValueChange={(value) => {
+                  setSelectedVariantId(value);
+                  setQuantity(1);
+                }}
+              >
+                <SelectTrigger id="product-variant">
+                  <SelectValue placeholder="Seleccionar variante" />
+                </SelectTrigger>
                 <SelectContent>
                   {product.variants.map((variant) => (
-                    <SelectItem key={variant.id} value={variant.id}>{variant.name}</SelectItem>
+                    <SelectItem key={variant.id} value={variant.id}>
+                      {variant.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

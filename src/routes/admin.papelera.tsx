@@ -33,8 +33,12 @@ function AdminTrash() {
       }
     }
     removeFromTrash(entry);
-    void queryClient.invalidateQueries({ queryKey: entry.type === "producto" ? ["products"] : ["orders"] });
-    setEntries((current) => current.filter((item) => item.id !== entry.id || item.type !== entry.type));
+    void queryClient.invalidateQueries({
+      queryKey: entry.type === "producto" ? ["products"] : ["orders"],
+    });
+    setEntries((current) =>
+      current.filter((item) => item.id !== entry.id || item.type !== entry.type),
+    );
   };
 
   const deletePermanently = () => {
@@ -58,7 +62,9 @@ function AdminTrash() {
     void queryClient.invalidateQueries({
       queryKey: entryToDelete.type === "producto" ? ["products"] : ["orders"],
     });
-    setEntries((current) => current.filter((item) => item.id !== entryToDelete.id || item.type !== entryToDelete.type));
+    setEntries((current) =>
+      current.filter((item) => item.id !== entryToDelete.id || item.type !== entryToDelete.type),
+    );
     setEntryToDelete(null);
   };
 
@@ -68,39 +74,55 @@ function AdminTrash() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="mt-2 text-3xl font-semibold">Papelera</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Los elementos se eliminan automáticamente después de 10 días.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Los elementos se eliminan automáticamente después de 10 días.
+          </p>
         </div>
         <span className="text-sm text-muted-foreground">{entries.length} elementos</span>
       </div>
 
       <div className="mt-6 space-y-3 pb-20">
         {entries.length === 0 ? (
-          <div className="glass-panel rounded-2xl p-8 text-center text-sm text-muted-foreground">La papelera está vacía.</div>
-        ) : entries.map((entry) => {
-          const isProduct = entry.type === "producto";
-          const name = isProduct ? entry.item.name : `${entry.item.id} · ${entry.item.customer}`;
-          return (
-            <div key={`${entry.type}-${entry.id}`} className="glass-panel flex flex-wrap items-center justify-between gap-4 rounded-2xl p-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2">
-                  {isProduct ? <Package className="size-4" /> : <ShoppingCart className="size-4" />}
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{name}</p>
-                  <p className="text-xs text-muted-foreground">{isProduct ? "Producto" : "Pedido"} · Se elimina en {getRemainingDays(entry.expiresAt)} días</p>
+          <div className="glass-panel rounded-2xl p-8 text-center text-sm text-muted-foreground">
+            La papelera está vacía.
+          </div>
+        ) : (
+          entries.map((entry) => {
+            const isProduct = entry.type === "producto";
+            const name = isProduct ? entry.item.name : `${entry.item.id} · ${entry.item.customer}`;
+            return (
+              <div
+                key={`${entry.type}-${entry.id}`}
+                className="glass-panel flex flex-wrap items-center justify-between gap-4 rounded-2xl p-4"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2">
+                    {isProduct ? (
+                      <Package className="size-4" />
+                    ) : (
+                      <ShoppingCart className="size-4" />
+                    )}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isProduct ? "Producto" : "Pedido"} · Se elimina en{" "}
+                      {getRemainingDays(entry.expiresAt)} días
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => restoreEntry(entry)}>
+                    <RotateCcw className="size-4" /> Restaurar
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={() => setEntryToDelete(entry)}>
+                    <Trash2 className="size-4" /> Eliminar
+                  </Button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={() => restoreEntry(entry)}>
-                  <RotateCcw className="size-4" /> Restaurar
-                </Button>
-                <Button size="sm" variant="destructive" onClick={() => setEntryToDelete(entry)}>
-                  <Trash2 className="size-4" /> Eliminar
-                </Button>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       <ConfirmDialog

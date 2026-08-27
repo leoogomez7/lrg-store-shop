@@ -18,13 +18,27 @@ function getBrandImage(brandSlug?: string) {
   return "/LRG Store Shop PNG.png";
 }
 
-export function BrandMark({ className, compact = false, label, brandSlug }: { className?: string; compact?: boolean; label?: string; brandSlug?: string }) {
+export function BrandMark({
+  className,
+  compact = false,
+  label,
+  brandSlug,
+}: {
+  className?: string;
+  compact?: boolean;
+  label?: string;
+  brandSlug?: string;
+}) {
   const src = getBrandImage(brandSlug);
 
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <span className="relative grid size-9 place-items-center rounded-xl overflow-hidden">
-        <img src={src} alt={label ?? "LRG Store Shop"} className={cn("w-9 h-9 object-contain", compact ? "w-7 h-7" : "w-9 h-9")} />
+        <img
+          src={src}
+          alt={label ?? "LRG Store Shop"}
+          className={cn("w-9 h-9 object-contain", compact ? "w-7 h-7" : "w-9 h-9")}
+        />
         <span className="absolute inset-0 rounded-xl bg-foreground/0 transition-colors" />
       </span>
       {!compact && (

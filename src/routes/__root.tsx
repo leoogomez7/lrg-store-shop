@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { KindeProvider } from "@kinde-oss/kinde-auth-react";
+import { KindeProvider, useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import {
   Outlet,
   Link,
@@ -15,6 +15,14 @@ import { reportClientError } from "../lib/error-reporting";
 import { CartProvider } from "../store/cart";
 import { Toaster } from "../components/ui/sonner";
 import { getKindeConfig, getKindeRedirectUri, hasKindeConfig } from "../lib/kinde";
+import {
+  applyAdminSettings,
+  brandList,
+  getBrandContactPresentation,
+  getStoreShopContact,
+  refreshBrandData,
+} from "../config/brands";
+import { ensureAdminSettings, loadAdminSettings, recordSiteVisit } from "../server/persistence";
 
 function NotFoundComponent() {
   return (
@@ -39,7 +47,7 @@ function NotFoundComponent() {
 }
 
 class RootErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
+  override state: { hasError: boolean } = { hasError: false };
 
   static getDerivedStateFromError() {
     return { hasError: true };
@@ -50,7 +58,7 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, { hasError: b
     reportClientError(error, { boundary: "tanstack_root_error_boundary", errorInfo });
   }
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       return (
         <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -122,14 +130,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "LRG Store Shop" },
-      { name: "description", content: "Un negocio, tres sectores: gaming, perfumería árabe y software. Conectá con tus pasiones y descubrí una nueva forma de pontenciar tu día a día." },
+      {
+        name: "description",
+        content:
+          "Un negocio, tres sectores: gaming, perfumería árabe y software. Conectá con tus pasiones y descubrí una nueva forma de pontenciar tu día a día.",
+      },
       { name: "author", content: "LRG" },
       { property: "og:title", content: "LRG Store Shop" },
-      { property: "og:description", content: "Un negocio, tres sectores: gaming, perfumería árabe y software. Conectá con tus pasiones y descubrí una nueva forma de pontenciar tu día a día." },
+      {
+        property: "og:description",
+        content:
+          "Un negocio, tres sectores: gaming, perfumería árabe y software. Conectá con tus pasiones y descubrí una nueva forma de pontenciar tu día a día.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "LRG Store Shop" },
-      { name: "twitter:description", content: "Un negocio, tres sectores: gaming, perfumería árabe y software. Conectá con tus pasiones y descubrí una nueva forma de pontenciar tu día a día." },
+      {
+        name: "twitter:description",
+        content:
+          "Un negocio, tres sectores: gaming, perfumería árabe y software. Conectá con tus pasiones y descubrí una nueva forma de pontenciar tu día a día.",
+      },
       { property: "og:image", content: "/LRG Store Shop PNG.png" },
       { name: "twitter:image", content: "/LRG Store Shop PNG.png" },
     ],
@@ -161,6 +181,19 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function AuthenticatedCart({ children }: { children: ReactNode }) {
+  const { user, isAuthenticated, isLoading } = useKindeAuth();
+  return (
+    <CartProvider
+      user={user ? (user.email ? { id: user.id, email: user.email } : { id: user.id }) : null}
+      isAuthenticated={isAuthenticated}
+      isLoading={isLoading}
+    >
+      {children}
+    </CartProvider>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { clientId, domain } = getKindeConfig();
@@ -168,20 +201,65 @@ function RootComponent() {
   const logoutUri = getKindeRedirectUri("/login");
   const hasKindConfig = hasKindeConfig();
 
+  useEffect(() => {
+    const brandPresentations = Object.fromEntries(
+      brandList.map((brand) => [brand.slug, getBrandContactPresentation(brand.slug)]),
+    );
+    void ensureAdminSettings({
+      data: {
+        settings: [
+          {
+            settingKey: "lrg-store-shop-contact-v1",
+            settingValue: JSON.stringify(getStoreShopContact()),
+          },
+          {
+            settingKey: "lrg-brand-contact-presentation-v1",
+            settingValue: JSON.stringify(brandPresentations),
+          },
+        ],
+      },
+    })
+      .then(() => loadAdminSettings({ data: {} }))
+      .then((settings) => {
+        applyAdminSettings(settings);
+        refreshBrandData();
+        window.dispatchEvent(new Event("lrg-brand-data-updated"));
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    const match = document.cookie.match(/(?:^|; )lrg_visitor_id=([^;]+)/);
+    const visitorId = match?.[1] ? decodeURIComponent(match[1]) : crypto.randomUUID();
+    if (!match?.[1]) {
+      document.cookie = `lrg_visitor_id=${encodeURIComponent(visitorId)}; Max-Age=31536000; Path=/; SameSite=Lax`;
+    }
+    void recordSiteVisit({ data: { visitorId } });
+  }, []);
+
   const appContent = (
     <QueryClientProvider client={queryClient}>
-      <CartProvider>
+      <AuthenticatedCart>
         <Suspense fallback={<div>Loading...</div>}>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
         </Suspense>
         <Toaster position="top-right" />
-      </CartProvider>
+      </AuthenticatedCart>
     </QueryClientProvider>
   );
 
   if (!hasKindConfig) {
-    return <>{appContent}</>;
+    return (
+      <QueryClientProvider client={queryClient}>
+        <CartProvider>
+          <Suspense fallback={<div>Loading...</div>}>
+            <Outlet />
+          </Suspense>
+          <Toaster position="top-right" />
+        </CartProvider>
+      </QueryClientProvider>
+    );
   }
 
   return (

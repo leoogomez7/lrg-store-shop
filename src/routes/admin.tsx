@@ -1,15 +1,42 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { ContactRound, House, LayoutDashboard, LogOut, Package, PanelLeftClose, PanelLeftOpen, ShoppingCart, Settings, Store, Trash2, Users } from "lucide-react";
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
+import {
+  ContactRound,
+  ArrowRight,
+  CircleArrowLeft,
+  Eye,
+  EyeOff,
+  House,
+  LayoutDashboard,
+  LogOut,
+  Package,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ShoppingCart,
+  Settings,
+  Store,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
+import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { logout } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { webDesignConfig } from "@/config/brands/web-design.config";
-import { verifyAdminPassword } from "@/server/admin-auth";
+import { getKindeRedirectUri } from "@/lib/kinde";
+import { verifyAdminFinalPassword, verifyAdminPassword } from "@/server/admin-auth";
+import {
+  loadAdminSettings,
+  registerAdminIdentity,
+  verifyRegisteredAdmin,
+} from "@/server/persistence";
+import { applyAdminSettings, refreshBrandData } from "@/config/brands";
+import { applyTrashEntries } from "@/data/trash";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -28,26 +55,66 @@ const navigation = [
 ] as const;
 
 function AdminLayout() {
+  return (
+    <KindeAuthGate fallback={<AdminLayoutContent auth={null} />}>
+      {(auth) => <AdminLayoutContent auth={auth} />}
+    </KindeAuthGate>
+  );
+}
+
+function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading, login, register } = auth ?? {
+    isAuthenticated: false,
+    isLoading: false,
+    login: () => undefined,
+    register: () => undefined,
+  };
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [initialPasswordVerified, setInitialPasswordVerified] = useState(false);
+  const [adminIdentityVerified, setAdminIdentityVerified] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [password, setPassword] = useState("");
+  const [finalPassword, setFinalPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showFinalPassword, setShowFinalPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const [finalPasswordError, setFinalPasswordError] = useState("");
 
   useEffect(() => {
-    // preserve any existing active admin session, but do not create a default one
-    try {
-      const activePanel = sessionStorage.getItem("activePanel");
-      if (activePanel !== "admin") {
-        return;
-      }
-      setAdminUnlocked(true);
-    } catch (e) {
-      // ignore
-    }
-  }, []);
+    if (!initialPasswordVerified || !isAuthenticated || !auth?.user?.id) return;
+    const identity = auth.user.email
+      ? { id: auth.user.id, email: auth.user.email }
+      : { id: auth.user.id };
+    void registerAdminIdentity({ data: identity })
+      .then((registered) => {
+        if (!registered) return false;
+        return verifyRegisteredAdmin({ data: identity });
+      })
+      .then((verified) => setAdminIdentityVerified(Boolean(verified)))
+      .catch(() => setAdminIdentityVerified(false));
+  }, [auth?.user?.email, auth?.user?.id, initialPasswordVerified, isAuthenticated]);
+
+  useEffect(() => {
+    if (!adminIdentityVerified) return;
+    void loadAdminSettings({ data: {} })
+      .then((settings) => {
+        applyAdminSettings(settings);
+        const trashSetting = settings.find((setting) => setting.settingKey === "lrg:trash");
+        if (trashSetting) {
+          try {
+            applyTrashEntries(JSON.parse(trashSetting.settingValue));
+          } catch {
+            applyTrashEntries([]);
+          }
+        }
+        refreshBrandData();
+        window.dispatchEvent(new Event("lrg-brand-data-updated"));
+      })
+      .catch(() => undefined);
+  }, [adminIdentityVerified]);
 
   async function unlockAdmin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,12 +124,33 @@ function AdminLayout() {
       setPasswordError("La contraseña no es válida.");
       return;
     }
-    sessionStorage.setItem("activePanel", "admin");
-    setAdminUnlocked(true);
+    setInitialPasswordVerified(true);
     setPassword("");
   }
 
-  if (!adminUnlocked) {
+  async function unlockFinalAdminAccess(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFinalPasswordError("");
+    const valid = await verifyAdminFinalPassword({ data: { password: finalPassword } });
+    if (!valid) {
+      setFinalPasswordError("La contraseña final de administrador no es válida.");
+      return;
+    }
+    setAdminUnlocked(true);
+    setFinalPassword("");
+  }
+
+  function startKindeFlow(flow: "login" | "register") {
+    const redirectURL = getKindeRedirectUri("/admin");
+    const options = { redirectURL: redirectURL ?? "http://localhost:5174/admin" };
+    if (flow === "login") {
+      login(options);
+    } else {
+      register(options);
+    }
+  }
+
+  if (!adminUnlocked && !initialPasswordVerified) {
     return (
       <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
         <form onSubmit={unlockAdmin} className="glass-card w-full max-w-md space-y-5 p-6">
@@ -72,20 +160,163 @@ function AdminLayout() {
           </div>
           <label className="block text-sm font-medium" htmlFor="admin-password">
             Contraseña
-            <input
-              id="admin-password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="mt-2 h-11 w-full rounded-md border border-border bg-background px-3"
-              autoComplete="current-password"
-              required
-            />
+            <span className="relative mt-2 block">
+              <input
+                id="admin-password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="h-11 w-full rounded-md border border-border bg-background px-3 pr-11"
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </span>
           </label>
           {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
-          <Button type="submit" className="w-full">Continuar</Button>
-          <Button type="button" variant="ghost" className="w-full" onClick={() => navigate({ to: "/" })}>
-            Volver a la tienda
+          <Button type="submit" className="w-full">
+            <ArrowRight className="size-4" /> Continuar
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate({ to: "/" })}
+          >
+            <CircleArrowLeft className="size-4 text-white" /> Volver
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate({ to: "/" })}
+          >
+            <House className="size-4 text-white" /> Inicio
+          </Button>
+        </form>
+      </div>
+    );
+  }
+
+  if (!adminUnlocked && !isAuthenticated) {
+    return (
+      <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+        <div className="glass-card w-full max-w-md space-y-5 p-6">
+          <div>
+            <p className="text-sm text-muted-foreground">Segundo paso</p>
+            <h1 className="mt-1 text-2xl font-semibold">Identidad del administrador</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Iniciá sesión o creá la cuenta que usará el panel.
+            </p>
+          </div>
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Cargando autenticación...</p>
+          ) : (
+            <div className="space-y-3">
+              <Button type="button" className="w-full" onClick={() => startKindeFlow("login")}>
+                Iniciar sesión
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => startKindeFlow("register")}
+              >
+                Crear cuenta
+              </Button>
+            </div>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate({ to: "/" })}
+          >
+            <CircleArrowLeft className="size-4 text-white" /> Volver
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!adminUnlocked && !adminIdentityVerified) {
+    return (
+      <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+        <div className="glass-card w-full max-w-md space-y-5 p-6">
+          <p className="text-sm text-muted-foreground">Acceso no autorizado</p>
+          <h1 className="text-2xl font-semibold">Administrador único</h1>
+          <p className="text-sm text-muted-foreground">
+            Esta cuenta no está autorizada para ingresar al panel administrativo.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate({ to: "/" })}
+          >
+            <CircleArrowLeft className="size-4 text-white" /> Volver
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!adminUnlocked) {
+    return (
+      <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+        <form
+          onSubmit={unlockFinalAdminAccess}
+          className="glass-card w-full max-w-md space-y-5 p-6"
+        >
+          <div>
+            <p className="text-sm text-muted-foreground">Último paso</p>
+            <h1 className="mt-1 text-2xl font-semibold">Confirmar acceso</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Ingresá la contraseña final compartida por los administradores.
+            </p>
+          </div>
+          <label className="block text-sm font-medium" htmlFor="admin-final-password">
+            Contraseña final de administrador
+            <span className="relative mt-2 block">
+              <input
+                id="admin-final-password"
+                type={showFinalPassword ? "text" : "password"}
+                value={finalPassword}
+                onChange={(event) => setFinalPassword(event.target.value)}
+                className="h-11 w-full rounded-md border border-border bg-background px-3 pr-11"
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowFinalPassword((visible) => !visible)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-muted-foreground hover:text-foreground"
+                aria-label={showFinalPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                title={showFinalPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showFinalPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </span>
+          </label>
+          {finalPasswordError && <p className="text-sm text-destructive">{finalPasswordError}</p>}
+          <Button type="submit" className="w-full">
+            <ArrowRight className="size-4" /> Continuar
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate({ to: "/" })}
+          >
+            <CircleArrowLeft className="size-4 text-white" /> Volver
           </Button>
         </form>
       </div>
@@ -95,16 +326,58 @@ function AdminLayout() {
   return (
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
       <div className="relative flex min-h-screen">
-        <aside className={cn("hidden shrink-0 border-r border-border/60 bg-surface/40 transition-[width] duration-200 lg:block", sidebarCollapsed ? "w-20" : "w-64")}>
-          <div className={cn("sticky top-0 flex h-screen flex-col p-5", sidebarCollapsed && "items-center px-3")}>
-            <div className={cn("mb-4 mt-2 flex w-full items-center", sidebarCollapsed ? "justify-center" : "justify-between gap-2")}>
-              <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground" title="LRG Store Shop">
-              <BrandMark compact brandSlug="store-shop" />
-              {!sidebarCollapsed && <span className="font-medium text-foreground">LRG Store Shop</span>}
+        <aside
+          className={cn(
+            "hidden shrink-0 border-r border-border/60 bg-surface/40 transition-[width] duration-200 lg:block",
+            sidebarCollapsed ? "w-20" : "w-64",
+          )}
+        >
+          <div
+            className={cn(
+              "sticky top-0 flex h-screen flex-col p-5",
+              sidebarCollapsed && "items-center px-3",
+            )}
+          >
+            <div
+              className={cn(
+                "mb-4 mt-2 flex w-full items-center",
+                sidebarCollapsed ? "justify-center" : "justify-between gap-2",
+              )}
+            >
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                title="LRG Store Shop"
+              >
+                <BrandMark compact brandSlug="store-shop" />
+                {!sidebarCollapsed && (
+                  <span className="font-medium text-foreground">LRG Store Shop</span>
+                )}
               </Link>
-              {!sidebarCollapsed && <Button type="button" variant="ghost" size="icon" onClick={() => setSidebarCollapsed(true)} title="Minimizar menú"><PanelLeftClose className="size-4" /></Button>}
+              {!sidebarCollapsed && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Minimizar menú"
+                >
+                  <PanelLeftClose className="size-4" />
+                </Button>
+              )}
             </div>
-            {sidebarCollapsed && <Button type="button" variant="ghost" size="icon" onClick={() => setSidebarCollapsed(false)} title="Expandir menú" className="mb-2"><PanelLeftOpen className="size-4" /></Button>}
+            {sidebarCollapsed && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarCollapsed(false)}
+                title="Expandir menú"
+                className="mb-2"
+              >
+                <PanelLeftOpen className="size-4" />
+              </Button>
+            )}
             <nav className="mt-3 w-full space-y-1">
               {navigation.map((item) => {
                 const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);

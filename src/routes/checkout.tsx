@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, CreditCard, Lock, Tag, Truck } from "lucide-react";
+import { CheckCircle2, CircleArrowLeft, CreditCard, Lock, Tag, Truck } from "lucide-react";
 import { useCart } from "@/store/cart";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { orderQueries, orderService } from "@/services/catalog.service";
+import { loadAdminSettings } from "@/server/persistence";
 import { formatPrice } from "@/lib/format";
 
 export const Route = createFileRoute("/checkout")({
@@ -39,21 +40,19 @@ function CheckoutPage() {
   // Choose brand from first item in cart if available, otherwise default to web-design
   const firstBrandSlug = items[0]?.brand ?? "web-design";
   const brand = getBrand(firstBrandSlug)!;
-  const availablePaymentMethods = (brand.paymentMethods ?? brand.payments.map((name) => ({ id: name, name, enabled: true })))
-    .filter((method) => method.enabled);
-  const availableShippingMethods = (brand.shipping?.methods ?? [])
-    .filter((method) => method.enabled);
-  const cardPaymentMethods = availablePaymentMethods.filter((method) => /visa|mastercard|amex|tarjeta|d[eé]bito|cr[eé]dito/i.test(method.name));
-  const otherPaymentMethods = availablePaymentMethods.filter((method) => !cardPaymentMethods.includes(method));
+  const availablePaymentMethods = (brand.paymentMethods ?? []).filter((method) => method.enabled);
+  const cardPaymentMethods = availablePaymentMethods.filter((method) =>
+    /visa|mastercard|amex|tarjeta|d[eé]bito|cr[eé]dito/i.test(method.name),
+  );
+  const otherPaymentMethods = availablePaymentMethods.filter(
+    (method) => !cardPaymentMethods.includes(method),
+  );
   const interestFreeOptions = [1];
 
   // Ensure header and footer are shown on checkout
-  const Header = (
-    <BrandHeader brand={brand} headerTheme="theme-webdesign" />
-  );
+  const Header = <BrandHeader brand={brand} headerTheme="theme-webdesign" />;
 
-  const shippingThreshold = brand.shipping?.freeShippingThreshold ?? 300;
-  const shipping = subtotal > shippingThreshold || subtotal === 0 ? 0 : 18;
+  const shippingMethod = "Acordar entrega";
 
   const [customerName, setCustomerName] = useState("");
   const [email, setEmail] = useState("");
@@ -61,16 +60,26 @@ function CheckoutPage() {
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<string>(availablePaymentMethods[0]?.name ?? "Tarjeta");
+  const [paymentMethod, setPaymentMethod] = useState<string>(
+    availablePaymentMethods[0]?.name ?? "Tarjeta",
+  );
+  const [bankCbu, setBankCbu] = useState("");
   const [creditCardOpen, setCreditCardOpen] = useState(false);
   const [selectedInstallments, setSelectedInstallments] = useState(1);
-  const isCardPaymentSelected = cardPaymentMethods.some((payment) => payment.name === paymentMethod);
+  const isCardPaymentSelected = cardPaymentMethods.some(
+    (payment) => payment.name === paymentMethod,
+  );
   const isCardPayment = /tarjeta|visa|mastercard|amex|d[eé]bito|cr[eé]dito/i.test(paymentMethod);
+
+  useEffect(() => {
+    void loadAdminSettings({ data: {} }).then((settings) => {
+      setBankCbu(settings.find((item) => item.settingKey === "lrg:bank-cbu")?.settingValue ?? "");
+    });
+  }, []);
   const [couponCode, setCouponCode] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponPercentage, setCouponPercentage] = useState(0);
   const [couponMessage, setCouponMessage] = useState("");
-  const [shippingMethod, setShippingMethod] = useState<string>(availableShippingMethods[0]?.name ?? "");
   const [validationMessage, setValidationMessage] = useState("");
   const validationRef = useRef<HTMLDivElement | null>(null);
 
@@ -91,8 +100,6 @@ function CheckoutPage() {
     if (!city.trim()) missingFields.push("Ciudad");
     if (!address.trim()) missingFields.push("Dirección");
     if (!paymentMethod.trim()) missingFields.push("Método de pago");
-    if (availableShippingMethods.length > 0 && !shippingMethod.trim()) missingFields.push("Método de envío");
-
     if (missingFields.length > 0) {
       setValidationMessage(`Faltan completar: ${missingFields.join(", ")}.`);
       return;
@@ -103,7 +110,7 @@ function CheckoutPage() {
     const id = `LRG-${Math.floor(10000 + Math.random() * 89999)}`;
     const discountedSubtotal = couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal;
     const cardFee = isCardPayment ? discountedSubtotal * 0.1 : 0;
-    const total = discountedSubtotal + shipping + cardFee;
+    const total = discountedSubtotal + cardFee;
     const expenses = Math.round(total * 0.65);
     const order = {
       id,
@@ -141,7 +148,9 @@ function CheckoutPage() {
           <div className="glass-panel rounded-3xl p-12 text-center">
             <CheckCircle2 className="mx-auto size-12 text-primary" />
             <h1 className="font-display mt-6 text-3xl font-semibold">¡Gracias por tu compra!</h1>
-            <p className="mt-3 text-muted-foreground">Tu pedido <span className="text-foreground">{orderId}</span> fue confirmado.</p>
+            <p className="mt-3 text-muted-foreground">
+              Tu pedido <span className="text-foreground">{orderId}</span> fue confirmado.
+            </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button asChild>
                 <Link to="/">Seguir comprando</Link>
@@ -168,7 +177,7 @@ function CheckoutPage() {
           </div>
           <Link to="/carrito">
             <Button className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm transition-colors hover:bg-slate-50">
-              <ArrowLeft className="size-4" /> Volver
+              <CircleArrowLeft className="size-4 text-white" /> Volver
             </Button>
           </Link>
         </div>
@@ -193,27 +202,64 @@ function CheckoutPage() {
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nombre completo</Label>
-                  <Input id="name" required placeholder="Juan Pérez" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                  <Input
+                    id="name"
+                    required
+                    placeholder="Juan Pérez"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" required placeholder="juan@mail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    placeholder="juan@mail.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Teléfono</Label>
-                  <Input id="phone" required placeholder="+54 11 5555 5555" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <Input
+                    id="phone"
+                    required
+                    placeholder="+54 11 5555 5555"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="city">Ciudad</Label>
-                  <Input id="city" required placeholder="Buenos Aires" value={city} onChange={(e) => setCity(e.target.value)} />
+                  <Input
+                    id="city"
+                    required
+                    placeholder="Buenos Aires"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="address">Dirección</Label>
-                  <Input id="address" required placeholder="Av. Siempre Viva 742" value={address} onChange={(e) => setAddress(e.target.value)} />
+                  <Input
+                    id="address"
+                    required
+                    placeholder="Av. Siempre Viva 742"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="notes">Notas del pedido (opcional)</Label>
-                  <Textarea id="notes" placeholder="Indicaciones para la entrega" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+                  <Textarea
+                    id="notes"
+                    placeholder="Indicaciones para la entrega"
+                    rows={3}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
                 </div>
               </div>
             </section>
@@ -237,41 +283,47 @@ function CheckoutPage() {
                   variant="secondary"
                   onClick={() => {
                     const matchingCoupon = (brand.discounts ?? []).find(
-                      (discount) => discount.enabled && discount.code === couponCode.trim().toUpperCase(),
+                      (discount) =>
+                        discount.enabled && discount.code === couponCode.trim().toUpperCase(),
                     );
                     const isValid = Boolean(matchingCoupon);
                     setCouponApplied(isValid);
                     setCouponPercentage(matchingCoupon?.percentage ?? 0);
-                    setCouponMessage(isValid ? `Código aplicado: ${matchingCoupon?.percentage}% de descuento.` : "El código no es válido.");
+                    setCouponMessage(
+                      isValid
+                        ? `Código aplicado: ${matchingCoupon?.percentage}% de descuento.`
+                        : "El código no es válido.",
+                    );
                   }}
                 >
                   Aplicar
                 </Button>
               </div>
-              {couponMessage && <p className={`mt-2 text-xs ${couponApplied ? "text-green-600" : "text-destructive"}`}>{couponMessage}</p>}
+              {couponMessage && (
+                <p
+                  className={`mt-2 text-xs ${couponApplied ? "text-green-600" : "text-destructive"}`}
+                >
+                  {couponMessage}
+                </p>
+              )}
             </section>
 
-            {availableShippingMethods.length > 0 && (
-              <section className="glass-panel rounded-2xl p-6">
-                <h2 className="font-display flex items-center gap-2 font-semibold">
-                  <Truck className="size-4 text-primary" /> Método de envío
-                </h2>
-                <RadioGroup value={shippingMethod} onValueChange={setShippingMethod} className="mt-5 space-y-3">
-                  {availableShippingMethods.map((shippingOption) => (
-                    <label key={shippingOption.id} className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-2/60 px-4 py-3 text-sm">
-                      <RadioGroupItem value={shippingOption.name} />
-                      {shippingOption.name}
-                    </label>
-                  ))}
-                </RadioGroup>
-              </section>
-            )}
+            <section className="glass-panel rounded-2xl p-6">
+              <h2 className="font-display flex items-center gap-2 font-semibold">
+                <Truck className="size-4 text-primary" /> Método de envío
+              </h2>
+              <p className="mt-4 rounded-xl bg-surface-2/60 px-4 py-3 text-sm">{shippingMethod}</p>
+            </section>
 
             <section className="glass-panel rounded-2xl p-6">
               <h2 className="font-display flex items-center gap-2 font-semibold">
                 <CreditCard className="size-4 text-primary" /> Método de pago
               </h2>
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="mt-5 space-y-3">
+              <RadioGroup
+                value={paymentMethod}
+                onValueChange={setPaymentMethod}
+                className="mt-5 space-y-3"
+              >
                 {cardPaymentMethods.length > 0 && (
                   <div className="rounded-xl bg-surface-2/60 px-4 py-3">
                     <div className="flex items-center gap-3 text-sm">
@@ -288,10 +340,15 @@ function CheckoutPage() {
                     </div>
                     {creditCardOpen && (
                       <div className="mt-3 space-y-3 border-t border-border/60 pt-3">
-                        <p className="text-xs text-muted-foreground">Elegí la tarjeta y la cantidad de cuotas.</p>
+                        <p className="text-xs text-muted-foreground">
+                          Elegí la tarjeta y la cantidad de cuotas.
+                        </p>
                         <div className="space-y-2">
                           {cardPaymentMethods.map((payment) => (
-                            <label key={payment.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/60 px-3 py-2 text-sm">
+                            <label
+                              key={payment.id}
+                              className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/60 px-3 py-2 text-sm"
+                            >
                               <RadioGroupItem value={payment.name} />
                               {payment.name}
                             </label>
@@ -302,7 +359,10 @@ function CheckoutPage() {
                             <Label>Cantidad de cuotas</Label>
                             <div className="grid gap-2 sm:grid-cols-3">
                               {interestFreeOptions.map((installments) => (
-                                <label key={installments} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm">
+                                <label
+                                  key={installments}
+                                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm"
+                                >
                                   <input
                                     type="radio"
                                     name="installments"
@@ -320,11 +380,20 @@ function CheckoutPage() {
                   </div>
                 )}
                 {otherPaymentMethods.map((payment) => (
-                  <label key={payment.id} className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-2/60 px-4 py-3 text-sm">
+                  <label
+                    key={payment.id}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-2/60 px-4 py-3 text-sm"
+                  >
                     <RadioGroupItem value={payment.name} />
                     {payment.name}
                   </label>
                 ))}
+                {/transferencia/i.test(paymentMethod) && bankCbu && (
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+                    <p className="font-semibold">Datos para transferencia bancaria</p>
+                    <p className="mt-1 text-muted-foreground">CBU: {bankCbu}</p>
+                  </div>
+                )}
               </RadioGroup>
               <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
                 <Lock className="size-3.5" /> Demostración: no se procesan pagos reales.
@@ -338,8 +407,13 @@ function CheckoutPage() {
               {items.map((item) => {
                 const appliedInstallments = isCardPaymentSelected ? selectedInstallments : 1;
                 return appliedInstallments > 1 ? (
-                  <div key={item.id} className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{item.name} · {appliedInstallments} cuotas sin interés</span>
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between text-xs text-muted-foreground"
+                  >
+                    <span>
+                      {item.name} · {appliedInstallments} cuotas sin interés
+                    </span>
                     <span>{formatPrice((item.price * item.quantity) / appliedInstallments)}</span>
                   </div>
                 ) : null;
@@ -351,24 +425,40 @@ function CheckoutPage() {
               {couponApplied && (
                 <div className="flex items-center justify-between text-green-600">
                   <span>Descuento ({couponPercentage}%)</span>
-                  <span>-{formatPrice(subtotal * couponPercentage / 100)}</span>
+                  <span>-{formatPrice((subtotal * couponPercentage) / 100)}</span>
                 </div>
               )}
               {isCardPayment && (
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Comisión tarjeta (10%)</span>
-                  <span>{formatPrice((couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal) * 0.1)}</span>
+                  <span>
+                    {formatPrice(
+                      (couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal) * 0.1,
+                    )}
+                  </span>
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <span>Envío estimado</span>
-                <span>{shipping === 0 ? "Gratis" : formatPrice(shipping)}</span>
+                <span>Envío</span>
+                <span>{shippingMethod}</span>
               </div>
               <div className="flex items-center justify-between font-semibold text-foreground">
                 <span>Total</span>
-                <span>{formatPrice((couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal) + shipping + (isCardPayment ? (couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal) * 0.1 : 0))}</span>
+                <span>
+                  {formatPrice(
+                    (couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal) +
+                      (isCardPayment
+                        ? (couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal) * 0.1
+                        : 0),
+                  )}
+                </span>
               </div>
-              <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">Confirmar pedido</Button>
+              <Button
+                type="submit"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Confirmar pedido
+              </Button>
             </div>
           </aside>
         </form>

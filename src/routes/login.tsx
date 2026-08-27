@@ -4,7 +4,7 @@ import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { getKindeRedirectUri } from "@/lib/kinde";
-import { Mail, Zap } from "lucide-react";
+import { CircleArrowLeft, House, Mail, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -41,7 +41,10 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6 text-lg font-semibold text-foreground">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 mb-6 text-lg font-semibold text-foreground"
+          >
             <Zap className="h-6 w-6 text-primary" /> LRG Store Shop
           </Link>
           <h1 className="text-2xl font-bold text-foreground">Iniciar sesión</h1>
@@ -59,18 +62,26 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
-            ¿No tienes cuenta? <Link to="/register" className="text-primary hover:underline font-medium">Crear cuenta</Link>
+            ¿No tienes cuenta?{" "}
+            <Link to="/register" className="text-primary hover:underline font-medium">
+              Crear cuenta
+            </Link>
           </p>
           <div className="mt-4 flex flex-col items-center gap-2">
-            <Button variant="outline" className="w-32" onClick={() => {
-              if (typeof window !== 'undefined' && window.history.length > 1) return window.history.back();
-              navigate({ to: "/" });
-            }}>
-              Volver
+            <Button
+              variant="outline"
+              className="w-32"
+              onClick={() => {
+                if (typeof window !== "undefined" && window.history.length > 1)
+                  return window.history.back();
+                navigate({ to: "/" });
+              }}
+            >
+              <CircleArrowLeft className="size-4 text-white" /> Volver
             </Button>
 
             <Button variant="outline" onClick={() => navigate({ to: "/" })} className="w-32">
-              Inicio
+              <House className="size-4 text-white" /> Inicio
             </Button>
           </div>
         </div>

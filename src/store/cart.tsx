@@ -2,34 +2,46 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useReducer 
 import { toast } from "sonner";
 import type { BrandSlug } from "@/config/brands";
 import type { Product } from "@/data/products";
+import {
+  loadGuestCart,
+  loadUserCart,
+  saveGuestCart,
+  saveUserCart,
+  type CartItem as PersistedCartItem,
+} from "@/server/persistence";
 
-export type CartItem = {
+export type CartItem = PersistedCartItem & {
   id: string;
   slug: string;
   brand: BrandSlug;
-  name: string;
-  variantName?: string;
-  price: number;
-  quantity: number;
-  stock: number;
 };
 
-type CartState = { items: CartItem[]; hydrated: boolean };
+type CartState = { items: CartItem[]; hydrated: boolean; remoteHydrated: boolean };
 
 type CartAction =
-  | { type: "hydrate"; items: CartItem[] }
+  | { type: "hydrate"; items: CartItem[]; remote?: boolean }
   | { type: "add"; item: CartItem }
   | { type: "remove"; id: string }
   | { type: "quantity"; id: string; quantity: number }
   | { type: "clear" }
   | { type: "clearBrand"; brand: BrandSlug };
 
-const STORAGE_KEY = "lrg-store-cart-v1";
+function getGuestSessionId() {
+  const match = document.cookie.match(/(?:^|; )lrg_guest_session=([^;]+)/);
+  if (match?.[1]) return decodeURIComponent(match[1]);
+  const sessionId = crypto.randomUUID();
+  document.cookie = `lrg_guest_session=${encodeURIComponent(sessionId)}; Max-Age=2592000; Path=/; SameSite=Lax`;
+  return sessionId;
+}
 
 function reducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case "hydrate":
-      return { items: action.items, hydrated: true };
+      return {
+        items: action.items,
+        hydrated: true,
+        remoteHydrated: action.remote ?? state.remoteHydrated,
+      };
     case "add": {
       const existing = state.items.find((item) => item.id === action.item.id);
       if (existing) {
@@ -83,22 +95,51 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, { items: [], hydrated: false });
+export function CartProvider({
+  children,
+  user,
+  isAuthenticated = false,
+  isLoading = false,
+}: {
+  children: React.ReactNode;
+  user?: { id: string; email?: string } | null;
+  isAuthenticated?: boolean;
+  isLoading?: boolean;
+}) {
+  const [state, dispatch] = useReducer(reducer, {
+    items: [],
+    hydrated: false,
+    remoteHydrated: false,
+  });
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      dispatch({ type: "hydrate", items: raw ? (JSON.parse(raw) as CartItem[]) : [] });
-    } catch {
-      dispatch({ type: "hydrate", items: [] });
+    if (isLoading) return;
+    const sessionId = !isAuthenticated ? getGuestSessionId() : null;
+    const request =
+      isAuthenticated && user?.id
+        ? loadUserCart({
+            data: user.email ? { id: user.id, email: user.email } : { id: user.id },
+          })
+        : loadGuestCart({ data: { sessionId: sessionId ?? "" } });
+    request
+      .then((items) => dispatch({ type: "hydrate", items: items ?? [], remote: true }))
+      .catch(() => {
+        dispatch({ type: "hydrate", items: [], remote: true });
+      });
+  }, [isAuthenticated, isLoading, user?.email, user?.id]);
+
+  useEffect(() => {
+    if (!state.hydrated || !state.remoteHydrated) return;
+    if (isAuthenticated && user?.id) {
+      void saveUserCart({
+        data: user.email
+          ? { id: user.id, email: user.email, items: state.items }
+          : { id: user.id, items: state.items },
+      });
+    } else if (!isAuthenticated) {
+      void saveGuestCart({ data: { sessionId: getGuestSessionId(), items: state.items } });
     }
-  }, []);
-
-  useEffect(() => {
-    if (!state.hydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items));
-  }, [state.items, state.hydrated]);
+  }, [isAuthenticated, state.hydrated, state.items, state.remoteHydrated, user?.email, user?.id]);
 
   const addProduct = useCallback((product: Product, quantity = 1) => {
     if (product.stock <= 0) {
@@ -110,12 +151,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const existing = state.items.find((i) => i.id === product.id);
     if (existing) {
       if (existing.quantity >= product.stock) {
-        toast.error("No hay más stock disponible", { description: `${product.name} alcanzó su límite de stock.` });
+        toast.error("No hay más stock disponible", {
+          description: `${product.name} alcanzó su límite de stock.`,
+        });
         return;
       }
       const canAdd = Math.min(quantity, product.stock - existing.quantity);
       if (canAdd <= 0) {
-        toast.error("No hay más stock disponible", { description: `${product.name} alcanzó su límite de stock.` });
+        toast.error("No hay más stock disponible", {
+          description: `${product.name} alcanzó su límite de stock.`,
+        });
         return;
       }
       dispatch({
@@ -125,14 +170,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           slug: product.slug,
           brand: product.brand,
           name: product.name,
-          variantName: product.variantName,
           price: product.price,
           quantity: canAdd,
           stock: product.stock,
         },
       });
       if (canAdd < quantity) {
-        toast("Se agregó parte del pedido: se alcanzó el límite de stock", { description: product.name });
+        toast("Se agregó parte del pedido: se alcanzó el límite de stock", {
+          description: product.name,
+        });
       } else {
         toast.success("Agregado al carrito", { description: product.name });
       }
@@ -147,14 +193,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         slug: product.slug,
         brand: product.brand,
         name: product.name,
-        variantName: product.variantName,
         price: product.price,
         quantity: toAdd,
         stock: product.stock,
       },
     });
     if (toAdd < quantity) {
-      toast("Se agregó parte del pedido: se alcanzó el límite de stock", { description: product.name });
+      toast("Se agregó parte del pedido: se alcanzó el límite de stock", {
+        description: product.name,
+      });
     } else {
       toast.success("Agregado al carrito", { description: product.name });
     }

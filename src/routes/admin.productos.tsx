@@ -1,9 +1,39 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronUp, Edit3, Eye, EyeOff, FileText, Filter, Pencil, Plus, Save, Search, Sheet, Trash2, X, Copy, ArrowUpDown, CreditCard, RotateCcw, Tag } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Edit3,
+  Eye,
+  EyeOff,
+  FileText,
+  Filter,
+  Pencil,
+  Plus,
+  Save,
+  Search,
+  Sheet,
+  Trash2,
+  X,
+  Copy,
+  ArrowUpDown,
+  CreditCard,
+  RotateCcw,
+  Tag,
+} from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
-import { products as productsData, saveProducts, type ProductSupplier, type ProductVariant } from "@/data/products";
+import {
+  products as productsData,
+  saveProducts,
+  type ProductSupplier,
+  type ProductVariant,
+} from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +72,7 @@ import { brandList, brands, type BrandSlug } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { catalogQueries, type Product } from "@/services/catalog.service";
 import { moveToTrash } from "@/data/trash";
+import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
 
 type DeliveryUnit = "inmediata" | "horas" | "dias";
 type CurrencyCode = "ARS" | "USD";
@@ -69,7 +100,8 @@ type ProductFormState = {
   supplier: ProductSupplier;
 };
 
-const getSupplierKey = (supplier: ProductSupplier) => `${supplier.name}|${supplier.phone}|${supplier.social}`;
+const getSupplierKey = (supplier: ProductSupplier) =>
+  `${supplier.name}|${supplier.phone}|${supplier.social}`;
 
 type AppliedProductActions = {
   coupon: boolean;
@@ -116,7 +148,9 @@ function AdminProducts() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("createdAt_desc");
   const [discounts, setDiscounts] = useState<Record<string, number>>({});
   const [pendingDiscounts, setPendingDiscounts] = useState<Record<string, string>>({});
-  const [appliedProductActions, setAppliedProductActions] = useState<Record<string, AppliedProductActions>>({});
+  const [appliedProductActions, setAppliedProductActions] = useState<
+    Record<string, AppliedProductActions>
+  >({});
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [createChoiceOpen, setCreateChoiceOpen] = useState(false);
@@ -127,14 +161,20 @@ function AdminProducts() {
   const [initialVariantId, setInitialVariantId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState | null>(null);
   const [usdRate, setUsdRate] = useState<number>(() => {
-    if (typeof window === "undefined") return 0;
-    return Number(window.localStorage.getItem("lrg:usdRate")) || 0;
+    return 0;
   });
   const [usdRatePromptOpen, setUsdRatePromptOpen] = useState(false);
   const [usdRatePromptValue, setUsdRatePromptValue] = useState("");
   const multiProductInputRef = useRef<HTMLInputElement | null>(null);
   const [quickEditProductId, setQuickEditProductId] = useState<string | null>(null);
   const [quickEditVariantId, setQuickEditVariantId] = useState<string | null>(null);
+
+  useEffect(() => {
+    void loadAdminSettings({ data: {} }).then((settings) => {
+      const stored = settings.find((setting) => setting.settingKey === "lrg:usdRate");
+      if (stored) setUsdRate(Number(stored.settingValue) || 0);
+    });
+  }, []);
   const [quickEditForm, setQuickEditForm] = useState<
     Record<
       string,
@@ -182,7 +222,10 @@ function AdminProducts() {
 
   const priceLimit = useMemo(() => {
     const values = products
-      .filter((product) => !currencyFilter.length || currencyFilter.includes(product.priceCurrency ?? "ARS"))
+      .filter(
+        (product) =>
+          !currencyFilter.length || currencyFilter.includes(product.priceCurrency ?? "ARS"),
+      )
       .map((product) => {
         const discount = discounts[product.id] ?? 0;
         return priceMode === "storePrice" ? product.price * (1 - discount / 100) : product.price;
@@ -194,6 +237,7 @@ function AdminProducts() {
     open: boolean;
     title: string;
     description?: string;
+    confirmLabel?: string;
     onConfirm: () => void;
   }>({ open: false, title: "", description: undefined, onConfirm: () => {} });
 
@@ -237,7 +281,9 @@ function AdminProducts() {
       return;
     }
     setUsdRate(nextUsdRate);
-    window.localStorage.setItem("lrg:usdRate", String(nextUsdRate));
+    void saveAdminSetting({
+      data: { settingKey: "lrg:usdRate", settingValue: String(nextUsdRate) },
+    });
     setProductForm((current) => (current ? { ...current, usdRate: nextUsdRate } : current));
     setUsdRatePromptOpen(false);
     setUsdRatePromptValue("");
@@ -273,12 +319,13 @@ function AdminProducts() {
         .replace(/[_-]+/g, " ")
         .trim();
       const productName = baseName || `Producto importado ${index + 1}`;
-      const slugBase = productName
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "") || `producto-importado-${Date.now()}-${index + 1}`;
+      const slugBase =
+        productName
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "") || `producto-importado-${Date.now()}-${index + 1}`;
       const defaultBrand: BrandSlug = "arcade";
       const defaultCategory = brands[defaultBrand].categories[0]?.slug ?? "consolas";
 
@@ -306,7 +353,8 @@ function AdminProducts() {
     setCreateChoiceOpen(false);
 
     toast.success(`Se importaron ${importedProducts.length} productos`, {
-      description: "Ya están disponibles en el listado y puedes editarlos como cualquier otro producto.",
+      description:
+        "Ya están disponibles en el listado y puedes editarlos como cualquier otro producto.",
     });
   };
 
@@ -349,7 +397,9 @@ function AdminProducts() {
       product.variants = (product.variants ?? []).filter((variant) => variant.id !== variantId);
       setEditableProducts((current) =>
         current.map((currentProduct) =>
-          currentProduct.id === productId ? { ...currentProduct, variants: product.variants } : currentProduct,
+          currentProduct.id === productId
+            ? { ...currentProduct, variants: product.variants }
+            : currentProduct,
         ),
       );
       saveProducts(productsData as Product[]);
@@ -368,7 +418,9 @@ function AdminProducts() {
       return next;
     });
 
-    const productIndex = (productsData as Product[]).findIndex((product) => product.id === productId);
+    const productIndex = (productsData as Product[]).findIndex(
+      (product) => product.id === productId,
+    );
     if (productIndex !== -1) {
       (productsData as Product[]).splice(productIndex, 1);
       saveProducts(productsData as Product[]);
@@ -377,7 +429,9 @@ function AdminProducts() {
 
   const handleDuplicateProduct = (product: Product) => {
     const newId = `${product.id}-copy-${Date.now()}`;
-    const newSlug = `${product.slug}-copy-${Date.now()}`.replace(/[^a-z0-9-]/g, "-").replace(/--+/g, "-");
+    const newSlug = `${product.slug}-copy-${Date.now()}`
+      .replace(/[^a-z0-9-]/g, "-")
+      .replace(/--+/g, "-");
     const duplicated: Product = {
       ...product,
       id: newId,
@@ -403,18 +457,25 @@ function AdminProducts() {
     current.hidden = !current.hidden;
 
     // Update local editable list to reflect the change
-    setEditableProducts((currentList) => currentList.map((p) => (p.id === productId ? { ...p, hidden: current.hidden } : p)));
+    setEditableProducts((currentList) =>
+      currentList.map((p) => (p.id === productId ? { ...p, hidden: current.hidden } : p)),
+    );
     saveProducts(productsData as Product[]);
   };
 
   const getProductSelectionKey = (product: Product, variant?: ProductVariant) =>
     `${product.id}:${variant?.id ?? "base"}`;
 
-  const getProductIdFromSelectionKey = (selectionKey: string) => selectionKey.split(":")[0] ?? selectionKey;
+  const getProductIdFromSelectionKey = (selectionKey: string) =>
+    selectionKey.split(":")[0] ?? selectionKey;
 
   const toggleProductSelection = (selectionKey: string, checked: boolean) => {
     setSelectedProductIds((current) =>
-      checked ? (current.includes(selectionKey) ? current : [...current, selectionKey]) : current.filter((key) => key !== selectionKey),
+      checked
+        ? current.includes(selectionKey)
+          ? current
+          : [...current, selectionKey]
+        : current.filter((key) => key !== selectionKey),
     );
   };
 
@@ -434,9 +495,13 @@ function AdminProducts() {
 
   const handleBulkToggleProducts = (hidden: boolean) => {
     const ids = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
-    const nextProducts = (productsData as Product[]).map((product) => ids.has(product.id) ? { ...product, hidden } : product);
+    const nextProducts = (productsData as Product[]).map((product) =>
+      ids.has(product.id) ? { ...product, hidden } : product,
+    );
     productsData.splice(0, productsData.length, ...nextProducts);
-    setEditableProducts((current) => current.map((product) => ids.has(product.id) ? { ...product, hidden } : product));
+    setEditableProducts((current) =>
+      current.map((product) => (ids.has(product.id) ? { ...product, hidden } : product)),
+    );
     saveProducts(productsData as Product[]);
   };
 
@@ -449,24 +514,38 @@ function AdminProducts() {
 
   const handleBulkEditProducts = () => {
     const firstSelectionKey = selectedProductIds[0];
-    const firstProductId = firstSelectionKey ? getProductIdFromSelectionKey(firstSelectionKey) : undefined;
+    const firstProductId = firstSelectionKey
+      ? getProductIdFromSelectionKey(firstSelectionKey)
+      : undefined;
     const product = editableProducts.find((item) => item.id === firstProductId);
     if (!product) return;
     setBulkEditQueue(selectedProductIds);
     setBulkEditPosition(0);
     const variantId = firstSelectionKey?.split(":")[1];
-    openEditProductDialog(product, variantId && variantId !== "base" ? product.variants?.find((variant) => variant.id === variantId) : undefined);
+    openEditProductDialog(
+      product,
+      variantId && variantId !== "base"
+        ? product.variants?.find((variant) => variant.id === variantId)
+        : undefined,
+    );
   };
 
   const navigateBulkEditProduct = (direction: -1 | 1) => {
     const nextPosition = bulkEditPosition + direction;
     const nextSelectionKey = bulkEditQueue[nextPosition];
     if (!nextSelectionKey) return;
-    const nextProduct = editableProducts.find((product) => product.id === getProductIdFromSelectionKey(nextSelectionKey));
+    const nextProduct = editableProducts.find(
+      (product) => product.id === getProductIdFromSelectionKey(nextSelectionKey),
+    );
     if (!nextProduct) return;
     setBulkEditPosition(nextPosition);
     const variantId = nextSelectionKey.split(":")[1];
-    openEditProductDialog(nextProduct, variantId && variantId !== "base" ? nextProduct.variants?.find((variant) => variant.id === variantId) : undefined);
+    openEditProductDialog(
+      nextProduct,
+      variantId && variantId !== "base"
+        ? nextProduct.variants?.find((variant) => variant.id === variantId)
+        : undefined,
+    );
   };
 
   const handleApplyDiscount = (productId: string) => {
@@ -531,7 +610,13 @@ function AdminProducts() {
     setQuickEditVariantId(null);
     setQuickEditForm((current) => {
       const next = { ...current };
-      if (quickEditProductId) delete next[getQuickEditKey({ id: quickEditProductId } as Product, quickEditVariantId ? { id: quickEditVariantId } as ProductVariant : undefined)];
+      if (quickEditProductId)
+        delete next[
+          getQuickEditKey(
+            { id: quickEditProductId } as Product,
+            quickEditVariantId ? ({ id: quickEditVariantId } as ProductVariant) : undefined,
+          )
+        ];
       return next;
     });
   };
@@ -556,20 +641,39 @@ function AdminProducts() {
     const nextStock = Number(draft.stock) || product.stock;
     const nextDiscount = Math.max(0, Math.min(100, Number(draft.discount) || 0));
 
-    setEditableProducts((current) => current.map((item) => {
-      if (item.id !== product.id) return item;
-      if (variant) {
+    setEditableProducts((current) =>
+      current.map((item) => {
+        if (item.id !== product.id) return item;
+        if (variant) {
+          return {
+            ...item,
+            variants: item.variants?.map((itemVariant) =>
+              itemVariant.id === variant.id
+                ? {
+                    ...itemVariant,
+                    name: nextName,
+                    price: nextPrice,
+                    comision: nextComision,
+                    gastos: nextGastos,
+                    stock: nextStock,
+                    discount: nextDiscount,
+                  }
+                : itemVariant,
+            ),
+          };
+        }
         return {
           ...item,
-          variants: item.variants?.map((itemVariant) =>
-            itemVariant.id === variant.id
-              ? { ...itemVariant, name: nextName, price: nextPrice, comision: nextComision, gastos: nextGastos, stock: nextStock, discount: nextDiscount }
-              : itemVariant,
-          ),
+          brand: nextBrand,
+          name: nextName,
+          category: nextCategory,
+          price: nextPrice,
+          comision: nextComision,
+          gastos: nextGastos,
+          stock: nextStock,
         };
-      }
-      return { ...item, brand: nextBrand, name: nextName, category: nextCategory, price: nextPrice, comision: nextComision, gastos: nextGastos, stock: nextStock };
-    }));
+      }),
+    );
 
     const productIndex = (productsData as Product[]).findIndex((item) => item.id === product.id);
     if (productIndex !== -1) {
@@ -577,7 +681,15 @@ function AdminProducts() {
       if (variant) {
         existing.variants = existing.variants?.map((itemVariant) =>
           itemVariant.id === variant.id
-            ? { ...itemVariant, name: nextName, price: nextPrice, comision: nextComision, gastos: nextGastos, stock: nextStock, discount: nextDiscount }
+            ? {
+                ...itemVariant,
+                name: nextName,
+                price: nextPrice,
+                comision: nextComision,
+                gastos: nextGastos,
+                stock: nextStock,
+                discount: nextDiscount,
+              }
             : itemVariant,
         );
       } else {
@@ -686,7 +798,9 @@ function AdminProducts() {
         return [...current, newProduct];
       }
 
-      const existingIndex = (productsData as Product[]).findIndex((item) => item.id === productForm.id);
+      const existingIndex = (productsData as Product[]).findIndex(
+        (item) => item.id === productForm.id,
+      );
       if (existingIndex !== -1) {
         const existing = (productsData as Product[])[existingIndex] as Product;
         existing.name = productForm.name;
@@ -725,12 +839,19 @@ function AdminProducts() {
       : [];
     const nextBulkSelectionKey = remainingBulkQueue[0];
     if (nextBulkSelectionKey) {
-      const nextProduct = editableProducts.find((product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey));
+      const nextProduct = editableProducts.find(
+        (product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey),
+      );
       if (nextProduct) {
         setBulkEditQueue(remainingBulkQueue);
         setBulkEditPosition(0);
         const variantId = nextBulkSelectionKey.split(":")[1];
-        openEditProductDialog(nextProduct, variantId && variantId !== "base" ? nextProduct.variants?.find((variant) => variant.id === variantId) : undefined);
+        openEditProductDialog(
+          nextProduct,
+          variantId && variantId !== "base"
+            ? nextProduct.variants?.find((variant) => variant.id === variantId)
+            : undefined,
+        );
         return;
       }
     }
@@ -746,7 +867,9 @@ function AdminProducts() {
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
       const isInsideRow = quickEditRowRef.current?.contains(target);
-      const isInsideSelectPortal = !!(target as Element)?.closest?.("[data-radix-popper-content-wrapper]");
+      const isInsideSelectPortal = !!(target as Element)?.closest?.(
+        "[data-radix-popper-content-wrapper]",
+      );
 
       if (!isInsideRow && !isInsideSelectPortal) {
         cancelQuickEdit();
@@ -786,7 +909,8 @@ function AdminProducts() {
     const filtered = editableProducts.filter((product) => {
       if (brandFilter.length && !brandFilter.includes(product.brand)) return false;
       if (categoryFilter.length && !categoryFilter.includes(product.category)) return false;
-      if (currencyFilter.length && !currencyFilter.includes(product.priceCurrency ?? "ARS")) return false;
+      if (currencyFilter.length && !currencyFilter.includes(product.priceCurrency ?? "ARS"))
+        return false;
       if (query && !product.name.toLowerCase().includes(query.toLowerCase())) return false;
       if (discountOnly && (discounts[product.id] ?? 0) <= 0) return false;
       if (stockOnly && product.stock <= 0) return false;
@@ -829,7 +953,21 @@ function AdminProducts() {
           return 0;
       }
     });
-  }, [editableProducts, query, brandFilter, categoryFilter, currencyFilter, priceMode, priceMin, priceMax, discountOnly, stockOnly, availableOnly, sortOrder, discounts]);
+  }, [
+    editableProducts,
+    query,
+    brandFilter,
+    categoryFilter,
+    currencyFilter,
+    priceMode,
+    priceMin,
+    priceMax,
+    discountOnly,
+    stockOnly,
+    availableOnly,
+    sortOrder,
+    discounts,
+  ]);
 
   useEffect(() => {
     setPage(0);
@@ -844,18 +982,27 @@ function AdminProducts() {
     return results.slice(page * pageSize, page * pageSize + pageSize);
   }, [results, page, pageSize]);
   const displayRows = useMemo(
-    () => visibleResults.flatMap((product) =>
-      product.variants && product.variants.length >= 2
-        ? product.variants.map((variant) => ({ product, variant }))
-        : [{ product, variant: undefined }],
-    ),
+    () =>
+      visibleResults.flatMap((product) =>
+        product.variants && product.variants.length >= 2
+          ? product.variants.map((variant) => ({ product, variant }))
+          : [{ product, variant: undefined }],
+      ),
     [visibleResults],
   );
-  const visibleProductSelectionKeys = displayRows.map(({ product, variant }) => getProductSelectionKey(product, variant));
-  const selectedVisibleProductKeys = visibleProductSelectionKeys.filter((key) => selectedProductIds.includes(key));
-  const allVisibleProductsSelected = visibleProductSelectionKeys.length > 0 && selectedVisibleProductKeys.length === visibleProductSelectionKeys.length;
-  const someVisibleProductsSelected = selectedVisibleProductKeys.length > 0 && !allVisibleProductsSelected;
-  const totalPages = pageSize && pageSize > 0 ? Math.max(1, Math.ceil(results.length / pageSize)) : 1;
+  const visibleProductSelectionKeys = displayRows.map(({ product, variant }) =>
+    getProductSelectionKey(product, variant),
+  );
+  const selectedVisibleProductKeys = visibleProductSelectionKeys.filter((key) =>
+    selectedProductIds.includes(key),
+  );
+  const allVisibleProductsSelected =
+    visibleProductSelectionKeys.length > 0 &&
+    selectedVisibleProductKeys.length === visibleProductSelectionKeys.length;
+  const someVisibleProductsSelected =
+    selectedVisibleProductKeys.length > 0 && !allVisibleProductsSelected;
+  const totalPages =
+    pageSize && pageSize > 0 ? Math.max(1, Math.ceil(results.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
   const activeFilterCount =
@@ -910,7 +1057,7 @@ function AdminProducts() {
         <div className="relative flex flex-wrap items-center gap-1.5 sm:gap-2">
           <div className="relative">
             <Button
-              ref={sortButtonRef as any}
+              ref={sortButtonRef}
               variant={sortMenuOpen ? "secondary" : "outline"}
               size="sm"
               onClick={() => setSortMenuOpen((current) => !current)}
@@ -946,7 +1093,9 @@ function AdminProducts() {
                         setSortMenuOpen(false);
                       }}
                       className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
-                        sortOrder === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"
+                        sortOrder === value
+                          ? "bg-surface-2 text-foreground"
+                          : "text-muted-foreground"
                       }`}
                     >
                       <span>{label}</span>
@@ -968,7 +1117,7 @@ function AdminProducts() {
             <Filter className="size-4 text-white" />
             Filtros
           </Button>
- 
+
           <Button className="h-9 gap-2" onClick={openNewProductDialog}>
             <Plus className="size-4" /> Nuevo producto
           </Button>
@@ -976,7 +1125,9 @@ function AdminProducts() {
           <Button
             className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {
-              const rows: (string | number)[][] = [["ID","Nombre","Marca","Categoria","Precio","Stock","Descuento"]];
+              const rows: (string | number)[][] = [
+                ["ID", "Nombre", "Marca", "Categoria", "Precio", "Stock", "Descuento"],
+              ];
 
               for (const p of results) {
                 const discounted = discounts[p.id] ?? 0;
@@ -1007,7 +1158,15 @@ function AdminProducts() {
             onClick={() => {
               const rows = results.map((p) => {
                 const discounted = discounts[p.id] ?? 0;
-                return [p.id, p.name, p.brand, p.category ?? "", p.price ?? 0, p.stock ?? 0, `${discounted}%`];
+                return [
+                  p.id,
+                  p.name,
+                  p.brand,
+                  p.category ?? "",
+                  p.price ?? 0,
+                  p.stock ?? 0,
+                  `${discounted}%`,
+                ];
               });
 
               const tableHtml = `
@@ -1040,7 +1199,10 @@ function AdminProducts() {
                           .map(
                             (row) =>
                               `<tr>${row
-                                .map((cell) => `<td>${String(cell).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`)
+                                .map(
+                                  (cell) =>
+                                    `<td>${String(cell).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`,
+                                )
                                 .join("")}</tr>`,
                           )
                           .join("")}
@@ -1087,8 +1249,14 @@ function AdminProducts() {
               aria-expanded={categoriesOpen}
             >
               <span>Categorías</span>
-              {categoryFilter.length > 0 && <Badge variant="secondary">{categoryFilter.length}</Badge>}
-              {categoriesOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+              {categoryFilter.length > 0 && (
+                <Badge variant="secondary">{categoryFilter.length}</Badge>
+              )}
+              {categoriesOpen ? (
+                <ChevronUp className="size-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="size-4 text-muted-foreground" />
+              )}
             </button>
             {categoriesOpen && (
               <div className="space-y-2.5">
@@ -1098,7 +1266,9 @@ function AdminProducts() {
                       checked={categoryFilter.includes(category)}
                       onCheckedChange={(checked) =>
                         setCategoryFilter((current) =>
-                          checked ? [...current, category] : current.filter((value) => value !== category),
+                          checked
+                            ? [...current, category]
+                            : current.filter((value) => value !== category),
                         )
                       }
                     />
@@ -1118,7 +1288,11 @@ function AdminProducts() {
             >
               <span>Tienda</span>
               {brandFilter.length > 0 && <Badge variant="secondary">{brandFilter.length}</Badge>}
-              {brandsOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+              {brandsOpen ? (
+                <ChevronUp className="size-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="size-4 text-muted-foreground" />
+              )}
             </button>
             {brandsOpen && (
               <div className="space-y-2.5">
@@ -1128,7 +1302,9 @@ function AdminProducts() {
                       checked={brandFilter.includes(brand.slug)}
                       onCheckedChange={(checked) =>
                         setBrandFilter((current) =>
-                          checked ? [...current, brand.slug] : current.filter((value) => value !== brand.slug),
+                          checked
+                            ? [...current, brand.slug]
+                            : current.filter((value) => value !== brand.slug),
                         )
                       }
                     />
@@ -1148,7 +1324,11 @@ function AdminProducts() {
             >
               <span>Precio</span>
               <Badge variant="secondary">{priceFilterCount}</Badge>
-              {priceFilterOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+              {priceFilterOpen ? (
+                <ChevronUp className="size-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="size-4 text-muted-foreground" />
+              )}
             </button>
             {priceFilterOpen && (
               <div className="space-y-2.5">
@@ -1285,28 +1465,57 @@ function AdminProducts() {
         </div>
       ) : null}
 
-      
-
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm font-medium">Seleccionar</span>
         <Checkbox
-          checked={allVisibleProductsSelected ? true : someVisibleProductsSelected ? "indeterminate" : false}
+          checked={
+            allVisibleProductsSelected
+              ? true
+              : someVisibleProductsSelected
+                ? "indeterminate"
+                : false
+          }
           onCheckedChange={(checked) => {
             const shouldSelect = checked === true || checked === "indeterminate";
-            setSelectedProductIds((current) => shouldSelect
-              ? [...new Set([...current, ...visibleProductSelectionKeys])]
-              : current.filter((key) => !visibleProductSelectionKeys.includes(key)));
+            setSelectedProductIds((current) =>
+              shouldSelect
+                ? [...new Set([...current, ...visibleProductSelectionKeys])]
+                : current.filter((key) => !visibleProductSelectionKeys.includes(key)),
+            );
           }}
           aria-label="Seleccionar productos visibles"
         />
         {selectedProductIds.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground">{selectedProductIds.length} seleccionados</span>
-            <Button size="sm" variant="outline" onClick={handleBulkEditProducts}><Pencil className="size-4" /> Editar</Button>
-            <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(false)}><Eye className="size-4" /> Disponible</Button>
-            <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(true)}><EyeOff className="size-4" /> No disponible</Button>
-            <Button size="sm" variant="outline" onClick={handleBulkDuplicateProducts}><Copy className="size-4" /> Duplicar</Button>
-            <Button size="sm" variant="destructive" onClick={() => setConfirmState({ open: true, title: "Eliminar productos seleccionados?", description: "Esta acción no se puede deshacer.", onConfirm: handleBulkDeleteProducts })}><Trash2 className="size-4" /> Eliminar</Button>
+            <span className="text-xs text-muted-foreground">
+              {selectedProductIds.length} seleccionados
+            </span>
+            <Button size="sm" variant="outline" onClick={handleBulkEditProducts}>
+              <Pencil className="size-4" /> Editar
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(false)}>
+              <Eye className="size-4" /> Disponible
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(true)}>
+              <EyeOff className="size-4" /> No disponible
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleBulkDuplicateProducts}>
+              <Copy className="size-4" /> Duplicar
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() =>
+                setConfirmState({
+                  open: true,
+                  title: "Eliminar productos seleccionados?",
+                  description: "Esta acción no se puede deshacer.",
+                  onConfirm: handleBulkDeleteProducts,
+                })
+              }
+            >
+              <Trash2 className="size-4" /> Eliminar
+            </Button>
           </div>
         ) : null}
       </div>
@@ -1343,18 +1552,25 @@ function AdminProducts() {
               const displayComision = variant?.comision ?? product.comision ?? 0;
               const displayGastos = variant?.gastos ?? product.gastos ?? 0;
               const displayPriceCurrency = variant?.priceCurrency ?? product.priceCurrency ?? "ARS";
-              const displayComisionCurrency = variant?.comisionCurrency ?? product.comisionCurrency ?? "ARS";
-              const displayGastosCurrency = variant?.gastosCurrency ?? product.gastosCurrency ?? "ARS";
+              const displayComisionCurrency =
+                variant?.comisionCurrency ?? product.comisionCurrency ?? "ARS";
+              const displayGastosCurrency =
+                variant?.gastosCurrency ?? product.gastosCurrency ?? "ARS";
               const displayUsdRate = product.usdRate ?? 0;
               const discountedPrice = displayPrice * (1 - discount / 100);
-              const discountedPriceInArs = displayPriceCurrency === "USD" ? discountedPrice * displayUsdRate : discountedPrice;
-              const gastosInArs = displayGastosCurrency === "USD" ? displayGastos * displayUsdRate : displayGastos;
-              const displayProfit = displayPriceCurrency === displayGastosCurrency
-                ? discountedPrice - displayGastos
-                : discountedPriceInArs - gastosInArs;
-              const displayProfitCurrency = displayPriceCurrency === displayGastosCurrency ? displayPriceCurrency : "ARS";
+              const discountedPriceInArs =
+                displayPriceCurrency === "USD" ? discountedPrice * displayUsdRate : discountedPrice;
+              const gastosInArs =
+                displayGastosCurrency === "USD" ? displayGastos * displayUsdRate : displayGastos;
+              const displayProfit =
+                displayPriceCurrency === displayGastosCurrency
+                  ? discountedPrice - displayGastos
+                  : discountedPriceInArs - gastosInArs;
+              const displayProfitCurrency =
+                displayPriceCurrency === displayGastosCurrency ? displayPriceCurrency : "ARS";
               const quickEditKey = getQuickEditKey(product, variant);
-              const isQuickEditing = quickEditProductId === product.id && quickEditVariantId === (variant?.id ?? null);
+              const isQuickEditing =
+                quickEditProductId === product.id && quickEditVariantId === (variant?.id ?? null);
               const quickDraft = quickEditForm[quickEditKey] ?? {
                 brand: product.brand,
                 name: product.name,
@@ -1368,14 +1584,24 @@ function AdminProducts() {
               const activeQuickBrand = quickDraft.brand ?? product.brand;
 
               return (
-                <TableRow key={`${product.id}-${variant?.id ?? "base"}`} ref={isQuickEditing ? quickEditRowRef : undefined}>
+                <TableRow
+                  key={`${product.id}-${variant?.id ?? "base"}`}
+                  ref={isQuickEditing ? quickEditRowRef : undefined}
+                >
                   {isQuickEditing ? (
                     <>
                       <TableCell className="align-middle">
                         <div className="flex min-w-0 items-center gap-2 text-left">
                           <Checkbox
-                            checked={selectedProductIds.includes(getProductSelectionKey(product, variant))}
-                            onCheckedChange={(checked) => toggleProductSelection(getProductSelectionKey(product, variant), checked === true)}
+                            checked={selectedProductIds.includes(
+                              getProductSelectionKey(product, variant),
+                            )}
+                            onCheckedChange={(checked) =>
+                              toggleProductSelection(
+                                getProductSelectionKey(product, variant),
+                                checked === true,
+                              )
+                            }
                             aria-label={`Seleccionar ${product.name}`}
                           />
                           <Input
@@ -1395,7 +1621,8 @@ function AdminProducts() {
                           value={activeQuickBrand}
                           onValueChange={(value) => {
                             const nextBrand = value as BrandSlug;
-                            const nextCategory = brands[nextBrand].categories[0]?.slug ?? quickDraft.category;
+                            const nextCategory =
+                              brands[nextBrand].categories[0]?.slug ?? quickDraft.category;
                             setQuickEditForm((current) => ({
                               ...current,
                               [quickEditKey]: {
@@ -1440,7 +1667,10 @@ function AdminProducts() {
                           onChange={(event) =>
                             setQuickEditForm((current) => ({
                               ...current,
-                              [quickEditKey]: { ...quickDraft, comision: Number(event.target.value) },
+                              [quickEditKey]: {
+                                ...quickDraft,
+                                comision: Number(event.target.value),
+                              },
                             }))
                           }
                           className="w-full min-w-0 text-center"
@@ -1474,15 +1704,24 @@ function AdminProducts() {
                           onChange={(event) =>
                             setQuickEditForm((current) => ({
                               ...current,
-                              [quickEditKey]: { ...quickDraft, discount: Number(event.target.value) },
+                              [quickEditKey]: {
+                                ...quickDraft,
+                                discount: Number(event.target.value),
+                              },
                             }))
                           }
                           className="w-full min-w-0 text-center"
                         />
                       </TableCell>
-                      <TableCell className="align-middle">{formatPrice(Math.max(0, quickDraft.price * (1 - quickDraft.discount / 100)))}</TableCell>
                       <TableCell className="align-middle">
-                        {formatPrice(quickDraft.price * (1 - quickDraft.discount / 100) - quickDraft.gastos)}
+                        {formatPrice(
+                          Math.max(0, quickDraft.price * (1 - quickDraft.discount / 100)),
+                        )}
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        {formatPrice(
+                          quickDraft.price * (1 - quickDraft.discount / 100) - quickDraft.gastos,
+                        )}
                       </TableCell>
                       <TableCell className="align-middle">-</TableCell>
                       <TableCell className="align-middle">
@@ -1521,8 +1760,15 @@ function AdminProducts() {
                         <div className="flex min-w-0 items-center gap-2 text-left">
                           <Checkbox
                             className="shrink-0"
-                            checked={selectedProductIds.includes(getProductSelectionKey(product, variant))}
-                            onCheckedChange={(checked) => toggleProductSelection(getProductSelectionKey(product, variant), checked === true)}
+                            checked={selectedProductIds.includes(
+                              getProductSelectionKey(product, variant),
+                            )}
+                            onCheckedChange={(checked) =>
+                              toggleProductSelection(
+                                getProductSelectionKey(product, variant),
+                                checked === true,
+                              )
+                            }
                             aria-label={`Seleccionar ${product.name}`}
                           />
                           <span className="min-w-0 break-words font-medium">{product.name}</span>
@@ -1532,7 +1778,9 @@ function AdminProducts() {
                             </span>
                           ) : null}
                           {product.hidden ? (
-                            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground">Oculto</span>
+                            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground">
+                              Oculto
+                            </span>
                           ) : null}
                         </div>
                       </TableCell>
@@ -1572,34 +1820,101 @@ function AdminProducts() {
                       <TableCell>
                         {(() => {
                           const actionKey = getQuickEditKey(product, variant);
-                          const actions = appliedProductActions[actionKey] ?? { coupon: false, interestFree: false, cardCommission: false };
-                          const activeActionClass = "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white";
-                          return <div className="flex flex-wrap items-center justify-center gap-1">
-                          <Button variant="outline" size="sm" className={`h-7 gap-1 px-2 text-[11px] ${actions.coupon ? activeActionClass : ""}`} onClick={() => {
-                            const nextCouponState = !actions.coupon;
-                            setAppliedProductActions((current) => ({ ...current, [actionKey]: { ...actions, coupon: nextCouponState } }));
-                            toast.success(nextCouponState ? "Cupón aplicado" : "Cupón desactivado", { description: nextCouponState ? "El código válido se descontará del precio final en checkout." : "El cupón ya no se aplicará." });
-                          }}>
-                            <Tag className="size-3" /> Cupón
-                          </Button>
-                          <Button variant="outline" size="sm" className={`h-7 gap-1 px-2 text-[11px] ${actions.interestFree ? activeActionClass : ""}`} onClick={() => {
-                            const nextInterestFreeState = !actions.interestFree;
-                            setAppliedProductActions((current) => ({ ...current, [actionKey]: { ...actions, interestFree: nextInterestFreeState } }));
-                            toast.success(nextInterestFreeState ? "Cuotas sin interés aplicadas" : "Cuotas sin interés desactivadas", { description: nextInterestFreeState ? "El cliente abonará el mismo valor final." : "La opción fue desactivada." });
-                          }}>
-                            <CreditCard className="size-3" /> Cuotas s/int
-                          </Button>
-                          <Button variant="outline" size="sm" className={`h-7 gap-1 px-2 text-[11px] ${actions.cardCommission ? activeActionClass : ""}`} onClick={() => {
-                            const nextCardCommissionState = !actions.cardCommission;
-                            setAppliedProductActions((current) => ({ ...current, [actionKey]: { ...actions, cardCommission: nextCardCommissionState } }));
-                            toast.success(nextCardCommissionState ? "Comisión de tarjeta aplicada" : "Comisión de tarjeta desactivada", { description: nextCardCommissionState ? "Se sumará un 10% al pagar con débito o crédito." : "La comisión ya no se aplicará." });
-                          }}>
-                            <span className="text-sm font-semibold">$</span> Comisión tarjeta
-                          </Button>
-                          <Button variant="outline" size="sm" className="h-7 gap-1 px-2 text-[11px]" onClick={() => handleResetDiscount(product.id)}>
-                            <RotateCcw className="size-3" /> Restablecer
-                          </Button>
-                        </div>;
+                          const actions = appliedProductActions[actionKey] ?? {
+                            coupon: false,
+                            interestFree: false,
+                            cardCommission: false,
+                          };
+                          const activeActionClass =
+                            "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white";
+                          return (
+                            <div className="flex flex-wrap items-center justify-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className={`h-7 gap-1 px-2 text-[11px] ${actions.coupon ? activeActionClass : ""}`}
+                                onClick={() => {
+                                  const nextCouponState = !actions.coupon;
+                                  setAppliedProductActions((current) => ({
+                                    ...current,
+                                    [actionKey]: { ...actions, coupon: nextCouponState },
+                                  }));
+                                  toast.success(
+                                    nextCouponState ? "Cupón aplicado" : "Cupón desactivado",
+                                    {
+                                      description: nextCouponState
+                                        ? "El código válido se descontará del precio final en checkout."
+                                        : "El cupón ya no se aplicará.",
+                                    },
+                                  );
+                                }}
+                              >
+                                <Tag className="size-3" /> Cupón
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className={`h-7 gap-1 px-2 text-[11px] ${actions.interestFree ? activeActionClass : ""}`}
+                                onClick={() => {
+                                  const nextInterestFreeState = !actions.interestFree;
+                                  setAppliedProductActions((current) => ({
+                                    ...current,
+                                    [actionKey]: {
+                                      ...actions,
+                                      interestFree: nextInterestFreeState,
+                                    },
+                                  }));
+                                  toast.success(
+                                    nextInterestFreeState
+                                      ? "Cuotas sin interés aplicadas"
+                                      : "Cuotas sin interés desactivadas",
+                                    {
+                                      description: nextInterestFreeState
+                                        ? "El cliente abonará el mismo valor final."
+                                        : "La opción fue desactivada.",
+                                    },
+                                  );
+                                }}
+                              >
+                                <CreditCard className="size-3" /> Cuotas s/int
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className={`h-7 gap-1 px-2 text-[11px] ${actions.cardCommission ? activeActionClass : ""}`}
+                                onClick={() => {
+                                  const nextCardCommissionState = !actions.cardCommission;
+                                  setAppliedProductActions((current) => ({
+                                    ...current,
+                                    [actionKey]: {
+                                      ...actions,
+                                      cardCommission: nextCardCommissionState,
+                                    },
+                                  }));
+                                  toast.success(
+                                    nextCardCommissionState
+                                      ? "Comisión de tarjeta aplicada"
+                                      : "Comisión de tarjeta desactivada",
+                                    {
+                                      description: nextCardCommissionState
+                                        ? "Se sumará un 10% al pagar con débito o crédito."
+                                        : "La comisión ya no se aplicará.",
+                                    },
+                                  );
+                                }}
+                              >
+                                <span className="text-sm font-semibold">$</span> Comisión tarjeta
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1 px-2 text-[11px]"
+                                onClick={() => handleResetDiscount(product.id)}
+                              >
+                                <RotateCcw className="size-3" /> Restablecer
+                              </Button>
+                            </div>
+                          );
                         })()}
                       </TableCell>
                       <TableCell>
@@ -1655,7 +1970,9 @@ function AdminProducts() {
                             onClick={() =>
                               setConfirmState({
                                 open: true,
-                                title: variant ? `Eliminar variante "${variant.name}"?` : `Eliminar "${product.name}"?`,
+                                title: variant
+                                  ? `Eliminar variante "${variant.name}"?`
+                                  : `Eliminar "${product.name}"?`,
                                 description: "Esta acción no se puede deshacer.",
                                 onConfirm: () => handleDeleteProduct(product.id, variant?.id),
                               })
@@ -1714,13 +2031,20 @@ function AdminProducts() {
                 }}
                 disabled={!isValid || !isChanged}
               >
-                <Check className="h-4 w-4 mr-2" />Confirmar
+                <Check className="h-4 w-4 mr-2" />
+                Confirmar
               </Button>
             );
           })()}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => setPage(0)} disabled={!hasPreviousPage}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(0)}
+            disabled={!hasPreviousPage}
+          >
             Principio
           </Button>
           <div className="flex items-center gap-1 rounded-full border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm">
@@ -1735,7 +2059,13 @@ function AdminProducts() {
               </button>
             ))}
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={() => setPage(totalPages - 1)} disabled={!hasNextPage}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(totalPages - 1)}
+            disabled={!hasNextPage}
+          >
             Último
           </Button>
         </div>
@@ -1757,7 +2087,9 @@ function AdminProducts() {
         <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader className="space-y-2">
             <DialogTitle>Crear producto</DialogTitle>
-            <DialogDescription>Elegí cómo quieres añadir nuevos productos al catálogo.</DialogDescription>
+            <DialogDescription>
+              Elegí cómo quieres añadir nuevos productos al catálogo.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="mt-4 space-y-3">
@@ -1876,7 +2208,7 @@ function AdminProducts() {
         onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}
         title={confirmState.title}
         description={confirmState.description}
-        confirmLabel={(confirmState as any).confirmLabel ?? "Sí"}
+        confirmLabel={confirmState.confirmLabel ?? "Sí"}
         cancelLabel="No"
         onConfirm={() => {
           confirmState.onConfirm();
@@ -1931,22 +2263,36 @@ function ProductEditDialog({
   const featuresAppliedRef = useRef("");
   const [supplierOptions, setSupplierOptions] = useState<ProductSupplier[]>([]);
   const [newSupplierOpen, setNewSupplierOpen] = useState(false);
-  const [newSupplier, setNewSupplier] = useState<ProductSupplier>({ name: "", phone: "", social: "", purchaseDate: "" });
+  const [newSupplier, setNewSupplier] = useState<ProductSupplier>({
+    name: "",
+    phone: "",
+    social: "",
+    purchaseDate: "",
+  });
 
   useEffect(() => {
     const productSuppliers = supplierProducts
-      .flatMap((product) => [product.supplier, ...(product.variants ?? []).map((variant) => variant.supplier)])
-      .filter((supplier): supplier is ProductSupplier => Boolean(supplier?.name || supplier?.phone || supplier?.social));
-    let standaloneSuppliers: ProductSupplier[] = [];
-    try {
-      const stored = window.localStorage.getItem("lrg:suppliers");
-      standaloneSuppliers = stored ? (JSON.parse(stored) as ProductSupplier[]).map((supplier) => ({ ...supplier, purchaseDate: supplier.purchaseDate ?? "" })) : [];
-    } catch {
-      standaloneSuppliers = [];
-    }
+      .flatMap((product) => [
+        product.supplier,
+        ...(product.variants ?? []).map((variant) => variant.supplier),
+      ])
+      .filter((supplier): supplier is ProductSupplier =>
+        Boolean(supplier?.name || supplier?.phone || supplier?.social),
+      );
     const unique = new Map<string, ProductSupplier>();
-    [...productSuppliers, ...standaloneSuppliers].forEach((supplier) => unique.set(getSupplierKey(supplier), supplier));
-    setSupplierOptions(Array.from(unique.values()));
+    productSuppliers.forEach((supplier) => unique.set(getSupplierKey(supplier), supplier));
+    void loadAdminSettings({ data: {} }).then((settings) => {
+      const stored = settings.find((setting) => setting.settingKey === "lrg:suppliers");
+      if (stored) {
+        try {
+          const suppliers = JSON.parse(stored.settingValue) as ProductSupplier[];
+          suppliers.forEach((supplier) => unique.set(getSupplierKey(supplier), supplier));
+        } catch {
+          // Ignore malformed persisted supplier data.
+        }
+      }
+      setSupplierOptions(Array.from(unique.values()));
+    });
   }, [supplierProducts]);
 
   const selectSupplier = (value: string) => {
@@ -1962,23 +2308,38 @@ function ProductEditDialog({
       setProductForm({
         ...productForm,
         ...(activeVariant
-          ? { variants: productForm.variants.map((variant) => variant.id === activeVariant.id ? { ...variant, supplier } : variant) }
+          ? {
+              variants: productForm.variants.map((variant) =>
+                variant.id === activeVariant.id ? { ...variant, supplier } : variant,
+              ),
+            }
           : { supplier }),
       });
     }
   };
 
   const addSupplierFromProduct = () => {
-    const supplier = { name: newSupplier.name.trim(), phone: newSupplier.phone.trim(), social: newSupplier.social.trim(), purchaseDate: "" };
+    const supplier = {
+      name: newSupplier.name.trim(),
+      phone: newSupplier.phone.trim(),
+      social: newSupplier.social.trim(),
+      purchaseDate: "",
+    };
     if (!supplier.name || !supplier.phone || !supplier.social) return;
     const next = [...supplierOptions, supplier];
     setSupplierOptions(next);
-    window.localStorage.setItem("lrg:suppliers", JSON.stringify(next));
+    void saveAdminSetting({
+      data: { settingKey: "lrg:suppliers", settingValue: JSON.stringify(next) },
+    });
     if (productForm) {
       setProductForm({
         ...productForm,
         ...(activeVariant
-          ? { variants: productForm.variants.map((variant) => variant.id === activeVariant.id ? { ...variant, supplier } : variant) }
+          ? {
+              variants: productForm.variants.map((variant) =>
+                variant.id === activeVariant.id ? { ...variant, supplier } : variant,
+              ),
+            }
           : { supplier }),
       });
     }
@@ -1999,7 +2360,9 @@ function ProductEditDialog({
 
   useEffect(() => {
     if (!productForm) return;
-    const selectedVariant = productForm.variants.find((variant) => variant.id === selectedVariantId);
+    const selectedVariant = productForm.variants.find(
+      (variant) => variant.id === selectedVariantId,
+    );
     const description = selectedVariant?.description ?? productForm.description;
     setDescriptionDraft(description);
     setDescriptionConfirmed(true);
@@ -2050,11 +2413,20 @@ function ProductEditDialog({
         ? {
             variants: productForm.variants.map((variant) =>
               variant.id === activeVariant.id
-                ? { ...variant, features: activeFeatures.map((item, index) => index === editingFeatureIndex ? feature : item) }
+                ? {
+                    ...variant,
+                    features: activeFeatures.map((item, index) =>
+                      index === editingFeatureIndex ? feature : item,
+                    ),
+                  }
                 : variant,
             ),
           }
-        : { features: activeFeatures.map((item, index) => index === editingFeatureIndex ? feature : item) }),
+        : {
+            features: activeFeatures.map((item, index) =>
+              index === editingFeatureIndex ? feature : item,
+            ),
+          }),
     });
     setEditingFeatureIndex(null);
     setInlineFeatureText("");
@@ -2087,13 +2459,17 @@ function ProductEditDialog({
   const [confirmDeleteFeatureOpen, setConfirmDeleteFeatureOpen] = useState(false);
   const [featureToDeleteIndex, setFeatureToDeleteIndex] = useState<number | null>(null);
 
-  const requestUsdRateForCurrency = (field: "priceCurrency" | "comisionCurrency" | "gastosCurrency", nextCurrency: CurrencyCode) => {
+  const requestUsdRateForCurrency = (
+    field: "priceCurrency" | "comisionCurrency" | "gastosCurrency",
+    nextCurrency: CurrencyCode,
+  ) => {
     if (!productForm) return;
 
     setProductForm({
       ...productForm,
       [field]: nextCurrency,
-      usdRate: nextCurrency === "USD" && configuredUsdRate > 0 ? configuredUsdRate : productForm.usdRate,
+      usdRate:
+        nextCurrency === "USD" && configuredUsdRate > 0 ? configuredUsdRate : productForm.usdRate,
     });
   };
 
@@ -2208,13 +2584,16 @@ function ProductEditDialog({
       variants: productForm.variants.filter((_, variantIndex) => variantIndex !== index),
     });
     if (removedVariant?.id === selectedVariantId) {
-      setSelectedVariantId(productForm.variants[index + 1]?.id ?? productForm.variants[index - 1]?.id ?? null);
+      setSelectedVariantId(
+        productForm.variants[index + 1]?.id ?? productForm.variants[index - 1]?.id ?? null,
+      );
     }
     if (editingVariantIndex === index) handleCancelVariantEdit();
   };
 
   const activeVariant = productForm?.variants.find((variant) => variant.id === selectedVariantId);
-  const activeSupplier = activeVariant?.supplier ?? productForm?.supplier ?? { name: "", phone: "", social: "", purchaseDate: "" };
+  const activeSupplier = activeVariant?.supplier ??
+    productForm?.supplier ?? { name: "", phone: "", social: "", purchaseDate: "" };
   const activeFeatures = activeVariant?.features ?? productForm?.features ?? [];
   const updateActiveVariant = (updates: Partial<ProductVariant>) => {
     if (!productForm) return;
@@ -2293,7 +2672,9 @@ function ProductEditDialog({
           brandName: brand.name,
         })),
       );
-  const availableSubcategories = availableCategories.find((category) => category.slug === productForm.category)?.subcategories ?? [];
+  const availableSubcategories =
+    availableCategories.find((category) => category.slug === productForm.category)?.subcategories ??
+    [];
   const usdRate = productForm.usdRate > 0 ? productForm.usdRate : 0;
   const toLocalCurrency = (amount: number, currency: CurrencyCode) =>
     currency === "USD" ? (usdRate > 0 ? amount * usdRate : 0) : amount;
@@ -2313,8 +2694,13 @@ function ProductEditDialog({
   const stockValue = String(productForm.stock);
   const deliveryAmountValue = String(productForm.deliveryAmount);
   const conversionHint =
-    usdRate > 0 ? `Tipo de cambio USD: 1 USD = ${formatPrice(usdRate)}` : "Ingresá el valor de 1 USD para convertir";
-  const showUsdRateInput = productForm.priceCurrency === "USD" || productForm.comisionCurrency === "USD" || productForm.gastosCurrency === "USD";
+    usdRate > 0
+      ? `Tipo de cambio USD: 1 USD = ${formatPrice(usdRate)}`
+      : "Ingresá el valor de 1 USD para convertir";
+  const showUsdRateInput =
+    productForm.priceCurrency === "USD" ||
+    productForm.comisionCurrency === "USD" ||
+    productForm.gastosCurrency === "USD";
   const activeCommission = activeVariant?.comision ?? productForm.comision;
   const activeCommissionCurrency = activeVariant?.comisionCurrency ?? productForm.comisionCurrency;
   const activeExpenses = activeVariant?.gastos ?? productForm.gastos;
@@ -2350,8 +2736,14 @@ function ProductEditDialog({
       return;
     }
     const nextVariant = { ...activeVariant, ...updates };
-    const commissionLocal = toLocalCurrency(nextVariant.comision ?? 0, nextVariant.comisionCurrency ?? "ARS");
-    const expensesLocal = toLocalCurrency(nextVariant.gastos ?? 0, nextVariant.gastosCurrency ?? "ARS");
+    const commissionLocal = toLocalCurrency(
+      nextVariant.comision ?? 0,
+      nextVariant.comisionCurrency ?? "ARS",
+    );
+    const expensesLocal = toLocalCurrency(
+      nextVariant.gastos ?? 0,
+      nextVariant.gastosCurrency ?? "ARS",
+    );
     setProductForm({
       ...productForm,
       variants: productForm.variants.map((variant) =>
@@ -2370,11 +2762,27 @@ function ProductEditDialog({
             <DialogTitle>{modeTitle}</DialogTitle>
             {hasBulkNavigation ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Button type="button" variant="outline" size="sm" onClick={() => onNavigateBulkEdit(-1)} disabled={!canNavigatePrevious} aria-label="Producto anterior">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onNavigateBulkEdit(-1)}
+                  disabled={!canNavigatePrevious}
+                  aria-label="Producto anterior"
+                >
                   <ArrowLeft className="size-4" /> Anterior
                 </Button>
-                <span>{bulkEditPosition + 1} / {bulkEditCount}</span>
-                <Button type="button" variant="outline" size="sm" onClick={() => onNavigateBulkEdit(1)} disabled={!canNavigateNext} aria-label="Producto siguiente">
+                <span>
+                  {bulkEditPosition + 1} / {bulkEditCount}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onNavigateBulkEdit(1)}
+                  disabled={!canNavigateNext}
+                  aria-label="Producto siguiente"
+                >
                   Siguiente <ArrowRight className="size-4" />
                 </Button>
               </div>
@@ -2439,7 +2847,9 @@ function ProductEditDialog({
                 <Select
                   value={productForm.category}
                   onValueChange={(value) => {
-                    const selectedCategory = availableCategories.find((category) => category.slug === value);
+                    const selectedCategory = availableCategories.find(
+                      (category) => category.slug === value,
+                    );
                     setProductForm({
                       ...productForm,
                       brand: productForm.brand || selectedCategory?.brandSlug || "",
@@ -2454,7 +2864,9 @@ function ProductEditDialog({
                   <SelectContent>
                     {availableCategories.map((category) => (
                       <SelectItem key={category.slug} value={category.slug}>
-                        {productForm.brand ? category.name : `${category.name} (${category.brandName})`}
+                        {productForm.brand
+                          ? category.name
+                          : `${category.name} (${category.brandName})`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -2464,192 +2876,430 @@ function ProductEditDialog({
               {productForm.category && (
                 <div className="space-y-2">
                   <Label htmlFor="new-subcategory">Subcategoría</Label>
-                  <Select disabled={availableSubcategories.length === 0} value={productForm.subcategory} onValueChange={(value) => setProductForm({ ...productForm, subcategory: value })}>
-                    <SelectTrigger id="new-subcategory" className="w-full"><SelectValue placeholder={availableSubcategories.length ? "Seleccionar subcategoría" : "Sin subcategorías"} /></SelectTrigger>
+                  <Select
+                    disabled={availableSubcategories.length === 0}
+                    value={productForm.subcategory}
+                    onValueChange={(value) =>
+                      setProductForm({ ...productForm, subcategory: value })
+                    }
+                  >
+                    <SelectTrigger id="new-subcategory" className="w-full">
+                      <SelectValue
+                        placeholder={
+                          availableSubcategories.length
+                            ? "Seleccionar subcategoría"
+                            : "Sin subcategorías"
+                        }
+                      />
+                    </SelectTrigger>
                     <SelectContent>
-                      {availableSubcategories.map((subcategory) => <SelectItem key={subcategory.slug} value={subcategory.slug}>{subcategory.name}</SelectItem>)}
+                      {availableSubcategories.map((subcategory) => (
+                        <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                          {subcategory.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
 
-              {false && (<>
-              {showUsdRateInput ? (
-                <div className="h-full space-y-2 sm:col-span-2">
-                  <Label htmlFor="usd-rate">Tipo de cambio USD</Label>
-                  <div className="rounded-xl border border-amber-500/35 bg-amber-500/5 p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="min-w-fit text-[10px] font-medium uppercase tracking-[0.2em] text-amber-600">
-                        1 USD =
+              {showUsdRateInput && (
+                <>
+                  {showUsdRateInput ? (
+                    <div className="h-full space-y-2 sm:col-span-2">
+                      <Label htmlFor="usd-rate">Tipo de cambio USD</Label>
+                      <div className="rounded-xl border border-amber-500/35 bg-amber-500/5 p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="min-w-fit text-[10px] font-medium uppercase tracking-[0.2em] text-amber-600">
+                            1 USD =
+                          </span>
+                          <Input
+                            id="usd-rate"
+                            type="number"
+                            min={0}
+                            value={usdRate === 0 ? "" : String(usdRate)}
+                            placeholder="Ej: 1200"
+                            disabled
+                            className="h-9 cursor-not-allowed opacity-70"
+                          />
+                        </div>
+                        <p className="mt-2 text-[11px] text-muted-foreground">{conversionHint}</p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="h-full space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor="new-price">Precio</Label>
+                      <Select
+                        value={productForm.priceCurrency}
+                        onValueChange={(value) =>
+                          requestUsdRateForCurrency("priceCurrency", value as CurrencyCode)
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ARS">$ (ARS)</SelectItem>
+                          <SelectItem value="USD">USD (Dólar)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Input
+                      id="new-price"
+                      type="number"
+                      value={priceValue}
+                      onFocus={(event) => event.target.select()}
+                      onChange={(event) =>
+                        setProductForm({ ...productForm, price: Number(event.target.value) })
+                      }
+                      placeholder="Precio"
+                    />
+                    {productForm.priceCurrency === "USD" ? (
+                      <p className="text-[11px] text-muted-foreground">
+                        {conversionHint} · equivale a {formatPrice(precioEnLocal)}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="h-full space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor="new-comision">Mi comisión</Label>
+                      <Select
+                        value={productForm.comisionCurrency}
+                        onValueChange={(value) =>
+                          requestUsdRateForCurrency("comisionCurrency", value as CurrencyCode)
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ARS">$ (ARS)</SelectItem>
+                          <SelectItem value="USD">USD (Dólar)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Input
+                      id="new-comision"
+                      type="number"
+                      min={0}
+                      value={comisionValue}
+                      onFocus={(event) => event.target.select()}
+                      onChange={(event) =>
+                        setProductForm({ ...productForm, comision: Number(event.target.value) })
+                      }
+                      placeholder="Mi comisión"
+                    />
+                  </div>
+
+                  <div className="h-full space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor="new-gastos">Gastos</Label>
+                      <Select
+                        value={productForm.gastosCurrency}
+                        onValueChange={(value) =>
+                          requestUsdRateForCurrency("gastosCurrency", value as CurrencyCode)
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ARS">$ (ARS)</SelectItem>
+                          <SelectItem value="USD">USD (Dólar)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Input
+                      id="new-gastos"
+                      type="number"
+                      value={gastosValue}
+                      onFocus={(event) => event.target.select()}
+                      onChange={(event) =>
+                        setProductForm({ ...productForm, gastos: Number(event.target.value) })
+                      }
+                      placeholder="Gastos"
+                    />
+                    {productForm.gastosCurrency === "USD" ? (
+                      <p className="text-[11px] text-muted-foreground">
+                        {conversionHint} · equivale a {formatPrice(gastosEnLocal)}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="h-full space-y-2">
+                    <Label htmlFor="new-discount">Descuento (%)</Label>
+                    <Input
+                      id="new-discount"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={discountValue}
+                      onFocus={(event) => event.target.select()}
+                      onChange={(event) =>
+                        setProductForm({ ...productForm, discount: Number(event.target.value) })
+                      }
+                      placeholder="Descuento (%)"
+                    />
+                  </div>
+
+                  <div className="h-full space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label>Precio en la tienda</Label>
+                      <span className="rounded-md border border-input bg-muted/30 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                        {productForm.priceCurrency}
                       </span>
+                    </div>
+                    <div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm text-foreground opacity-80">
+                      {formatLockedNumber(precioConDescuento)}
+                    </div>
+                  </div>
+
+                  <div className="h-full space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label>Ganancias</Label>
+                      <span className="rounded-md border border-input bg-muted/30 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                        {productForm.priceCurrency}
+                      </span>
+                    </div>
+                    <div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm text-foreground opacity-80">
+                      {ganancias >= 0
+                        ? formatLockedNumber(ganancias)
+                        : `-${formatLockedNumber(Math.abs(ganancias))}`}
+                    </div>
+                  </div>
+
+                  <div className="h-full space-y-2">
+                    <Label htmlFor="delivery-unit">Tiempo de entrega</Label>
+                    <Select
+                      value={productForm.deliveryUnit}
+                      onValueChange={(value) =>
+                        setProductForm({ ...productForm, deliveryUnit: value as DeliveryUnit })
+                      }
+                    >
+                      <SelectTrigger id="delivery-unit" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="inmediata">Entrega inmediata</SelectItem>
+                        <SelectItem value="horas">Horas</SelectItem>
+                        <SelectItem value="dias">Días</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {!isImmediate && (
+                    <div className="h-full space-y-2">
+                      <Label htmlFor="delivery-amount">Cantidad</Label>
                       <Input
-                        id="usd-rate"
+                        id="delivery-amount"
                         type="number"
-                        min={0}
-                        value={usdRate === 0 ? "" : String(usdRate)}
-                        placeholder="Ej: 1200"
-                        disabled
-                        className="h-9 cursor-not-allowed opacity-70"
+                        min={1}
+                        value={deliveryAmountValue}
+                        onFocus={(event) => event.target.select()}
+                        onChange={(event) =>
+                          setProductForm({
+                            ...productForm,
+                            deliveryAmount: Number(event.target.value),
+                          })
+                        }
+                        placeholder="Cantidad"
                       />
                     </div>
-                    <p className="mt-2 text-[11px] text-muted-foreground">{conversionHint}</p>
+                  )}
+
+                  {!isImmediate && (
+                    <div className="h-full space-y-2">
+                      <Label>Entrega</Label>
+                      <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-foreground opacity-60">
+                        {`${productForm.deliveryAmount} ${productForm.deliveryUnit}`}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="h-full space-y-2">
+                    <Label htmlFor="new-stock">Stock</Label>
+                    <Input
+                      id="new-stock"
+                      type="number"
+                      value={stockValue}
+                      onFocus={(event) => event.target.select()}
+                      onChange={(event) =>
+                        setProductForm({ ...productForm, stock: Number(event.target.value) })
+                      }
+                      placeholder="Stock"
+                    />
                   </div>
-                </div>
-              ) : null}
 
-              <div className="h-full space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor="new-price">Precio</Label>
-                  <Select
-                    value={productForm.priceCurrency}
-                    onValueChange={(value) =>
-                      requestUsdRateForCurrency("priceCurrency", value as CurrencyCode)
-                    }
-                  >
-                    <SelectTrigger className="h-8 w-28">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ARS">$ (ARS)</SelectItem>
-                      <SelectItem value="USD">USD (Dólar)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Input
-                  id="new-price"
-                  type="number"
-                  value={priceValue}
-                  onFocus={(event) => event.target.select()}
-                  onChange={(event) =>
-                    setProductForm({ ...productForm, price: Number(event.target.value) })
-                  }
-                  placeholder="Precio"
-                />
-                {productForm.priceCurrency === "USD" ? (
-                  <p className="text-[11px] text-muted-foreground">
-                    {conversionHint} · equivale a {formatPrice(precioEnLocal)}
-                  </p>
-                ) : null}
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="new-desc">Descripción</Label>
+                    <Textarea
+                      id="new-desc"
+                      rows={3}
+                      value={productForm.description}
+                      onChange={(event) =>
+                        setProductForm({ ...productForm, description: event.target.value })
+                      }
+                      placeholder="Descripción del producto"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="order-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                Precios
+              </span>
+              <Select
+                value={selectedVariantId ?? "base"}
+                onValueChange={(value) => setSelectedVariantId(value === "base" ? null : value)}
+              >
+                <SelectTrigger className="h-8 w-48">
+                  <SelectValue placeholder="Elegir variante" />
+                </SelectTrigger>
+                <SelectContent>
+                  {!productForm.variants.length && (
+                    <SelectItem value="base">Producto base</SelectItem>
+                  )}
+                  {productForm.variants.map((variant) => (
+                    <SelectItem key={variant.id} value={variant.id}>
+                      {variant.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {activeUsdRequired && (
+              <div className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+                {conversionHint}
               </div>
-
-              <div className="h-full space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor="new-comision">Mi comisión</Label>
+            )}
+            <div className="grid items-start gap-4 sm:grid-cols-3">
+              <div className="flex min-w-0 flex-col gap-1">
+                <div className="flex min-h-8 items-center justify-between gap-2">
+                  <Label>Mi comisión</Label>
                   <Select
-                    value={productForm.comisionCurrency}
+                    value={activeCommissionCurrency}
                     onValueChange={(value) =>
-                      requestUsdRateForCurrency("comisionCurrency", value as CurrencyCode)
+                      updateActivePricing({ comisionCurrency: value as CurrencyCode })
                     }
                   >
-                    <SelectTrigger className="h-8 w-28">
+                    <SelectTrigger className="h-8 w-24">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ARS">$ (ARS)</SelectItem>
-                      <SelectItem value="USD">USD (Dólar)</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <Input
-                  id="new-comision"
                   type="number"
                   min={0}
-                  value={comisionValue}
-                  onFocus={(event) => event.target.select()}
+                  value={isNewProduct && activeCommission === 0 ? "" : activeCommission}
                   onChange={(event) =>
-                    setProductForm({ ...productForm, comision: Number(event.target.value) })
+                    updateActivePricing({ comision: Number(event.target.value) || 0 })
                   }
-                  placeholder="Mi comisión"
                 />
               </div>
-
-              <div className="h-full space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor="new-gastos">Gastos</Label>
+              <div className="flex min-w-0 flex-col gap-1">
+                <div className="flex min-h-8 items-center justify-between gap-2">
+                  <Label>Gastos</Label>
                   <Select
-                    value={productForm.gastosCurrency}
+                    value={activeExpensesCurrency}
                     onValueChange={(value) =>
-                      requestUsdRateForCurrency("gastosCurrency", value as CurrencyCode)
+                      updateActivePricing({ gastosCurrency: value as CurrencyCode })
                     }
                   >
-                    <SelectTrigger className="h-8 w-28">
+                    <SelectTrigger className="h-8 w-24">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ARS">$ (ARS)</SelectItem>
-                      <SelectItem value="USD">USD (Dólar)</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <Input
-                  id="new-gastos"
                   type="number"
-                  value={gastosValue}
-                  onFocus={(event) => event.target.select()}
+                  min={0}
+                  value={isNewProduct && activeExpenses === 0 ? "" : activeExpenses}
                   onChange={(event) =>
-                    setProductForm({ ...productForm, gastos: Number(event.target.value) })
+                    updateActivePricing({ gastos: Number(event.target.value) || 0 })
                   }
-                  placeholder="Gastos"
                 />
-                {productForm.gastosCurrency === "USD" ? (
-                  <p className="text-[11px] text-muted-foreground">
-                    {conversionHint} · equivale a {formatPrice(gastosEnLocal)}
-                  </p>
-                ) : null}
               </div>
-
-              <div className="h-full space-y-2">
-                <Label htmlFor="new-discount">Descuento (%)</Label>
+              <div className="flex min-w-0 flex-col gap-1">
+                <div className="flex min-h-8 items-center justify-between gap-2">
+                  <Label>Precio</Label>
+                  <span className="text-xs text-muted-foreground">{activeOutputCurrency}</span>
+                </div>
+                <div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm opacity-80">
+                  {formatLockedNumber(activePriceValue)}
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 grid items-start gap-4 sm:grid-cols-3">
+              <div className="flex min-w-0 flex-col gap-1">
+                <Label className="min-h-8">Descuento (%)</Label>
                 <Input
-                  id="new-discount"
                   type="number"
                   min={0}
                   max={100}
-                  value={discountValue}
-                  onFocus={(event) => event.target.select()}
+                  value={isNewProduct && activeDiscount === 0 ? "" : activeDiscount}
                   onChange={(event) =>
-                    setProductForm({ ...productForm, discount: Number(event.target.value) })
+                    updateActiveVariant({ discount: Number(event.target.value) || 0 })
                   }
-                  placeholder="Descuento (%)"
                 />
               </div>
-
-              <div className="h-full space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label>Precio en la tienda</Label>
-                  <span className="rounded-md border border-input bg-muted/30 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                    {productForm.priceCurrency}
-                  </span>
+              <div className="flex min-w-0 flex-col gap-1">
+                <div className="flex min-h-8 items-center justify-between gap-2">
+                  <Label>Precio tienda</Label>
+                  <span className="text-xs text-muted-foreground">{activeOutputCurrency}</span>
                 </div>
-                <div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm text-foreground opacity-80">
-                  {formatLockedNumber(precioConDescuento)}
+                <div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm opacity-80">
+                  {formatLockedNumber(activeStorePrice)}
                 </div>
               </div>
-
-              <div className="h-full space-y-2">
-                <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-col gap-1">
+                <div className="flex min-h-8 items-center justify-between gap-2">
                   <Label>Ganancias</Label>
-                  <span className="rounded-md border border-input bg-muted/30 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                    {productForm.priceCurrency}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{activeOutputCurrency}</span>
                 </div>
-                <div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm text-foreground opacity-80">
-                  {ganancias >= 0
-                    ? formatLockedNumber(ganancias)
-                    : `-${formatLockedNumber(Math.abs(ganancias))}`}
+                <div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm opacity-80">
+                  {formatLockedNumber(activeProfit)}
                 </div>
               </div>
-
-              <div className="h-full space-y-2">
-                <Label htmlFor="delivery-unit">Tiempo de entrega</Label>
+            </div>
+            <div
+              className={`mt-4 grid items-start gap-4 ${showsDeliveryDetails ? "sm:grid-cols-4" : "sm:grid-cols-2"}`}
+            >
+              <div className="flex min-w-0 flex-col gap-1">
+                <Label className="min-h-8">Stock</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={isNewProduct && activeStock === 0 ? "" : activeStock}
+                  onChange={(event) =>
+                    updateActiveVariant({ stock: Number(event.target.value) || 0 })
+                  }
+                />
+              </div>
+              <div className="flex min-w-0 flex-col gap-1">
+                <Label className="min-h-8">Tiempo de entrega</Label>
                 <Select
-                  value={productForm.deliveryUnit}
+                  value={activeDeliveryUnit}
                   onValueChange={(value) =>
-                    setProductForm({ ...productForm, deliveryUnit: value as DeliveryUnit })
+                    updateActiveVariant({ deliveryUnit: value as DeliveryUnit })
                   }
                 >
-                  <SelectTrigger id="delivery-unit" className="w-full">
-                    <SelectValue />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tipo" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="inmediata">Entrega inmediata</SelectItem>
@@ -2658,92 +3308,29 @@ function ProductEditDialog({
                   </SelectContent>
                 </Select>
               </div>
-
-              {!isImmediate && (
-                <div className="h-full space-y-2">
-                  <Label htmlFor="delivery-amount">Cantidad</Label>
-                  <Input
-                    id="delivery-amount"
-                    type="number"
-                    min={1}
-                    value={deliveryAmountValue}
-                    onFocus={(event) => event.target.select()}
-                    onChange={(event) =>
-                      setProductForm({
-                        ...productForm,
-                        deliveryAmount: Number(event.target.value),
-                      })
-                    }
-                    placeholder="Cantidad"
-                  />
-                </div>
-              )}
-
-              {!isImmediate && (
-                <div className="h-full space-y-2">
-                  <Label>Entrega</Label>
-                  <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-foreground opacity-60">
-                    {`${productForm.deliveryAmount} ${productForm.deliveryUnit}`}
+              {showsDeliveryDetails && (
+                <>
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <Label className="min-h-8">Cantidad</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={activeDeliveryAmount === 0 ? "" : activeDeliveryAmount}
+                      onChange={(event) =>
+                        updateActiveVariant({ deliveryAmount: Number(event.target.value) || 0 })
+                      }
+                    />
                   </div>
-                </div>
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <Label className="min-h-8">Entrega</Label>
+                    <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm opacity-60">
+                      {activeDeliveryAmount > 0
+                        ? `${activeDeliveryAmount} ${activeDeliveryUnit}`
+                        : ""}
+                    </div>
+                  </div>
+                </>
               )}
-
-              <div className="h-full space-y-2">
-                <Label htmlFor="new-stock">Stock</Label>
-                <Input
-                  id="new-stock"
-                  type="number"
-                  value={stockValue}
-                  onFocus={(event) => event.target.select()}
-                  onChange={(event) =>
-                    setProductForm({ ...productForm, stock: Number(event.target.value) })
-                  }
-                  placeholder="Stock"
-                />
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="new-desc">Descripción</Label>
-                <Textarea
-                  id="new-desc"
-                  rows={3}
-                  value={productForm.description}
-                  onChange={(event) =>
-                    setProductForm({ ...productForm, description: event.target.value })
-                  }
-                  placeholder="Descripción del producto"
-                />
-              </div>
-              </>)}
-            </div>
-          </div>
-
-          <div className="order-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">Precios</span>
-              <Select value={selectedVariantId ?? "base"} onValueChange={(value) => setSelectedVariantId(value === "base" ? null : value)}>
-                <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Elegir variante" /></SelectTrigger>
-                <SelectContent>
-                  {!productForm.variants.length && <SelectItem value="base">Producto base</SelectItem>}
-                  {productForm.variants.map((variant) => <SelectItem key={variant.id} value={variant.id}>{variant.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            {activeUsdRequired && <div className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/5 p-3 text-xs text-muted-foreground">{conversionHint}</div>}
-            <div className="grid items-start gap-4 sm:grid-cols-3">
-              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Mi comisión</Label><Select value={activeCommissionCurrency} onValueChange={(value) => updateActivePricing({ comisionCurrency: value as CurrencyCode })}><SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ARS">$ (ARS)</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent></Select></div><Input type="number" min={0} value={isNewProduct && activeCommission === 0 ? "" : activeCommission} onChange={(event) => updateActivePricing({ comision: Number(event.target.value) || 0 })} /></div>
-              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Gastos</Label><Select value={activeExpensesCurrency} onValueChange={(value) => updateActivePricing({ gastosCurrency: value as CurrencyCode })}><SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ARS">$ (ARS)</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent></Select></div><Input type="number" min={0} value={isNewProduct && activeExpenses === 0 ? "" : activeExpenses} onChange={(event) => updateActivePricing({ gastos: Number(event.target.value) || 0 })} /></div>
-              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Precio</Label><span className="text-xs text-muted-foreground">{activeOutputCurrency}</span></div><div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm opacity-80">{formatLockedNumber(activePriceValue)}</div></div>
-            </div>
-            <div className="mt-4 grid items-start gap-4 sm:grid-cols-3">
-              <div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Descuento (%)</Label><Input type="number" min={0} max={100} value={isNewProduct && activeDiscount === 0 ? "" : activeDiscount} onChange={(event) => updateActiveVariant({ discount: Number(event.target.value) || 0 })} /></div>
-              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Precio tienda</Label><span className="text-xs text-muted-foreground">{activeOutputCurrency}</span></div><div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm opacity-80">{formatLockedNumber(activeStorePrice)}</div></div>
-              <div className="flex min-w-0 flex-col gap-1"><div className="flex min-h-8 items-center justify-between gap-2"><Label>Ganancias</Label><span className="text-xs text-muted-foreground">{activeOutputCurrency}</span></div><div className="flex h-9 cursor-not-allowed items-center rounded-md border border-input bg-muted/20 px-3 text-sm opacity-80">{formatLockedNumber(activeProfit)}</div></div>
-            </div>
-            <div className={`mt-4 grid items-start gap-4 ${showsDeliveryDetails ? "sm:grid-cols-4" : "sm:grid-cols-2"}`}>
-              <div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Stock</Label><Input type="number" min={0} value={isNewProduct && activeStock === 0 ? "" : activeStock} onChange={(event) => updateActiveVariant({ stock: Number(event.target.value) || 0 })} /></div>
-              <div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Tiempo de entrega</Label><Select value={activeDeliveryUnit} onValueChange={(value) => updateActiveVariant({ deliveryUnit: value as DeliveryUnit })}><SelectTrigger><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger><SelectContent><SelectItem value="inmediata">Entrega inmediata</SelectItem><SelectItem value="horas">Horas</SelectItem><SelectItem value="dias">Días</SelectItem></SelectContent></Select></div>
-              {showsDeliveryDetails && <><div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Cantidad</Label><Input type="number" min={1} value={activeDeliveryAmount === 0 ? "" : activeDeliveryAmount} onChange={(event) => updateActiveVariant({ deliveryAmount: Number(event.target.value) || 0 })} /></div><div className="flex min-w-0 flex-col gap-1"><Label className="min-h-8">Entrega</Label><div className="flex h-9 items-center rounded-md border border-input px-3 text-sm opacity-60">{activeDeliveryAmount > 0 ? `${activeDeliveryAmount} ${activeDeliveryUnit}` : ""}</div></div></>}
             </div>
           </div>
 
@@ -2774,66 +3361,99 @@ function ProductEditDialog({
 
               {productForm.variants.length > 0 && (
                 <div className="space-y-2">
-                {productForm.variants.map((variant, index) => (
-                  <div key={variant.id} className="flex items-center justify-between gap-2 rounded-xl border border-input p-3">
-                    {editingVariantIndex === index ? (
-                      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-                        <Input
-                          value={inlineVariantName}
-                          onChange={(event) => setInlineVariantName(event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              handleSaveVariantEdit();
-                            }
-                          }}
-                          className="min-w-0 flex-1"
-                        />
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={!inlineVariantName.trim() || inlineVariantName.trim() === variant.name}
-                            className="h-8 gap-2 px-3 text-sm text-green-600 hover:bg-green-100/80 hover:text-green-700"
-                            onClick={handleSaveVariantEdit}
-                          >
-                            <Check className="size-4" /> Guardar
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
-                            onClick={handleCancelVariantEdit}
-                          >
-                            <X className="size-4" /> Cancelar
-                          </Button>
+                  {productForm.variants.map((variant, index) => (
+                    <div
+                      key={variant.id}
+                      className="flex items-center justify-between gap-2 rounded-xl border border-input p-3"
+                    >
+                      {editingVariantIndex === index ? (
+                        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+                          <Input
+                            value={inlineVariantName}
+                            onChange={(event) => setInlineVariantName(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                handleSaveVariantEdit();
+                              }
+                            }}
+                            className="min-w-0 flex-1"
+                          />
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              disabled={
+                                !inlineVariantName.trim() ||
+                                inlineVariantName.trim() === variant.name
+                              }
+                              className="h-8 gap-2 px-3 text-sm text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                              onClick={handleSaveVariantEdit}
+                            >
+                              <Check className="size-4" /> Guardar
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
+                              onClick={handleCancelVariantEdit}
+                            >
+                              <X className="size-4" /> Cancelar
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex min-w-0 flex-1 items-center gap-2">
-                          <button type="button" className="min-w-0 truncate text-left text-sm font-medium" onClick={() => setSelectedVariantId(variant.id)}>
-                            {variant.name}
-                          </button>
-                          {selectedVariantId === variant.id && <Badge className="shrink-0 border-emerald-300 bg-emerald-500 text-black">Activa</Badge>}
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <Button type="button" variant={selectedVariantId === variant.id ? "secondary" : "ghost"} size="sm" onClick={() => setSelectedVariantId(variant.id)} className="h-8 gap-2 px-3 text-sm" disabled={selectedVariantId === variant.id}>
-                            {selectedVariantId === variant.id ? "Seleccionado" : "Seleccionar"}
-                          </Button>
-                          <Button type="button" variant="ghost" size="sm" onClick={() => handleStartVariantEdit(index)} className="h-8 gap-2 px-3 text-sm">
-                            <Pencil className="size-4" /> Editar
-                          </Button>
-                          <Button type="button" variant="ghost" size="sm" onClick={() => removeVariant(index)} className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10">
-                            <Trash2 className="size-4" /> Eliminar
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
+                      ) : (
+                        <>
+                          <div className="flex min-w-0 flex-1 items-center gap-2">
+                            <button
+                              type="button"
+                              className="min-w-0 truncate text-left text-sm font-medium"
+                              onClick={() => setSelectedVariantId(variant.id)}
+                            >
+                              {variant.name}
+                            </button>
+                            {selectedVariantId === variant.id && (
+                              <Badge className="shrink-0 border-emerald-300 bg-emerald-500 text-black">
+                                Activa
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <Button
+                              type="button"
+                              variant={selectedVariantId === variant.id ? "secondary" : "ghost"}
+                              size="sm"
+                              onClick={() => setSelectedVariantId(variant.id)}
+                              className="h-8 gap-2 px-3 text-sm"
+                              disabled={selectedVariantId === variant.id}
+                            >
+                              {selectedVariantId === variant.id ? "Seleccionado" : "Seleccionar"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleStartVariantEdit(index)}
+                              className="h-8 gap-2 px-3 text-sm"
+                            >
+                              <Pencil className="size-4" /> Editar
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeVariant(index)}
+                              className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="size-4" /> Eliminar
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -2849,9 +3469,15 @@ function ProductEditDialog({
               <div className="flex min-w-0 flex-col gap-1">
                 <Label>Nombre</Label>
                 <Select value={getSupplierKey(activeSupplier)} onValueChange={selectSupplier}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar proveedor" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar proveedor" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {supplierOptions.map((supplier) => <SelectItem key={getSupplierKey(supplier)} value={getSupplierKey(supplier)}>{supplier.name}</SelectItem>)}
+                    {supplierOptions.map((supplier) => (
+                      <SelectItem key={getSupplierKey(supplier)} value={getSupplierKey(supplier)}>
+                        {supplier.name}
+                      </SelectItem>
+                    ))}
                     <SelectItem value="add">Agregar proveedor</SelectItem>
                   </SelectContent>
                 </Select>
@@ -2866,15 +3492,24 @@ function ProductEditDialog({
               </div>
               <div className="flex min-w-0 flex-col gap-1">
                 <Label>Fecha de compra</Label>
-                <Input type="date" value={activeSupplier.purchaseDate} onChange={(event) => {
-                  const supplier = { ...activeSupplier, purchaseDate: event.target.value };
-                  setProductForm({
-                    ...productForm,
-                    ...(activeVariant
-                      ? { variants: productForm.variants.map((variant) => variant.id === activeVariant.id ? { ...variant, supplier } : variant) }
-                      : { supplier }),
-                  });
-                }} className="[&::-webkit-calendar-picker-indicator]:invert" />
+                <Input
+                  type="date"
+                  value={activeSupplier.purchaseDate}
+                  onChange={(event) => {
+                    const supplier = { ...activeSupplier, purchaseDate: event.target.value };
+                    setProductForm({
+                      ...productForm,
+                      ...(activeVariant
+                        ? {
+                            variants: productForm.variants.map((variant) =>
+                              variant.id === activeVariant.id ? { ...variant, supplier } : variant,
+                            ),
+                          }
+                        : { supplier }),
+                    });
+                  }}
+                  className="[&::-webkit-calendar-picker-indicator]:invert"
+                />
               </div>
             </div>
           </div>
@@ -2886,13 +3521,52 @@ function ProductEditDialog({
                 <DialogDescription>Ingresá los datos del nuevo proveedor.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-2">
-                <div className="space-y-2"><Label htmlFor="product-supplier-name">Nombre</Label><Input id="product-supplier-name" value={newSupplier.name} onChange={(event) => setNewSupplier((current) => ({ ...current, name: event.target.value }))} /></div>
-                <div className="space-y-2"><Label htmlFor="product-supplier-phone">Celular</Label><Input id="product-supplier-phone" value={newSupplier.phone} onChange={(event) => setNewSupplier((current) => ({ ...current, phone: event.target.value }))} /></div>
-                <div className="space-y-2"><Label htmlFor="product-supplier-social">Red social</Label><Input id="product-supplier-social" value={newSupplier.social} onChange={(event) => setNewSupplier((current) => ({ ...current, social: event.target.value }))} /></div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-supplier-name">Nombre</Label>
+                  <Input
+                    id="product-supplier-name"
+                    value={newSupplier.name}
+                    onChange={(event) =>
+                      setNewSupplier((current) => ({ ...current, name: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-supplier-phone">Celular</Label>
+                  <Input
+                    id="product-supplier-phone"
+                    value={newSupplier.phone}
+                    onChange={(event) =>
+                      setNewSupplier((current) => ({ ...current, phone: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-supplier-social">Red social</Label>
+                  <Input
+                    id="product-supplier-social"
+                    value={newSupplier.social}
+                    onChange={(event) =>
+                      setNewSupplier((current) => ({ ...current, social: event.target.value }))
+                    }
+                  />
+                </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setNewSupplierOpen(false)}><X className="size-4" /> Cancelar</Button>
-                <Button type="button" onClick={addSupplierFromProduct} disabled={!newSupplier.name.trim() || !newSupplier.phone.trim() || !newSupplier.social.trim()}><Save className="size-4" /> Guardar proveedor</Button>
+                <Button type="button" variant="outline" onClick={() => setNewSupplierOpen(false)}>
+                  <X className="size-4" /> Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  onClick={addSupplierFromProduct}
+                  disabled={
+                    !newSupplier.name.trim() ||
+                    !newSupplier.phone.trim() ||
+                    !newSupplier.social.trim()
+                  }
+                >
+                  <Save className="size-4" /> Guardar proveedor
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -2902,11 +3576,22 @@ function ProductEditDialog({
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                 Características
               </span>
-              <Select value={selectedVariantId ?? "base"} onValueChange={(value) => setSelectedVariantId(value === "base" ? null : value)}>
-                <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Elegir variante" /></SelectTrigger>
+              <Select
+                value={selectedVariantId ?? "base"}
+                onValueChange={(value) => setSelectedVariantId(value === "base" ? null : value)}
+              >
+                <SelectTrigger className="h-8 w-48">
+                  <SelectValue placeholder="Elegir variante" />
+                </SelectTrigger>
                 <SelectContent>
-                  {!productForm.variants.length && <SelectItem value="base">Producto base</SelectItem>}
-                  {productForm.variants.map((variant) => <SelectItem key={variant.id} value={variant.id}>{variant.name}</SelectItem>)}
+                  {!productForm.variants.length && (
+                    <SelectItem value="base">Producto base</SelectItem>
+                  )}
+                  {productForm.variants.map((variant) => (
+                    <SelectItem key={variant.id} value={variant.id}>
+                      {variant.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -2956,7 +3641,8 @@ function ProductEditDialog({
                               variant="ghost"
                               size="sm"
                               disabled={
-                                inlineFeatureText.trim() === (activeFeatures[editingFeatureIndex] ?? "") ||
+                                inlineFeatureText.trim() ===
+                                  (activeFeatures[editingFeatureIndex] ?? "") ||
                                 !inlineFeatureText.trim()
                               }
                               className="h-8 gap-2 px-3 text-sm text-green-600 hover:text-green-700 bg-transparent hover:bg-green-100/80"
@@ -3095,7 +3781,10 @@ function ProductEditDialog({
               {productForm.images.length > 0 ? (
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {productForm.images.map((image, index) => (
-                    <div key={image + index} className="rounded-2xl border border-input overflow-hidden">
+                    <div
+                      key={image + index}
+                      className="rounded-2xl border border-input overflow-hidden"
+                    >
                       <div className="relative overflow-hidden bg-slate-950/5">
                         <img
                           src={image}
@@ -3199,16 +3888,30 @@ function ProductEditDialog({
           </div>
         </DialogFooter>
 
-              {hasBulkNavigation ? (
-                <div className="mr-auto flex items-center gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => onNavigateBulkEdit(-1)} disabled={!canNavigatePrevious} aria-label="Producto anterior">
-                    <ArrowLeft className="size-4" /> Anterior
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => onNavigateBulkEdit(1)} disabled={!canNavigateNext} aria-label="Producto siguiente">
-                    Siguiente <ArrowRight className="size-4" />
-                  </Button>
-                </div>
-              ) : null}
+        {hasBulkNavigation ? (
+          <div className="mr-auto flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onNavigateBulkEdit(-1)}
+              disabled={!canNavigatePrevious}
+              aria-label="Producto anterior"
+            >
+              <ArrowLeft className="size-4" /> Anterior
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onNavigateBulkEdit(1)}
+              disabled={!canNavigateNext}
+              aria-label="Producto siguiente"
+            >
+              Siguiente <ArrowRight className="size-4" />
+            </Button>
+          </div>
+        ) : null}
         <ConfirmDialog
           open={confirmSaveOpen}
           onOpenChange={(open) => setConfirmSaveOpen(open)}

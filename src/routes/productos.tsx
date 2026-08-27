@@ -31,12 +31,14 @@ export const Route = createFileRoute("/productos")({
       { title: "Todos los productos — LRG Store Shop" },
       {
         name: "description",
-        content: "Explorá todos los productos del ecosistema LRG Store Shop: gaming, perfumería árabe y diseño web.",
+        content:
+          "Explorá todos los productos del ecosistema LRG Store Shop: gaming, perfumería árabe y diseño web.",
       },
       { property: "og:title", content: "Todos los productos — LRG Store Shop" },
       {
         property: "og:description",
-        content: "Explorá todos los productos del ecosistema LRG Store Shop: gaming, perfumería árabe y diseño web.",
+        content:
+          "Explorá todos los productos del ecosistema LRG Store Shop: gaming, perfumería árabe y diseño web.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -71,7 +73,11 @@ function ProductosPage() {
         Math.ceil(
           Math.max(
             ...products
-              .filter((product) => !priceCurrencies.length || priceCurrencies.includes(product.priceCurrency ?? "ARS"))
+              .filter(
+                (product) =>
+                  !priceCurrencies.length ||
+                  priceCurrencies.includes(product.priceCurrency ?? "ARS"),
+              )
               .map((product) => product.price),
             0,
           ) / 50,
@@ -118,8 +124,13 @@ function ProductosPage() {
     const filtered = products.filter((product) => {
       if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
       if (filters.categories.length && !filters.categories.includes(product.category)) return false;
-      if ((filters.brands ?? []).length && !(filters.brands ?? []).includes(product.brand)) return false;
-      if (filters.priceCurrencies?.length && !filters.priceCurrencies.includes(product.priceCurrency ?? "ARS")) return false;
+      if ((filters.brands ?? []).length && !(filters.brands ?? []).includes(product.brand))
+        return false;
+      if (
+        filters.priceCurrencies?.length &&
+        !filters.priceCurrencies.includes(product.priceCurrency ?? "ARS")
+      )
+        return false;
       if (product.price < filters.minPrice) return false;
       if (product.price > filters.maxPrice) return false;
       if (filters.inStockOnly && product.stock <= 0) return false;
@@ -152,11 +163,17 @@ function ProductosPage() {
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
       <div className="aurora-bg" />
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pt-20 pb-8 sm:px-6">
-        <BrandHeader brand={webDesignConfig} displayBrandName="LRG Store Shop" logoBrandSlug="store-shop" />
+        <BrandHeader
+          brand={webDesignConfig}
+          displayBrandName="LRG Store Shop"
+          logoBrandSlug="store-shop"
+        />
 
         <main className="flex-1 py-10">
           <header className="max-w-3xl">
-            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Catálogo completo</p>
+            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
+              Catálogo completo
+            </p>
             <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">LRG Store Shop</h1>
           </header>
 
@@ -166,7 +183,9 @@ function ProductosPage() {
               <Input
                 placeholder="Buscar producto"
                 value={filters.search}
-                onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, search: event.target.value }))
+                }
                 className="max-w-md pl-9"
               />
             </div>
@@ -190,11 +209,16 @@ function ProductosPage() {
                       key={value}
                       type="button"
                       onClick={() => {
-                        setFilters((current) => ({ ...current, sort: value as CatalogFilters["sort"] }));
+                        setFilters((current) => ({
+                          ...current,
+                          sort: value as CatalogFilters["sort"],
+                        }));
                         setShowSortOptions(false);
                       }}
                       className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
-                        filters.sort === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"
+                        filters.sort === value
+                          ? "bg-surface-2 text-foreground"
+                          : "text-muted-foreground"
                       }`}
                     >
                       <span>{label}</span>
@@ -215,7 +239,11 @@ function ProductosPage() {
             </button>
           </div>
 
-          <div className={"mt-6 grid gap-8 " + (showFilters ? "lg:grid-cols-[280px_1fr]" : "lg:grid-cols-1")}>
+          <div
+            className={
+              "mt-6 grid gap-8 " + (showFilters ? "lg:grid-cols-[280px_1fr]" : "lg:grid-cols-1")
+            }
+          >
             {showFilters && (
               <ProductFilters
                 categories={categories}

@@ -256,7 +256,11 @@
     pointer-events: none;
     background:
       radial-gradient(60rem 40rem at 12% -10%, var(--brand-glow), transparent 60%),
-      radial-gradient(50rem 35rem at 90% 0%, oklch(from var(--brand-2) l c h / 0.22), transparent 65%),
+      radial-gradient(
+        50rem 35rem at 90% 0%,
+        oklch(from var(--brand-2) l c h / 0.22),
+        transparent 65%
+      ),
       radial-gradient(45rem 30rem at 50% 110%, var(--brand-glow), transparent 60%);
     filter: blur(6px);
     animation: aurora-drift 24s ease-in-out infinite alternate;

@@ -37,17 +37,7 @@ export const Route = createFileRoute("/carrito")({
 
 function CartPage() {
   const navigate = useNavigate();
-  const { items, subtotal, setQuantity, removeItem, clear, brandSubtotal } = useCart();
-
-  const shipping =
-    items.length === 0
-      ? 0
-      : brandList.reduce((acc, b) => {
-          const bs = brandSubtotal(b.slug as any);
-          const threshold = b.shipping?.freeShippingThreshold ?? 300;
-          if (bs === 0) return acc;
-          return acc + (bs >= threshold ? 0 : 18);
-        }, 0);
+  const { items, subtotal, setQuantity, removeItem, clear } = useCart();
 
   const [confirmState, setConfirmState] = useState({
     open: false,
@@ -110,8 +100,15 @@ function CartPage() {
             <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
               <section className="space-y-4">
                 {items.map((item) => (
-                  <article key={item.id} className="glass-panel flex flex-wrap gap-4 rounded-2xl p-4">
-                    <ProductVisual seed={item.id} label={item.name} className="size-24 rounded-xl" />
+                  <article
+                    key={item.id}
+                    className="glass-panel flex flex-wrap gap-4 rounded-2xl p-4"
+                  >
+                    <ProductVisual
+                      seed={item.id}
+                      label={item.name}
+                      className="size-24 rounded-xl"
+                    />
                     <div className="min-w-50 flex-1">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-surface-2 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -190,11 +187,11 @@ function CartPage() {
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Envío</dt>
-                    <dd>{shipping === 0 ? "Gratis" : formatPrice(shipping)}</dd>
+                    <dd>Acordar entrega</dd>
                   </div>
                   <div className="flex justify-between font-semibold text-foreground">
                     <dt>Total</dt>
-                    <dd>{formatPrice(subtotal + shipping)}</dd>
+                    <dd>{formatPrice(subtotal)}</dd>
                   </div>
                   <div className="mt-4">
                     <Link to="/checkout">
@@ -230,4 +227,3 @@ function CartPage() {
     </>
   );
 }
-

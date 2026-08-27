@@ -1,4 +1,5 @@
 import type { BrandSlug } from "@/config/brands";
+import { saveAdminOrders } from "@/server/persistence";
 
 export type OrderStatus = "pendiente" | "pagado" | "enviado" | "entregado" | "cancelado";
 
@@ -25,7 +26,8 @@ export type Order = {
   paymentStatus?: "Pendiente" | "Pagado" | "Cancelado";
   paymentMethod: string;
   deliveryDate?: string | undefined;
-  shippingMethod?: "Por correo fisico" | "Por correo electronico" | "Por Whatsapp" | string | undefined;
+  shippingMethod?:
+    "Por correo fisico" | "Por correo electronico" | "Por Whatsapp" | string | undefined;
   shippingNumber?: string | undefined;
   attachments?: OrderAttachment[];
   items: { name: string; quantity: number; price: number }[];
@@ -36,10 +38,12 @@ function readStoredOrders(): Order[] {
 }
 
 export function saveOrders(orders: Order[]) {
-  void orders;
+  void saveAdminOrders({ data: { orders } });
 }
 
-const defaultOrders: Order[] = [
+const defaultOrders: Order[] = [];
+/*
+const legacyDefaultOrders: Order[] = [
   {
     id: "LRG-24810",
     brand: "arcade",
@@ -141,8 +145,9 @@ const defaultOrders: Order[] = [
     items: [{ name: "Dashboard Analítico", quantity: 1, price: 3600 }],
   },
 ];
+*/
 
-export const orders: Order[] = readStoredOrders();
+export const orders: Order[] = [];
 
 export const revenueByMonth = [
   { month: "Feb", arcade: 12400, scents: 8200, webDesign: 14200 },

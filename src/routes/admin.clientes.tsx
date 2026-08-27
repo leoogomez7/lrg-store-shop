@@ -1,14 +1,38 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { orderQueries, type Order } from "@/services/catalog.service";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Download, Eye, EyeOff, FileText, Paperclip, Search, Sheet, Save, X } from "lucide-react";
+import {
+  Check,
+  Download,
+  Eye,
+  EyeOff,
+  FileText,
+  Paperclip,
+  Search,
+  Sheet,
+  Save,
+  X,
+} from "lucide-react";
 import * as XLSX from "xlsx";
 import { useNavigate } from "@tanstack/react-router";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { saveOrders, orders as ordersData, type OrderAttachment } from "@/data/orders";
 
 export const Route = createFileRoute("/admin/clientes")({
@@ -74,7 +98,8 @@ function AdminClients() {
     if (!pageSize || pageSize <= 0) return [] as typeof customers;
     return filteredCustomers.slice(page * pageSize, page * pageSize + pageSize);
   }, [filteredCustomers, page, pageSize]);
-  const totalPages = pageSize && pageSize > 0 ? Math.max(1, Math.ceil(filteredCustomers.length / pageSize)) : 1;
+  const totalPages =
+    pageSize && pageSize > 0 ? Math.max(1, Math.ceil(filteredCustomers.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
 
@@ -88,14 +113,21 @@ function AdminClients() {
 
         <div className="relative min-w-55 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar cliente" className="h-9 pl-9" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar cliente"
+            className="h-9 pl-9"
+          />
         </div>
 
         <div className="flex items-center gap-2">
           <Button
             className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {
-              const rows: (string | number)[][] = [["Cliente", "Email", "Total de pedidos", "Total gastado"]];
+              const rows: (string | number)[][] = [
+                ["Cliente", "Email", "Total de pedidos", "Total gastado"],
+              ];
 
               for (const c of visibleCustomers) {
                 const total = c.orders.reduce((s, o) => s + (o.total || 0), 0);
@@ -105,12 +137,7 @@ function AdminClients() {
                   minimumFractionDigits: 0,
                 }).format(total);
 
-                rows.push([
-                  c.name ?? "",
-                  c.email ?? "",
-                  String(c.orders.length),
-                  gasto,
-                ]);
+                rows.push([c.name ?? "", c.email ?? "", String(c.orders.length), gasto]);
               }
 
               const worksheet = XLSX.utils.aoa_to_sheet(rows);
@@ -136,7 +163,12 @@ function AdminClients() {
                   minimumFractionDigits: 0,
                 }).format(total);
 
-                return [customer.name ?? "", customer.email ?? "", String(customer.orders.length), gasto];
+                return [
+                  customer.name ?? "",
+                  customer.email ?? "",
+                  String(customer.orders.length),
+                  gasto,
+                ];
               });
 
               const tableHtml = `
@@ -166,7 +198,10 @@ function AdminClients() {
                           .map(
                             (row) =>
                               `<tr>${row
-                                .map((cell) => `<td>${String(cell).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`)
+                                .map(
+                                  (cell) =>
+                                    `<td>${String(cell).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`,
+                                )
                                 .join("")}</tr>`,
                           )
                           .join("")}
@@ -190,12 +225,13 @@ function AdminClients() {
             <FileText className="size-4" />
             Exportar PDF
           </Button>
-
-          
         </div>
       </div>
 
-        <div ref={clientsTableRef} className="glass-panel mx-auto w-fit max-w-full overflow-visible rounded-2xl pb-2">
+      <div
+        ref={clientsTableRef}
+        className="glass-panel mx-auto w-fit max-w-full overflow-visible rounded-2xl pb-2"
+      >
         <Table containerClassName="overflow-visible" className="mx-auto w-fit text-center">
           <TableHeader
             className={`[&_th]:sticky [&_th]:top-14 [&_th]:z-20 [&_th]:shadow-[0_1px_0_var(--border)] lg:[&_th]:top-0 ${
@@ -213,9 +249,7 @@ function AdminClients() {
           <TableBody>
             {visibleCustomers.map((c) => {
               const totalSpent = c.orders.reduce((s, o) => s + (o.total || 0), 0);
-              return (
-                <CustomerRow key={c.key} customer={c} totalSpent={totalSpent} />
-              );
+              return <CustomerRow key={c.key} customer={c} totalSpent={totalSpent} />;
             })}
             {filteredCustomers.length === 0 ? (
               <TableRow>
@@ -259,13 +293,20 @@ function AdminClients() {
                 }}
                 disabled={!isValid || !isChanged}
               >
-                <Check className="h-4 w-4 mr-2" />Confirmar
+                <Check className="h-4 w-4 mr-2" />
+                Confirmar
               </Button>
             );
           })()}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => setPage(0)} disabled={!hasPreviousPage}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(0)}
+            disabled={!hasPreviousPage}
+          >
             Principio
           </Button>
           <div className="flex items-center gap-1 rounded-full border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm">
@@ -280,7 +321,13 @@ function AdminClients() {
               </button>
             ))}
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={() => setPage(totalPages - 1)} disabled={!hasNextPage}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(totalPages - 1)}
+            disabled={!hasNextPage}
+          >
             Último
           </Button>
         </div>
@@ -294,7 +341,13 @@ function formatPurchaseDate(value: string) {
   return year && month && day ? `${day}-${month}-${year}` : value;
 }
 
-function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: string; email: string; orders: Order[] }; totalSpent: number }) {
+function CustomerRow({
+  customer,
+  totalSpent,
+}: {
+  customer: { key: string; name: string; email: string; orders: Order[] };
+  totalSpent: number;
+}) {
   const [open, setOpen] = useState(false);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<OrderAttachment[]>([]);
@@ -306,7 +359,11 @@ function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: 
         <TableCell>{customer.name}</TableCell>
         <TableCell>{customer.email}</TableCell>
         <TableCell>{customer.orders.length}</TableCell>
-        <TableCell>{new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(totalSpent)}</TableCell>
+        <TableCell>
+          {new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(
+            totalSpent,
+          )}
+        </TableCell>
         <TableCell>
           <button
             className="inline-flex items-center gap-2 rounded-md bg-transparent px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
@@ -323,7 +380,10 @@ function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: 
           <TableCell colSpan={5} className="p-2">
             <div className="mx-auto w-fit max-w-full space-y-2">
               {customer.orders.map((o) => (
-                <div key={o.id} className="flex w-fit max-w-full items-center justify-between rounded-md border p-2 text-sm">
+                <div
+                  key={o.id}
+                  className="flex w-fit max-w-full items-center justify-between rounded-md border p-2 text-sm"
+                >
                   <div className="flex items-center gap-4">
                     <button
                       type="button"
@@ -335,7 +395,15 @@ function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: 
                     <div className="text-xs text-muted-foreground">
                       Fecha de compra: {formatPurchaseDate(o.date)}
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => { setDocumentsOrder(o); setPendingAttachments([]); }}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDocumentsOrder(o);
+                        setPendingAttachments([]);
+                      }}
+                    >
                       <Paperclip className="size-3.5" /> Documentos
                     </Button>
                   </div>
@@ -346,36 +414,73 @@ function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: 
         </TableRow>
       )}
 
-      <Dialog open={documentsOrder !== null} onOpenChange={(value) => { if (!value) { setDocumentsOrder(null); setPendingAttachments([]); } }}>
+      <Dialog
+        open={documentsOrder !== null}
+        onOpenChange={(value) => {
+          if (!value) {
+            setDocumentsOrder(null);
+            setPendingAttachments([]);
+          }
+        }}
+      >
         <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader>
             <DialogTitle>Documentos del pedido</DialogTitle>
             <DialogDescription>{documentsOrder?.id}</DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 border-b border-border/60 pb-4">
-            <Button type="button" variant="outline" onClick={() => { setDocumentsOrder(null); setPendingAttachments([]); }}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDocumentsOrder(null);
+                setPendingAttachments([]);
+              }}
+            >
               <X className="size-4" /> Cancelar
             </Button>
-            <Button type="button" onClick={() => {
-              if (!documentsOrder || pendingAttachments.length === 0) return;
-              const updatedOrder = { ...documentsOrder, attachments: [...(documentsOrder.attachments ?? []), ...pendingAttachments] };
-              saveOrders(ordersData.map((order) => order.id === updatedOrder.id ? updatedOrder : order));
-              setDocumentsOrder(updatedOrder);
-              setPendingAttachments([]);
-            }} disabled={pendingAttachments.length === 0}>
+            <Button
+              type="button"
+              onClick={() => {
+                if (!documentsOrder || pendingAttachments.length === 0) return;
+                const updatedOrder = {
+                  ...documentsOrder,
+                  attachments: [...(documentsOrder.attachments ?? []), ...pendingAttachments],
+                };
+                saveOrders(
+                  ordersData.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)),
+                );
+                setDocumentsOrder(updatedOrder);
+                setPendingAttachments([]);
+              }}
+              disabled={pendingAttachments.length === 0}
+            >
               <Save className="size-4" /> Guardar
             </Button>
           </div>
           <div className="space-y-2">
             {[...(documentsOrder?.attachments ?? []), ...pendingAttachments].map((attachment) => (
-              <div key={`${attachment.name}-${attachment.size}`} className="flex items-center justify-between gap-3 rounded-lg border p-2 text-sm">
+              <div
+                key={`${attachment.name}-${attachment.size}`}
+                className="flex items-center justify-between gap-3 rounded-lg border p-2 text-sm"
+              >
                 <span className="min-w-0 truncate">{attachment.name}</span>
-                {attachment.dataUrl ? <a href={attachment.dataUrl} download={attachment.name} className="rounded p-1 hover:bg-accent" title="Descargar"><Download className="size-4" /></a> : null}
+                {attachment.dataUrl ? (
+                  <a
+                    href={attachment.dataUrl}
+                    download={attachment.name}
+                    className="rounded p-1 hover:bg-accent"
+                    title="Descargar"
+                  >
+                    <Download className="size-4" />
+                  </a>
+                ) : null}
               </div>
             ))}
-            {(documentsOrder?.attachments ?? []).length === 0 && pendingAttachments.length === 0 && (
-              <p className="text-sm text-muted-foreground">No hay documentos adjuntos.</p>
-            )}
+            {(documentsOrder?.attachments ?? []).length === 0 &&
+              pendingAttachments.length === 0 && (
+                <p className="text-sm text-muted-foreground">No hay documentos adjuntos.</p>
+              )}
           </div>
           <Input
             type="file"
@@ -384,12 +489,16 @@ function CustomerRow({ customer, totalSpent }: { customer: { key: string; name: 
               const files = Array.from(event.target.files ?? []);
               files.forEach((file) => {
                 const reader = new FileReader();
-                reader.onload = () => setPendingAttachments((current) => [...current, {
-                  name: file.name,
-                  type: file.type,
-                  size: file.size,
-                  dataUrl: String(reader.result ?? ""),
-                }]);
+                reader.onload = () =>
+                  setPendingAttachments((current) => [
+                    ...current,
+                    {
+                      name: file.name,
+                      type: file.type,
+                      size: file.size,
+                      dataUrl: String(reader.result ?? ""),
+                    },
+                  ]);
                 reader.readAsDataURL(file);
               });
               event.target.value = "";

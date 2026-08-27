@@ -11,7 +11,7 @@ export default defineConfig({
   // The provided environment file lives next to the project directory.
   envDir: "..",
   // Kinde identifiers are public client configuration; database tokens are not.
-  envPrefix: ["VITE_", "KINDE_"],
+  envPrefix: ["VITE_", "AUTH_", "DOMAIN_"],
   plugins: [tanstackStart(), tailwindcss(), react()],
   resolve: {
     alias: {

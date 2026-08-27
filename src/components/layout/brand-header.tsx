@@ -1,6 +1,6 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { ShoppingBag, ShoppingCart, User, Menu, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/common/brand-mark";
@@ -14,7 +14,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { getStoredActivePanel, getStoredUserDisplayName, logout } from "@/lib/auth";
+import { logout } from "@/lib/auth";
 import { brandList, type BrandConfig } from "@/config/brands";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/store/cart";
@@ -95,36 +95,24 @@ function BrandHeaderContent({
   }>({ open: false, title: "", description: undefined, onConfirm: () => {} });
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    setUserName(user ? user.givenName || user.email || null : null);
+    setPanel(user ? (pathname.startsWith("/admin") ? "admin" : "customer") : null);
+  }, [pathname, user]);
 
-    const syncSessionState = () => {
-      setUserName(user ? user.givenName || user.email || null : getStoredUserDisplayName());
-      setPanel(user ? "customer" : getStoredActivePanel());
-    };
-
-    syncSessionState();
-
-    const onStorage = (e: StorageEvent) => {
-      if (["userFullName", "fullName", "name", "userName", "activePanel"].includes(e.key ?? "")) {
-        syncSessionState();
+  const handleBrandClick =
+    (slug: string, closeMenu = false) =>
+    (e: MouseEvent<HTMLAnchorElement>) => {
+      e?.preventDefault?.();
+      const href = slug === "store-shop" ? "/" : `/${slug}`;
+      if (typeof window !== "undefined" && window.location.pathname === href) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else if (slug === "store-shop") {
+        navigate({ to: "/" });
+      } else {
+        navigate({ to: "/$brand", params: { brand: slug } });
       }
+      if (closeMenu) setOpenMenu(false);
     };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  const handleBrandClick = (slug: string, closeMenu = false) => (e: any) => {
-    e?.preventDefault?.();
-    const href = slug === "store-shop" ? "/" : `/${slug}`;
-    if (typeof window !== "undefined" && window.location.pathname === href) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else if (slug === "store-shop") {
-      navigate({ to: "/" });
-    } else {
-      navigate({ to: "/$brand", params: { brand: slug } });
-    }
-    if (closeMenu) setOpenMenu(false);
-  };
 
   const defaultLinks: Array<{ label: string; to: string; exact?: boolean }> = [];
 
@@ -158,15 +146,21 @@ function BrandHeaderContent({
 
     return (
       <div className="flex items-center gap-2">
-        <div className="px-2 py-1 rounded-md bg-green-50 text-green-800 text-sm font-medium">{userName}</div>
-        <div className="px-2 py-1 rounded-md bg-green-600 text-white text-xs font-semibold">{roleLabel}</div>
+        <div className="px-2 py-1 rounded-md bg-green-50 text-green-800 text-sm font-medium">
+          {userName}
+        </div>
+        <div className="px-2 py-1 rounded-md bg-green-600 text-white text-xs font-semibold">
+          {roleLabel}
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      <header className={`${headerThemeClass} fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl`}>
+      <header
+        className={`${headerThemeClass} fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl`}
+      >
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-4 px-4 sm:px-6">
           <Link to="/" className="shrink-0" aria-label={brandLabel}>
             <BrandMark compact brandSlug={brandLogoSlug} />
@@ -182,7 +176,7 @@ function BrandHeaderContent({
 
           <div className="ml-auto flex items-center gap-4">
             <nav className="hidden md:flex items-center gap-3">
-              {links.map((l: any) => {
+              {links.map((l) => {
                 // anchor links for store-shop
                 if (l.href && typeof l.href === "string" && l.href.startsWith("#")) {
                   return (
@@ -215,7 +209,12 @@ function BrandHeaderContent({
                 // default router links
                 if (l.to) {
                   return (
-                    <Link key={l.to} to={l.to} params={{ brand: brand.slug }} className="text-sm font-medium px-3 py-1 rounded hover:bg-surface-2">
+                    <Link
+                      key={l.to}
+                      to={l.to}
+                      params={{ brand: brand.slug }}
+                      className="text-sm font-medium px-3 py-1 rounded hover:bg-surface-2"
+                    >
                       {l.label}
                     </Link>
                   );
@@ -275,7 +274,10 @@ function BrandHeaderContent({
                   </Button>
                 </>
               ) : (
-                <Link to="/cuenta" className="text-sm font-medium px-2 py-1 rounded-xl hover:bg-surface-2">
+                <Link
+                  to="/cuenta"
+                  className="text-sm font-medium px-2 py-1 rounded-xl hover:bg-surface-2"
+                >
                   Mi cuenta
                 </Link>
               )}
@@ -296,7 +298,7 @@ function BrandHeaderContent({
                       if (item.slug === "store-shop") {
                         navigate({ to: "/productos" });
                       } else {
-                        navigate({ to: '/$brand/productos', params: { brand: item.slug } });
+                        navigate({ to: "/$brand/productos", params: { brand: item.slug } });
                       }
                       setOpenMenu(false);
                     }}
@@ -334,9 +336,7 @@ function BrandHeaderContent({
                             key={item.id}
                             className="px-4 py-3 border-b text-sm hover:bg-accent/50"
                           >
-                            <div className="font-medium truncate mb-1">
-                              {item.name}
-                            </div>
+                            <div className="font-medium truncate mb-1">{item.name}</div>
                             <div className="flex items-center justify-between gap-2 mb-2">
                               <Badge variant="outline" className="text-xs shrink-0">
                                 {itemBrand?.name || item.brand}
@@ -397,7 +397,12 @@ function BrandHeaderContent({
                     <div className="border-t px-4 py-3 space-y-2">
                       <div className="flex justify-between items-center font-semibold mb-3">
                         <span>Subtotal:</span>
-                        <span>${items.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2)}</span>
+                        <span>
+                          $
+                          {items
+                            .reduce((acc, item) => acc + item.price * item.quantity, 0)
+                            .toFixed(2)}
+                        </span>
                       </div>
                       <Button
                         onClick={() => {
@@ -409,8 +414,14 @@ function BrandHeaderContent({
                       >
                         Seguir comprando
                       </Button>
-                      <Link to="/carrito" className="w-full block" onClick={() => setOpenCart(false)}>
-                        <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">Ver carrito completo</Button>
+                      <Link
+                        to="/carrito"
+                        className="w-full block"
+                        onClick={() => setOpenCart(false)}
+                      >
+                        <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                          Ver carrito completo
+                        </Button>
                       </Link>
                     </div>
                   </>

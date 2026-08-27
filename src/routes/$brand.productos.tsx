@@ -6,10 +6,7 @@ import { ArrowUpDown, Funnel, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { sortLabels } from "@/components/product/product-filters";
 import { ProductCard } from "@/components/product/product-card";
-import {
-  ProductFilters,
-  type CatalogFilters,
-} from "@/components/product/product-filters";
+import { ProductFilters, type CatalogFilters } from "@/components/product/product-filters";
 import { getBrand } from "@/config/brands";
 import { catalogQueries } from "@/services/catalog.service";
 import { orders } from "@/data/orders";
@@ -67,7 +64,11 @@ function CatalogPage() {
         Math.ceil(
           Math.max(
             ...products
-              .filter((product) => !priceCurrencies.length || priceCurrencies.includes(product.priceCurrency ?? "ARS"))
+              .filter(
+                (product) =>
+                  !priceCurrencies.length ||
+                  priceCurrencies.includes(product.priceCurrency ?? "ARS"),
+              )
               .map((product) => product.price),
             0,
           ) / 50,
@@ -113,7 +114,11 @@ function CatalogPage() {
     const filtered = products.filter((product) => {
       if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
       if (filters.categories.length && !filters.categories.includes(product.category)) return false;
-      if (filters.priceCurrencies?.length && !filters.priceCurrencies.includes(product.priceCurrency ?? "ARS")) return false;
+      if (
+        filters.priceCurrencies?.length &&
+        !filters.priceCurrencies.includes(product.priceCurrency ?? "ARS")
+      )
+        return false;
       if (product.price < filters.minPrice) return false;
       if (product.price > filters.maxPrice) return false;
       if (filters.inStockOnly && product.stock <= 0) return false;
@@ -180,11 +185,16 @@ function CatalogPage() {
                   key={value}
                   type="button"
                   onClick={() => {
-                    setFilters((current) => ({ ...current, sort: value as CatalogFilters["sort"] }));
+                    setFilters((current) => ({
+                      ...current,
+                      sort: value as CatalogFilters["sort"],
+                    }));
                     setShowSortOptions(false);
                   }}
                   className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
-                    filters.sort === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"
+                    filters.sort === value
+                      ? "bg-surface-2 text-foreground"
+                      : "text-muted-foreground"
                   }`}
                 >
                   <span>{label}</span>
@@ -221,7 +231,7 @@ function CatalogPage() {
               setFilters((current) => ({ ...current, ...next }));
             }}
             onReset={() => {
-                setPriceCurrencies(["ARS", "USD"]);
+              setPriceCurrencies(["ARS", "USD"]);
               setFilters({
                 search: "",
                 categories: [],

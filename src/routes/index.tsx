@@ -1,17 +1,38 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, ArrowUpRight, Boxes, Layers, ShieldCheck, Sparkles, Star, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Boxes,
+  Layers,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Zap,
+} from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { Reveal } from "@/components/common/motion-primitives";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { getStoreShopContact } from "@/config/brands";
 import { webDesignConfig } from "@/config/brands/web-design.config";
-import { getStoredActivePanel, getStoredUserDisplayName } from "@/lib/auth";
 import { SectorsContent } from "@/components/sectors-content";
 
 export const Route = createFileRoute("/")({
@@ -26,7 +47,8 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "LRG Store Shop" },
       {
         property: "og:description",
-        content: "Un negocio, tres sectores: gaming, perfumería árabe y software. Conectá con tus pasiones y descubrí una nueva forma de pontenciar tu día a día.",
+        content:
+          "Un negocio, tres sectores: gaming, perfumería árabe y software. Conectá con tus pasiones y descubrí una nueva forma de pontenciar tu día a día.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -103,7 +125,8 @@ const trustpilotReviews = [
 ];
 
 const trustpilotUrl = "https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar";
-const trustpilotUrl_Evaluate = "https://es.trustpilot.com/evaluate/psplusargentinaps4.empretienda.com.ar";
+const trustpilotUrl_Evaluate =
+  "https://es.trustpilot.com/evaluate/psplusargentinaps4.empretienda.com.ar";
 
 function WelcomePage() {
   return (
@@ -115,13 +138,19 @@ function WelcomePage() {
 
 function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout: kindeLogout } = auth ?? {
+  const {
+    isAuthenticated,
+    user,
+    logout: kindeLogout,
+  } = auth ?? {
     isAuthenticated: false,
     user: null,
     logout: async () => undefined,
   };
   const [sortBy, setSortBy] = useState<"date" | "rating">("date");
-  const [sortDirection, setSortDirection] = useState<"newest" | "oldest" | "highest" | "lowest">("newest");
+  const [sortDirection, setSortDirection] = useState<"newest" | "oldest" | "highest" | "lowest">(
+    "newest",
+  );
   const [constructionNoticeOpen, setConstructionNoticeOpen] = useState(true);
   const storeShopContact = getStoreShopContact();
 
@@ -178,11 +207,17 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               </div>
               <DialogTitle className="text-2xl sm:text-3xl">Página web en proceso</DialogTitle>
               <DialogDescription className="pt-3 text-base leading-relaxed">
-                Estamos preparando una nueva experiencia para vos. La página se habilitará por completo muy pronto.
+                Estamos preparando una nueva experiencia para vos. La página se habilitará por
+                completo muy pronto.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="mt-7 sm:justify-center">
-              <Button type="button" size="lg" className="w-full sm:w-auto" onClick={() => setConstructionNoticeOpen(false)}>
+              <Button
+                type="button"
+                size="lg"
+                className="w-full sm:w-auto"
+                onClick={() => setConstructionNoticeOpen(false)}
+              >
                 Quiero ver como está quedando
               </Button>
             </DialogFooter>
@@ -193,7 +228,11 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
       <div className="pointer-events-none absolute inset-0 grid-lines opacity-60" />
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pt-16 pb-8 sm:px-6">
-        <BrandHeader brand={webDesignConfig} displayBrandName="LRG Store Shop" logoBrandSlug="store-shop" />
+        <BrandHeader
+          brand={webDesignConfig}
+          displayBrandName="LRG Store Shop"
+          logoBrandSlug="store-shop"
+        />
         <main className="flex flex-1 flex-col justify-start py-8">
           <span
             className="glass inline-flex w-fit items-center gap-2 rounded-full px-4 py-1.5 text-xs tracking-[0.16em] text-muted-foreground uppercase opacity-100"
@@ -205,7 +244,11 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
           <h1
             className="mt-6 max-w-4xl text-4xl leading-[1.05] font-semibold sm:text-6xl lg:text-7xl"
-            style={{ transition: "transform 700ms ease, opacity 700ms ease", transform: "translateY(0)", opacity: 1 }}
+            style={{
+              transition: "transform 700ms ease, opacity 700ms ease",
+              transform: "translateY(0)",
+              opacity: 1,
+            }}
           >
             Una plataforma.
             <br />
@@ -214,33 +257,41 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
           <p
             className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground"
-            style={{ transition: "transform 700ms ease, opacity 700ms ease", transform: "translateY(0)", opacity: 1 }}
+            style={{
+              transition: "transform 700ms ease, opacity 700ms ease",
+              transform: "translateY(0)",
+              opacity: 1,
+            }}
           >
-            LRG Store Shop reúne gaming, streaming, perfumería árabe y diseño de páginas web
-            bajo un mismo sistema. Elegís el sector y toda la experiencia se adapta a esa marca.
+            LRG Store Shop reúne gaming, streaming, perfumería árabe y diseño de páginas web bajo un
+            mismo sistema. Elegís el sector y toda la experiencia se adapta a esa marca.
           </p>
 
           <div
             className="mt-10 flex flex-wrap items-center gap-3"
-            style={{ transition: "transform 700ms ease, opacity 700ms ease", transform: "translateY(0)", opacity: 1 }}
+            style={{
+              transition: "transform 700ms ease, opacity 700ms ease",
+              transform: "translateY(0)",
+              opacity: 1,
+            }}
           >
-            <Button 
+            <Button
               onClick={() => navigate({ to: "/$brand", params: { brand: "arcade" } })}
-              size="lg" 
+              size="lg"
               className="gap-2"
             >
               LRG Arcade <ArrowRight className="size-4" />
             </Button>
-            <Button 
+            <Button
               onClick={() => navigate({ to: "/$brand", params: { brand: "scents" } })}
-              size="lg" 
+              size="lg"
               className="gap-2"
             >
               LRG Scents <ArrowRight className="size-4" />
             </Button>
-            <Button 
+            <Button
               onClick={() => navigate({ to: "/$brand", params: { brand: "web-design" } })}
-              size="lg" 
+              size="lg"
               className="gap-2"
             >
               LRG Web Design <ArrowRight className="size-4" />
@@ -264,8 +315,12 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     ))}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <p className="text-sm font-semibold text-foreground">Reseñas verificadas en Trustpilot</p>
-                    <p className="text-xs text-muted-foreground">4.9/5 según clientes reales · +24 opiniones</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      Reseñas verificadas en Trustpilot
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      4.9/5 según clientes reales · +24 opiniones
+                    </p>
                   </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
@@ -342,7 +397,9 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   </div>
 
                   <div className="relative z-10">
-                    <h3 className="font-semibold text-foreground text-base leading-tight">{review.title}</h3>
+                    <h3 className="font-semibold text-foreground text-base leading-tight">
+                      {review.title}
+                    </h3>
                     <p className="text-xs text-muted-foreground mb-2">{review.date}</p>
                     <div className="h-px w-16 rounded-full bg-primary/20 mb-4" />
                   </div>
@@ -354,7 +411,9 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   <div className="relative z-10 my-5 h-px w-full bg-linear-to-r from-border/30 via-border/10 to-transparent" />
 
                   <div className="relative z-10 flex items-center gap-2 text-xs">
-                    <span className="font-semibold text-foreground leading-none">{review.name}</span>
+                    <span className="font-semibold text-foreground leading-none">
+                      {review.name}
+                    </span>
                     <span className="h-4 w-px bg-border/20" />
                     <a
                       href={review.url}
@@ -382,7 +441,6 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             </div>
           </section>
         </main>
-
       </div>
       <BrandFooter
         brand={{ ...webDesignConfig, name: "LRG Store Shop" }}

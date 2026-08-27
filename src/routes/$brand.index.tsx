@@ -49,7 +49,9 @@ function BrandHome() {
       <section className="overflow-hidden">
         <div className="grid gap-8 lg:grid-cols-[1.1fr_auto] lg:items-center p-8">
           <div>
-            <p className="text-xs tracking-[0.24em] text-muted-foreground uppercase">{brand.hero.eyebrow}</p>
+            <p className="text-xs tracking-[0.24em] text-muted-foreground uppercase">
+              {brand.hero.eyebrow}
+            </p>
             <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
               {brand.hero.title} <span className="text-gradient-brand">{brand.hero.highlight}</span>
             </h1>
@@ -83,7 +85,6 @@ function BrandHome() {
           </div>
         </div>
       </section>
-
     </main>
   );
 }

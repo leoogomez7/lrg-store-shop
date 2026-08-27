@@ -1,6 +1,13 @@
 ﻿import { Link } from "@tanstack/react-router";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
-import { cloneElement, useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
+import {
+  cloneElement,
+  useEffect,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProductVisual } from "@/components/common/product-visual";
@@ -27,9 +34,6 @@ export function CartSheet({
 
   const { items, setQuantity, removeItem } = useCart();
   const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
-  const freeShippingThreshold = brand.shipping?.freeShippingThreshold ?? 300;
-  const shippingCost = items.length > 0 ? (subtotal > freeShippingThreshold ? 0 : 12.5) : 0;
-  const total = subtotal + shippingCost;
 
   const handleOpenChange = (next: boolean) => {
     if (controlledOpen === undefined) {
@@ -133,35 +137,56 @@ export function CartSheet({
                       <ShoppingBag className="size-10 text-muted-foreground" />
                       <div>
                         <p className="text-lg font-semibold text-foreground">Carrito vacío</p>
-                        <p className="text-sm text-muted-foreground">Agrega productos y revisa todo antes de pagar.</p>
+                        <p className="text-sm text-muted-foreground">
+                          Agrega productos y revisa todo antes de pagar.
+                        </p>
                       </div>
-                        <Button asChild size="sm" onClick={() => handleOpenChange(false)}>
-                          <Link to="/">Ver catálogo</Link>
-                        </Button>
+                      <Button asChild size="sm" onClick={() => handleOpenChange(false)}>
+                        <Link to="/">Ver catálogo</Link>
+                      </Button>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {items.map((item) => (
-                        <div key={item.id} className="group flex gap-4 rounded-3xl border border-border bg-surface-2 p-4 shadow-sm transition hover:border-primary/60">
-                          <ProductVisual seed={item.id} label={item.name} className="h-20 w-20 rounded-3xl" />
+                        <div
+                          key={item.id}
+                          className="group flex gap-4 rounded-3xl border border-border bg-surface-2 p-4 shadow-sm transition hover:border-primary/60"
+                        >
+                          <ProductVisual
+                            seed={item.id}
+                            label={item.name}
+                            className="h-20 w-20 rounded-3xl"
+                          />
                           <div className="min-w-0 flex-1">
                             <div className="mb-3 flex flex-wrap items-center gap-2">
                               <span className="rounded-full bg-background px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                 {getBrand(item.brand)?.shortName ?? item.brand}
                               </span>
-                              <span className="text-xs font-medium text-muted-foreground">Stock {item.stock}</span>
+                              <span className="text-xs font-medium text-muted-foreground">
+                                Stock {item.stock}
+                              </span>
                             </div>
                             {item.variantName ? (
-                              <p className="mb-1 text-xs font-medium text-primary">Variante: {item.variantName}</p>
+                              <p className="mb-1 text-xs font-medium text-primary">
+                                Variante: {item.variantName}
+                              </p>
                             ) : null}
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                               <div className="min-w-0">
-                                <p className="truncate text-base font-semibold text-foreground">{item.name}</p>
-                                <p className="text-sm text-muted-foreground">{formatPrice(item.price)} por unidad</p>
+                                <p className="truncate text-base font-semibold text-foreground">
+                                  {item.name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {formatPrice(item.price)} por unidad
+                                </p>
                               </div>
-                              <span className="text-sm font-semibold text-foreground">{formatPrice(item.price * item.quantity)}</span>
+                              <span className="text-sm font-semibold text-foreground">
+                                {formatPrice(item.price * item.quantity)}
+                              </span>
                             </div>
-                            <p className="mt-2 text-sm text-muted-foreground">Cantidad: {item.quantity}</p>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                              Cantidad: {item.quantity}
+                            </p>
                             <div className="mt-4 flex flex-wrap items-center gap-2">
                               <Button
                                 variant="outline"
@@ -173,7 +198,7 @@ export function CartSheet({
                               >
                                 <Minus className="size-4" />
                               </Button>
-                                <span className="inline-flex min-w-8 justify-center rounded-full bg-surface px-2 py-1 text-sm font-medium text-foreground">
+                              <span className="inline-flex min-w-8 justify-center rounded-full bg-surface px-2 py-1 text-sm font-medium text-foreground">
                                 {item.quantity}
                               </span>
                               <Button
@@ -204,7 +229,9 @@ export function CartSheet({
                               </Button>
                             </div>
                             {item.quantity >= item.stock && (
-                              <p className="mt-2 text-xs font-medium text-destructive">No hay más stock disponible para agregar.</p>
+                              <p className="mt-2 text-xs font-medium text-destructive">
+                                No hay más stock disponible para agregar.
+                              </p>
                             )}
                           </div>
                         </div>
@@ -223,12 +250,12 @@ export function CartSheet({
                     <span>{formatPrice(subtotal)}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Envío estimado</span>
-                    <span>{shippingCost === 0 ? "Gratis" : formatPrice(shippingCost)}</span>
+                    <span>Envío</span>
+                    <span>Acordar entrega</span>
                   </div>
                   <div className="flex items-center justify-between text-sm font-semibold text-foreground">
                     <span>Total</span>
-                    <span>{formatPrice(total)}</span>
+                    <span>{formatPrice(subtotal)}</span>
                   </div>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">

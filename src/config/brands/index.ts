@@ -1,7 +1,15 @@
 import { arcadeConfig } from "./arcade.config";
 import { scentsConfig } from "./scents.config";
 import { webDesignConfig } from "./web-design.config";
-import type { BrandCategory, BrandConfig, BrandDiscount, BrandPaymentMethod, BrandShippingConfig, BrandSlug } from "./types";
+import { saveAdminSetting } from "@/server/persistence";
+import type {
+  BrandCategory,
+  BrandConfig,
+  BrandDiscount,
+  BrandPaymentMethod,
+  BrandShippingConfig,
+  BrandSlug,
+} from "./types";
 
 const CATEGORY_STORAGE_KEY = "lrg-brand-categories-v1";
 const CONTACT_STORAGE_KEY = "lrg-brand-contact-v1";
@@ -11,12 +19,28 @@ const PAYMENT_METHODS_STORAGE_KEY = "lrg:paymentMethods";
 const SHIPPING_METHODS_STORAGE_KEY = "lrg:shippingMethods";
 const FREE_SHIPPING_THRESHOLD_STORAGE_KEY = "lrg:freeShippingThreshold";
 const DISCOUNTS_STORAGE_KEY = "lrg:discounts";
-const DEFAULT_FREE_SHIPPING_THRESHOLD = 300;
-const DEFAULT_SHIPPING_METHODS: BrandPaymentMethod[] = [
-  { id: "physical", name: "Físico", enabled: true, codeRequired: false },
-  { id: "digital", name: "Digital", enabled: true, codeRequired: false },
-  { id: "whatsapp", name: "WhatsApp", enabled: true, codeRequired: false },
-];
+const DEFAULT_FREE_SHIPPING_THRESHOLD = 0;
+const DEFAULT_SHIPPING_METHODS: BrandPaymentMethod[] = [];
+
+const remoteAdminSettings: Record<string, unknown> = {};
+
+function persistAdminSetting(settingKey: string, value: unknown) {
+  void saveAdminSetting({ data: { settingKey, settingValue: JSON.stringify(value) } });
+}
+
+export function applyAdminSettings(settings: Array<{ settingKey: string; settingValue: string }>) {
+  for (const setting of settings) {
+    try {
+      remoteAdminSettings[setting.settingKey] = JSON.parse(setting.settingValue);
+    } catch {
+      remoteAdminSettings[setting.settingKey] = setting.settingValue;
+    }
+  }
+}
+
+function remoteSetting<T>(key: string): T | undefined {
+  return remoteAdminSettings[key] as T | undefined;
+}
 
 const defaultBrands: Record<BrandSlug, BrandConfig> = {
   arcade: arcadeConfig,
@@ -25,50 +49,31 @@ const defaultBrands: Record<BrandSlug, BrandConfig> = {
 };
 
 function readStoredCategories(): Record<BrandSlug, BrandCategory[]> {
-  if (typeof window === "undefined") {
-    return {
-      arcade: defaultBrands.arcade.categories,
-      scents: defaultBrands.scents.categories,
-      "web-design": defaultBrands["web-design"].categories,
-    };
-  }
-
   try {
-    const raw = window.localStorage.getItem(CATEGORY_STORAGE_KEY);
+    const raw = remoteSetting<Partial<Record<BrandSlug, BrandCategory[]>>>(CATEGORY_STORAGE_KEY);
     if (!raw) {
-      return {
-        arcade: defaultBrands.arcade.categories,
-        scents: defaultBrands.scents.categories,
-        "web-design": defaultBrands["web-design"].categories,
-      };
+      return { arcade: [], scents: [], "web-design": [] };
     }
 
-    const parsed = JSON.parse(raw) as Partial<Record<BrandSlug, BrandCategory[]>>;
+    const parsed = raw as Partial<Record<BrandSlug, BrandCategory[]>>;
     return {
-      arcade: parsed.arcade?.length ? parsed.arcade : defaultBrands.arcade.categories,
-      scents: parsed.scents?.length ? parsed.scents : defaultBrands.scents.categories,
-      "web-design": parsed["web-design"]?.length ? parsed["web-design"] : defaultBrands["web-design"].categories,
+      arcade: parsed.arcade ?? [],
+      scents: parsed.scents ?? [],
+      "web-design": parsed["web-design"] ?? [],
     };
   } catch {
     return {
-      arcade: defaultBrands.arcade.categories,
-      scents: defaultBrands.scents.categories,
-      "web-design": defaultBrands["web-design"].categories,
+      arcade: [],
+      scents: [],
+      "web-design": [],
     };
   }
 }
 
 function readStoredContacts(): Record<BrandSlug, BrandConfig["contact"]> {
-  if (typeof window === "undefined") {
-    return {
-      arcade: defaultBrands.arcade.contact,
-      scents: defaultBrands.scents.contact,
-      "web-design": defaultBrands["web-design"].contact,
-    };
-  }
-
   try {
-    const raw = window.localStorage.getItem(CONTACT_STORAGE_KEY);
+    const raw =
+      remoteSetting<Partial<Record<BrandSlug, BrandConfig["contact"]>>>(CONTACT_STORAGE_KEY);
     if (!raw) {
       return {
         arcade: defaultBrands.arcade.contact,
@@ -77,7 +82,7 @@ function readStoredContacts(): Record<BrandSlug, BrandConfig["contact"]> {
       };
     }
 
-    const parsed = JSON.parse(raw) as Partial<Record<BrandSlug, BrandConfig["contact"]>>;
+    const parsed = raw as Partial<Record<BrandSlug, BrandConfig["contact"]>>;
     return {
       arcade: { ...defaultBrands.arcade.contact, ...(parsed.arcade ?? {}) },
       scents: { ...defaultBrands.scents.contact, ...(parsed.scents ?? {}) },
@@ -109,84 +114,107 @@ const defaultPaymentMethods: Record<BrandSlug, BrandPaymentMethod[]> = {
 };
 
 const defaultShippingConfig: Record<BrandSlug, BrandShippingConfig> = {
-  arcade: { freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD, methods: DEFAULT_SHIPPING_METHODS },
-  scents: { freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD, methods: DEFAULT_SHIPPING_METHODS },
-  "web-design": { freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD, methods: DEFAULT_SHIPPING_METHODS },
+  arcade: {
+    freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD,
+    methods: DEFAULT_SHIPPING_METHODS,
+  },
+  scents: {
+    freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD,
+    methods: DEFAULT_SHIPPING_METHODS,
+  },
+  "web-design": {
+    freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD,
+    methods: DEFAULT_SHIPPING_METHODS,
+  },
 };
 
 function readStoredPaymentMethods(): Record<BrandSlug, BrandPaymentMethod[]> {
-  if (typeof window === "undefined") {
-    return defaultPaymentMethods;
-  }
-
   try {
-    const raw = window.localStorage.getItem(PAYMENT_METHODS_STORAGE_KEY);
-    if (!raw) {
-      return defaultPaymentMethods;
-    }
+    const raw = remoteSetting<BrandPaymentMethod[] | Record<BrandSlug, BrandPaymentMethod[]>>(
+      PAYMENT_METHODS_STORAGE_KEY,
+    );
+    if (!raw) return { arcade: [], scents: [], "web-design": [] };
 
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
+    if (Array.isArray(raw)) {
       return {
-        arcade: parsed,
-        scents: parsed,
-        "web-design": parsed,
+        arcade: raw,
+        scents: raw,
+        "web-design": raw,
       };
     }
+    const parsed = raw as Partial<Record<BrandSlug, BrandPaymentMethod[]>>;
 
     return {
-      arcade: Array.isArray(parsed.arcade) ? parsed.arcade : defaultPaymentMethods.arcade,
-      scents: Array.isArray(parsed.scents) ? parsed.scents : defaultPaymentMethods.scents,
-      "web-design": Array.isArray(parsed["web-design"]) ? parsed["web-design"] : defaultPaymentMethods["web-design"],
+      arcade: Array.isArray(parsed.arcade) ? parsed.arcade : [],
+      scents: Array.isArray(parsed.scents) ? parsed.scents : [],
+      "web-design": Array.isArray(parsed["web-design"]) ? parsed["web-design"] : [],
     };
   } catch {
-    return defaultPaymentMethods;
+    return { arcade: [], scents: [], "web-design": [] };
   }
 }
 
 function readStoredShippingConfigs(): Record<BrandSlug, BrandShippingConfig> {
-  if (typeof window === "undefined") {
-    return defaultShippingConfig;
-  }
-
   try {
-    const raw = window.localStorage.getItem(SHIPPING_METHODS_STORAGE_KEY);
+    const raw = remoteSetting<BrandPaymentMethod[] | Record<BrandSlug, BrandShippingConfig>>(
+      SHIPPING_METHODS_STORAGE_KEY,
+    );
     if (!raw) {
-      return defaultShippingConfig;
-    }
-
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
       return {
-        arcade: { freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD, methods: parsed },
-        scents: { freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD, methods: parsed },
-        "web-design": { freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD, methods: parsed },
+        arcade: { freeShippingThreshold: 0, methods: [] },
+        scents: { freeShippingThreshold: 0, methods: [] },
+        "web-design": { freeShippingThreshold: 0, methods: [] },
       };
     }
 
+    if (Array.isArray(raw)) {
+      return {
+        arcade: { freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD, methods: raw },
+        scents: { freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD, methods: raw },
+        "web-design": { freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD, methods: raw },
+      };
+    }
+    const parsed = raw as Record<BrandSlug, BrandShippingConfig>;
+
     return {
-      arcade: parsed.arcade && typeof parsed.arcade.freeShippingThreshold === "number" && Array.isArray(parsed.arcade.methods)
-        ? parsed.arcade
-        : defaultShippingConfig.arcade,
-      scents: parsed.scents && typeof parsed.scents.freeShippingThreshold === "number" && Array.isArray(parsed.scents.methods)
-        ? parsed.scents
-        : defaultShippingConfig.scents,
-      "web-design": parsed["web-design"] && typeof parsed["web-design"].freeShippingThreshold === "number" && Array.isArray(parsed["web-design"].methods)
-        ? parsed["web-design"]
-        : defaultShippingConfig["web-design"],
+      arcade:
+        parsed.arcade &&
+        typeof parsed.arcade.freeShippingThreshold === "number" &&
+        Array.isArray(parsed.arcade.methods)
+          ? parsed.arcade
+          : defaultShippingConfig.arcade,
+      scents:
+        parsed.scents &&
+        typeof parsed.scents.freeShippingThreshold === "number" &&
+        Array.isArray(parsed.scents.methods)
+          ? parsed.scents
+          : defaultShippingConfig.scents,
+      "web-design":
+        parsed["web-design"] &&
+        typeof parsed["web-design"].freeShippingThreshold === "number" &&
+        Array.isArray(parsed["web-design"].methods)
+          ? parsed["web-design"]
+          : defaultShippingConfig["web-design"],
     };
   } catch {
-    return defaultShippingConfig;
+    return {
+      arcade: { freeShippingThreshold: 0, methods: [] },
+      scents: { freeShippingThreshold: 0, methods: [] },
+      "web-design": { freeShippingThreshold: 0, methods: [] },
+    };
   }
 }
 
 function readStoredDiscounts(): Record<BrandSlug, BrandDiscount[]> {
-  const defaults = { arcade: [], scents: [], "web-design": [] } satisfies Record<BrandSlug, BrandDiscount[]>;
+  const defaults = { arcade: [], scents: [], "web-design": [] } satisfies Record<
+    BrandSlug,
+    BrandDiscount[]
+  >;
   if (typeof window === "undefined") return defaults;
   try {
-    const raw = window.localStorage.getItem(DISCOUNTS_STORAGE_KEY);
+    const raw = remoteSetting<Partial<Record<BrandSlug, BrandDiscount[]>>>(DISCOUNTS_STORAGE_KEY);
     if (!raw) return defaults;
-    const parsed = JSON.parse(raw) as Partial<Record<BrandSlug, BrandDiscount[]>>;
+    const parsed = raw;
     return {
       arcade: Array.isArray(parsed.arcade) ? parsed.arcade : [],
       scents: Array.isArray(parsed.scents) ? parsed.scents : [],
@@ -209,7 +237,9 @@ const initialBrandState = (): Record<BrandSlug, BrandConfig> => {
       ...defaultBrands.arcade,
       categories: storedCategories.arcade,
       contact: { ...defaultBrands.arcade.contact, ...storedContacts.arcade },
-      payments: storedPaymentMethods.arcade.filter((method) => method.enabled).map((method) => method.name),
+      payments: storedPaymentMethods.arcade
+        .filter((method) => method.enabled)
+        .map((method) => method.name),
       paymentMethods: storedPaymentMethods.arcade,
       shipping: storedShippingConfigs.arcade,
       discounts: storedDiscounts.arcade,
@@ -218,7 +248,9 @@ const initialBrandState = (): Record<BrandSlug, BrandConfig> => {
       ...defaultBrands.scents,
       categories: storedCategories.scents,
       contact: { ...defaultBrands.scents.contact, ...storedContacts.scents },
-      payments: storedPaymentMethods.scents.filter((method) => method.enabled).map((method) => method.name),
+      payments: storedPaymentMethods.scents
+        .filter((method) => method.enabled)
+        .map((method) => method.name),
       paymentMethods: storedPaymentMethods.scents,
       shipping: storedShippingConfigs.scents,
       discounts: storedDiscounts.scents,
@@ -227,7 +259,9 @@ const initialBrandState = (): Record<BrandSlug, BrandConfig> => {
       ...defaultBrands["web-design"],
       categories: storedCategories["web-design"],
       contact: { ...defaultBrands["web-design"].contact, ...storedContacts["web-design"] },
-      payments: storedPaymentMethods["web-design"].filter((method) => method.enabled).map((method) => method.name),
+      payments: storedPaymentMethods["web-design"]
+        .filter((method) => method.enabled)
+        .map((method) => method.name),
       paymentMethods: storedPaymentMethods["web-design"],
       shipping: storedShippingConfigs["web-design"],
       discounts: storedDiscounts["web-design"],
@@ -247,7 +281,9 @@ export function refreshBrandData() {
       ...defaultBrands.arcade,
       categories: storedCategories.arcade,
       contact: { ...defaultBrands.arcade.contact, ...storedContacts.arcade },
-      payments: storedPaymentMethods.arcade.filter((method) => method.enabled).map((method) => method.name),
+      payments: storedPaymentMethods.arcade
+        .filter((method) => method.enabled)
+        .map((method) => method.name),
       paymentMethods: storedPaymentMethods.arcade,
       shipping: storedShippingConfigs.arcade,
       discounts: storedDiscounts.arcade,
@@ -256,7 +292,9 @@ export function refreshBrandData() {
       ...defaultBrands.scents,
       categories: storedCategories.scents,
       contact: { ...defaultBrands.scents.contact, ...storedContacts.scents },
-      payments: storedPaymentMethods.scents.filter((method) => method.enabled).map((method) => method.name),
+      payments: storedPaymentMethods.scents
+        .filter((method) => method.enabled)
+        .map((method) => method.name),
       paymentMethods: storedPaymentMethods.scents,
       shipping: storedShippingConfigs.scents,
       discounts: storedDiscounts.scents,
@@ -265,7 +303,9 @@ export function refreshBrandData() {
       ...defaultBrands["web-design"],
       categories: storedCategories["web-design"],
       contact: { ...defaultBrands["web-design"].contact, ...storedContacts["web-design"] },
-      payments: storedPaymentMethods["web-design"].filter((method) => method.enabled).map((method) => method.name),
+      payments: storedPaymentMethods["web-design"]
+        .filter((method) => method.enabled)
+        .map((method) => method.name),
       paymentMethods: storedPaymentMethods["web-design"],
       shipping: storedShippingConfigs["web-design"],
       discounts: storedDiscounts["web-design"],
@@ -286,9 +326,7 @@ export function setBrandPaymentMethods(slug: BrandSlug, methods: BrandPaymentMet
 
   next[slug] = methods;
 
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(PAYMENT_METHODS_STORAGE_KEY, JSON.stringify(next));
-  }
+  persistAdminSetting(PAYMENT_METHODS_STORAGE_KEY, next);
 
   const fresh = refreshBrandData();
   if (typeof window !== "undefined") {
@@ -307,9 +345,7 @@ export function setBrandShippingConfig(slug: BrandSlug, shippingConfig: BrandShi
 
   next[slug] = shippingConfig;
 
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(SHIPPING_METHODS_STORAGE_KEY, JSON.stringify(next));
-  }
+  persistAdminSetting(SHIPPING_METHODS_STORAGE_KEY, next);
 
   const fresh = refreshBrandData();
   if (typeof window !== "undefined") {
@@ -321,7 +357,7 @@ export function setBrandShippingConfig(slug: BrandSlug, shippingConfig: BrandShi
 export function setBrandDiscounts(slug: BrandSlug, discounts: BrandDiscount[]) {
   const current = readStoredDiscounts();
   const next = { ...current, [slug]: discounts };
-  if (typeof window !== "undefined") window.localStorage.setItem(DISCOUNTS_STORAGE_KEY, JSON.stringify(next));
+  persistAdminSetting(DISCOUNTS_STORAGE_KEY, next);
   const fresh = refreshBrandData();
   if (typeof window !== "undefined") window.dispatchEvent(new Event("lrg-brand-data-updated"));
   return fresh;
@@ -369,7 +405,7 @@ function normalizeStoreShopContact(raw: unknown): StoreShopContact {
   const normalizeItem = (key: keyof StoreShopContact, fallback: StoreShopContactItem) => {
     const item = value[key];
     if (typeof item === "string") return { ...fallback, text: item };
-    return { ...fallback, ...(item as Partial<StoreShopContactItem> ?? {}) };
+    return { ...fallback, ...((item as Partial<StoreShopContactItem>) ?? {}) };
   };
   return {
     email: normalizeItem("email", defaultStoreShopContact.email),
@@ -377,7 +413,7 @@ function normalizeStoreShopContact(raw: unknown): StoreShopContact {
     location: normalizeItem("location", defaultStoreShopContact.location),
     socials: {
       ...defaultStoreShopContact.socials,
-      ...(value.socials as Partial<StoreShopContact["socials"]> ?? {}),
+      ...((value.socials as Partial<StoreShopContact["socials"]>) ?? {}),
     },
   };
 }
@@ -385,8 +421,8 @@ function normalizeStoreShopContact(raw: unknown): StoreShopContact {
 export function getStoreShopContact() {
   if (typeof window === "undefined") return defaultStoreShopContact;
   try {
-    const raw = window.localStorage.getItem(STORE_SHOP_CONTACT_STORAGE_KEY);
-    return raw ? normalizeStoreShopContact(JSON.parse(raw)) : defaultStoreShopContact;
+    const raw = remoteSetting<unknown>(STORE_SHOP_CONTACT_STORAGE_KEY);
+    return raw ? normalizeStoreShopContact(raw) : defaultStoreShopContact;
   } catch {
     return defaultStoreShopContact;
   }
@@ -400,9 +436,9 @@ export function setStoreShopContact(contact: Partial<StoreShopContact>) {
     socials: { ...current.socials, ...(contact.socials ?? {}) },
   };
   if (typeof window !== "undefined") {
-    window.localStorage.setItem(STORE_SHOP_CONTACT_STORAGE_KEY, JSON.stringify(next));
     window.dispatchEvent(new CustomEvent("lrg-brand-data-updated"));
   }
+  persistAdminSetting(STORE_SHOP_CONTACT_STORAGE_KEY, next);
   return next;
 }
 
@@ -417,16 +453,45 @@ export function getBrandContactPresentation(slug: BrandSlug): BrandContactPresen
       logo: "",
     },
     socials: {
-      instagram: { text: "Instagram", href: brand.social.find((item) => item.label.toLowerCase().includes("instagram"))?.href ?? "", logo: "" },
-      whatsapp: { text: "WhatsApp", href: brand.social.find((item) => item.label.toLowerCase().includes("whatsapp"))?.href ?? "", logo: "" },
-      tiktok: { text: "TikTok", href: brand.social.find((item) => item.label.toLowerCase().includes("tiktok"))?.href ?? "", logo: "" },
-      facebook: { text: "Facebook", href: brand.social.find((item) => item.label.toLowerCase().includes("facebook"))?.href ?? "", logo: "" },
-      review: { text: "Reseñas", href: "https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar", logo: "" },
+      instagram: {
+        text: "Instagram",
+        href:
+          brand.social.find((item) => item.label.toLowerCase().includes("instagram"))?.href ?? "",
+        logo: "",
+      },
+      whatsapp: {
+        text: "WhatsApp",
+        href:
+          brand.social.find((item) => item.label.toLowerCase().includes("whatsapp"))?.href ?? "",
+        logo: "",
+      },
+      tiktok: {
+        text: "TikTok",
+        href: brand.social.find((item) => item.label.toLowerCase().includes("tiktok"))?.href ?? "",
+        logo: "",
+      },
+      facebook: {
+        text: "Facebook",
+        href:
+          brand.social.find((item) => item.label.toLowerCase().includes("facebook"))?.href ?? "",
+        logo: "",
+      },
+      review: {
+        text: "Reseñas",
+        href: "https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar",
+        logo: "",
+      },
     },
   };
   if (typeof window === "undefined") return fallback;
   try {
-    const stored = JSON.parse(window.localStorage.getItem(BRAND_PRESENTATION_STORAGE_KEY) ?? "{}") as Record<string, Partial<BrandContactPresentation>>;
+    const stored = JSON.parse(
+      JSON.stringify(
+        remoteSetting<Record<string, Partial<BrandContactPresentation>>>(
+          BRAND_PRESENTATION_STORAGE_KEY,
+        ) ?? {},
+      ),
+    ) as Record<string, Partial<BrandContactPresentation>>;
     return {
       ...fallback,
       ...(stored[slug] ?? {}),
@@ -437,23 +502,31 @@ export function getBrandContactPresentation(slug: BrandSlug): BrandContactPresen
   }
 }
 
-export function setBrandContactPresentation(slug: BrandSlug, presentation: Partial<BrandContactPresentation>) {
+export function setBrandContactPresentation(
+  slug: BrandSlug,
+  presentation: Partial<BrandContactPresentation>,
+) {
   if (typeof window === "undefined") return getBrandContactPresentation(slug);
-  const stored = JSON.parse(window.localStorage.getItem(BRAND_PRESENTATION_STORAGE_KEY) ?? "{}") as Record<string, BrandContactPresentation>;
+  const stored =
+    remoteSetting<Record<string, BrandContactPresentation>>(BRAND_PRESENTATION_STORAGE_KEY) ?? {};
   const current = getBrandContactPresentation(slug);
   const next = {
     ...current,
     ...presentation,
     socials: { ...current.socials, ...(presentation.socials ?? {}) },
   };
-  window.localStorage.setItem(BRAND_PRESENTATION_STORAGE_KEY, JSON.stringify({ ...stored, [slug]: next }));
+  persistAdminSetting(BRAND_PRESENTATION_STORAGE_KEY, { ...stored, [slug]: next });
   window.dispatchEvent(new Event("lrg-brand-data-updated"));
   return next;
 }
 
 export function getStoreShopCategories() {
   return brandList.flatMap((brand) =>
-    brand.categories.map((category) => ({ ...category, brandSlug: brand.slug, brandName: brand.name })),
+    brand.categories.map((category) => ({
+      ...category,
+      brandSlug: brand.slug,
+      brandName: brand.name,
+    })),
   );
 }
 
@@ -466,9 +539,7 @@ export function setBrandCategories(slug: BrandSlug, categories: BrandCategory[])
 
   next[slug] = categories;
 
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(next));
-  }
+  persistAdminSetting(CATEGORY_STORAGE_KEY, next);
 
   const fresh = refreshBrandData();
   if (typeof window !== "undefined") {
@@ -487,9 +558,7 @@ export function setBrandContact(slug: BrandSlug, contact: Partial<BrandConfig["c
 
   next[slug] = { ...next[slug], ...contact };
 
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(CONTACT_STORAGE_KEY, JSON.stringify(next));
-  }
+  persistAdminSetting(CONTACT_STORAGE_KEY, next);
 
   const fresh = refreshBrandData();
   if (typeof window !== "undefined") {
@@ -507,4 +576,11 @@ export function getBrand(slug: string): BrandConfig | undefined {
   return isBrandSlug(slug) ? fresh[slug] : undefined;
 }
 
-export type { BrandConfig, BrandCategory, BrandPaymentMethod, BrandShippingConfig, BrandSlug } from "./types";
+export type {
+  BrandConfig,
+  BrandCategory,
+  BrandDiscount,
+  BrandPaymentMethod,
+  BrandShippingConfig,
+  BrandSlug,
+} from "./types";

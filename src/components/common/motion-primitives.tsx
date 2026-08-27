@@ -34,7 +34,8 @@ export function PageTransition({ children }: { children: ReactNode }) {
         opacity: 1,
         transform: "translateY(0)",
         filter: "blur(0px)",
-        transition: "opacity 450ms cubic-bezier(0.22, 1, 0.36, 1), transform 450ms cubic-bezier(0.22, 1, 0.36, 1), filter 450ms cubic-bezier(0.22, 1, 0.36, 1)",
+        transition:
+          "opacity 450ms cubic-bezier(0.22, 1, 0.36, 1), transform 450ms cubic-bezier(0.22, 1, 0.36, 1), filter 450ms cubic-bezier(0.22, 1, 0.36, 1)",
       }}
     >
       {children}

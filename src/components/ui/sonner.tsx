@@ -6,11 +6,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       className="toaster group"
-      style={{
-        "--toast-close-button-start": "auto",
-        "--toast-close-button-end": "0px",
-        "--toast-close-button-transform": "translate(35%, -35%)",
-      } as React.CSSProperties}
+      style={
+        {
+          "--toast-close-button-start": "auto",
+          "--toast-close-button-end": "0px",
+          "--toast-close-button-transform": "translate(35%, -35%)",
+        } as React.CSSProperties
+      }
       toastOptions={{
         classNames: {
           toast:

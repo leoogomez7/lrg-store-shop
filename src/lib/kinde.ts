@@ -1,8 +1,8 @@
 const PLACEHOLDER_PATTERN = /(placeholder|example|test|changeme|undefined)/i;
 
 export function getKindeConfig() {
-  const clientId = import.meta.env.KINDE_USER?.trim();
-  const domain = import.meta.env.KINDE_DOMAIN_USER?.trim();
+  const clientId = import.meta.env["AUTH_USER"]?.trim();
+  const domain = import.meta.env["DOMAIN_USER"]?.trim();
 
   return {
     clientId: clientId || "",
@@ -15,11 +15,11 @@ export function hasKindeConfig() {
 
   return Boolean(
     clientId &&
-      domain &&
-      clientId !== "undefined" &&
-      domain !== "undefined" &&
-      !PLACEHOLDER_PATTERN.test(clientId) &&
-      !PLACEHOLDER_PATTERN.test(domain),
+    domain &&
+    clientId !== "undefined" &&
+    domain !== "undefined" &&
+    !PLACEHOLDER_PATTERN.test(clientId) &&
+    !PLACEHOLDER_PATTERN.test(domain),
   );
 }
 

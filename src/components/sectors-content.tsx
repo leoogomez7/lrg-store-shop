@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowUpRight } from "lucide-react";
+import { CircleArrowLeft } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { Reveal } from "@/components/common/motion-primitives";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ export function SectorsContent() {
           </a>
           <Button asChild variant="ghost" size="sm" className="gap-2">
             <Link to="/cuenta">
-              <ArrowUpRight className="size-4" /> Volver
+              <CircleArrowLeft className="size-4 text-white" /> Volver
             </Link>
           </Button>
         </header>
@@ -67,13 +67,21 @@ export function SectorsContent() {
                   <span className="gradient-brand pointer-events-none absolute inset-x-0 top-0 h-1" />
                   <div className="flex flex-col gap-4">
                     <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 shadow-sm">
-                      <img src={logoSrc} alt={brand.name} className="max-h-10 max-w-full object-contain" />
+                      <img
+                        src={logoSrc}
+                        alt={brand.name}
+                        className="max-h-10 max-w-full object-contain"
+                      />
                     </span>
                     <div>
-                      <h2 className="font-display text-xl font-semibold text-foreground">{brand.name}</h2>
+                      <h2 className="font-display text-xl font-semibold text-foreground">
+                        {brand.name}
+                      </h2>
                       <div className="mt-2 flex items-center justify-between gap-3">
                         <p className="text-sm font-semibold text-primary">{brand.tagline}</p>
-                        <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Ir a la web</span>
+                        <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                          Ir a la web
+                        </span>
                       </div>
                     </div>
                   </div>

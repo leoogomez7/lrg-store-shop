@@ -1,19 +1,21 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Heart, ShoppingCart } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductVisual } from "@/components/common/product-visual";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import type { Product } from "@/data/products";
-import { getFavoriteProductIds, toggleFavoriteProduct } from "@/lib/favorites";
+import { hydrateFavorites, toggleFavoriteProduct } from "@/lib/favorites";
 
 export function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   const { addProduct } = useCart();
+  const { user } = useKindeAuth();
   const navigate = useNavigate();
   const [isFavorite, setIsFavorite] = useState(false);
-  const [favoriteOwner, setFavoriteOwner] = useState("guest");
+  const [favoriteOwner, setFavoriteOwner] = useState<string | null>(null);
   const outOfStock = product.stock <= 0;
   const discountPercent = product.compareAtPrice
     ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
@@ -28,10 +30,11 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
   })();
 
   useEffect(() => {
-    const owner = window.sessionStorage.getItem("userFullName") || "guest";
+    const owner = user?.id ?? null;
     setFavoriteOwner(owner);
-    setIsFavorite(getFavoriteProductIds(owner).includes(product.id));
-  }, [product.id]);
+    if (!owner) return;
+    void hydrateFavorites(owner).then((ids) => setIsFavorite(ids.includes(product.id)));
+  }, [product.id, user?.id]);
 
   return (
     <article
@@ -55,7 +58,8 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         }
       }}
       style={{
-        transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+        transition:
+          "transform 500ms cubic-bezier(0.22, 1, 0.36, 1), opacity 500ms cubic-bezier(0.22, 1, 0.36, 1)",
         opacity: 1,
         transform: "translateY(0)",
       }}
@@ -72,19 +76,32 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
             className="aspect-3/2 transition-transform duration-500 group-hover:scale-[1.03]"
           />
           <div className="absolute left-3 top-3 flex flex-col gap-2">
-            {discountLabel && <Badge className="glass border-0 text-foreground backdrop-blur">{discountLabel}</Badge>}
-            {deliveryLabel && <Badge className="glass border-0 text-foreground backdrop-blur">{deliveryLabel}</Badge>}
+            {discountLabel && (
+              <Badge className="glass border-0 text-foreground backdrop-blur">
+                {discountLabel}
+              </Badge>
+            )}
+            {deliveryLabel && (
+              <Badge className="glass border-0 text-foreground backdrop-blur">
+                {deliveryLabel}
+              </Badge>
+            )}
           </div>
         </Link>
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          aria-label={isFavorite ? `Quitar ${product.name} de favoritos` : `Agregar ${product.name} a favoritos`}
+          aria-label={
+            isFavorite
+              ? `Quitar ${product.name} de favoritos`
+              : `Agregar ${product.name} a favoritos`
+          }
           title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
           className="absolute right-3 top-3 z-10 rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur hover:bg-background"
           onClick={(event) => {
             event.stopPropagation();
+            if (!favoriteOwner) return;
             setIsFavorite(toggleFavoriteProduct(favoriteOwner, product.id).includes(product.id));
           }}
         >
