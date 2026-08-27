@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { ShoppingBag, ShoppingCart, User, Menu, Trash2 } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Store, User, UserPlus, Trash2 } from "lucide-react";
 import { useEffect, useState, type MouseEvent } from "react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { toast } from "sonner";
@@ -229,7 +229,9 @@ function BrandHeaderContent({
                     onClick={() => navigate({ to: "/register" })}
                     className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
                   >
-                    Crear cuenta
+                    <>
+                      <UserPlus className="h-4 w-4" /> Crear cuenta
+                    </>
                   </Button>
 
                   <Button
@@ -237,7 +239,9 @@ function BrandHeaderContent({
                     onClick={() => navigate({ to: "/login" })}
                     className="rounded-xl text-muted-foreground hover:text-foreground"
                   >
-                    Iniciar sesión
+                    <>
+                      <User className="h-4 w-4" /> Iniciar sesión
+                    </>
                   </Button>
                 </>
               ) : (
@@ -263,14 +267,18 @@ function BrandHeaderContent({
                     onClick={() => navigate({ to: "/register" })}
                     className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs px-3 py-1"
                   >
-                    Crear cuenta
+                    <>
+                      <UserPlus className="h-4 w-4" /> Crear cuenta
+                    </>
                   </Button>
                   <Button
                     variant="ghost"
                     onClick={() => navigate({ to: "/login" })}
                     className="rounded-xl text-muted-foreground hover:text-foreground text-xs px-3 py-1"
                   >
-                    Iniciar sesión
+                    <>
+                      <User className="h-4 w-4" /> Iniciar sesión
+                    </>
                   </Button>
                 </>
               ) : (
@@ -432,7 +440,7 @@ function BrandHeaderContent({
             <DropdownMenu open={openMenu} onOpenChange={setOpenMenu}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="rounded-xl gap-2">
-                  <Menu className="size-4" />
+                  <Store className="size-4" aria-hidden="true" />
                   <span className="hidden sm:inline">Tiendas</span>
                 </Button>
               </DropdownMenuTrigger>

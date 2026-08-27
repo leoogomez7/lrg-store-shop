@@ -18,6 +18,8 @@ import {
   Settings,
   Store,
   Trash2,
+  User,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
@@ -222,7 +224,9 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           ) : (
             <div className="space-y-3">
               <Button type="button" className="w-full" onClick={() => startKindeFlow("login")}>
-                Iniciar sesión
+                <>
+                  <User className="h-4 w-4" /> Iniciar sesión
+                </>
               </Button>
               <Button
                 type="button"
@@ -230,7 +234,9 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 className="w-full"
                 onClick={() => startKindeFlow("register")}
               >
-                Crear cuenta
+                <>
+                  <UserPlus className="h-4 w-4" /> Crear cuenta
+                </>
               </Button>
             </div>
           )}

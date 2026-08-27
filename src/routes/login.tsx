@@ -4,7 +4,7 @@ import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { getKindeRedirectUri } from "@/lib/kinde";
-import { CircleArrowLeft, House, Mail, Zap } from "lucide-react";
+import { CircleArrowLeft, House, Mail, User, UserPlus, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -47,7 +47,9 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
           >
             <Zap className="h-6 w-6 text-primary" /> LRG Store Shop
           </Link>
-          <h1 className="text-2xl font-bold text-foreground">Iniciar sesión</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            <User className="inline h-6 w-6" /> Iniciar sesión
+          </h1>
         </div>
 
         <div className="glass-card p-6 space-y-6">
@@ -64,7 +66,9 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
           <p className="text-center text-sm text-muted-foreground">
             ¿No tienes cuenta?{" "}
             <Link to="/register" className="text-primary hover:underline font-medium">
-              Crear cuenta
+              <>
+                <UserPlus className="h-4 w-4" /> Crear cuenta
+              </>
             </Link>
           </p>
           <div className="mt-4 flex flex-col items-center gap-2">

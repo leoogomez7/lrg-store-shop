@@ -3,7 +3,7 @@ import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { getKindeRedirectUri } from "@/lib/kinde";
-import { CircleArrowLeft, House, UserPlus, Zap } from "lucide-react";
+import { CircleArrowLeft, House, User, UserPlus, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
@@ -39,7 +39,9 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
           >
             <Zap className="h-6 w-6 text-primary" /> LRG Store Shop
           </Link>
-          <h1 className="text-2xl font-bold text-foreground">Crear cuenta</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            <UserPlus className="inline h-6 w-6" /> Crear cuenta
+          </h1>
         </div>
 
         <div className="glass-card p-6 space-y-6">
@@ -57,7 +59,13 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 flex items-center justify-center gap-2 font-semibold"
           >
             <UserPlus className="h-5 w-5" />
-            {isLoading ? "Cargando..." : "Crear cuenta"}
+            {isLoading ? (
+              "Cargando..."
+            ) : (
+              <>
+                <UserPlus className="h-5 w-5" /> Crear cuenta
+              </>
+            )}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
