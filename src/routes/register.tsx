@@ -58,7 +58,6 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
             onClick={handleRegister}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 flex items-center justify-center gap-2 font-semibold"
           >
-            <UserPlus className="h-5 w-5" />
             {isLoading ? (
               "Cargando..."
             ) : (
