@@ -197,7 +197,7 @@ function AuthenticatedCart({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { clientId, domain } = getKindeConfig();
-  const redirectUri = getKindeRedirectUri("/dashboard");
+  const redirectUri = getKindeRedirectUri("/cuenta");
   const logoutUri = getKindeRedirectUri("/login");
   const hasKindConfig = hasKindeConfig();
 
@@ -267,7 +267,7 @@ function RootComponent() {
       <KindeProvider
         clientId={clientId}
         domain={domain}
-        redirectUri={redirectUri ?? "http://localhost:5174/dashboard"}
+        redirectUri={redirectUri ?? "http://localhost:5174/cuenta"}
         logoutUri={logoutUri ?? "http://localhost:5174/login"}
       >
         {appContent}

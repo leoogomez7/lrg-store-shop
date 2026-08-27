@@ -25,8 +25,8 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
   const navigate = useNavigate();
 
   const handleRegister = () => {
-    const redirectURL = getKindeRedirectUri("/dashboard");
-    register({ redirectURL: redirectURL ?? "http://localhost:5174/dashboard" });
+    const redirectURL = getKindeRedirectUri("/cuenta");
+    register({ redirectURL: redirectURL ?? "http://localhost:5174/cuenta" });
   };
 
   return (

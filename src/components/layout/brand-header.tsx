@@ -226,22 +226,22 @@ function BrandHeaderContent({
               {!userName ? (
                 <>
                   <Button
-                    onClick={() => navigate({ to: "/register" })}
+                    asChild
                     className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
                   >
-                    <>
+                    <Link to="/register">
                       <UserPlus className="h-4 w-4" /> Crear cuenta
-                    </>
+                    </Link>
                   </Button>
 
                   <Button
+                    asChild
                     variant="ghost"
-                    onClick={() => navigate({ to: "/login" })}
                     className="rounded-xl text-muted-foreground hover:text-foreground"
                   >
-                    <>
+                    <Link to="/login">
                       <User className="h-4 w-4" /> Iniciar sesión
-                    </>
+                    </Link>
                   </Button>
                 </>
               ) : (
