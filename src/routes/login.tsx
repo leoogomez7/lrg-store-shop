@@ -33,8 +33,8 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
   }, [isAuthenticated, isLoading, navigate]);
 
   const handleLogin = () => {
-    const redirectURL = getKindeRedirectUri("/cuenta");
-    login({ redirectURL: redirectURL ?? "http://localhost:5174/cuenta" });
+    const redirectURL = getKindeRedirectUri("/login");
+    login({ redirectURL: redirectURL ?? "http://localhost:5174/login" });
   };
 
   return (
