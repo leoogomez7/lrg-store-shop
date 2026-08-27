@@ -2,7 +2,12 @@ const PLACEHOLDER_PATTERN = /(placeholder|example|test|changeme|undefined)/i;
 
 export function getKindeConfig() {
   const clientId = import.meta.env["AUTH_USER"]?.trim();
-  const domain = import.meta.env["DOMAIN_USER"]?.trim();
+  const configuredDomain = import.meta.env["DOMAIN_USER"]?.trim();
+  const domain = configuredDomain
+    ? /^https?:\/\//i.test(configuredDomain)
+      ? configuredDomain
+      : `https://${configuredDomain}`
+    : "";
 
   return {
     clientId: clientId || "",
