@@ -1,15 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  ArrowRight,
-  ArrowUpRight,
-  Boxes,
-  Layers,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Zap,
-} from "lucide-react";
+import { ArrowRight, ArrowUpRight, Boxes, Layers, ShieldCheck, Star, Zap } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { Reveal } from "@/components/common/motion-primitives";
@@ -238,7 +229,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             className="glass inline-flex w-fit items-center gap-2 rounded-full px-4 py-1.5 text-xs tracking-[0.16em] text-muted-foreground uppercase opacity-100"
             style={{ transition: "opacity 600ms ease" }}
           >
-            <Sparkles className="size-3.5 text-primary" />
+            <span aria-hidden="true">👋</span>
             Bienvenido LRG Store Shop
           </span>
 
@@ -250,13 +241,11 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               opacity: 1,
             }}
           >
-            Una plataforma.
-            <br />
-            <span className="text-gradient-brand">Tres formas de comprar.</span>
+            Una plataforma. <span className="text-gradient-brand">Tres formas de comprar.</span>
           </h1>
 
           <p
-            className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground"
+            className="mt-6 max-w-none text-lg leading-relaxed text-muted-foreground"
             style={{
               transition: "transform 700ms ease, opacity 700ms ease",
               transform: "translateY(0)",
