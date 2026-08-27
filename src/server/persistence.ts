@@ -106,6 +106,14 @@ async function ensureAdminTables() {
         orderData TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )`,
+      `CREATE TABLE IF NOT EXISTS payment_intents (
+        id TEXT PRIMARY KEY,
+        intentData TEXT NOT NULL,
+        status TEXT NOT NULL,
+        orderId TEXT,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      )`,
       `CREATE TABLE IF NOT EXISTS suppliers (
         id TEXT PRIMARY KEY,
         supplierData TEXT NOT NULL,
@@ -127,6 +135,11 @@ async function ensureAdminTables() {
     ],
     "write",
   );
+  try {
+    await database.execute("ALTER TABLE payment_intents ADD COLUMN orderId TEXT");
+  } catch {
+    // Existing databases already have the column.
+  }
   return database;
 }
 
@@ -421,6 +434,51 @@ export const deleteAdminOrder = createServerFn({ method: "POST" })
     const database = await ensureAdminTables();
     if (!database) return false;
     await database.execute({ sql: "DELETE FROM orders WHERE id = ?", args: [data.id] });
+    return true;
+  });
+
+export const createPaymentIntent = createServerFn({ method: "POST" })
+  .validator((data: { id: string; data: string }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return false;
+    const now = new Date().toISOString();
+    await database.execute({
+      sql: `INSERT INTO payment_intents (id, intentData, status, createdAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?)`,
+      args: [data.id, data.data, "pending", now, now],
+    });
+    return true;
+  });
+
+export const loadPaymentIntent = createServerFn({ method: "POST" })
+  .validator((data: { id: string }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return null;
+    const result = await database.execute({
+      sql: "SELECT intentData, status, orderId FROM payment_intents WHERE id = ?",
+      args: [data.id],
+    });
+    const row = result.rows[0];
+    return typeof row?.["intentData"] === "string" && typeof row["status"] === "string"
+      ? {
+          data: row["intentData"],
+          status: row["status"],
+          orderId: typeof row["orderId"] === "string" ? row["orderId"] : null,
+        }
+      : null;
+  });
+
+export const completePaymentIntent = createServerFn({ method: "POST" })
+  .validator((data: { id: string; orderId: string }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return false;
+    await database.execute({
+      sql: "UPDATE payment_intents SET status = ?, orderId = ?, updatedAt = ? WHERE id = ?",
+      args: ["approved", data.orderId, new Date().toISOString(), data.id],
+    });
     return true;
   });
 

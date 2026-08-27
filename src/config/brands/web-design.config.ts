@@ -63,7 +63,7 @@ export const webDesignConfig: BrandConfig = {
     phone: "+5491132965583",
     location: "Merlo, Buenos Aires, Argentina",
   },
-  payments: ["Transferencia", "Visa", "Mastercard", "Wise"],
+  payments: ["Transferencia", "Visa", "Mastercard", "Wise", "Link de Mercado Pago"],
   footerNote: "Contratos por alcance, entregas por sprint y documentación incluida.",
   favicon: "/LRG Web Design PNG.png",
 };

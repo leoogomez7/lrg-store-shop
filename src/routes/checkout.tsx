@@ -13,6 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { orderQueries, orderService } from "@/services/catalog.service";
 import { loadAdminSettings } from "@/server/persistence";
+import {
+  createMercadoPagoPreference,
+  getMercadoPagoIntentStatus,
+  type PaymentIntentData,
+} from "@/server/mercadopago";
 import { formatPrice } from "@/lib/format";
 
 export const Route = createFileRoute("/checkout")({
@@ -70,6 +75,7 @@ function CheckoutPage() {
     (payment) => payment.name === paymentMethod,
   );
   const isCardPayment = /tarjeta|visa|mastercard|amex|d[eé]bito|cr[eé]dito/i.test(paymentMethod);
+  const isMercadoPagoPayment = /mercado pago|mercadopago/i.test(paymentMethod);
 
   useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
@@ -90,7 +96,27 @@ function CheckoutPage() {
     }
   }, [validationMessage]);
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const intentId = params.get("intent");
+    if (params.get("payment") !== "success" || !intentId) return;
+
+    let attempts = 0;
+    const checkPayment = () => {
+      void getMercadoPagoIntentStatus({ data: { intentId } }).then((status) => {
+        if (typeof status === "object" && status.status === "approved" && status.orderId) {
+          setOrderId(status.orderId);
+          setStep("done");
+          return;
+        }
+        attempts += 1;
+        if (attempts < 10) window.setTimeout(checkPayment, 1500);
+      });
+    };
+    checkPayment();
+  }, []);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const missingFields: string[] = [];
@@ -131,6 +157,39 @@ function CheckoutPage() {
       shippingMethod,
       items: items.map((item) => ({ name: item.name, quantity: item.quantity, price: item.price })),
     };
+
+    if (isMercadoPagoPayment) {
+      try {
+        const intentId = crypto.randomUUID();
+        const payment: PaymentIntentData = {
+          brand: brand.slug,
+          customer: customerName,
+          email,
+          phone,
+          city,
+          address,
+          notes,
+          total,
+          expenses,
+          profit: total - expenses,
+          paymentMethod,
+          installments: isCardPayment ? selectedInstallments : 1,
+          discountCode: couponApplied ? couponCode.trim().toUpperCase() : undefined,
+          cardFee,
+          shippingMethod,
+          items: order.items,
+        };
+        const preference = await createMercadoPagoPreference({
+          data: { intentId, payment, returnUrl: window.location.href },
+        });
+        window.location.assign(preference.url);
+      } catch (error) {
+        setValidationMessage(
+          error instanceof Error ? error.message : "No se pudo iniciar el pago con Mercado Pago.",
+        );
+      }
+      return;
+    }
 
     orderService.create(order);
     const orderQueryKey = ["orders"] as const;

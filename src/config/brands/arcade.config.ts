@@ -64,7 +64,7 @@ export const arcadeConfig: BrandConfig = {
     phone: "+5491132965583",
     location: "Merlo, Buenos Aires, Argentina",
   },
-  payments: ["Visa", "Mastercard", "Amex", "Transferencia", "Crypto"],
+  payments: ["Visa", "Mastercard", "Amex", "Transferencia", "Crypto", "Link de Mercado Pago"],
   footerNote: "Hardware original con garantía oficial y soporte técnico propio.",
   favicon: "/LRG Arcade PNG.png",
 };

@@ -64,7 +64,7 @@ export const scentsConfig: BrandConfig = {
     phone: "+5491132965583",
     location: "Merlo, Buenos Aires, Argentina",
   },
-  payments: ["Visa", "Mastercard", "Amex", "Transferencia"],
+  payments: ["Visa", "Mastercard", "Amex", "Transferencia", "Link de Mercado Pago"],
   footerNote: "Fragancias 100% originales con envío protegido y muestras de cortesía.",
   favicon: "/LRG Scents PNG.png",
 };

@@ -30,6 +30,7 @@ import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminProductosRouteImport } from './routes/admin.productos'
 import { Route as AdminProveedoresRouteImport } from './routes/admin.proveedores'
 import { Route as BrandProductoSlugRouteImport } from './routes/$brand.producto.$slug'
+import { Route as ApiMercadopagoWebhookRouteImport } from './routes/api.mercadopago.webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -136,6 +137,11 @@ const BrandProductoSlugRoute = BrandProductoSlugRouteImport.update({
   path: '/producto/$slug',
   getParentRoute: () => BrandRoute,
 } as any)
+const ApiMercadopagoWebhookRoute = ApiMercadopagoWebhookRouteImport.update({
+  id: '/api/mercadopago/webhook',
+  path: '/api/mercadopago/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/admin/proveedores': typeof AdminProveedoresRoute
   '/$brand/': typeof BrandIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
+  '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/admin/proveedores': typeof AdminProveedoresRoute
   '/$brand': typeof BrandIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
+  '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/admin/proveedores': typeof AdminProveedoresRoute
   '/$brand/': typeof BrandIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
+  '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
     | '/admin/proveedores'
     | '/$brand/'
     | '/$brand/producto/$slug'
+    | '/api/mercadopago/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/admin/proveedores'
     | '/$brand'
     | '/$brand/producto/$slug'
+    | '/api/mercadopago/webhook'
   id:
     | '__root__'
     | '/'
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/admin/proveedores'
     | '/$brand/'
     | '/$brand/producto/$slug'
+    | '/api/mercadopago/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -288,6 +300,7 @@ export interface RootRouteChildren {
   ProductosRoute: typeof ProductosRoute
   RegisterRoute: typeof RegisterRoute
   SectoresRoute: typeof SectoresRoute
+  ApiMercadopagoWebhookRoute: typeof ApiMercadopagoWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -439,6 +452,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrandProductoSlugRouteImport
       parentRoute: typeof BrandRoute
     }
+    '/api/mercadopago/webhook': {
+      id: '/api/mercadopago/webhook'
+      path: '/api/mercadopago/webhook'
+      fullPath: '/api/mercadopago/webhook'
+      preLoaderRoute: typeof ApiMercadopagoWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -491,6 +511,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductosRoute: ProductosRoute,
   RegisterRoute: RegisterRoute,
   SectoresRoute: SectoresRoute,
+  ApiMercadopagoWebhookRoute: ApiMercadopagoWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
