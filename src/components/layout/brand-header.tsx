@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { ShoppingBag, ShoppingCart, Store, User, UserPlus, Trash2 } from "lucide-react";
+import { LogOut, ShoppingBag, ShoppingCart, Store, User, UserPlus, Trash2 } from "lucide-react";
 import { useEffect, useState, type MouseEvent } from "react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { toast } from "sonner";
@@ -245,13 +245,12 @@ function BrandHeaderContent({
                   </Button>
                 </>
               ) : (
-                <Link
-                  to="/cuenta"
-                  aria-label="Mi cuenta"
-                  className="text-sm font-medium px-2 py-1 rounded hover:bg-surface-2"
-                >
-                  Mi cuenta
-                </Link>
+                <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
+                  <Link to="/cuenta" aria-label="Mi cuenta">
+                    <User className="size-4" aria-hidden="true" />
+                    <span>Mi cuenta</span>
+                  </Link>
+                </Button>
               )}
             </nav>
 
@@ -282,14 +281,27 @@ function BrandHeaderContent({
                   </Button>
                 </>
               ) : (
-                <Link
-                  to="/cuenta"
-                  className="text-sm font-medium px-2 py-1 rounded-xl hover:bg-surface-2"
-                >
-                  Mi cuenta
-                </Link>
+                <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
+                  <Link to="/cuenta" aria-label="Mi cuenta">
+                    <User className="size-4" aria-hidden="true" />
+                    <span>Mi cuenta</span>
+                  </Link>
+                </Button>
               )}
             </div>
+
+            {userName && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-xl text-red-600 hover:border-red-500 hover:bg-red-500/10 hover:text-red-600"
+                title="Cerrar sesión"
+                onClick={() => setLogoutOpen(true)}
+              >
+                <LogOut className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Cerrar sesión</span>
+              </Button>
+            )}
 
             <DropdownMenu open={openBuyMenu} onOpenChange={setOpenBuyMenu}>
               <DropdownMenuTrigger asChild>
@@ -461,6 +473,19 @@ function BrandHeaderContent({
           </div>
         </div>
       </header>
+      <ConfirmDialog
+        open={logoutOpen}
+        onOpenChange={setLogoutOpen}
+        title="¿Cerrar sesión?"
+        description="¿Estás seguro de que deseas cerrar sesión?"
+        confirmLabel="Sí, cerrar sesión"
+        cancelLabel="No"
+        onConfirm={async () => {
+          await logout();
+          await kindeLogout();
+          navigate({ to: "/" });
+        }}
+      />
     </>
   );
 }
