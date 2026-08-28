@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { AdminAccessDialog } from "@/components/common/admin-access-dialog";
@@ -22,8 +23,9 @@ function RegisterPage() {
 }
 
 function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
-  const { register, isLoading } = auth ?? {
+  const { register, isAuthenticated, isLoading } = auth ?? {
     register: () => undefined,
+    isAuthenticated: false,
     isLoading: false,
   };
   const navigate = useNavigate();
@@ -31,6 +33,15 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
   const [role, setRole] = useState<"client" | "admin" | null>(requestedRole ?? null);
   const [adminAccessOpen, setAdminAccessOpen] = useState(false);
   const [adminAuthorized, setAdminAuthorized] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      toast.info("Ya hay un usuario logueado", {
+        className: "!border-gray-200 !bg-white !text-gray-900",
+      });
+      navigate({ to: "/cuenta" });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   const startRegister = () => {
     if (typeof window !== "undefined") {

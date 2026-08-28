@@ -15,6 +15,7 @@ import {
   Store,
   Trash2,
   Heart,
+  User,
   UserRound,
   Users,
 } from "lucide-react";
@@ -237,18 +238,9 @@ function BrandFooterContent({
         )}
         <div>
           <h3 className="text-sm font-semibold">Panel</h3>
-          {isAuthenticated && (
-            <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
-              {isAdmin ? (
-                <li>
-                  <Link
-                    to="/admin/panel"
-                    className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
-                  >
-                    <ShieldCheck className="size-4" /> Administrador
-                  </Link>
-                </li>
-              ) : (
+          <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+            {!isAuthenticated ? (
+              <>
                 <li>
                   <Link
                     to="/cuenta"
@@ -257,9 +249,35 @@ function BrandFooterContent({
                     <UserRound className="size-4" /> Cliente
                   </Link>
                 </li>
-              )}
-            </ul>
-          )}
+                <li>
+                  <Link
+                    to="/admin/panel"
+                    className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
+                  >
+                    <ShieldCheck className="size-4" /> Administrador
+                  </Link>
+                </li>
+              </>
+            ) : isAdmin ? (
+              <li>
+                <Link
+                  to="/admin/panel"
+                  className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
+                >
+                  <ShieldCheck className="size-4" /> Administrador
+                </Link>
+              </li>
+            ) : (
+              <li>
+                <Link
+                  to="/cuenta"
+                  className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
+                >
+                  <UserRound className="size-4" /> Cliente
+                </Link>
+              </li>
+            )}
+          </ul>
         </div>
         <div>
           <h3 className="text-sm font-semibold">Tiendas</h3>

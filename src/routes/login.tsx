@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { AdminAccessDialog } from "@/components/common/admin-access-dialog";
@@ -35,6 +36,9 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
+      toast.info("Ya hay un usuario logueado", {
+        className: "!border-gray-200 !bg-white !text-gray-900",
+      });
       const destination =
         typeof window !== "undefined" && window.sessionStorage.getItem("lrg_auth_role") === "admin"
           ? "/admin/panel"
