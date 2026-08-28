@@ -63,11 +63,18 @@ function AdminLayout() {
 function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading, login, register } = auth ?? {
+  const {
+    isAuthenticated,
+    isLoading,
+    login,
+    register,
+    logout: kindeLogout,
+  } = auth ?? {
     isAuthenticated: false,
     isLoading: false,
     login: () => undefined,
     register: () => undefined,
+    logout: async () => undefined,
   };
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -398,6 +405,10 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   cancelLabel="No"
                   onConfirm={async () => {
                     await logout();
+                    await kindeLogout();
+                    if (typeof window !== "undefined") {
+                      window.sessionStorage.removeItem("lrg_auth_role");
+                    }
                     navigate({ to: "/" });
                   }}
                 />
