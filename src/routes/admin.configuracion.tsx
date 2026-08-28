@@ -628,7 +628,7 @@ function AdminConfiguration() {
             </div>
           </div>
 
-          <div>
+          <div className="mt-6">
             <Label htmlFor="freeShippingThreshold">Envío gratis desde ($)</Label>
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
               <Input
@@ -1071,14 +1071,15 @@ function AdminConfiguration() {
             </div>
           </div>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1">
-              <Label htmlFor="bank-cbu">CBU</Label>
+            <div className="w-full sm:w-[70%] sm:max-w-107.5">
               <Input
                 id="bank-cbu"
                 value={bankCbu}
                 onChange={(event) => setBankCbu(event.target.value)}
-                placeholder="Ingresá el CBU de la tienda"
+                placeholder="Escribir CBU para pagos en transferencia bancaria"
+                aria-label="CBU para pagos en transferencia bancaria"
                 inputMode="numeric"
+                className="h-9"
               />
             </div>
             <label className="inline-flex h-9 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
@@ -1092,7 +1093,7 @@ function AdminConfiguration() {
               disabled={!bankCbu.trim()}
               className="h-9 shrink-0 gap-2"
             >
-              <Check className="size-4" /> Guardar CBU
+              <Check className="size-4" /> Guardar
             </Button>
           </div>
         </section>
@@ -1284,13 +1285,14 @@ function AdminConfiguration() {
           </div>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1 space-y-2">
+            <div className="w-full space-y-2 sm:w-[70%] sm:max-w-107.5">
               <Input
                 id="newDiscountCode"
                 value={newDiscountCode}
                 onChange={(event) => setNewDiscountCode(event.target.value)}
                 placeholder="Escribir código de descuento"
                 autoComplete="off"
+                className="h-9"
               />
             </div>
             <div className="w-full space-y-2 sm:w-32">
@@ -1306,6 +1308,7 @@ function AdminConfiguration() {
             </div>
             <Button
               onClick={addDiscount}
+              size="sm"
               disabled={!newDiscountCode.trim() || newDiscountPercentage < 1}
               className="h-9 shrink-0 gap-2"
             >

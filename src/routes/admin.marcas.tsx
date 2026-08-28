@@ -198,14 +198,14 @@ function AdminBrands() {
           <div>
             <div className="flex items-start gap-3">
               <BrandMark compact brandSlug="store-shop" />
-              <div className="min-h-14">
+              <div>
                 <h2 className="font-display font-semibold">{storeShopListing.name}</h2>
                 <p className="text-xs text-primary">
                   Productos gaming, streaming, perfumería árabe y diseño de páginas web
                 </p>
               </div>
             </div>
-            <div className="mt-5 space-y-2 border-t border-border/60 pt-4 text-xs text-muted-foreground">
+            <div className="mt-3 space-y-2 border-t border-border/60 pt-4 text-xs text-muted-foreground">
               {storeContactFields.map((field) => {
                 return (
                   <div key={field.key} className="flex items-center justify-between gap-2">
@@ -246,13 +246,13 @@ function AdminBrands() {
               <div>
                 <div className="flex items-start gap-3">
                   <BrandMark compact brandSlug={brand.slug} />
-                  <div className="min-h-14">
+                  <div>
                     <h2 className="font-display font-semibold">{brand.name}</h2>
                     <p className="text-xs text-primary">{brand.tagline}</p>
                   </div>
                 </div>
 
-                <div className="mt-5 space-y-2 border-t border-border/60 pt-4 text-xs text-muted-foreground">
+                <div className="mt-3 space-y-2 border-t border-border/60 pt-4 text-xs text-muted-foreground">
                   {(
                     [
                       {
