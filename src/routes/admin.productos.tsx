@@ -1045,12 +1045,12 @@ function AdminProducts() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="order-1 min-w-55 flex-1">
+        <div className="order-1 shrink-0">
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Catálogo</p>
           <h1 className="mt-2 text-3xl font-semibold">Productos</h1>
         </div>
 
-        <div className="order-3 relative min-w-55 flex-1 basis-full lg:basis-auto">
+        <div className="order-2 relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -1060,7 +1060,7 @@ function AdminProducts() {
           />
         </div>
 
-        <div className="order-2 flex shrink-0 flex-wrap items-center gap-2">
+        <div className="order-3 flex shrink-0 flex-wrap items-center gap-2">
           <Button className="h-9 gap-2" onClick={openNewProductDialog}>
             <Plus className="size-4" /> Nuevo producto
           </Button>

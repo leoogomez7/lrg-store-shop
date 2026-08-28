@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Package, RotateCcw, ShoppingCart, Trash2 } from "lucide-react";
+import { Package, RotateCcw, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { orders, saveOrders } from "@/data/orders";
@@ -20,6 +21,18 @@ function AdminTrash() {
   const queryClient = useQueryClient();
   const [entries, setEntries] = useState<TrashEntry[]>(() => readTrash());
   const [entryToDelete, setEntryToDelete] = useState<TrashEntry | null>(null);
+  const [query, setQuery] = useState("");
+
+  const filteredEntries = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return entries;
+    return entries.filter((entry) => {
+      const name = entry.type === "producto" ? entry.item.name : entry.item.customer;
+      return [entry.id, entry.type, name, entry.item.id].some((value) =>
+        String(value).toLowerCase().includes(normalizedQuery),
+      );
+    });
+  }, [entries, query]);
 
   const restoreEntry = (entry: TrashEntry) => {
     if (entry.type === "producto") {
@@ -81,13 +94,28 @@ function AdminTrash() {
         <span className="text-sm text-muted-foreground">{entries.length} elementos</span>
       </div>
 
+      <div className="relative mt-6">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Buscar elemento eliminado"
+          aria-label="Buscar elemento eliminado"
+          className="h-10 w-full rounded-xl border border-input bg-background/80 pl-9 pr-3 text-sm outline-none transition focus-visible:ring-1 focus-visible:ring-ring"
+        />
+      </div>
+
       <div className="mt-6 space-y-3 pb-20">
         {entries.length === 0 ? (
           <div className="glass-panel rounded-2xl p-8 text-center text-sm text-muted-foreground">
             La papelera está vacía.
           </div>
+        ) : filteredEntries.length === 0 ? (
+          <div className="glass-panel rounded-2xl p-8 text-center text-sm text-muted-foreground">
+            No se encontraron elementos eliminados.
+          </div>
         ) : (
-          entries.map((entry) => {
+          filteredEntries.map((entry) => {
             const isProduct = entry.type === "producto";
             const name = isProduct ? entry.item.name : `${entry.item.id} · ${entry.item.customer}`;
             return (

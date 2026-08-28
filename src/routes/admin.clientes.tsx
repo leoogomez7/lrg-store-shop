@@ -84,12 +84,12 @@ function AdminClients() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <div className="order-1 min-w-55 flex-1">
+        <div className="order-1 shrink-0">
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Listado</p>
           <h1 className="mt-2 text-3xl font-semibold">Clientes</h1>
         </div>
 
-        <div className="order-2 relative min-w-55 flex-1 basis-full lg:basis-auto">
+        <div className="order-2 relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -99,9 +99,9 @@ function AdminClients() {
           />
         </div>
 
-        <div className="contents">
+        <div className="order-3 contents">
           <Button
-            className="order-1 inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
+            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {
               const rows: (string | number)[][] = [
                 ["Cliente", "Email", "Total de pedidos", "Total gastado"],
@@ -131,7 +131,7 @@ function AdminClients() {
           </Button>
 
           <Button
-            className="order-1 inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
+            className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
             onClick={() => {
               const rows = visibleCustomers.map((customer) => {
                 const total = customer.orders.reduce((s, o) => s + (o.total || 0), 0);

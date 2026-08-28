@@ -16,7 +16,9 @@ import {
   Settings,
   Store,
   Trash2,
+  Heart,
   User,
+  UserCog,
   Users,
 } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
@@ -158,10 +160,10 @@ function BrandFooterContent({
         ]
       : section === "account"
         ? [
-            ["Pedidos", "/cuenta#orders"],
-            ["Datos", "/cuenta#profile"],
-            ["Dirección", "/cuenta#addresses"],
-            ["Favoritos", "/cuenta#favorites"],
+            ["Pedidos", "/cuenta#orders", ShoppingCart],
+            ["Datos", "/cuenta#profile", User],
+            ["Dirección", "/cuenta#addresses", MapPin],
+            ["Favoritos", "/cuenta#favorites", Heart],
           ]
         : [];
   const renderLink = (label: string, to: string, Icon?: typeof LayoutDashboard) => (
@@ -202,7 +204,7 @@ function BrandFooterContent({
           <div>
             <h3 className="text-sm font-semibold">Mi menú</h3>
             <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
-              {menu.map(([label, to]) => renderLink(label, to))}
+              {menu.map(([label, to, Icon]) => renderLink(label, to, Icon))}
             </ul>
           </div>
         )}
@@ -224,7 +226,7 @@ function BrandFooterContent({
                     to="/admin/panel"
                     className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
                   >
-                    <Shield className="size-4" /> Administrador
+                    <UserCog className="size-4" /> Administrador
                   </Link>
                 </li>
               )}
