@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { AdminAccessDialog } from "@/components/common/admin-access-dialog";
 import { getKindeRedirectUri } from "@/lib/kinde";
-import { CircleArrowLeft, House, ShieldCheck, User, UserPlus, Zap } from "lucide-react";
+import { CircleArrowLeft, House, ShieldCheck, User, UserPlus, UsersRound, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/register")({
   validateSearch: z.object({ role: z.enum(["client", "admin"]).optional() }),
@@ -33,9 +33,12 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
   const [adminAuthorized, setAdminAuthorized] = useState(false);
 
   const startRegister = () => {
-    const redirectURL = getKindeRedirectUri(role === "admin" ? "/admin" : "/login");
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("lrg_auth_role", role ?? "client");
+    }
+    const redirectURL = getKindeRedirectUri("/login");
     register({
-      redirectURL: redirectURL ?? `http://localhost:5174/${role === "admin" ? "admin" : "login"}`,
+      redirectURL: redirectURL ?? "http://localhost:5174/login",
     });
   };
 
@@ -70,7 +73,7 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
               onClick={() => setRole("client")}
               className="h-11"
             >
-              <User className="size-4" /> Cliente
+              <UsersRound className="size-4" /> Cliente
             </Button>
             <Button
               type="button"
@@ -99,7 +102,11 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
             ) : (
               <>
                 <UserPlus className="h-5 w-5" />
-                {role === "admin" ? "Crear cuenta como administrador" : "Crear cuenta como cliente"}
+                {role === "admin"
+                  ? "Crear cuenta como administrador"
+                  : role === "client"
+                    ? "Crear cuenta como cliente"
+                    : "Crear cuenta"}
               </>
             )}
           </Button>

@@ -166,6 +166,11 @@ function AdminProducts() {
   const [usdRatePromptOpen, setUsdRatePromptOpen] = useState(false);
   const [usdRatePromptValue, setUsdRatePromptValue] = useState("");
   const multiProductInputRef = useRef<HTMLInputElement | null>(null);
+  const [pendingImportedProducts, setPendingImportedProducts] = useState<Product[]>([]);
+  const [importCategoryOpen, setImportCategoryOpen] = useState(false);
+  const [importBrand, setImportBrand] = useState<BrandSlug>("arcade");
+  const [importCategory, setImportCategory] = useState("");
+  const [importSubcategory, setImportSubcategory] = useState("");
   const [quickEditProductId, setQuickEditProductId] = useState<string | null>(null);
   const [quickEditVariantId, setQuickEditVariantId] = useState<string | null>(null);
 
@@ -347,11 +352,33 @@ function AdminProducts() {
       } as Product;
     });
 
+    setCreateChoiceOpen(false);
+    setPendingImportedProducts(importedProducts);
+    setImportBrand("arcade");
+    setImportCategory(brands.arcade.categories[0]?.slug ?? "consolas");
+    setImportSubcategory("");
+    setImportCategoryOpen(true);
+  };
+
+  const importCategories = brands[importBrand].categories;
+  const selectedImportCategory = importCategories.find(
+    (category) => category.slug === importCategory,
+  );
+
+  const handleConfirmMultipleImport = () => {
+    if (!pendingImportedProducts.length || !importCategory) return;
+
+    const importedProducts = pendingImportedProducts.map((product) => ({
+      ...product,
+      brand: importBrand,
+      category: importCategory,
+      subcategory: importSubcategory || undefined,
+    }));
     (productsData as Product[]).push(...importedProducts);
     saveProducts(productsData as Product[]);
     setEditableProducts((current) => [...current, ...importedProducts]);
-    setCreateChoiceOpen(false);
-
+    setPendingImportedProducts([]);
+    setImportCategoryOpen(false);
     toast.success(`Se importaron ${importedProducts.length} productos`, {
       description:
         "Ya están disponibles en el listado y puedes editarlos como cualquier otro producto.",
@@ -2135,6 +2162,95 @@ function AdminProducts() {
               </span>
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={importCategoryOpen}
+        onOpenChange={(open) => {
+          setImportCategoryOpen(open);
+          if (!open) setPendingImportedProducts([]);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configurar productos importados</DialogTitle>
+            <DialogDescription>
+              Se crearán {pendingImportedProducts.length} productos, uno por cada imagen. Elegí la
+              tienda y la categoría que tendrán.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="import-brand">Tienda</Label>
+              <Select
+                value={importBrand}
+                onValueChange={(value) => {
+                  const nextBrand = value as BrandSlug;
+                  setImportBrand(nextBrand);
+                  setImportCategory(brands[nextBrand].categories[0]?.slug ?? "");
+                  setImportSubcategory("");
+                }}
+              >
+                <SelectTrigger id="import-brand">
+                  <SelectValue placeholder="Seleccioná una tienda" />
+                </SelectTrigger>
+                <SelectContent>
+                  {brandList.map((brand) => (
+                    <SelectItem key={brand.slug} value={brand.slug}>
+                      {brand.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="import-category">Categoría</Label>
+              <Select
+                value={importCategory}
+                onValueChange={(value) => {
+                  setImportCategory(value);
+                  setImportSubcategory("");
+                }}
+              >
+                <SelectTrigger id="import-category">
+                  <SelectValue placeholder="Seleccioná una categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  {importCategories.map((category) => (
+                    <SelectItem key={category.slug} value={category.slug}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedImportCategory?.subcategories?.length ? (
+              <div className="space-y-2">
+                <Label htmlFor="import-subcategory">Subcategoría</Label>
+                <Select value={importSubcategory} onValueChange={setImportSubcategory}>
+                  <SelectTrigger id="import-subcategory">
+                    <SelectValue placeholder="Opcional: seleccioná una subcategoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedImportCategory.subcategories.map((subcategory) => (
+                      <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                        {subcategory.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setImportCategoryOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={handleConfirmMultipleImport} disabled={!importCategory}>
+              Crear productos
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

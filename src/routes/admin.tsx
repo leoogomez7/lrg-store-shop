@@ -143,8 +143,11 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   }
 
   function startKindeFlow(flow: "login" | "register") {
-    const redirectURL = getKindeRedirectUri("/admin");
-    const options = { redirectURL: redirectURL ?? "http://localhost:5174/admin" };
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("lrg_auth_role", "admin");
+    }
+    const redirectURL = getKindeRedirectUri("/login");
+    const options = { redirectURL: redirectURL ?? "http://localhost:5174/login" };
     if (flow === "login") {
       login(options);
     } else {

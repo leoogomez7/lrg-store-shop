@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { AdminAccessDialog } from "@/components/common/admin-access-dialog";
 import { getKindeRedirectUri } from "@/lib/kinde";
-import { CircleArrowLeft, House, Mail, ShieldCheck, User, Zap } from "lucide-react";
+import { CircleArrowLeft, House, ShieldCheck, User, UsersRound, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   validateSearch: z.object({ role: z.enum(["client", "admin"]).optional() }),
@@ -35,14 +35,22 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      navigate({ to: "/cuenta" });
+      const destination =
+        typeof window !== "undefined" && window.sessionStorage.getItem("lrg_auth_role") === "admin"
+          ? "/admin"
+          : "/cuenta";
+      window.sessionStorage.removeItem("lrg_auth_role");
+      navigate({ to: destination });
     }
   }, [isAuthenticated, isLoading, navigate]);
 
   const startLogin = () => {
-    const redirectURL = getKindeRedirectUri(role === "admin" ? "/admin" : "/login");
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("lrg_auth_role", role ?? "client");
+    }
+    const redirectURL = getKindeRedirectUri("/login");
     login({
-      redirectURL: redirectURL ?? `http://localhost:5174/${role === "admin" ? "admin" : "login"}`,
+      redirectURL: redirectURL ?? "http://localhost:5174/login",
     });
   };
 
@@ -77,7 +85,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
               onClick={() => setRole("client")}
               className="h-11"
             >
-              <User className="size-4" /> Cliente
+              <UsersRound className="size-4" /> Cliente
             </Button>
             <Button
               type="button"
@@ -94,12 +102,14 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
             onClick={handleLogin}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 flex items-center justify-center gap-2 font-semibold"
           >
-            <Mail className="h-5 w-5" />
+            <User className="h-5 w-5" />
             {isLoading
               ? "Cargando..."
               : role === "admin"
                 ? "Ingresar como administrador"
-                : "Ingresar como cliente"}
+                : role === "client"
+                  ? "Ingresar como cliente"
+                  : "Iniciar sesión"}
           </Button>
 
           <p className="flex items-center justify-center gap-1 text-center text-sm text-muted-foreground">
