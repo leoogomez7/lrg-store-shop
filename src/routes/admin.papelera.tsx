@@ -70,7 +70,7 @@ function AdminTrash() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Administración</p>
+      <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Eliminaciones</p>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="mt-2 text-3xl font-semibold">Papelera</h1>

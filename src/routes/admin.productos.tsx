@@ -1050,7 +1050,7 @@ function AdminProducts() {
           <h1 className="mt-2 text-3xl font-semibold">Productos</h1>
         </div>
 
-        <div className="order-2 relative min-w-55 flex-1 basis-full lg:basis-auto">
+        <div className="order-3 relative min-w-55 flex-1 basis-full lg:basis-auto">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -1060,14 +1060,18 @@ function AdminProducts() {
           />
         </div>
 
-        <div className="contents">
+        <div className="order-2 flex shrink-0 flex-wrap items-center gap-2">
+          <Button className="h-9 gap-2" onClick={openNewProductDialog}>
+            <Plus className="size-4" /> Nuevo producto
+          </Button>
+
           <div className="relative">
             <Button
               ref={sortButtonRef}
               variant={sortMenuOpen ? "secondary" : "outline"}
               size="sm"
               onClick={() => setSortMenuOpen((current) => !current)}
-              className="order-3 h-9 shrink-0 gap-1.5 px-2.5"
+              className="h-9 shrink-0 gap-1.5 px-2.5"
               aria-expanded={sortMenuOpen}
             >
               <ArrowUpDown className="size-4 text-white" />
@@ -1117,19 +1121,15 @@ function AdminProducts() {
             variant={filtersOpen ? "secondary" : "outline"}
             size="sm"
             onClick={() => setFiltersOpen((current) => !current)}
-            className="order-4 h-9 shrink-0 gap-1.5 px-2.5"
+            className="h-9 shrink-0 gap-1.5 px-2.5"
             aria-expanded={filtersOpen}
           >
             <Filter className="size-4 text-white" />
             Filtros
           </Button>
 
-          <Button className="order-5 h-9 gap-2" onClick={openNewProductDialog}>
-            <Plus className="size-4" /> Nuevo producto
-          </Button>
-
           <Button
-            className="order-1 inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
+            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {
               const rows: (string | number)[][] = [
                 ["ID", "Nombre", "Marca", "Categoria", "Precio", "Stock", "Descuento"],
@@ -1160,7 +1160,7 @@ function AdminProducts() {
           </Button>
 
           <Button
-            className="order-1 inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
+            className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
             onClick={() => {
               const rows = results.map((p) => {
                 const discounted = discounts[p.id] ?? 0;
@@ -1234,7 +1234,7 @@ function AdminProducts() {
           <Button
             type="button"
             variant="outline"
-            className="order-1 h-9 gap-2 border-amber-500/50 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 hover:text-amber-700"
+            className="h-9 gap-2 border-amber-500/50 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 hover:text-amber-700"
             onClick={() => {
               setUsdRatePromptValue(usdRate > 0 ? String(usdRate) : "");
               setUsdRatePromptOpen(true);

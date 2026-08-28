@@ -316,7 +316,7 @@ function AdminDashboard() {
         ))}
       </div>
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <section className="mt-8 grid gap-6 lg:grid-cols-1">
         <div className="glass-panel rounded-2xl p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>

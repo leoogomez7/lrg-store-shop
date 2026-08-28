@@ -2,14 +2,22 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
+  ContactRound,
   Facebook,
   Globe,
   Instagram,
+  LayoutDashboard,
   Mail,
   MapPin,
+  Package,
   Phone,
   Shield,
+  ShoppingCart,
+  Settings,
+  Store,
+  Trash2,
   User,
+  Users,
 } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
@@ -139,14 +147,14 @@ function BrandFooterContent({
   const menu =
     section === "admin"
       ? [
-          ["Dashboard", "/admin/panel"],
-          ["Productos", "/admin/productos"],
-          ["Pedidos", "/admin/pedidos"],
-          ["Clientes", "/admin/clientes"],
-          ["Proveedores", "/admin/proveedores"],
-          ["Tiendas disponibles", "/admin/marcas"],
-          ["Configuración", "/admin/configuracion"],
-          ["Papelera", "/admin/papelera"],
+          ["Dashboard", "/admin/panel", LayoutDashboard],
+          ["Productos", "/admin/productos", Package],
+          ["Pedidos", "/admin/pedidos", ShoppingCart],
+          ["Clientes", "/admin/clientes", Users],
+          ["Proveedores", "/admin/proveedores", ContactRound],
+          ["Tiendas disponibles", "/admin/marcas", Store],
+          ["Configuración", "/admin/configuracion", Settings],
+          ["Papelera", "/admin/papelera", Trash2],
         ]
       : section === "account"
         ? [
@@ -156,9 +164,13 @@ function BrandFooterContent({
             ["Favoritos", "/cuenta#favorites"],
           ]
         : [];
-  const renderLink = (label: string, to: string) => (
+  const renderLink = (label: string, to: string, Icon?: typeof LayoutDashboard) => (
     <li key={`${label}-${to}`}>
-      <Link to={to as "/"} className="transition-colors hover:text-foreground">
+      <Link
+        to={to as "/"}
+        className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
+      >
+        {Icon && <Icon className="size-4" />}
         {label}
       </Link>
     </li>
