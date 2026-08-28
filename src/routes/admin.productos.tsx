@@ -1127,9 +1127,7 @@ function AdminProducts() {
             <Filter className="size-4 text-white" />
             Filtros
           </Button>
-        </div>
 
-        <div className="order-4 basis-full flex flex-wrap items-center gap-2">
           <Button
             className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {
