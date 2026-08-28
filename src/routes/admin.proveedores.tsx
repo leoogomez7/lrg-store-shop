@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
-import { Download, Eye, EyeOff, FileText, Plus, Save, Search } from "lucide-react";
+import { Check, Download, Eye, EyeOff, FileText, Plus, Save, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
@@ -62,6 +62,9 @@ function AdminSuppliers() {
     phone: "",
     social: "",
   });
+  const [page, setPage] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
+  const [pageSizeInput, setPageSizeInput] = React.useState("10");
 
   React.useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
@@ -141,6 +144,14 @@ function AdminSuppliers() {
       value.toLowerCase().includes(query.toLowerCase()),
     ),
   );
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const visibleRows = filteredRows.slice(page * pageSize, page * pageSize + pageSize);
+  const hasPreviousPage = page > 0;
+  const hasNextPage = page + 1 < totalPages;
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [query]);
 
   const exportRows = filteredRows.map((row) => [
     row.name,
@@ -171,7 +182,7 @@ function AdminSuppliers() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <div className="order-1 shrink-0">
+        <div className="order-1 basis-full shrink-0">
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Listado</p>
           <h1 className="mt-2 text-3xl font-semibold">Proveedores</h1>
         </div>
@@ -278,7 +289,7 @@ function AdminSuppliers() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRows.map((row) => {
+            {visibleRows.map((row) => {
               const isExpanded = expandedSupplierKey === row.key;
               return (
                 <React.Fragment key={row.key}>
@@ -333,6 +344,67 @@ function AdminSuppliers() {
             )}
           </TableBody>
         </Table>
+      </div>
+      <div className="mt-4 flex flex-col gap-3 pb-20 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-muted-foreground">
+          {visibleRows.length} de {filteredRows.length} proveedores mostrados
+        </p>
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-muted-foreground">Mostrar</div>
+          <Input
+            type="number"
+            min={1}
+            max={1000}
+            value={pageSizeInput}
+            placeholder="Ej: 10"
+            onChange={(event) => setPageSizeInput(event.target.value)}
+            className="h-8 w-28"
+          />
+          <Button
+            size="sm"
+            onClick={() => {
+              const value = Number(pageSizeInput);
+              if (!Number.isFinite(value) || value < 1) return;
+              setPageSize(Math.min(1000, Math.floor(value)));
+              setPage(0);
+            }}
+            disabled={!Number.isFinite(Number(pageSizeInput)) || Number(pageSizeInput) < 1}
+          >
+            <Check className="mr-2 h-4 w-4" /> Confirmar
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(0)}
+            disabled={!hasPreviousPage}
+          >
+            Principio
+          </Button>
+          <div className="flex items-center gap-1 rounded-full border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm">
+            {Array.from({ length: totalPages }, (_, index) => (
+              <button
+                key={index}
+                type="button"
+                className={`rounded-full px-3 py-1 ${index === page ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-slate-100"}`}
+                onClick={() => setPage(index)}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(totalPages - 1)}
+            disabled={!hasNextPage}
+          >
+            Último
+          </Button>
+        </div>
       </div>
     </main>
   );
