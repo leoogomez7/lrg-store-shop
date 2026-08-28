@@ -65,7 +65,7 @@ export const Route = createFileRoute("/admin/configuracion")({
 
 function AdminConfiguration() {
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(300);
-  const [pendingFreeShippingThreshold, setPendingFreeShippingThreshold] = useState(String(300));
+  const [pendingFreeShippingThreshold, setPendingFreeShippingThreshold] = useState("");
   const [freeShippingConfirmationStatus, setFreeShippingConfirmationStatus] = useState<
     "confirmed" | "unchanged" | null
   >(null);
@@ -118,8 +118,9 @@ function AdminConfiguration() {
 
     setDiscounts(brand.discounts ?? []);
 
-    setFreeShippingThreshold(brand.shipping?.freeShippingThreshold ?? 300);
-    setPendingFreeShippingThreshold(String(brand.shipping?.freeShippingThreshold ?? 300));
+    const shippingThreshold = brand.shipping?.freeShippingThreshold ?? 300;
+    setFreeShippingThreshold(shippingThreshold);
+    setPendingFreeShippingThreshold(shippingThreshold > 0 ? String(shippingThreshold) : "");
     setFreeShippingConfirmationStatus(null);
     setFreeShippingConfirmed(false);
     setIsInitialized(true);
@@ -578,8 +579,8 @@ function AdminConfiguration() {
               setConfirmState((s) => ({ ...s, open: false }));
             }}
           />
-          <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Configuración</p>
-          <h1 className="mt-2 text-3xl font-semibold">Ajustes del panel</h1>
+          <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Ajustes del panel</p>
+          <h1 className="mt-2 text-3xl font-semibold">Configuración</h1>
         </div>
       </div>
 
@@ -625,9 +626,10 @@ function AdminConfiguration() {
             <div>
               <h2 className="text-xl font-semibold">Métodos de envíos</h2>
               <p className="text-sm text-muted-foreground">
-                Configurar los métodos de envíos disponibles en {" "}
+                Configurar los métodos de envíos disponibles en{" "}
                 {getBrand(selectedBrand)?.name ?? "esta tienda"}.
-              </p>            </div>
+              </p>{" "}
+            </div>
           </div>
 
           <div className="mt-6">
@@ -661,17 +663,16 @@ function AdminConfiguration() {
                   Confirmar
                 </Button>
               </div>
+              <div className="flex w-fit max-w-full items-center gap-3 rounded-xl border border-border/50 bg-background/80 px-3 py-2">
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  Hay envío gratis desde:
+                </p>
+                <p className="text-lg font-semibold text-foreground">${freeShippingThreshold}</p>
+              </div>
             </div>
           </div>
 
           <div className="mt-6 space-y-6">
-            <div className="w-fit max-w-full rounded-2xl border border-border/50 bg-background/80 p-4 sm:min-w-80">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                Hay envío gratis desde:
-              </p>
-              <p className="mt-2 text-lg font-semibold text-foreground">${freeShippingThreshold}</p>
-            </div>
-
             <div>
               <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
                 <Input
@@ -935,8 +936,8 @@ function AdminConfiguration() {
             </div>
             <div>
               <h2 className="text-xl font-semibold">Métodos de pago</h2>
-                <p className="text-sm text-muted-foreground">
-                Configurar los métodos de pagos disponibles en {" "}
+              <p className="text-sm text-muted-foreground">
+                Configurar los métodos de pagos disponibles en{" "}
                 {getBrand(selectedBrand)?.name ?? "esta tienda"}.
               </p>
             </div>
@@ -1069,7 +1070,7 @@ function AdminConfiguration() {
             <div>
               <h2 className="text-xl font-semibold">Transferencia bancaria</h2>
               <p className="text-sm text-muted-foreground">
-                Agregar CBU para recibir transferencias en {" "}
+                Agregar CBU para recibir transferencias en{" "}
                 {getBrand(selectedBrand)?.name ?? "esta tienda"}.
               </p>
             </div>
@@ -1110,7 +1111,7 @@ function AdminConfiguration() {
             <div>
               <h2 className="text-xl font-semibold">Categorías</h2>
               <p className="text-sm text-muted-foreground">
-                Configurar las categorías y subcategorias para {" "}
+                Configurar las categorías y subcategorías en{" "}
                 {getBrand(selectedBrand)?.name ?? "esta tienda"}.
               </p>
             </div>
@@ -1300,8 +1301,8 @@ function AdminConfiguration() {
                 className="h-9"
               />
             </div>
-            <div className="w-full space-y-2 sm:w-32">
-              <Label htmlFor="newDiscountPercentage">Porcentaje</Label>
+            <div className="w-full space-y-3 sm:w-32">
+              <Label htmlFor="newDiscountPercentage">Porcentaje (%)</Label>
               <Input
                 id="newDiscountPercentage"
                 type="number"

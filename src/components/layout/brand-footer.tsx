@@ -12,17 +12,18 @@ import {
   Package,
   Phone,
   Shield,
+  ShieldCheck,
   ShoppingCart,
   Settings,
   Store,
   Trash2,
   Heart,
   User,
-  UserCog,
   Users,
 } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
+import { BrandMark } from "@/components/common/brand-mark";
 import {
   getBrandContactPresentation,
   getStoreShopContact,
@@ -34,17 +35,39 @@ import {
 
 function TikTokIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M9 18a3 3 0 1 0 0-6h1v6" />
-      <path d="M13 8v6a3 3 0 1 0 3 3V7h-3" />
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.9 2.9 0 1 1-2-2.76V9.4a6.35 6.35 0 1 0 5.45 6.27V8.74a8.22 8.22 0 0 0 4.81 1.54V6.86a4.84 4.84 0 0 1-1.04-.17Z" />
+    </svg>
+  );
+}
+
+function TrustpilotIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="m12 2.2 2.2 6.76h7.1l-5.75 4.18 2.2 6.76L12 15.72l-5.75 4.18 2.2-6.76L2.7 8.96h7.1L12 2.2Z" />
+    </svg>
+  );
+}
+
+function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        fill="#4285F4"
+        d="M21.35 12.27c0-.68-.06-1.34-.18-1.97H12v3.73h5.23a4.47 4.47 0 0 1-1.94 2.93v2.44h3.14c1.84-1.7 2.92-4.2 2.92-7.13Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 21.63c2.63 0 4.84-.87 6.45-2.36l-3.14-2.44c-.87.58-1.98.92-3.31.92-2.54 0-4.7-1.72-5.47-4.03H3.29v2.52A9.75 9.75 0 0 0 12 21.63Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M6.53 13.72A5.86 5.86 0 0 1 6.22 12c0-.6.1-1.18.31-1.72V7.76H3.29A9.75 9.75 0 0 0 2.25 12c0 1.57.38 3.06 1.04 4.24l3.24-2.52Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 6.25c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.84 3.32 14.63 2.37 12 2.37a9.75 9.75 0 0 0-8.71 5.39l3.24 2.52c.77-2.31 2.93-4.03 5.47-4.03Z"
+      />
     </svg>
   );
 }
@@ -63,7 +86,7 @@ function ContactItem({
       ) : (
         <Icon className="size-4" />
       )}
-      <span>{item.text}</span>
+      <span className="whitespace-nowrap">{item.text}</span>
     </>
   );
   return item.href ? (
@@ -146,26 +169,25 @@ function BrandFooterContent({
     window.sessionStorage.getItem("lrg_auth_role") === "admin" &&
     window.sessionStorage.getItem("lrg_admin_final_verified") === "true";
   const categories = section === "brand" ? brand.categories : [];
-  const menu =
-    section === "admin"
+  const menu = isAdmin
+    ? [
+        ["Panel administrativo", "/admin/panel", LayoutDashboard],
+        ["Productos", "/admin/productos", Package],
+        ["Pedidos", "/admin/pedidos", ShoppingCart],
+        ["Clientes", "/admin/clientes", Users],
+        ["Proveedores", "/admin/proveedores", ContactRound],
+        ["Tiendas disponibles", "/admin/marcas", Store],
+        ["Configuración", "/admin/configuracion", Settings],
+        ["Papelera", "/admin/papelera", Trash2],
+      ]
+    : isAuthenticated
       ? [
-          ["Dashboard", "/admin/panel", LayoutDashboard],
-          ["Productos", "/admin/productos", Package],
-          ["Pedidos", "/admin/pedidos", ShoppingCart],
-          ["Clientes", "/admin/clientes", Users],
-          ["Proveedores", "/admin/proveedores", ContactRound],
-          ["Tiendas disponibles", "/admin/marcas", Store],
-          ["Configuración", "/admin/configuracion", Settings],
-          ["Papelera", "/admin/papelera", Trash2],
+          ["Pedidos", "/cuenta#orders", ShoppingCart],
+          ["Perfil", "/cuenta#profile", User],
+          ["Direcciones", "/cuenta#addresses", MapPin],
+          ["Favoritos", "/cuenta#favorites", Heart],
         ]
-      : section === "account"
-        ? [
-            ["Pedidos", "/cuenta#orders", ShoppingCart],
-            ["Datos", "/cuenta#profile", User],
-            ["Dirección", "/cuenta#addresses", MapPin],
-            ["Favoritos", "/cuenta#favorites", Heart],
-          ]
-        : [];
+      : [];
   const renderLink = (label: string, to: string, Icon?: typeof LayoutDashboard) => (
     <li key={`${label}-${to}`}>
       <Link
@@ -200,7 +222,7 @@ function BrandFooterContent({
             </ul>
           </div>
         )}
-        {menu.length > 0 && (section === "admin" || section === "account") && (
+        {isAuthenticated && menu.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold">Mi menú</h3>
             <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
@@ -212,21 +234,22 @@ function BrandFooterContent({
           <h3 className="text-sm font-semibold">Panel</h3>
           {isAuthenticated && (
             <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
-              <li>
-                <Link
-                  to="/cuenta"
-                  className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
-                >
-                  <User className="size-4" /> Cliente
-                </Link>
-              </li>
-              {isAdmin && (
+              {isAdmin ? (
                 <li>
                   <Link
                     to="/admin/panel"
                     className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
                   >
-                    <UserCog className="size-4" /> Administrador
+                    <ShieldCheck className="size-4" /> Administrador
+                  </Link>
+                </li>
+              ) : (
+                <li>
+                  <Link
+                    to="/cuenta"
+                    className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
+                  >
+                    <User className="size-4" /> Cliente
                   </Link>
                 </li>
               )}
@@ -241,8 +264,9 @@ function BrandFooterContent({
                 <Link
                   to={item.slug === "store-shop" ? "/" : "/$brand"}
                   params={item.slug === "store-shop" ? undefined : { brand: item.slug }}
-                  className="transition-colors hover:text-foreground"
+                  className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
                 >
+                  <BrandMark compact brandSlug={item.slug} className="shrink-0" />
                   {item.name}
                 </Link>
               </li>
@@ -265,8 +289,8 @@ function BrandFooterContent({
           </div>
           <h3 className="mt-5 text-sm font-semibold">Reseñas</h3>
           <div className="mt-3 flex flex-col items-start gap-2">
-            <ContactItem item={storeContact.socials.trustpilot} icon={ArrowUpRight} />
-            <ContactItem item={storeContact.socials.google} icon={Globe} />
+            <ContactItem item={storeContact.socials.trustpilot} icon={TrustpilotIcon} />
+            <ContactItem item={storeContact.socials.google} icon={GoogleIcon} />
           </div>
         </div>
       </div>
