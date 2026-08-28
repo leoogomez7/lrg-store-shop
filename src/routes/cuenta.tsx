@@ -164,29 +164,24 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
         logoBrandSlug="store-shop"
       />
       <div className="aurora-bg" />
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col px-4 pt-20 sm:px-6">
-        <div className="mt-6 flex flex-wrap items-center gap-4">
-          <span className="gradient-brand grid size-14 place-items-center rounded-2xl">
-            <User className="size-6 text-primary-foreground" />
-          </span>
+      <Tabs
+        defaultValue="orders"
+        className="relative mx-auto w-full max-w-6xl px-4 pb-12 pt-20 sm:px-6"
+      >
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <span className="gradient-brand grid size-14 place-items-center rounded-2xl">
+              <User className="size-6 text-primary-foreground" />
+            </span>
+            <h1 className="text-3xl font-semibold">Hola{userName ? `, ${userName}` : ""}</h1>
+          </div>
+          <TabsList>
+            <TabsTrigger value="orders">Pedidos</TabsTrigger>
+            <TabsTrigger value="profile">Perfil</TabsTrigger>
+            <TabsTrigger value="addresses">Direcciones</TabsTrigger>
+            <TabsTrigger value="favorites">Favoritos</TabsTrigger>
+          </TabsList>
         </div>
-        <div>
-          <h1 className="text-3xl font-semibold">Hola{userName ? `, ${userName}` : ""}</h1>
-          {userName ? (
-            <p className="text-sm text-muted-foreground">{userName}</p>
-          ) : (
-            <p className="text-sm text-muted-foreground">Inicia sesión para ver tu cuenta.</p>
-          )}
-        </div>
-      </div>
-
-      <Tabs defaultValue="orders" className="mt-6 pb-12">
-        <TabsList>
-          <TabsTrigger value="orders">Pedidos</TabsTrigger>
-          <TabsTrigger value="profile">Perfil</TabsTrigger>
-          <TabsTrigger value="addresses">Direcciones</TabsTrigger>
-          <TabsTrigger value="favorites">Favoritos</TabsTrigger>
-        </TabsList>
 
         <TabsContent value="orders" className="pt-6">
           <div className="glass-panel overflow-visible rounded-2xl">

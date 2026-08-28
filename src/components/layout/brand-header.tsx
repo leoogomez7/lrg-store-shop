@@ -1,5 +1,14 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LogOut, ShoppingBag, ShoppingCart, Store, User, UserPlus, Trash2 } from "lucide-react";
+import {
+  House,
+  LogOut,
+  ShoppingBag,
+  ShoppingCart,
+  Store,
+  User,
+  UserPlus,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useState, type MouseEvent } from "react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { toast } from "sonner";
@@ -175,7 +184,7 @@ function BrandHeaderContent({
           </a>
 
           <div className="ml-auto flex items-center gap-4">
-            <nav className="hidden md:flex items-center gap-3">
+            <nav className="order-3 hidden items-center gap-3 md:flex">
               {links.map((l) => {
                 // anchor links for store-shop
                 if (l.href && typeof l.href === "string" && l.href.startsWith("#")) {
@@ -227,20 +236,20 @@ function BrandHeaderContent({
                 <>
                   <Button
                     asChild
-                    className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    <Link to="/register">
-                      <UserPlus className="h-4 w-4" /> Crear cuenta
-                    </Link>
-                  </Button>
-
-                  <Button
-                    asChild
                     variant="ghost"
                     className="rounded-xl text-muted-foreground hover:text-foreground"
                   >
                     <Link to="/login">
                       <User className="h-4 w-4" /> Iniciar sesión
+                    </Link>
+                  </Button>
+
+                  <Button
+                    asChild
+                    className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Link to="/register">
+                      <UserPlus className="h-4 w-4" /> Crear cuenta
                     </Link>
                   </Button>
                 </>
@@ -254,30 +263,26 @@ function BrandHeaderContent({
               )}
             </nav>
 
-            <div className="hidden sm:flex items-center">
+            <div className="order-5 hidden items-center sm:flex">
               <UserBadge />
             </div>
 
             {/* Mobile auth buttons: visible on small screens */}
-            <div className="flex md:hidden items-center gap-2">
+            <div className="order-3 flex items-center gap-2 md:hidden">
               {!userName ? (
                 <>
+                  <Button
+                    onClick={() => navigate({ to: "/login" })}
+                    variant="ghost"
+                    className="rounded-xl text-muted-foreground hover:text-foreground text-xs px-3 py-1"
+                  >
+                    <User className="h-4 w-4" /> Iniciar sesión
+                  </Button>
                   <Button
                     onClick={() => navigate({ to: "/register" })}
                     className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs px-3 py-1"
                   >
-                    <>
-                      <UserPlus className="h-4 w-4" /> Crear cuenta
-                    </>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => navigate({ to: "/login" })}
-                    className="rounded-xl text-muted-foreground hover:text-foreground text-xs px-3 py-1"
-                  >
-                    <>
-                      <User className="h-4 w-4" /> Iniciar sesión
-                    </>
+                    <UserPlus className="h-4 w-4" /> Crear cuenta
                   </Button>
                 </>
               ) : (
@@ -290,22 +295,21 @@ function BrandHeaderContent({
               )}
             </div>
 
-            {userName && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-xl text-red-600 hover:border-red-500 hover:bg-red-500/10 hover:text-red-600"
-                title="Cerrar sesión"
-                onClick={() => setLogoutOpen(true)}
-              >
-                <LogOut className="size-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Cerrar sesión</span>
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!userName}
+              className="order-6 rounded-xl text-red-600 hover:border-red-500 hover:bg-red-500/10 hover:text-red-600"
+              title="Cerrar sesión"
+              onClick={() => setLogoutOpen(true)}
+            >
+              <LogOut className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Cerrar sesión</span>
+            </Button>
 
             <DropdownMenu open={openBuyMenu} onOpenChange={setOpenBuyMenu}>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm" className="rounded-xl gap-2">
+                <Button variant="secondary" size="sm" className="order-2 rounded-xl gap-2">
                   <ShoppingBag className="size-4" />
                   <span className="hidden sm:inline">Comprar</span>
                 </Button>
@@ -329,9 +333,16 @@ function BrandHeaderContent({
               </DropdownMenuContent>
             </DropdownMenu>
 
+            <Button asChild variant="ghost" size="sm" className="order-0 rounded-xl gap-2">
+              <Link to="/" aria-label="Inicio">
+                <House className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Inicio</span>
+              </Link>
+            </Button>
+
             <DropdownMenu open={openCart} onOpenChange={setOpenCart}>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm" className="rounded-xl relative gap-2">
+                <Button variant="secondary" size="sm" className="order-4 rounded-xl relative gap-2">
                   <ShoppingCart className="size-4" />
                   <span className="hidden sm:inline">Carrito</span>
                   {count > 0 && (
@@ -451,7 +462,7 @@ function BrandHeaderContent({
 
             <DropdownMenu open={openMenu} onOpenChange={setOpenMenu}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="rounded-xl gap-2">
+                <Button variant="ghost" size="sm" className="order-1 rounded-xl gap-2">
                   <Store className="size-4" aria-hidden="true" />
                   <span className="hidden sm:inline">Tiendas</span>
                 </Button>

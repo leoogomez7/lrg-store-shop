@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Facebook, Globe, Instagram, Mail, MapPin, Phone } from "lucide-react";
-import { BrandMark } from "@/components/common/brand-mark";
 import {
   getBrandContactPresentation,
   getStoreNavigation,
@@ -68,15 +67,6 @@ export function BrandFooter({
   return (
     <footer className="mt-24 border-t border-border/60 bg-surface/40">
       <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-5">
-        <div className="space-y-4">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2.5 transition-colors hover:text-foreground"
-          >
-            <BrandMark brandSlug="store-shop" label="LRG Store Shop" />
-          </Link>
-        </div>
-
         <div>
           <h3 className="text-sm font-semibold">Categorías</h3>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
@@ -249,9 +239,12 @@ export function BrandFooter({
       </div>
 
       <div className="border-t border-border/60 py-6">
-        <p className="mx-auto max-w-7xl px-4 text-xs text-muted-foreground sm:px-6">
+        <Link
+          to="/"
+          className="mx-auto block max-w-7xl px-4 text-xs text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+        >
           © {new Date().getFullYear()} LRG Store Shop · {brand.name}. Todos los derechos reservados.
-        </p>
+        </Link>
       </div>
     </footer>
   );
