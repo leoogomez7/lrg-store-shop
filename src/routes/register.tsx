@@ -32,15 +32,19 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
   const [adminAccessOpen, setAdminAccessOpen] = useState(false);
   const [adminAuthorized, setAdminAuthorized] = useState(false);
 
+  const startRegister = () => {
+    const redirectURL = getKindeRedirectUri(role === "admin" ? "/admin" : "/login");
+    register({
+      redirectURL: redirectURL ?? `http://localhost:5174/${role === "admin" ? "admin" : "login"}`,
+    });
+  };
+
   const handleRegister = () => {
     if (role === "admin" && !adminAuthorized) {
       setAdminAccessOpen(true);
       return;
     }
-    const redirectURL = getKindeRedirectUri(role === "admin" ? "/admin" : "/login");
-    register({
-      redirectURL: redirectURL ?? `http://localhost:5174/${role === "admin" ? "admin" : "login"}`,
-    });
+    startRegister();
   };
 
   return (
@@ -95,7 +99,7 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
             ) : (
               <>
                 <UserPlus className="h-5 w-5" />
-                {role === "admin" ? "Crear cuenta de administrador" : "Crear cuenta"}
+                {role === "admin" ? "Crear cuenta como administrador" : "Crear cuenta como cliente"}
               </>
             )}
           </Button>
@@ -127,7 +131,10 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
         <AdminAccessDialog
           open={adminAccessOpen}
           onOpenChange={setAdminAccessOpen}
-          onAuthorized={() => setAdminAuthorized(true)}
+          onAuthorized={() => {
+            setAdminAuthorized(true);
+            startRegister();
+          }}
         />
       </div>
     </div>

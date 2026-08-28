@@ -32,8 +32,8 @@ export function AdminAccessDialog({
       return;
     }
     setPassword("");
-    onOpenChange(false);
     onAuthorized();
+    onOpenChange(false);
   }
 
   return (

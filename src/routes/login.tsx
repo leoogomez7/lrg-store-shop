@@ -39,15 +39,19 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
     }
   }, [isAuthenticated, isLoading, navigate]);
 
+  const startLogin = () => {
+    const redirectURL = getKindeRedirectUri(role === "admin" ? "/admin" : "/login");
+    login({
+      redirectURL: redirectURL ?? `http://localhost:5174/${role === "admin" ? "admin" : "login"}`,
+    });
+  };
+
   const handleLogin = () => {
     if (role === "admin" && !adminAuthorized) {
       setAdminAccessOpen(true);
       return;
     }
-    const redirectURL = getKindeRedirectUri(role === "admin" ? "/admin" : "/login");
-    login({
-      redirectURL: redirectURL ?? `http://localhost:5174/${role === "admin" ? "admin" : "login"}`,
-    });
+    startLogin();
   };
 
   return (
@@ -126,7 +130,10 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
       <AdminAccessDialog
         open={adminAccessOpen}
         onOpenChange={setAdminAccessOpen}
-        onAuthorized={() => setAdminAuthorized(true)}
+        onAuthorized={() => {
+          setAdminAuthorized(true);
+          startLogin();
+        }}
       />
     </div>
   );
