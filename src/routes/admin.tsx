@@ -77,6 +77,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [initialPasswordVerified, setInitialPasswordVerified] = useState(false);
   const [adminIdentityVerified, setAdminIdentityVerified] = useState(false);
+  const [adminIdentityChecked, setAdminIdentityChecked] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [password, setPassword] = useState("");
   const [finalPassword, setFinalPassword] = useState("");
@@ -86,7 +87,8 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [finalPasswordError, setFinalPasswordError] = useState("");
 
   useEffect(() => {
-    if (!initialPasswordVerified || !isAuthenticated || !auth?.user?.id) return;
+    if (!isAuthenticated || !auth?.user?.id) return;
+    setAdminIdentityChecked(false);
     const identity = auth.user.email
       ? { id: auth.user.id, email: auth.user.email }
       : { id: auth.user.id };
@@ -95,9 +97,15 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
         if (!registered) return false;
         return verifyRegisteredAdmin({ data: identity });
       })
-      .then((verified) => setAdminIdentityVerified(Boolean(verified)))
-      .catch(() => setAdminIdentityVerified(false));
-  }, [auth?.user?.email, auth?.user?.id, initialPasswordVerified, isAuthenticated]);
+      .then((verified) => {
+        setAdminIdentityVerified(Boolean(verified));
+        setAdminIdentityChecked(true);
+      })
+      .catch(() => {
+        setAdminIdentityVerified(false);
+        setAdminIdentityChecked(true);
+      });
+  }, [auth?.user?.email, auth?.user?.id, isAuthenticated]);
 
   useEffect(() => {
     if (!adminIdentityVerified) return;
@@ -155,7 +163,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     }
   }
 
-  if (!adminUnlocked && !initialPasswordVerified) {
+  if (!adminUnlocked && !isAuthenticated && !initialPasswordVerified) {
     return (
       <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
         <form onSubmit={unlockAdmin} className="glass-card w-full max-w-md space-y-5 p-6">
@@ -256,7 +264,17 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     );
   }
 
-  if (!adminUnlocked && !adminIdentityVerified) {
+  if (!adminUnlocked && isAuthenticated && !adminIdentityChecked) {
+    return (
+      <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+        <div className="glass-card w-full max-w-md space-y-5 p-6">
+          <p className="text-sm text-muted-foreground">Verificando acceso...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!adminUnlocked && isAuthenticated && !adminIdentityVerified) {
     return (
       <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
         <div className="glass-card w-full max-w-md space-y-5 p-6">
