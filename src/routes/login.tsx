@@ -78,10 +78,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
             <Button
               type="button"
               variant={role === "admin" ? "default" : "outline"}
-              onClick={() => {
-                setRole("admin");
-                setAdminAccessOpen(true);
-              }}
+              onClick={() => setRole("admin")}
               className="h-11"
             >
               <ShieldCheck className="size-4" /> Administrador
