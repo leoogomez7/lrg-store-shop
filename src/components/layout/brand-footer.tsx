@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import type { ComponentType } from "react";
 import { ArrowUpRight, Facebook, Globe, Instagram, Mail, MapPin, Phone } from "lucide-react";
 import {
   getBrandContactPresentation,
@@ -106,12 +107,20 @@ export function BrandFooter({
           <h3 className="text-sm font-semibold">Panel</h3>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
             <li>
-              <Link to="/cuenta" className="transition-colors hover:text-foreground">
+              <Link
+                to="/login"
+                search={{ role: "client" }}
+                className="transition-colors hover:text-foreground"
+              >
                 Mi cuenta
               </Link>
             </li>
             <li>
-              <Link to="/admin/panel" className="transition-colors hover:text-foreground">
+              <Link
+                to="/login"
+                search={{ role: "admin" }}
+                className="transition-colors hover:text-foreground"
+              >
                 Administrador
               </Link>
             </li>
@@ -202,7 +211,7 @@ export function BrandFooter({
               <div className="mt-2 flex flex-col items-start gap-2 text-sm">
                 {brand.social.map((social) => {
                   const key = social.label.toLowerCase();
-                  let Icon: any = null;
+                  let Icon: ComponentType<{ className?: string }> | null = null;
                   if (key.includes("instagram")) Icon = Instagram;
                   else if (key.includes("whatsapp")) Icon = Phone;
                   else if (key.includes("tiktok")) Icon = TikTokIcon;

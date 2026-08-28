@@ -1,11 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { z } from "zod";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
+import { AdminAccessDialog } from "@/components/common/admin-access-dialog";
 import { getKindeRedirectUri } from "@/lib/kinde";
-import { CircleArrowLeft, House, User, UserPlus, Zap } from "lucide-react";
+import { CircleArrowLeft, House, ShieldCheck, User, UserPlus, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/register")({
+  validateSearch: z.object({ role: z.enum(["client", "admin"]).optional() }),
   component: RegisterPage,
 });
 
@@ -23,10 +27,20 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
     isLoading: false,
   };
   const navigate = useNavigate();
+  const { role: requestedRole } = Route.useSearch();
+  const [role, setRole] = useState<"client" | "admin" | null>(requestedRole ?? null);
+  const [adminAccessOpen, setAdminAccessOpen] = useState(false);
+  const [adminAuthorized, setAdminAuthorized] = useState(false);
 
   const handleRegister = () => {
-    const redirectURL = getKindeRedirectUri("/login");
-    register({ redirectURL: redirectURL ?? "http://localhost:5174/login" });
+    if (role === "admin" && !adminAuthorized) {
+      setAdminAccessOpen(true);
+      return;
+    }
+    const redirectURL = getKindeRedirectUri(role === "admin" ? "/admin" : "/login");
+    register({
+      redirectURL: redirectURL ?? `http://localhost:5174/${role === "admin" ? "admin" : "login"}`,
+    });
   };
 
   return (
@@ -45,6 +59,27 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
         </div>
 
         <div className="glass-card p-6 space-y-6">
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant={role === "client" ? "default" : "outline"}
+              onClick={() => setRole("client")}
+              className="h-11"
+            >
+              <User className="size-4" /> Cliente
+            </Button>
+            <Button
+              type="button"
+              variant={role === "admin" ? "default" : "outline"}
+              onClick={() => {
+                setRole("admin");
+                setAdminAccessOpen(true);
+              }}
+              className="h-11"
+            >
+              <ShieldCheck className="size-4" /> Administrador
+            </Button>
+          </div>
           <div className="rounded-2xl border border-border/50 bg-muted/5 p-4 text-sm text-muted-foreground">
             <p>
               Recibirás un código en tu email para completar el registro y luego serás redirigido a
@@ -54,7 +89,7 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
 
           <Button
             type="button"
-            disabled={isLoading}
+            disabled={isLoading || role === null}
             onClick={handleRegister}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 flex items-center justify-center gap-2 font-semibold"
           >
@@ -62,7 +97,8 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
               "Cargando..."
             ) : (
               <>
-                <UserPlus className="h-5 w-5" /> Crear cuenta
+                <UserPlus className="h-5 w-5" />
+                {role === "admin" ? "Crear cuenta de administrador" : "Crear cuenta"}
               </>
             )}
           </Button>
@@ -91,6 +127,11 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
             </Button>
           </div>
         </div>
+        <AdminAccessDialog
+          open={adminAccessOpen}
+          onOpenChange={setAdminAccessOpen}
+          onAuthorized={() => setAdminAuthorized(true)}
+        />
       </div>
     </div>
   );

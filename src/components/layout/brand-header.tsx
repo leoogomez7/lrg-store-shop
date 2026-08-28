@@ -295,17 +295,18 @@ function BrandHeaderContent({
               )}
             </div>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!userName}
-              className="order-6 rounded-xl text-red-600 hover:border-red-500 hover:bg-red-500/10 hover:text-red-600"
-              title="Cerrar sesión"
-              onClick={() => setLogoutOpen(true)}
-            >
-              <LogOut className="size-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Cerrar sesión</span>
-            </Button>
+            {userName && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="order-6 rounded-xl text-red-600 hover:border-red-500 hover:bg-red-500/10 hover:text-red-600"
+                title="Cerrar sesión"
+                onClick={() => setLogoutOpen(true)}
+              >
+                <LogOut className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Cerrar sesión</span>
+              </Button>
+            )}
 
             <DropdownMenu open={openBuyMenu} onOpenChange={setOpenBuyMenu}>
               <DropdownMenuTrigger asChild>

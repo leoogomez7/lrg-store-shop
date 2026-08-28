@@ -1,12 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { z } from "zod";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
+import { AdminAccessDialog } from "@/components/common/admin-access-dialog";
 import { getKindeRedirectUri } from "@/lib/kinde";
-import { CircleArrowLeft, House, Mail, User, Zap } from "lucide-react";
+import { CircleArrowLeft, House, Mail, ShieldCheck, User, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: z.object({ role: z.enum(["client", "admin"]).optional() }),
   component: LoginPage,
 });
 
@@ -25,6 +28,10 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
     isLoading: false,
   };
   const navigate = useNavigate();
+  const { role: requestedRole } = Route.useSearch();
+  const [role, setRole] = useState<"client" | "admin" | null>(requestedRole ?? null);
+  const [adminAccessOpen, setAdminAccessOpen] = useState(false);
+  const [adminAuthorized, setAdminAuthorized] = useState(false);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -33,8 +40,14 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
   }, [isAuthenticated, isLoading, navigate]);
 
   const handleLogin = () => {
-    const redirectURL = getKindeRedirectUri("/login");
-    login({ redirectURL: redirectURL ?? "http://localhost:5174/login" });
+    if (role === "admin" && !adminAuthorized) {
+      setAdminAccessOpen(true);
+      return;
+    }
+    const redirectURL = getKindeRedirectUri(role === "admin" ? "/admin" : "/login");
+    login({
+      redirectURL: redirectURL ?? `http://localhost:5174/${role === "admin" ? "admin" : "login"}`,
+    });
   };
 
   return (
@@ -53,14 +66,39 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
         </div>
 
         <div className="glass-card p-6 space-y-6">
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant={role === "client" ? "default" : "outline"}
+              onClick={() => setRole("client")}
+              className="h-11"
+            >
+              <User className="size-4" /> Cliente
+            </Button>
+            <Button
+              type="button"
+              variant={role === "admin" ? "default" : "outline"}
+              onClick={() => {
+                setRole("admin");
+                setAdminAccessOpen(true);
+              }}
+              className="h-11"
+            >
+              <ShieldCheck className="size-4" /> Administrador
+            </Button>
+          </div>
           <Button
             type="button"
-            disabled={isLoading}
+            disabled={isLoading || role === null}
             onClick={handleLogin}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 flex items-center justify-center gap-2 font-semibold"
           >
             <Mail className="h-5 w-5" />
-            {isLoading ? "Cargando..." : "Ingresar con email"}
+            {isLoading
+              ? "Cargando..."
+              : role === "admin"
+                ? "Ingresar como administrador"
+                : "Ingresar con email"}
           </Button>
 
           <p className="flex items-center justify-center gap-1 text-center text-sm text-muted-foreground">
@@ -88,6 +126,11 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
           </div>
         </div>
       </div>
+      <AdminAccessDialog
+        open={adminAccessOpen}
+        onOpenChange={setAdminAccessOpen}
+        onAuthorized={() => setAdminAuthorized(true)}
+      />
     </div>
   );
 }
