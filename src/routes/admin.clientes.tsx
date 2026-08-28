@@ -47,28 +47,6 @@ function AdminClients() {
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
   const [query, setQuery] = useState("");
-  const clientsTableRef = useRef<HTMLDivElement | null>(null);
-  const [isClientsHeaderSticky, setIsClientsHeaderSticky] = useState(false);
-
-  useEffect(() => {
-    const updateClientsHeaderState = () => {
-      const table = clientsTableRef.current;
-      if (!table) return;
-
-      const topOffset = window.innerWidth >= 1024 ? 0 : 56;
-      const bounds = table.getBoundingClientRect();
-      setIsClientsHeaderSticky(bounds.top <= topOffset && bounds.bottom > topOffset + 48);
-    };
-
-    updateClientsHeaderState();
-    window.addEventListener("scroll", updateClientsHeaderState, { passive: true });
-    window.addEventListener("resize", updateClientsHeaderState);
-    return () => {
-      window.removeEventListener("scroll", updateClientsHeaderState);
-      window.removeEventListener("resize", updateClientsHeaderState);
-    };
-  }, []);
-
   type Customer = { key: string; name: string; email: string; orders: Order[] };
 
   const customers = useMemo(() => {
@@ -105,13 +83,13 @@ function AdminClients() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-55">
-          <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Clientes</p>
-          <h1 className="mt-2 text-3xl font-semibold">Listado de clientes</h1>
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <div className="order-1 min-w-55 flex-1">
+          <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Listado</p>
+          <h1 className="mt-2 text-3xl font-semibold">Clientes</h1>
         </div>
 
-        <div className="relative min-w-55 flex-1">
+        <div className="order-2 relative min-w-55 flex-1 basis-full lg:basis-auto">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -121,9 +99,9 @@ function AdminClients() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="contents">
           <Button
-            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
+            className="order-1 inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {
               const rows: (string | number)[][] = [
                 ["Cliente", "Email", "Total de pedidos", "Total gastado"],
@@ -153,7 +131,7 @@ function AdminClients() {
           </Button>
 
           <Button
-            className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
+            className="order-1 inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
             onClick={() => {
               const rows = visibleCustomers.map((customer) => {
                 const total = customer.orders.reduce((s, o) => s + (o.total || 0), 0);
@@ -228,16 +206,12 @@ function AdminClients() {
         </div>
       </div>
 
-      <div
-        ref={clientsTableRef}
-        className="glass-panel mx-auto w-fit max-w-full overflow-visible rounded-2xl pb-2"
-      >
-        <Table containerClassName="overflow-visible" className="mx-auto w-fit text-center">
-          <TableHeader
-            className={`[&_th]:sticky [&_th]:top-14 [&_th]:z-20 [&_th]:shadow-[0_1px_0_var(--border)] lg:[&_th]:top-0 ${
-              isClientsHeaderSticky ? "[&_th]:bg-background" : ""
-            }`}
-          >
+      <div className="glass-panel w-full max-w-full overflow-hidden rounded-2xl pb-2">
+        <Table
+          containerClassName="overflow-x-auto overflow-y-visible"
+          className="w-full min-w-[760px] table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
+        >
+          <TableHeader className="[&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
               <TableHead>Cliente</TableHead>
               <TableHead>Email</TableHead>

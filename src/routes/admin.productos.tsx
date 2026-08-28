@@ -196,8 +196,6 @@ function AdminProducts() {
     >
   >({});
   const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
-  const productsTableRef = useRef<HTMLDivElement | null>(null);
-  const [isProductsHeaderSticky, setIsProductsHeaderSticky] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
   const sortButtonRef = useRef<HTMLButtonElement | null>(null);
   const [page, setPage] = useState(0);
@@ -205,25 +203,6 @@ function AdminProducts() {
   const [pageSize, setPageSize] = useState<number>(10);
   // `pageSizeInput` is the editable input value the user types before confirming
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
-
-  useEffect(() => {
-    const updateProductsHeaderState = () => {
-      const table = productsTableRef.current;
-      if (!table) return;
-
-      const topOffset = window.innerWidth >= 1024 ? 0 : 56;
-      const bounds = table.getBoundingClientRect();
-      setIsProductsHeaderSticky(bounds.top <= topOffset && bounds.bottom > topOffset + 48);
-    };
-
-    updateProductsHeaderState();
-    window.addEventListener("scroll", updateProductsHeaderState, { passive: true });
-    window.addEventListener("resize", updateProductsHeaderState);
-    return () => {
-      window.removeEventListener("scroll", updateProductsHeaderState);
-      window.removeEventListener("resize", updateProductsHeaderState);
-    };
-  }, []);
 
   const priceLimit = useMemo(() => {
     const values = products
@@ -1066,12 +1045,12 @@ function AdminProducts() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="min-w-55 flex-1">
+        <div className="order-1 min-w-55 flex-1">
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Catálogo</p>
           <h1 className="mt-2 text-3xl font-semibold">Productos</h1>
         </div>
 
-        <div className="relative min-w-55 flex-1">
+        <div className="order-2 relative min-w-55 flex-1 basis-full lg:basis-auto">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -1081,14 +1060,14 @@ function AdminProducts() {
           />
         </div>
 
-        <div className="relative flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <div className="contents">
           <div className="relative">
             <Button
               ref={sortButtonRef}
               variant={sortMenuOpen ? "secondary" : "outline"}
               size="sm"
               onClick={() => setSortMenuOpen((current) => !current)}
-              className="h-9 shrink-0 gap-1.5 px-2.5"
+              className="order-3 h-9 shrink-0 gap-1.5 px-2.5"
               aria-expanded={sortMenuOpen}
             >
               <ArrowUpDown className="size-4 text-white" />
@@ -1138,19 +1117,19 @@ function AdminProducts() {
             variant={filtersOpen ? "secondary" : "outline"}
             size="sm"
             onClick={() => setFiltersOpen((current) => !current)}
-            className="h-9 shrink-0 gap-1.5 px-2.5"
+            className="order-4 h-9 shrink-0 gap-1.5 px-2.5"
             aria-expanded={filtersOpen}
           >
             <Filter className="size-4 text-white" />
             Filtros
           </Button>
 
-          <Button className="h-9 gap-2" onClick={openNewProductDialog}>
+          <Button className="order-5 h-9 gap-2" onClick={openNewProductDialog}>
             <Plus className="size-4" /> Nuevo producto
           </Button>
 
           <Button
-            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
+            className="order-1 inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {
               const rows: (string | number)[][] = [
                 ["ID", "Nombre", "Marca", "Categoria", "Precio", "Stock", "Descuento"],
@@ -1181,7 +1160,7 @@ function AdminProducts() {
           </Button>
 
           <Button
-            className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
+            className="order-1 inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
             onClick={() => {
               const rows = results.map((p) => {
                 const discounted = discounts[p.id] ?? 0;
@@ -1255,13 +1234,13 @@ function AdminProducts() {
           <Button
             type="button"
             variant="outline"
-            className="h-9 gap-2 border-amber-500/50 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 hover:text-amber-700"
+            className="order-1 h-9 gap-2 border-amber-500/50 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 hover:text-amber-700"
             onClick={() => {
               setUsdRatePromptValue(usdRate > 0 ? String(usdRate) : "");
               setUsdRatePromptOpen(true);
             }}
           >
-            Seleccionar valor USD
+            Seleccionar USD
           </Button>
         </div>
       </div>
@@ -1492,7 +1471,7 @@ function AdminProducts() {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
         <span className="text-sm font-medium">Seleccionar</span>
         <Checkbox
           checked={
@@ -1547,16 +1526,12 @@ function AdminProducts() {
         ) : null}
       </div>
 
-      <div ref={productsTableRef} className="glass-panel mt-3 overflow-visible rounded-2xl pb-2">
+      <div className="glass-panel mt-3 overflow-hidden rounded-2xl pb-2">
         <Table
-          containerClassName="overflow-visible"
-          className="w-full table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
+          containerClassName="overflow-x-auto overflow-y-visible"
+          className="w-full min-w-[1180px] table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
         >
-          <TableHeader
-            className={`[&_th]:sticky [&_th]:top-14 [&_th]:z-20 [&_th]:shadow-[0_1px_0_var(--border)] lg:[&_th]:top-0 ${
-              isProductsHeaderSticky ? "[&_th]:bg-background" : ""
-            }`}
-          >
+          <TableHeader className="[&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
               <TableHead className="text-center w-40">Producto</TableHead>
               <TableHead className="text-center w-20">Sector</TableHead>
@@ -1568,7 +1543,7 @@ function AdminProducts() {
               <TableHead className="text-center w-24">Precio tienda</TableHead>
               <TableHead className="text-center w-24">Ganancias</TableHead>
               <TableHead className="text-center w-56">Aplicar</TableHead>
-              <TableHead className="text-center flex-1">Acciones</TableHead>
+              <TableHead className="text-center w-56">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

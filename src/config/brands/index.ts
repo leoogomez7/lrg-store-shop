@@ -378,7 +378,8 @@ export type StoreShopContact = {
     whatsapp: StoreShopContactItem;
     tiktok: StoreShopContactItem;
     facebook: StoreShopContactItem;
-    review: StoreShopContactItem;
+    trustpilot: StoreShopContactItem;
+    google: StoreShopContactItem;
   };
 };
 export type BrandContactPresentation = StoreShopContact;
@@ -396,7 +397,12 @@ const defaultStoreShopContact: StoreShopContact = {
     whatsapp: { text: "WhatsApp", href: "", logo: "" },
     tiktok: { text: "TikTok", href: "", logo: "" },
     facebook: { text: "Facebook", href: "", logo: "" },
-    review: { text: "Reseñas", href: "", logo: "" },
+    trustpilot: {
+      text: "Trustpilot",
+      href: "https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar",
+      logo: "",
+    },
+    google: { text: "Google", href: "", logo: "" },
   },
 };
 
@@ -414,6 +420,9 @@ function normalizeStoreShopContact(raw: unknown): StoreShopContact {
     socials: {
       ...defaultStoreShopContact.socials,
       ...((value.socials as Partial<StoreShopContact["socials"]>) ?? {}),
+      ...(value.socials && typeof value.socials === "object" && "review" in value.socials
+        ? { trustpilot: (value.socials as { review: StoreShopContactItem }).review }
+        : {}),
     },
   };
 }
@@ -476,11 +485,12 @@ export function getBrandContactPresentation(slug: BrandSlug): BrandContactPresen
           brand.social.find((item) => item.label.toLowerCase().includes("facebook"))?.href ?? "",
         logo: "",
       },
-      review: {
-        text: "Reseñas",
+      trustpilot: {
+        text: "Trustpilot",
         href: "https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar",
         logo: "",
       },
+      google: { text: "Google", href: "", logo: "" },
     },
   };
   if (typeof window === "undefined") return fallback;

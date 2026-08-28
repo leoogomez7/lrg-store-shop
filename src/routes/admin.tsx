@@ -79,7 +79,11 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [initialPasswordVerified, setInitialPasswordVerified] = useState(false);
-  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminUnlocked, setAdminUnlocked] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem("lrg_admin_final_verified") === "true",
+  );
   const [password, setPassword] = useState("");
   const [finalPassword, setFinalPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -134,6 +138,9 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
       return;
     }
     setAdminUnlocked(true);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("lrg_admin_final_verified", "true");
+    }
     setFinalPassword("");
     navigate({ to: "/admin/panel" });
   }
@@ -395,7 +402,8 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   title={sidebarCollapsed ? "Cerrar sesión" : undefined}
                   onClick={() => setLogoutOpen(true)}
                 >
-                  {sidebarCollapsed ? <LogOut className="size-4" /> : "Cerrar sesión"}
+                  <LogOut className="size-4" />
+                  {!sidebarCollapsed && "Cerrar sesión"}
                 </Button>
                 <ConfirmDialog
                   open={logoutOpen}
@@ -409,6 +417,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     await kindeLogout();
                     if (typeof window !== "undefined") {
                       window.sessionStorage.removeItem("lrg_auth_role");
+                      window.sessionStorage.removeItem("lrg_admin_final_verified");
                     }
                     navigate({ to: "/" });
                   }}
@@ -448,7 +457,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             </div>
           </header>
           <Outlet />
-          <BrandFooter brand={webDesignConfig} />
+          <BrandFooter brand={webDesignConfig} section="admin" />
         </div>
       </div>
     </div>

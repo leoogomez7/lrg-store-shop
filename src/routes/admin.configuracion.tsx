@@ -661,14 +661,14 @@ function AdminConfiguration() {
         </div>
       </section>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-2">
+      <div className="mt-10 grid gap-6 lg:grid-cols-1">
         <section className="glass-panel rounded-3xl p-6">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
               <Truck className="size-5" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold">Envíos</h2>
+              <h2 className="text-xl font-semibold">Métodos de envíos</h2>
               <p className="text-sm text-muted-foreground">Configurar las condiciones de envío.</p>
             </div>
           </div>

@@ -84,7 +84,17 @@ function AdminBrands() {
     if (!editingStoreField || !storeDraft || !storeDraft.text.trim()) return;
     const [group, key] = editingStoreField.split(".") as [
       "contact" | "socials",
-      "email" | "phone" | "location" | "instagram" | "whatsapp" | "tiktok" | "facebook" | "review",
+      (
+        | "email"
+        | "phone"
+        | "location"
+        | "instagram"
+        | "whatsapp"
+        | "tiktok"
+        | "facebook"
+        | "trustpilot"
+        | "google"
+      ),
     ];
     const next =
       group === "contact"
@@ -129,7 +139,8 @@ function AdminBrands() {
     { key: "socials.whatsapp", label: "WhatsApp", item: storeContact.socials.whatsapp },
     { key: "socials.tiktok", label: "TikTok", item: storeContact.socials.tiktok },
     { key: "socials.facebook", label: "Facebook", item: storeContact.socials.facebook },
-    { key: "socials.review", label: "Reseñas", item: storeContact.socials.review },
+    { key: "socials.trustpilot", label: "Trustpilot", item: storeContact.socials.trustpilot },
+    { key: "socials.google", label: "Google", item: storeContact.socials.google },
   ];
 
   const activeDraft = storeDraft ?? brandPresentationDraft;
@@ -182,7 +193,7 @@ function AdminBrands() {
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Sectores</p>
       <h1 className="mt-2 text-3xl font-semibold">Tiendas disponibles</h1>
 
-      <div className="mt-10 grid grid-cols-4 gap-3 pb-20">
+      <div className="mt-10 grid grid-cols-1 items-stretch gap-4 pb-20 sm:grid-cols-2">
         <article className="theme-webdesign glass-panel flex min-w-0 h-full flex-col justify-between rounded-2xl p-3">
           <div>
             <div className="flex items-start gap-3">
@@ -280,9 +291,14 @@ function AdminBrands() {
                         item: brandPresentations[brand.slug].socials.facebook,
                       },
                       {
-                        key: "socials.review",
-                        label: "Reseñas",
-                        item: brandPresentations[brand.slug].socials.review,
+                        key: "socials.trustpilot",
+                        label: "Trustpilot",
+                        item: brandPresentations[brand.slug].socials.trustpilot,
+                      },
+                      {
+                        key: "socials.google",
+                        label: "Google",
+                        item: brandPresentations[brand.slug].socials.google,
                       },
                     ] as const
                   ).map((field) => {

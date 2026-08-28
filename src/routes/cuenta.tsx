@@ -548,7 +548,7 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           )}
         </TabsContent>
       </Tabs>
-      <BrandFooter brand={webDesignConfig} />
+      <BrandFooter brand={webDesignConfig} section="account" />
     </div>
   );
 }

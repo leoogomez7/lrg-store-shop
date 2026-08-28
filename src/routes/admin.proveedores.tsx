@@ -170,12 +170,12 @@ function AdminSuppliers() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Proveedores</p>
-          <h1 className="mt-2 text-3xl font-semibold">Listado de proveedores</h1>
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <div className="order-1 min-w-55 flex-1">
+          <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Listado</p>
+          <h1 className="mt-2 text-3xl font-semibold">Proveedores</h1>
         </div>
-        <div className="relative min-w-55 flex-1">
+        <div className="order-2 relative min-w-55 flex-1 basis-full lg:basis-auto">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -184,25 +184,28 @@ function AdminSuppliers() {
             className="h-9 pl-9"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="contents">
           <Button
             onClick={() => {
               setNewSupplier({ name: "", phone: "", social: "" });
               setNewSupplierOpen(true);
             }}
-            className="h-9 gap-2"
+            className="order-3 h-9 gap-2"
           >
             <Plus className="size-4" />
             Nuevo proveedor
           </Button>
           <Button
             onClick={exportExcel}
-            className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+            className="order-1 gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
           >
             <Download className="size-4" />
             Exportar Excel
           </Button>
-          <Button onClick={exportPdf} className="gap-2 bg-red-600 text-white hover:bg-red-700">
+          <Button
+            onClick={exportPdf}
+            className="order-1 gap-2 bg-red-600 text-white hover:bg-red-700"
+          >
             <FileText className="size-4" />
             Exportar PDF
           </Button>

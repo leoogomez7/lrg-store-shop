@@ -44,7 +44,7 @@ function BrandLayout() {
       <div className="relative">
         <BrandHeader brand={brand} logoBrandSlug={brand.slug} headerTheme="theme-webdesign" />
         <Outlet />
-        <BrandFooter brand={brand} />
+        <BrandFooter brand={brand} section="brand" />
       </div>
     </div>
   );

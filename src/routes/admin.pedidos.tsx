@@ -534,28 +534,6 @@ function AdminOrders() {
   >({});
   const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
   const quickEditOriginalSnapshots = useRef<Record<string, string>>({});
-  const ordersTableRef = useRef<HTMLDivElement | null>(null);
-  const [isOrdersHeaderSticky, setIsOrdersHeaderSticky] = useState(false);
-
-  useEffect(() => {
-    const updateOrdersHeaderState = () => {
-      const table = ordersTableRef.current;
-      if (!table) return;
-
-      const topOffset = window.innerWidth >= 1024 ? 0 : 56;
-      const bounds = table.getBoundingClientRect();
-      setIsOrdersHeaderSticky(bounds.top <= topOffset && bounds.bottom > topOffset + 48);
-    };
-
-    updateOrdersHeaderState();
-    window.addEventListener("scroll", updateOrdersHeaderState, { passive: true });
-    window.addEventListener("resize", updateOrdersHeaderState);
-    return () => {
-      window.removeEventListener("scroll", updateOrdersHeaderState);
-      window.removeEventListener("resize", updateOrdersHeaderState);
-    };
-  }, []);
-
   useEffect(() => {
     if (!sortMenuOpen) return;
 
@@ -1402,12 +1380,12 @@ function AdminOrders() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="min-w-55 flex-1">
+        <div className="order-1 min-w-55 flex-1">
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Ventas</p>
           <h1 className="mt-2 text-3xl font-semibold">Pedidos</h1>
         </div>
 
-        <div className="relative min-w-55 flex-1">
+        <div className="order-2 relative min-w-55 flex-1 basis-full lg:basis-auto">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -1417,14 +1395,14 @@ function AdminOrders() {
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <div className="contents">
           <div className="relative">
             <Button
               ref={sortButtonRef as any}
               variant={sortMenuOpen ? "secondary" : "outline"}
               size="sm"
               onClick={() => setSortMenuOpen((current) => !current)}
-              className="h-9 shrink-0 gap-1.5 px-2.5"
+              className="order-3 h-9 shrink-0 gap-1.5 px-2.5"
               aria-expanded={sortMenuOpen}
             >
               <ArrowUpDown className="size-4 text-white" />
@@ -1472,7 +1450,7 @@ function AdminOrders() {
             variant={filtersOpen ? "secondary" : "outline"}
             size="sm"
             onClick={() => setFiltersOpen((current) => !current)}
-            className="h-9 shrink-0 gap-1.5 px-2.5"
+            className="order-4 h-9 shrink-0 gap-1.5 px-2.5"
             aria-expanded={filtersOpen}
           >
             <Filter className="size-4 text-white" />
@@ -1483,15 +1461,15 @@ function AdminOrders() {
             variant="default"
             size="sm"
             onClick={openNewOrderDialog}
-            className="h-9 shrink-0 gap-2 px-4 py-2 text-sm"
+            className="order-5 h-9 shrink-0 gap-2 px-4 py-2 text-sm"
           >
             <Plus className="size-4" />
             Nuevo pedido
           </Button>
 
-          <div id="lrg-export-pedidos-buttons" className="flex items-center gap-2">
+          <div id="lrg-export-pedidos-buttons" className="contents">
             <Button
-              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
+              className="order-1 inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
               onClick={() => {
                 try {
                   exportOrdersExcel(results);
@@ -1506,7 +1484,7 @@ function AdminOrders() {
             </Button>
 
             <Button
-              className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
+              className="order-1 inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
               onClick={() => {
                 try {
                   exportOrdersPdf(results);
@@ -1772,7 +1750,7 @@ function AdminOrders() {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
         <span className="text-sm font-medium">Seleccionar</span>
         <Checkbox
           checked={
@@ -1817,16 +1795,12 @@ function AdminOrders() {
         ) : null}
       </div>
 
-      <div ref={ordersTableRef} className="glass-panel mt-3 overflow-visible rounded-2xl pb-2">
+      <div className="glass-panel mt-3 overflow-hidden rounded-2xl pb-2">
         <Table
-          containerClassName="overflow-visible"
-          className="w-full table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
+          containerClassName="overflow-x-auto overflow-y-visible"
+          className="w-full min-w-[1120px] table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
         >
-          <TableHeader
-            className={`[&_th]:sticky [&_th]:top-14 [&_th]:z-20 [&_th]:shadow-[0_1px_0_var(--border)] lg:[&_th]:top-0 ${
-              isOrdersHeaderSticky ? "[&_th]:bg-background" : ""
-            }`}
-          >
+          <TableHeader className="[&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
               <TableHead className="w-32">Pedido</TableHead>
               <TableHead className="w-24">Fecha de venta</TableHead>

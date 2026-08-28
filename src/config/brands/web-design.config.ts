@@ -1,4 +1,3 @@
-import { Code2, LayoutDashboard, LineChart, Sparkles } from "lucide-react";
 import type { BrandConfig } from "./types";
 
 export const webDesignConfig: BrandConfig = {
@@ -12,37 +11,7 @@ export const webDesignConfig: BrandConfig = {
     eyebrow: "Sector Software",
     title: "Duplica tus ventas",
     highlight: "mejorando la experiencia de tus usuarios",
-    subtitle:
-      "Diseñamos y desarrollamos landings, dashboards, ecommerce y software con arquitectura escalable y diseño impecable.",
-    primaryCta: "Ver servicios",
-    stats: [
-      { label: "Proyectos entregados", value: "120+" },
-      { label: "Performance media", value: "98 Lighthouse" },
-      { label: "Tiempo de entrega", value: "2-6 semanas" },
-    ],
   },
-  highlights: [
-    {
-      title: "Diseño UX/UI de producto",
-      description: "Design system propio, prototipos navegables y validación con usuarios.",
-      icon: Sparkles,
-    },
-    {
-      title: "Arquitectura escalable",
-      description: "Código modular, tipado y testeable, preparado para crecer años.",
-      icon: Code2,
-    },
-    {
-      title: "Dashboards y paneles",
-      description: "Métricas, roles, permisos y visualizaciones en tiempo real.",
-      icon: LayoutDashboard,
-    },
-    {
-      title: "Performance medible",
-      description: "Core Web Vitals, SEO técnico y analítica desde el primer sprint.",
-      icon: LineChart,
-    },
-  ],
   categories: [
     { slug: "landing-pages", name: "Landing pages", description: "Conversión y campañas" },
     { slug: "ecommerce", name: "Ecommerce", description: "Tiendas completas" },
@@ -51,7 +20,6 @@ export const webDesignConfig: BrandConfig = {
     { slug: "ux-ui", name: "Diseño UX/UI", description: "Design systems y research" },
     { slug: "esports", name: "Esports", description: "Plataformas y torneos" },
   ],
-  currency: "USD",
   social: [
     { label: "Instagram", href: "https://www.instagram.com/lrg.web.design/" },
     { label: "WhatsApp", href: "https://wa.me/541132965583" },
@@ -64,6 +32,5 @@ export const webDesignConfig: BrandConfig = {
     location: "Merlo, Buenos Aires, Argentina",
   },
   payments: ["Transferencia", "Visa", "Mastercard", "Wise", "Link de Mercado Pago"],
-  footerNote: "Contratos por alcance, entregas por sprint y documentación incluida.",
   favicon: "/LRG Web Design PNG.png",
 };

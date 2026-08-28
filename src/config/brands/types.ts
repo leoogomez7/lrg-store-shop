@@ -1,5 +1,3 @@
-import type { LucideIcon } from "lucide-react";
-
 export type BrandSlug = "arcade" | "scents" | "web-design";
 
 export type BrandCategory = {
@@ -41,21 +39,14 @@ export type BrandConfig = {
     eyebrow: string;
     title: string;
     highlight: string;
-    subtitle: string;
-    primaryCta: string;
-    secondaryCta: string;
-    stats: { label: string; value: string }[];
   };
-  highlights: { title: string; description: string; icon: LucideIcon }[];
   categories: BrandCategory[];
-  currency: string;
   social: { label: string; href: string }[];
   contact: { email: string; phone: string; location: string; link?: string };
   payments: string[];
   paymentMethods?: BrandPaymentMethod[];
   shipping?: BrandShippingConfig;
   discounts?: BrandDiscount[];
-  footerNote: string;
   /** optional path to favicon/logo shown in browser tab (public/) */
   favicon?: string;
 };

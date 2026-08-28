@@ -1,8 +1,21 @@
 import { Link } from "@tanstack/react-router";
-import type { ComponentType } from "react";
-import { ArrowUpRight, Facebook, Globe, Instagram, Mail, MapPin, Phone } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  ArrowUpRight,
+  Facebook,
+  Globe,
+  Instagram,
+  Mail,
+  MapPin,
+  Phone,
+  Shield,
+  User,
+} from "lucide-react";
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
+import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import {
   getBrandContactPresentation,
+  getStoreShopContact,
   getStoreNavigation,
   type BrandConfig,
   type StoreShopContact,
@@ -60,32 +73,152 @@ function ContactItem({
 export function BrandFooter({
   brand,
   storeContact,
+  section = "store-shop",
 }: {
   brand: BrandConfig;
   storeContact?: StoreShopContact;
+  section?: "store-shop" | "brand" | "admin" | "account";
 }) {
-  const contactSettings = storeContact ?? getBrandContactPresentation(brand.slug);
+  const [contactSettings, setContactSettings] = useState(
+    () =>
+      storeContact ??
+      (section === "brand" ? getBrandContactPresentation(brand.slug) : getStoreShopContact()),
+  );
+
+  useEffect(() => {
+    const readContact = () =>
+      storeContact ??
+      (section === "brand" ? getBrandContactPresentation(brand.slug) : getStoreShopContact());
+    setContactSettings(readContact());
+    const syncContact = () => setContactSettings(readContact());
+    window.addEventListener("lrg-brand-data-updated", syncContact);
+    return () => window.removeEventListener("lrg-brand-data-updated", syncContact);
+  }, [brand.slug, section, storeContact]);
+
+  return (
+    <KindeAuthGate
+      fallback={
+        <BrandFooterContent
+          brand={brand}
+          storeContact={contactSettings}
+          section={section}
+          auth={null}
+        />
+      }
+    >
+      {(auth) => (
+        <BrandFooterContent
+          brand={brand}
+          storeContact={contactSettings}
+          section={section}
+          auth={auth}
+        />
+      )}
+    </KindeAuthGate>
+  );
+}
+
+function BrandFooterContent({
+  brand,
+  storeContact,
+  section,
+  auth,
+}: {
+  brand: BrandConfig;
+  storeContact: StoreShopContact;
+  section: "store-shop" | "brand" | "admin" | "account";
+  auth: ReturnType<typeof useKindeAuth> | null;
+}) {
+  const isAuthenticated = auth?.isAuthenticated ?? false;
+  const isAdmin =
+    isAuthenticated &&
+    typeof window !== "undefined" &&
+    window.sessionStorage.getItem("lrg_auth_role") === "admin" &&
+    window.sessionStorage.getItem("lrg_admin_final_verified") === "true";
+  const categories = section === "brand" ? brand.categories : [];
+  const menu =
+    section === "admin"
+      ? [
+          ["Dashboard", "/admin/panel"],
+          ["Productos", "/admin/productos"],
+          ["Pedidos", "/admin/pedidos"],
+          ["Clientes", "/admin/clientes"],
+          ["Proveedores", "/admin/proveedores"],
+          ["Tiendas disponibles", "/admin/marcas"],
+          ["Configuración", "/admin/configuracion"],
+          ["Papelera", "/admin/papelera"],
+        ]
+      : section === "account"
+        ? [
+            ["Pedidos", "/cuenta#orders"],
+            ["Datos", "/cuenta#profile"],
+            ["Dirección", "/cuenta#addresses"],
+            ["Favoritos", "/cuenta#favorites"],
+          ]
+        : [];
+  const renderLink = (label: string, to: string) => (
+    <li key={`${label}-${to}`}>
+      <Link to={to as "/"} className="transition-colors hover:text-foreground">
+        {label}
+      </Link>
+    </li>
+  );
+
   return (
     <footer className="mt-24 border-t border-border/60 bg-surface/40">
       <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-5">
+        {categories.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold">Categorías</h3>
+            <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+              {categories.map((category) => (
+                <li key={category.slug}>
+                  <Link
+                    to="/$brand/productos"
+                    params={{ brand: brand.slug }}
+                    search={{ categoria: category.slug }}
+                    className="transition-colors hover:text-foreground"
+                  >
+                    {category.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {menu.length > 0 && (section === "admin" || section === "account") && (
+          <div>
+            <h3 className="text-sm font-semibold">Mi menú</h3>
+            <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+              {menu.map(([label, to]) => renderLink(label, to))}
+            </ul>
+          </div>
+        )}
         <div>
-          <h3 className="text-sm font-semibold">Categorías</h3>
-          <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
-            {brand.categories.slice(0, 5).map((category) => (
-              <li key={category.slug}>
+          <h3 className="text-sm font-semibold">Panel</h3>
+          {isAuthenticated && (
+            <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+              <li>
                 <Link
-                  to="/$brand/productos"
-                  params={{ brand: brand.slug }}
-                  search={{ categoria: category.slug }}
-                  className="transition-colors hover:text-foreground"
+                  to="/cuenta"
+                  className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
                 >
-                  {category.name}
+                  <User className="size-4" /> Cliente
                 </Link>
               </li>
-            ))}
-          </ul>
+              {isAdmin && (
+                <li>
+                  <Link
+                    to="/admin/panel"
+                    className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
+                  >
+                    <Shield className="size-4" /> Administrador
+                  </Link>
+                </li>
+              )}
+            </ul>
+          )}
         </div>
-
         <div>
           <h3 className="text-sm font-semibold">Tiendas</h3>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
@@ -102,127 +235,27 @@ export function BrandFooter({
             ))}
           </ul>
         </div>
-
         <div>
           <h3 className="text-sm font-semibold">Contacto</h3>
-          {contactSettings ? (
-            <>
-              <div className="mt-4 flex flex-col items-start gap-2.5">
-                <ContactItem item={contactSettings.email} icon={Mail} />
-                <ContactItem item={contactSettings.phone} icon={Phone} />
-                <ContactItem item={contactSettings.location} icon={MapPin} />
-              </div>
-              <div className="mt-2 flex flex-col items-start gap-2">
-                <ContactItem item={contactSettings.socials.instagram} icon={Instagram} />
-                <ContactItem item={contactSettings.socials.whatsapp} icon={Phone} />
-                <ContactItem item={contactSettings.socials.tiktok} icon={TikTokIcon} />
-                <ContactItem item={contactSettings.socials.facebook} icon={Facebook} />
-                <ContactItem item={contactSettings.socials.review} icon={ArrowUpRight} />
-              </div>
-            </>
-          ) : (
-            <>
-              <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <Mail className="size-4 text-muted-foreground" />
-                  <a
-                    href={
-                      "https://mail.google.com/mail/?view=cm&fs=1&to=" +
-                      encodeURIComponent(brand.contact.email)
-                    }
-                    onClick={(e) => {
-                      e.preventDefault();
-                      const gmailUrl =
-                        "https://mail.google.com/mail/?view=cm&fs=1&to=" +
-                        encodeURIComponent(brand.contact.email);
-                      const opened = window.open(gmailUrl, "_blank");
-                      if (!opened) {
-                        window.location.href = "mailto:" + encodeURIComponent(brand.contact.email);
-                      }
-                    }}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {brand.contact.email}
-                  </a>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Phone className="size-4 text-muted-foreground" />
-                  <a
-                    href={`tel:${brand.contact.phone}`}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {brand.contact.phone}
-                  </a>
-                </li>
-                <li className="flex items-center gap-2">
-                  <MapPin className="size-4 text-muted-foreground" />
-                  <a
-                    href={
-                      "https://www.google.com/maps/search/?api=1&query=" +
-                      encodeURIComponent(brand.contact.location)
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {brand.contact.location}
-                  </a>
-                </li>
-                {brand.contact.link && (
-                  <li className="flex items-center gap-2">
-                    <ArrowUpRight className="size-4 text-muted-foreground" />
-                    <a
-                      href={brand.contact.link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      Link
-                    </a>
-                  </li>
-                )}
-              </ul>
-              <div className="mt-2 flex flex-col items-start gap-2 text-sm">
-                {brand.social.map((social) => {
-                  const key = social.label.toLowerCase();
-                  let Icon: ComponentType<{ className?: string }> | null = null;
-                  if (key.includes("instagram")) Icon = Instagram;
-                  else if (key.includes("whatsapp")) Icon = Phone;
-                  else if (key.includes("tiktok")) Icon = TikTokIcon;
-                  else if (key.includes("facebook")) Icon = Facebook;
-
-                  return (
-                    <a
-                      key={social.label}
-                      href={social.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={social.label}
-                      className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground w-auto self-start"
-                    >
-                      {Icon ? <Icon className="size-4 text-muted-foreground" /> : null}
-                      <span>{social.label}</span>
-                    </a>
-                  );
-                })}
-                <a
-                  href="https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Reseñas"
-                  className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground w-auto self-start"
-                >
-                  <span className="">⭐</span>
-                  <span>Reseñas</span>
-                </a>
-              </div>
-            </>
-          )}
+          <div className="mt-4 flex flex-col items-start gap-2.5">
+            <ContactItem item={storeContact.email} icon={Mail} />
+            <ContactItem item={storeContact.phone} icon={Phone} />
+            <ContactItem item={storeContact.location} icon={MapPin} />
+          </div>
+          <h3 className="mt-5 text-sm font-semibold">Redes sociales</h3>
+          <div className="mt-3 flex flex-col items-start gap-2">
+            <ContactItem item={storeContact.socials.instagram} icon={Instagram} />
+            <ContactItem item={storeContact.socials.whatsapp} icon={Phone} />
+            <ContactItem item={storeContact.socials.tiktok} icon={TikTokIcon} />
+            <ContactItem item={storeContact.socials.facebook} icon={Facebook} />
+          </div>
+          <h3 className="mt-5 text-sm font-semibold">Reseñas</h3>
+          <div className="mt-3 flex flex-col items-start gap-2">
+            <ContactItem item={storeContact.socials.trustpilot} icon={ArrowUpRight} />
+            <ContactItem item={storeContact.socials.google} icon={Globe} />
+          </div>
         </div>
       </div>
-
       <div className="border-t border-border/60 py-6">
         <Link
           to="/"

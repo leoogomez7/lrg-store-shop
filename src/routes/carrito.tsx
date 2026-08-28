@@ -206,7 +206,7 @@ function CartPage() {
           )}
         </main>
 
-        <BrandFooter brand={webDesignConfig} />
+        <BrandFooter brand={webDesignConfig} section="store-shop" />
       </div>
 
       <ConfirmDialog

@@ -291,7 +291,7 @@ function ProductosPage() {
           </div>
         </main>
 
-        <BrandFooter brand={webDesignConfig} />
+        <BrandFooter brand={webDesignConfig} section="store-shop" />
       </div>
     </div>
   );

@@ -304,9 +304,9 @@ function AdminDashboard() {
         </Select>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-5">
         {cards.map((card) => (
-          <div key={card.label} className="glass-panel w-3/4 rounded-xl p-3">
+          <div key={card.label} className="glass-panel w-full rounded-xl p-3">
             <span className="gradient-brand grid size-7 place-items-center rounded-md">
               <card.icon className="size-3.5 text-white" />
             </span>
@@ -502,7 +502,7 @@ function AdminDashboard() {
         {/* Sectores ya están resumidos en las tarjetas. */}
       </section>
 
-      <section className="mt-8 grid gap-6 pb-20 lg:grid-cols-2">
+      <section className="mt-8 grid gap-6 pb-20">
         <div className="glass-panel overflow-hidden rounded-2xl">
           <div className="flex items-center justify-between gap-4 border-b border-border/60 p-5">
             <h2 className="font-display font-semibold">Últimos pedidos</h2>
