@@ -2013,7 +2013,7 @@ function AdminProducts() {
             min={1}
             max={1000}
             value={pageSizeInput}
-            placeholder="Ej: 10"
+            placeholder="Cantidad"
             onChange={(e) => setPageSizeInput(e.target.value)}
             className="h-8 w-28"
           />
@@ -2278,7 +2278,7 @@ function AdminProducts() {
                   min={0}
                   value={usdRatePromptValue}
                   onChange={(event) => setUsdRatePromptValue(event.target.value)}
-                  placeholder="Ej: 1200"
+                  placeholder="Escribir valor USD"
                   className="h-11 text-base"
                 />
               </div>
@@ -3009,7 +3009,7 @@ function ProductEditDialog({
                             type="number"
                             min={0}
                             value={usdRate === 0 ? "" : String(usdRate)}
-                            placeholder="Ej: 1200"
+                            placeholder="Escribir valor USD"
                             disabled
                             className="h-9 cursor-not-allowed opacity-70"
                           />

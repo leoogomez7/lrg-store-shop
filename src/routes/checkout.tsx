@@ -79,9 +79,16 @@ function CheckoutPage() {
 
   useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
-      setBankCbu(settings.find((item) => item.settingKey === "lrg:bank-cbu")?.settingValue ?? "");
+      const storedCbu = settings.find((item) => item.settingKey === "lrg:bank-cbu")?.settingValue;
+      if (!storedCbu) return;
+      try {
+        const cbuByBrand = JSON.parse(storedCbu) as Record<string, string>;
+        setBankCbu(cbuByBrand[brand.slug] ?? "");
+      } catch {
+        setBankCbu(storedCbu);
+      }
     });
-  }, []);
+  }, [brand.slug]);
   const [couponCode, setCouponCode] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponPercentage, setCouponPercentage] = useState(0);

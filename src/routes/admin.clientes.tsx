@@ -247,7 +247,7 @@ function AdminClients() {
             min={1}
             max={1000}
             value={pageSizeInput}
-            placeholder="Ej: 10"
+            placeholder="Cantidad"
             onChange={(e) => setPageSizeInput(e.target.value)}
             className="h-8 w-28"
           />

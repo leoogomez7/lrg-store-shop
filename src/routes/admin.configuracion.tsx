@@ -2,13 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpRight,
+  BadgePercent,
   Check,
   CreditCard,
+  Landmark,
   Package,
   Pencil,
   Settings,
   Store,
   Tag,
+  Tags,
   Trash2,
   Truck,
   X,
@@ -76,6 +79,8 @@ function AdminConfiguration() {
   const [editingMethodName, setEditingMethodName] = useState("");
   const [newPaymentMethod, setNewPaymentMethod] = useState("");
   const [bankCbu, setBankCbu] = useState("");
+  const [bankCbus, setBankCbus] = useState<Partial<Record<BrandSlug, string>>>({});
+  const [applyBankCbuToAll, setApplyBankCbuToAll] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<BrandPaymentMethod[]>([]);
   const [editingPaymentMethodId, setEditingPaymentMethodId] = useState<string | null>(null);
   const [editingPaymentMethodName, setEditingPaymentMethodName] = useState("");
@@ -87,7 +92,7 @@ function AdminConfiguration() {
   const [editingSubcategoryKey, setEditingSubcategoryKey] = useState<string | null>(null);
   const [editingSubcategoryName, setEditingSubcategoryName] = useState("");
   const [newDiscountCode, setNewDiscountCode] = useState("");
-  const [newDiscountPercentage, setNewDiscountPercentage] = useState(10);
+  const [newDiscountPercentage, setNewDiscountPercentage] = useState<number | string>("");
   const [discounts, setDiscounts] = useState<BrandDiscount[]>([]);
   const [selectedBrand, setSelectedBrand] = useState(brandList[0]?.slug ?? "");
   const [categories, setCategories] = useState(() => {
@@ -128,12 +133,40 @@ function AdminConfiguration() {
   useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
       const setting = settings.find((item) => item.settingKey === "lrg:bank-cbu");
-      if (setting) setBankCbu(setting.settingValue);
+      if (!setting) return;
+      try {
+        const parsed = JSON.parse(setting.settingValue) as Partial<Record<BrandSlug, string>>;
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          setBankCbus(parsed);
+          setBankCbu(parsed[selectedBrand] ?? "");
+          return;
+        }
+      } catch {
+        // Migrate the previous single global CBU value below.
+      }
+      const migratedCbus = {
+        arcade: setting.settingValue,
+        scents: setting.settingValue,
+        "web-design": setting.settingValue,
+      };
+      setBankCbus(migratedCbus);
+      setBankCbu(setting.settingValue);
     });
-  }, []);
+  }, [selectedBrand]);
+
+  useEffect(() => {
+    setBankCbu(bankCbus[selectedBrand] ?? "");
+  }, [bankCbus, selectedBrand]);
 
   const saveBankCbu = () => {
-    void saveAdminSetting({ data: { settingKey: "lrg:bank-cbu", settingValue: bankCbu.trim() } });
+    const value = bankCbu.trim();
+    const next = applyBankCbuToAll
+      ? { arcade: value, scents: value, "web-design": value }
+      : { ...bankCbus, [selectedBrand]: value };
+    setBankCbus(next);
+    void saveAdminSetting({
+      data: { settingKey: "lrg:bank-cbu", settingValue: JSON.stringify(next) },
+    });
     toast.success("CBU guardado");
   };
 
@@ -189,7 +222,7 @@ function AdminConfiguration() {
       { id: `${Date.now()}-${code}`, code, percentage, enabled: true },
     ]);
     setNewDiscountCode("");
-    setNewDiscountPercentage(10);
+    setNewDiscountPercentage("");
     toast.success("Descuento agregado", {
       description: `${code} aplica ${percentage}% en ${getBrand(selectedBrand)?.name}.`,
     });
@@ -401,84 +434,6 @@ function AdminConfiguration() {
     }
   };
 
-  const normalizePaymentMethods = (methods: BrandPaymentMethod[]) =>
-    methods
-      .map((method) => ({ id: method.id, name: method.name.trim(), enabled: method.enabled }))
-      .sort((a, b) => a.id.localeCompare(b.id));
-
-  const normalizeShippingMethods = (methods: BrandPaymentMethod[]) =>
-    methods
-      .map((method) => ({
-        id: method.id,
-        name: method.name.trim(),
-        enabled: method.enabled,
-        codeRequired: Boolean(method.codeRequired),
-      }))
-      .sort((a, b) => a.id.localeCompare(b.id));
-
-  const paymentMethodsAppliedToAll = useMemo(() => {
-    const current = normalizePaymentMethods(paymentMethods);
-    return brandList.every((brand) => {
-      const brandMethods = brand.paymentMethods?.length
-        ? brand.paymentMethods
-        : brand.payments.map((name) => ({
-            id: name
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .replace(/^-+|-+$/g, ""),
-            name,
-            enabled: true,
-          }));
-      const normalizedBrandMethods = normalizePaymentMethods(brandMethods);
-      if (normalizedBrandMethods.length !== current.length) return false;
-      return normalizedBrandMethods.every(
-        (method, index) =>
-          method.id === current[index].id &&
-          method.name === current[index].name &&
-          method.enabled === current[index].enabled,
-      );
-    });
-  }, [paymentMethods]);
-
-  const shippingMethodsAppliedToAll = useMemo(() => {
-    const current = normalizeShippingMethods(shippingMethods);
-    return brandList.every((brand) => {
-      const brandMethods = brand.shipping?.methods ?? [];
-      const normalizedBrandMethods = normalizeShippingMethods(brandMethods);
-      if (normalizedBrandMethods.length !== current.length) return false;
-      return normalizedBrandMethods.every(
-        (method, index) =>
-          method.id === current[index].id &&
-          method.name === current[index].name &&
-          method.enabled === current[index].enabled &&
-          method.codeRequired === current[index].codeRequired,
-      );
-    });
-  }, [shippingMethods]);
-
-  const applyPaymentMethodsToAllConfirm = () => {
-    brandList.forEach((brand) => {
-      setBrandPaymentMethods(brand.slug, paymentMethods);
-    });
-    setApplyPaymentMethodsToAll(false);
-    toast.success("Métodos de pago aplicados a todas las tiendas", {
-      description: `Se sincronizaron ${paymentMethods.length} métodos en todas las tiendas.`,
-    });
-  };
-
-  const applyShippingMethodsToAllConfirm = () => {
-    brandList.forEach((brand) => {
-      setBrandShippingConfig(brand.slug, {
-        freeShippingThreshold: brand.shipping?.freeShippingThreshold ?? freeShippingThreshold,
-        methods: shippingMethods,
-      });
-    });
-    setApplyShippingMethodsToAll(false);
-    toast.success("Métodos de envío aplicados a todas las tiendas", {
-      description: `Se sincronizaron ${shippingMethods.length} métodos en todas las tiendas.`,
-    });
-  };
-
   const addCategory = () => {
     const trimmed = newCategory.trim();
     if (!trimmed) return;
@@ -634,8 +589,8 @@ function AdminConfiguration() {
             <Store className="size-5" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold">Tienda a configurar</h2>
-            <p className="text-sm text-muted-foreground">Elegí la tienda a configurar.</p>
+            <h2 className="text-xl font-semibold">Tiendas disponibles</h2>
+            <p className="text-sm text-muted-foreground">Seleccionar tienda a configurar.</p>
           </div>
         </div>
 
@@ -708,7 +663,7 @@ function AdminConfiguration() {
           </div>
 
           <div className="mt-6 space-y-6">
-            <div className="rounded-2xl border border-border/50 bg-background/80 p-4">
+            <div className="w-fit max-w-full rounded-2xl border border-border/50 bg-background/80 p-4 sm:min-w-80">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Hay envío gratis desde:
               </p>
@@ -839,17 +794,6 @@ function AdminConfiguration() {
                   </div>
                 </div>
               ))}
-            </div>
-            <div className="mt-4 flex justify-end">
-              <Button
-                size="sm"
-                onClick={applyShippingMethodsToAllConfirm}
-                disabled={!applyShippingMethodsToAll || shippingMethodsAppliedToAll}
-                className="h-9 shrink-0 gap-2"
-              >
-                <Check className="h-4 w-4" />
-                Confirmar
-              </Button>
             </div>
           </div>
         </section>
@@ -1111,24 +1055,13 @@ function AdminConfiguration() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex justify-end">
-              <Button
-                size="sm"
-                onClick={applyPaymentMethodsToAllConfirm}
-                disabled={!applyPaymentMethodsToAll || paymentMethodsAppliedToAll}
-                className="h-9 shrink-0 gap-2"
-              >
-                <Check className="h-4 w-4" />
-                Confirmar
-              </Button>
-            </div>
           </div>
         </section>
 
         <section className="glass-panel rounded-3xl p-6">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
-              <CreditCard className="size-5" />
+              <Landmark className="size-5" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">Transferencia bancaria</h2>
@@ -1148,7 +1081,17 @@ function AdminConfiguration() {
                 inputMode="numeric"
               />
             </div>
-            <Button type="button" onClick={saveBankCbu} disabled={!bankCbu.trim()}>
+            <label className="inline-flex h-9 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
+              <span className="text-sm">Aplicar a todas las tiendas</span>
+              <Switch checked={applyBankCbuToAll} onCheckedChange={setApplyBankCbuToAll} />
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              onClick={saveBankCbu}
+              disabled={!bankCbu.trim()}
+              className="h-9 shrink-0 gap-2"
+            >
               <Check className="size-4" /> Guardar CBU
             </Button>
           </div>
@@ -1157,7 +1100,7 @@ function AdminConfiguration() {
         <section className="glass-panel rounded-3xl p-6">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
-              <Tag className="size-5" />
+              <Tags className="size-5" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">Categorías</h2>
@@ -1329,7 +1272,7 @@ function AdminConfiguration() {
         <section className="glass-panel rounded-3xl p-6">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
-              <Tag className="size-5" />
+              <BadgePercent className="size-5" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">Descuentos</h2>
@@ -1342,12 +1285,11 @@ function AdminConfiguration() {
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1 space-y-2">
-              <Label htmlFor="newDiscountCode">Código</Label>
               <Input
                 id="newDiscountCode"
                 value={newDiscountCode}
                 onChange={(event) => setNewDiscountCode(event.target.value)}
-                placeholder="Ej: LRG10"
+                placeholder="Escribir código de descuento"
                 autoComplete="off"
               />
             </div>
