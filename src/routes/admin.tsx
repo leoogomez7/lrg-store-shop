@@ -135,6 +135,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     }
     setAdminUnlocked(true);
     setFinalPassword("");
+    navigate({ to: "/admin/panel" });
   }
 
   function startKindeFlow(flow: "login" | "register") {

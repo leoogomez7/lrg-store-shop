@@ -37,7 +37,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
     if (!isLoading && isAuthenticated) {
       const destination =
         typeof window !== "undefined" && window.sessionStorage.getItem("lrg_auth_role") === "admin"
-          ? "/admin"
+          ? "/admin/panel"
           : "/cuenta";
       navigate({ to: destination });
     }
