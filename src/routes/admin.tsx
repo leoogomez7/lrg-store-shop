@@ -32,11 +32,7 @@ import { cn } from "@/lib/utils";
 import { webDesignConfig } from "@/config/brands/web-design.config";
 import { getKindeRedirectUri } from "@/lib/kinde";
 import { verifyAdminFinalPassword, verifyAdminPassword } from "@/server/admin-auth";
-import {
-  loadAdminSettings,
-  registerAdminIdentity,
-  verifyRegisteredAdmin,
-} from "@/server/persistence";
+import { loadAdminSettings } from "@/server/persistence";
 import { applyAdminSettings, refreshBrandData } from "@/config/brands";
 import { applyTrashEntries } from "@/data/trash";
 
@@ -76,8 +72,6 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [initialPasswordVerified, setInitialPasswordVerified] = useState(false);
-  const [adminIdentityVerified, setAdminIdentityVerified] = useState(false);
-  const [adminIdentityChecked, setAdminIdentityChecked] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [password, setPassword] = useState("");
   const [finalPassword, setFinalPassword] = useState("");
@@ -87,28 +81,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [finalPasswordError, setFinalPasswordError] = useState("");
 
   useEffect(() => {
-    if (!isAuthenticated || !auth?.user?.id) return;
-    setAdminIdentityChecked(false);
-    const identity = auth.user.email
-      ? { id: auth.user.id, email: auth.user.email }
-      : { id: auth.user.id };
-    void registerAdminIdentity({ data: identity })
-      .then((registered) => {
-        if (!registered) return false;
-        return verifyRegisteredAdmin({ data: identity });
-      })
-      .then((verified) => {
-        setAdminIdentityVerified(Boolean(verified));
-        setAdminIdentityChecked(true);
-      })
-      .catch(() => {
-        setAdminIdentityVerified(false);
-        setAdminIdentityChecked(true);
-      });
-  }, [auth?.user?.email, auth?.user?.id, isAuthenticated]);
-
-  useEffect(() => {
-    if (!adminIdentityVerified) return;
+    if (!isAuthenticated) return;
     void loadAdminSettings({ data: {} })
       .then((settings) => {
         applyAdminSettings(settings);
@@ -124,7 +97,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
         window.dispatchEvent(new Event("lrg-brand-data-updated"));
       })
       .catch(() => undefined);
-  }, [adminIdentityVerified]);
+  }, [isAuthenticated]);
 
   async function unlockAdmin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -251,38 +224,6 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               </Button>
             </div>
           )}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={() => navigate({ to: "/" })}
-          >
-            <CircleArrowLeft className="size-4 text-white" /> Volver
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!adminUnlocked && isAuthenticated && !adminIdentityChecked) {
-    return (
-      <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
-        <div className="glass-card w-full max-w-md space-y-5 p-6">
-          <p className="text-sm text-muted-foreground">Verificando acceso...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!adminUnlocked && isAuthenticated && !adminIdentityVerified) {
-    return (
-      <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
-        <div className="glass-card w-full max-w-md space-y-5 p-6">
-          <p className="text-sm text-muted-foreground">Acceso no autorizado</p>
-          <h1 className="text-2xl font-semibold">Administrador único</h1>
-          <p className="text-sm text-muted-foreground">
-            Esta cuenta no está autorizada para ingresar al panel administrativo.
-          </p>
           <Button
             type="button"
             variant="outline"

@@ -143,15 +143,6 @@ async function ensureAdminTables() {
   return database;
 }
 
-function isConfiguredAdmin(user: UserIdentity) {
-  const adminUserId = import.meta.env["ADMIN_USER_ID"]?.trim();
-  const adminEmail = import.meta.env["ADMIN_EMAIL"]?.trim().toLowerCase();
-  return Boolean(
-    (adminUserId && user.id === adminUserId) ||
-    (adminEmail && user.email?.trim().toLowerCase() === adminEmail),
-  );
-}
-
 export const loadUserCart = createServerFn({ method: "POST" })
   .validator((data: UserIdentity) => data)
   .handler(async ({ data }) => {
@@ -250,35 +241,6 @@ export const saveFavorites = createServerFn({ method: "POST" })
       "write",
     );
     return true;
-  });
-
-export const registerAdminIdentity = createServerFn({ method: "POST" })
-  .validator((data: UserIdentity) => data)
-  .handler(async ({ data }) => {
-    if (!isConfiguredAdmin(data)) return false;
-    const database = await ensureAdminTables();
-    if (!database) return false;
-    const now = new Date().toISOString();
-    await database.execute({
-      sql: `INSERT INTO admins (userId, email, createdAt, updatedAt)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(userId) DO UPDATE SET email = excluded.email, updatedAt = excluded.updatedAt`,
-      args: [data.id, data.email ?? "", now, now],
-    });
-    return true;
-  });
-
-export const verifyRegisteredAdmin = createServerFn({ method: "POST" })
-  .validator((data: UserIdentity) => data)
-  .handler(async ({ data }) => {
-    if (!isConfiguredAdmin(data)) return false;
-    const database = await ensureAdminTables();
-    if (!database) return false;
-    const result = await database.execute({
-      sql: "SELECT userId FROM admins WHERE userId = ?",
-      args: [data.id],
-    });
-    return result.rows.length > 0;
   });
 
 export const loadAdminSettings = createServerFn({ method: "POST" })
