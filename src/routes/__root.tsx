@@ -198,7 +198,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { clientId, domain } = getKindeConfig();
   const redirectUri = getKindeRedirectUri("/login");
-  const logoutUri = getKindeRedirectUri("/login");
+  const logoutUri = getKindeRedirectUri("/");
   const hasKindConfig = hasKindeConfig();
 
   useEffect(() => {
@@ -268,7 +268,7 @@ function RootComponent() {
         clientId={clientId}
         domain={domain}
         redirectUri={redirectUri ?? "http://localhost:5174/login"}
-        logoutUri={logoutUri ?? "http://localhost:5174/login"}
+        logoutUri={logoutUri ?? "http://localhost:5174/"}
       >
         {appContent}
       </KindeProvider>

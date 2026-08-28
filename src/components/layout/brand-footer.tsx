@@ -104,30 +104,6 @@ export function BrandFooter({
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold">Panel</h3>
-          <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
-            <li>
-              <Link
-                to="/login"
-                search={{ role: "client" }}
-                className="transition-colors hover:text-foreground"
-              >
-                Mi cuenta
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/login"
-                search={{ role: "admin" }}
-                className="transition-colors hover:text-foreground"
-              >
-                Administrador
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div>
           <h3 className="text-sm font-semibold">Contacto</h3>
           {contactSettings ? (
             <>
