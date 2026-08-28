@@ -195,7 +195,7 @@ function AdminSuppliers() {
             className="h-9 pl-9"
           />
         </div>
-        <div className="order-3 contents">
+        <div className="order-3 flex shrink-0 flex-wrap items-center gap-2">
           <Button
             onClick={() => {
               setNewSupplier({ name: "", phone: "", social: "" });
