@@ -95,7 +95,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
               ? "Cargando..."
               : role === "admin"
                 ? "Ingresar como administrador"
-                : "Ingresar con email"}
+                : "Ingresar como cliente"}
           </Button>
 
           <p className="flex items-center justify-center gap-1 text-center text-sm text-muted-foreground">
