@@ -1,24 +1,21 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  ArrowUpRight,
   ContactRound,
   Facebook,
-  Globe,
   Instagram,
   LayoutDashboard,
   Mail,
   MapPin,
   Package,
   Phone,
-  Shield,
   ShieldCheck,
   ShoppingCart,
   Settings,
   Store,
   Trash2,
   Heart,
-  User,
+  UserRound,
   Users,
 } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
@@ -41,10 +38,18 @@ function TikTokIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+function WhatsAppIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M20.52 3.48A11.86 11.86 0 0 0 12.08 0C5.53 0 .2 5.33.2 11.88c0 2.09.55 4.13 1.59 5.93L.1 24l6.33-1.66a11.86 11.86 0 0 0 5.65 1.44h.01c6.55 0 11.88-5.33 11.88-11.88 0-3.18-1.23-6.16-3.45-8.42ZM12.09 21.7h-.01a9.82 9.82 0 0 1-5.01-1.37l-.36-.21-3.76.99 1-3.67-.23-.38a9.83 9.83 0 0 1-1.51-5.18C2.21 6.47 6.64 2.04 12.09 2.04a9.78 9.78 0 0 1 6.96 2.89 9.8 9.8 0 0 1 2.88 6.97c0 5.45-4.43 9.8-9.84 9.8Zm5.39-7.35c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.14-.14.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.61-.92-2.2-.24-.57-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.21 5.09 4.5.71.31 1.27.49 1.7.63.72.23 1.37.2 1.89.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35Z" />
+    </svg>
+  );
+}
+
 function TrustpilotIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <path d="m12 2.2 2.2 6.76h7.1l-5.75 4.18 2.2 6.76L12 15.72l-5.75 4.18 2.2-6.76L2.7 8.96h7.1L12 2.2Z" />
+      <path d="M12 1.4 14.6 9h7.9l-6.4 4.65 2.45 7.55L12 16.55l-6.55 4.65 2.45-7.55L1.5 9h7.9L12 1.4Zm0 3.9L10.3 10.4H5.7l3.73 2.71-1.43 4.4L12 14.8l4 2.71-1.43-4.4L18.3 10.4h-4.6L12 5.3Z" />
     </svg>
   );
 }
@@ -249,7 +254,7 @@ function BrandFooterContent({
                     to="/cuenta"
                     className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
                   >
-                    <User className="size-4" /> Cliente
+                    <UserRound className="size-4" /> Cliente
                   </Link>
                 </li>
               )}
@@ -283,7 +288,7 @@ function BrandFooterContent({
           <h3 className="mt-5 text-sm font-semibold">Redes sociales</h3>
           <div className="mt-3 flex flex-col items-start gap-2">
             <ContactItem item={storeContact.socials.instagram} icon={Instagram} />
-            <ContactItem item={storeContact.socials.whatsapp} icon={Phone} />
+            <ContactItem item={storeContact.socials.whatsapp} icon={WhatsAppIcon} />
             <ContactItem item={storeContact.socials.tiktok} icon={TikTokIcon} />
             <ContactItem item={storeContact.socials.facebook} icon={Facebook} />
           </div>
