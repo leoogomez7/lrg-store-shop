@@ -89,6 +89,7 @@ function BrandHeaderContent({
     logout: async () => undefined,
   };
   const [userName, setUserName] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<"admin" | "client">("client");
 
   useEffect(() => {
     setOpenMenu(false);
@@ -105,6 +106,9 @@ function BrandHeaderContent({
 
   useEffect(() => {
     setUserName(user ? user.givenName || user.email || null : null);
+    const storedRole =
+      typeof window !== "undefined" ? window.sessionStorage.getItem("lrg_auth_role") : null;
+    setUserRole(pathname.startsWith("/admin") || storedRole === "admin" ? "admin" : "client");
     setPanel(user ? (pathname.startsWith("/admin") ? "admin" : "customer") : null);
   }, [pathname, user]);
 
@@ -151,14 +155,23 @@ function BrandHeaderContent({
   function UserBadge() {
     if (!panel || !userName) return null;
 
-    const roleLabel = panel === "admin" ? "Administrador" : "Cliente";
+    const isAdmin = userRole === "admin";
+    const roleLabel = isAdmin ? "Administrador" : "Cliente";
 
     return (
       <div className="flex items-center gap-2">
-        <div className="px-2 py-1 rounded-md bg-green-50 text-green-800 text-sm font-medium">
+        <div
+          className={`px-2 py-1 rounded-md text-sm font-medium ${
+            isAdmin ? "bg-amber-50 text-amber-800" : "bg-green-50 text-green-800"
+          }`}
+        >
           {userName}
         </div>
-        <div className="px-2 py-1 rounded-md bg-green-600 text-white text-xs font-semibold">
+        <div
+          className={`px-2 py-1 rounded-md text-white text-xs font-semibold ${
+            isAdmin ? "bg-amber-600" : "bg-green-600"
+          }`}
+        >
           {roleLabel}
         </div>
       </div>
@@ -255,7 +268,7 @@ function BrandHeaderContent({
                 </>
               ) : (
                 <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
-                  <Link to="/cuenta" aria-label="Mi cuenta">
+                  <Link to={userRole === "admin" ? "/admin" : "/cuenta"} aria-label="Mi cuenta">
                     <User className="size-4" aria-hidden="true" />
                     <span>Mi cuenta</span>
                   </Link>
@@ -287,7 +300,7 @@ function BrandHeaderContent({
                 </>
               ) : (
                 <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
-                  <Link to="/cuenta" aria-label="Mi cuenta">
+                  <Link to={userRole === "admin" ? "/admin" : "/cuenta"} aria-label="Mi cuenta">
                     <User className="size-4" aria-hidden="true" />
                     <span>Mi cuenta</span>
                   </Link>

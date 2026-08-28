@@ -39,7 +39,6 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
         typeof window !== "undefined" && window.sessionStorage.getItem("lrg_auth_role") === "admin"
           ? "/admin"
           : "/cuenta";
-      window.sessionStorage.removeItem("lrg_auth_role");
       navigate({ to: destination });
     }
   }, [isAuthenticated, isLoading, navigate]);

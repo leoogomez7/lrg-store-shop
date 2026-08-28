@@ -95,6 +95,13 @@ function AccountAuthGuard({ auth }: { auth: ReturnType<typeof useKindeAuth> }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem("lrg_auth_role") === "admin"
+    ) {
+      navigate({ to: "/admin", replace: true });
+      return;
+    }
     if (!auth.isLoading && !auth.isAuthenticated) {
       navigate({ to: "/login", replace: true });
     }

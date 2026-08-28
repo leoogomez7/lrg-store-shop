@@ -81,6 +81,13 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [finalPasswordError, setFinalPasswordError] = useState("");
 
   useEffect(() => {
+    if (!isAuthenticated || typeof window === "undefined") return;
+    if (window.sessionStorage.getItem("lrg_auth_role") !== "admin") {
+      navigate({ to: "/cuenta", replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
     if (!isAuthenticated) return;
     void loadAdminSettings({ data: {} })
       .then((settings) => {
