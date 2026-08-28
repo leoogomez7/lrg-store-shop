@@ -624,8 +624,10 @@ function AdminConfiguration() {
             </div>
             <div>
               <h2 className="text-xl font-semibold">Métodos de envíos</h2>
-              <p className="text-sm text-muted-foreground">Configurar las condiciones de envío.</p>
-            </div>
+              <p className="text-sm text-muted-foreground">
+                Configurar los métodos de envíos disponibles en {" "}
+                {getBrand(selectedBrand)?.name ?? "esta tienda"}.
+              </p>            </div>
           </div>
 
           <div className="mt-6">
@@ -933,8 +935,9 @@ function AdminConfiguration() {
             </div>
             <div>
               <h2 className="text-xl font-semibold">Métodos de pago</h2>
-              <p className="text-sm text-muted-foreground">
-                Configurar los métodos de pago disponibles.
+                <p className="text-sm text-muted-foreground">
+                Configurar los métodos de pagos disponibles en {" "}
+                {getBrand(selectedBrand)?.name ?? "esta tienda"}.
               </p>
             </div>
           </div>
@@ -1066,7 +1069,8 @@ function AdminConfiguration() {
             <div>
               <h2 className="text-xl font-semibold">Transferencia bancaria</h2>
               <p className="text-sm text-muted-foreground">
-                Agregar CBU para recibir transferencias.
+                Agregar CBU para recibir transferencias en {" "}
+                {getBrand(selectedBrand)?.name ?? "esta tienda"}.
               </p>
             </div>
           </div>
@@ -1106,7 +1110,8 @@ function AdminConfiguration() {
             <div>
               <h2 className="text-xl font-semibold">Categorías</h2>
               <p className="text-sm text-muted-foreground">
-                Configurar las categorías que aparecen en las tiendas.
+                Configurar las categorías y subcategorias para {" "}
+                {getBrand(selectedBrand)?.name ?? "esta tienda"}.
               </p>
             </div>
           </div>
@@ -1278,7 +1283,7 @@ function AdminConfiguration() {
             <div>
               <h2 className="text-xl font-semibold">Descuentos</h2>
               <p className="text-sm text-muted-foreground">
-                Agregar códigos de descuento propios para{" "}
+                Agregar códigos de descuento propios en{" "}
                 {getBrand(selectedBrand)?.name ?? "esta tienda"}.
               </p>
             </div>
