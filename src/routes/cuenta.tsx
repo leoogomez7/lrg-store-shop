@@ -8,6 +8,7 @@ import {
   Eye,
   Heart,
   House,
+  LayoutDashboard,
   LogOut,
   MapPin,
   Package,
@@ -176,12 +177,15 @@ function AccountPageContent({
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
 
   const accountNavItems = [
-    { key: "inicio", label: "Inicio", icon: House, route: "/cuenta" },
+    { key: "admin-panel", label: "Panel administrativo", icon: LayoutDashboard, route: "/admin/panel" },
+    { key: "home", label: "Inicio", icon: House, route: "/" },
     { key: "orders", label: "Pedidos", icon: ShoppingCart, route: "/cuenta/pedidos" },
     { key: "profile", label: "Perfil", icon: User, route: "/cuenta/perfil" },
     { key: "addresses", label: "Direcciones", icon: MapPin, route: "/cuenta/direcciones" },
     { key: "favorites", label: "Favoritos", icon: Heart, route: "/cuenta/favoritos" },
   ] as const;
+
+  type AccountNavKey = (typeof accountNavItems)[number]["key"];
 
   const resolveTabFromPath = (pathname: string): AccountTab => {
     if (pathname === "/cuenta/pedidos") return "orders";
@@ -196,7 +200,17 @@ function AccountPageContent({
     setActiveTab(nextTab);
   }, [location.pathname]);
 
-  const handleTabChange = (tab: AccountTab) => {
+  const handleTabChange = (tab: AccountNavKey) => {
+    if (tab === "home") {
+      navigate({ to: "/", replace: false });
+      return;
+    }
+
+    if (tab === "admin-panel") {
+      navigate({ to: "/admin/panel", replace: false });
+      return;
+    }
+
     const routeMap: Record<AccountTab, string> = {
       inicio: "/cuenta",
       orders: "/cuenta/pedidos",
@@ -640,8 +654,8 @@ function AccountPageContent({
               </Button>
             )}
             <nav className="mt-3 w-full space-y-1">
-              {accountNavItems.map(({ key, label, icon: Icon, route }) => {
-                const isActive = activeTab === key;
+              {accountNavItems.map(({ key, label, icon: Icon }) => {
+                const isActive = key === "home" || key === "admin-panel" ? false : activeTab === key;
                 return (
                   <button
                     type="button"
