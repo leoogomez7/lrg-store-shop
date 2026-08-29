@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  Check,
   Download,
   Eye,
   Heart,
@@ -17,6 +18,7 @@ import {
   Pencil,
   Paperclip,
   Plus,
+  Save,
   ShoppingCart,
   Trash2,
   User,
@@ -51,7 +53,16 @@ import {
 } from "@/components/ui/table";
 import { brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
-import { saveKindeUserToTurso, getUserProfile, updateUserProfile, getUserAddresses, saveUserAddress, deleteUserAddress } from "@/lib/user";
+import {
+  saveKindeUserToTurso,
+  getUserProfile,
+  updateUserProfile,
+  getUserAddresses,
+  saveUserAddress,
+  updateUserAddress,
+  deleteUserAddress,
+  setPrimaryUserAddress,
+} from "@/lib/user";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 import type { Order } from "@/data/orders";
 import { hydrateFavorites } from "@/lib/favorites";
@@ -86,6 +97,7 @@ type Address = {
   id?: string;
   label: string;
   value: string;
+  isPrimary?: boolean;
 };
 
 export type AccountTab = "inicio" | "orders" | "profile" | "addresses" | "favorites";
@@ -173,12 +185,15 @@ function AccountPageContent({
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const favoriteProducts = products.filter((product) => favoriteIds.includes(product.id));
   const [addresses, setAddresses] = useState<Address[]>([]);
+  const primaryAddress = addresses.find((address) => address.isPrimary) ?? addresses[0] ?? null;
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addressLabel, setAddressLabel] = useState("");
   const [addressValue, setAddressValue] = useState("");
+  const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null);
+  const [isMapLoading, setIsMapLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
@@ -285,6 +300,7 @@ function AccountPageContent({
           ...(addr.id !== undefined ? { id: addr.id } : {}),
           label: addr.label,
           value: addr.value,
+          isPrimary: Boolean(addr.isPrimary),
         })) as Address[]
       );
     });
@@ -301,6 +317,46 @@ function AccountPageContent({
     const cleaned = label.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, "").slice(0, 3).toUpperCase();
     return cleaned || "ADR";
   };
+
+  useEffect(() => {
+    const query = addressValue.trim();
+    if (!query) {
+      setMapPreviewUrl(null);
+      return;
+    }
+
+    const timer = window.setTimeout(async () => {
+      try {
+        setIsMapLoading(true);
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,
+          { headers: { "Accept-Language": "es" } },
+        );
+        const data = (await response.json()) as Array<{ lat?: string; lon?: string }>;
+        const location = data[0];
+        if (!location?.lat || !location?.lon) {
+          setMapPreviewUrl(null);
+          return;
+        }
+        const lat = Number(location.lat);
+        const lon = Number(location.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+          setMapPreviewUrl(null);
+          return;
+        }
+        const margin = 0.004;
+        const bbox = `${(lon - margin).toFixed(6)},${(lat - margin).toFixed(6)},${(lon + margin).toFixed(6)},${(lat + margin).toFixed(6)}`;
+        setMapPreviewUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`);
+      } catch (error) {
+        console.error("Error generando vista de mapa:", error);
+        setMapPreviewUrl(null);
+      } finally {
+        setIsMapLoading(false);
+      }
+    }, 600);
+
+    return () => window.clearTimeout(timer);
+  }, [addressValue]);
 
   const renderAccountContent = () => {
     if (activeTab === "inicio") {
@@ -472,10 +528,10 @@ function AccountPageContent({
               <p className="text-sm text-muted-foreground">Actualizá tus datos personales.</p>
             </div>
           </div>
-          <div className="grid max-w-3xl gap-5 sm:grid-cols-2">
-            <div className="space-y-2.5 sm:col-span-2">
-              <Label htmlFor="account-full-name" className="text-sm font-medium text-foreground">Nombre completo</Label>
-              <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid max-w-4xl gap-5">
+            <div className="grid gap-5 md:grid-cols-3">
+              <div className="space-y-2.5">
+                <Label htmlFor="account-name" className="text-sm font-medium text-foreground">Nombre</Label>
                 <Input
                   id="account-name"
                   value={userGivenName}
@@ -483,6 +539,9 @@ function AccountPageContent({
                   placeholder="Nombre"
                   className="h-10 border-border/60"
                 />
+              </div>
+              <div className="space-y-2.5">
+                <Label htmlFor="account-last-name" className="text-sm font-medium text-foreground">Apellido</Label>
                 <Input
                   id="account-last-name"
                   value={userFamilyName}
@@ -491,22 +550,36 @@ function AccountPageContent({
                   className="h-10 border-border/60"
                 />
               </div>
+              <div className="space-y-2.5">
+                <Label htmlFor="account-doc" className="text-sm font-medium text-foreground">Documento</Label>
+                <Input id="account-doc" value={userDocument} onChange={(e) => setUserDocument(e.target.value)} placeholder="Ingresá tu documento" className="h-10 border-border/60" />
+              </div>
             </div>
-            <div className="space-y-2.5 sm:col-span-2">
-              <Label htmlFor="account-email" className="text-sm font-medium text-foreground">Email</Label>
-              <Input id="account-email" type="email" value={userEmail} disabled className="h-10 border-border/60 bg-muted/50 text-foreground opacity-60" />
-              <p className="text-xs text-muted-foreground leading-relaxed">Este email es el de acceso y no se puede modificar desde aquí.</p>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="space-y-2.5">
+                <Label htmlFor="account-email" className="text-sm font-medium text-foreground">Email</Label>
+                <Input id="account-email" type="email" value={userEmail} disabled className="h-10 border-border/60 bg-muted/50 text-foreground opacity-60" />
+                <p className="text-xs text-muted-foreground leading-relaxed">Este email es el de acceso y no se puede modificar desde aquí.</p>
+              </div>
+              <div className="space-y-2.5">
+                <Label htmlFor="account-phone" className="text-sm font-medium text-foreground">Teléfono</Label>
+                <Input id="account-phone" value={userPhone} onChange={(e) => setUserPhone(e.target.value)} placeholder="Ingresá tu teléfono" className="h-10 border-border/60" />
+              </div>
             </div>
+
             <div className="space-y-2.5">
-              <Label htmlFor="account-phone" className="text-sm font-medium text-foreground">Teléfono</Label>
-              <Input id="account-phone" value={userPhone} onChange={(e) => setUserPhone(e.target.value)} placeholder="Ingresá tu teléfono" className="h-10 border-border/60" />
+              <Label htmlFor="account-primary-address" className="text-sm font-medium text-foreground">Dirección</Label>
+              <Input
+                id="account-primary-address"
+                value={primaryAddress?.value ?? "Sin dirección principal"}
+                disabled
+                className="h-10 border-border/60 bg-muted/50 text-foreground opacity-80"
+              />
             </div>
-            <div className="space-y-2.5">
-              <Label htmlFor="account-doc" className="text-sm font-medium text-foreground">Documento</Label>
-              <Input id="account-doc" value={userDocument} onChange={(e) => setUserDocument(e.target.value)} placeholder="Ingresá tu documento" className="h-10 border-border/60" />
-            </div>
+
             <Button
-              className="sm:col-span-2 sm:w-fit h-10 px-6"
+              className="sm:w-fit h-10 px-6"
               disabled={isSavingProfile}
               onClick={async () => {
                 setIsSavingProfile(true);
@@ -545,7 +618,7 @@ function AccountPageContent({
                 }
               }}
             >
-              {isSavingProfile ? "Guardando..." : "✅ Guardar cambios"}
+              {isSavingProfile ? "Guardando..." : <><Check className="mr-2 size-4 text-current" /> Guardar cambios</>}
             </Button>
           </div>
         </div>
@@ -566,7 +639,7 @@ function AccountPageContent({
             </div>
             <Button
               size="sm"
-              className="gap-2 bg-sky-400 text-sky-950 hover:bg-sky-300"
+              className="gap-2 bg-[#39a9de] text-white hover:bg-[#2f9ed3] shadow-[0_8px_20px_rgba(57,169,222,0.35)]"
               onClick={() => {
                 setShowAddForm((current) => !current);
                 setEditingIndex(null);
@@ -590,17 +663,59 @@ function AccountPageContent({
                   <Input id="new-address-value" value={addressValue} onChange={(event) => setAddressValue(event.target.value)} placeholder="Calle, número, ciudad, país" className="h-10 border-border/60" />
                 </div>
               </div>
+              {addressValue.trim() && (
+                <div className="mt-5 overflow-hidden rounded-2xl border border-border/60 bg-background/60">
+                  <div className="flex items-center justify-between border-b border-border/60 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    <span>Verificación de ubicación</span>
+                    <MapPin className="size-3.5" />
+                  </div>
+                  {isMapLoading ? (
+                    <div className="flex h-52 items-center justify-center text-sm text-muted-foreground">
+                      Buscando ubicación…
+                    </div>
+                  ) : mapPreviewUrl ? (
+                    <iframe
+                      title="Mapa de la dirección"
+                      src={mapPreviewUrl}
+                      className="h-52 w-full border-0"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  ) : (
+                    <div className="flex h-52 items-center justify-center px-4 text-center text-sm text-muted-foreground">
+                      No encontramos una ubicación precisa para esa dirección. Revisá el texto o agregá barrio, ciudad y país.
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="mt-5 flex flex-wrap gap-3">
                 <Button
                   size="sm"
-                  className="h-9 px-5"
+                  className="h-9 px-5 bg-[#39a9de] text-white hover:bg-[#2f9ed3]"
                   onClick={async () => {
                     if (!addressLabel.trim() || !addressValue.trim()) return;
-                    const result = await saveUserAddress({ data: { userId: user?.id || "", label: addressLabel.trim(), value: addressValue.trim() } });
+                    const result = await saveUserAddress({
+                      data: {
+                        userId: user?.id || "",
+                        label: addressLabel.trim(),
+                        value: addressValue.trim(),
+                        isPrimary: addresses.length === 0 || !addresses.some((address) => address.isPrimary),
+                      },
+                    });
                     if (result) {
-                      setAddresses((current) => [...current, { label: addressLabel.trim(), value: addressValue.trim() }]);
+                      setAddresses((current) => [
+                        ...current,
+                        {
+                          id: result.id,
+                          label: result.label,
+                          value: result.value,
+                          isPrimary: result.isPrimary ?? false,
+                        },
+                      ]);
                       setAddressLabel("");
                       setAddressValue("");
+                      setMapPreviewUrl(null);
                       setShowAddForm(false);
                       toast.success("Dirección guardada correctamente");
                     } else {
@@ -608,7 +723,7 @@ function AccountPageContent({
                     }
                   }}
                 >
-                  💾 Guardar
+                  <Save className="mr-2 size-4 text-current" /> Guardar
                 </Button>
                 <Button
                   variant="destructive"
@@ -650,9 +765,79 @@ function AccountPageContent({
                           <Label htmlFor={`edit-address-value-${index}`} className="text-sm font-medium">Dirección</Label>
                           <Input id={`edit-address-value-${index}`} value={addressValue} onChange={(event) => setAddressValue(event.target.value)} className="h-10 border-border/60" />
                         </div>
+                        {addressValue.trim() && (
+                          <div className="mt-2 overflow-hidden rounded-2xl border border-border/60 bg-background/60">
+                            <div className="flex items-center justify-between border-b border-border/60 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                              <span>Verificación de ubicación</span>
+                              <MapPin className="size-3.5" />
+                            </div>
+                            {isMapLoading ? (
+                              <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
+                                Buscando ubicación…
+                              </div>
+                            ) : mapPreviewUrl ? (
+                              <iframe
+                                title="Mapa de la dirección editada"
+                                src={mapPreviewUrl}
+                                className="h-40 w-full border-0"
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                              />
+                            ) : (
+                              <div className="flex h-40 items-center justify-center px-4 text-center text-xs text-muted-foreground">
+                                No encontramos una ubicación precisa.
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <div className="flex flex-wrap gap-3 pt-1">
-                          <Button size="sm" className="h-9 px-5" onClick={() => { if (!addressLabel.trim() || !addressValue.trim()) return; setAddresses((current) => current.map((item, itemIndex) => itemIndex === index ? { label: addressLabel.trim(), value: addressValue.trim() } : item)); setEditingIndex(null); setAddressLabel(""); setAddressValue(""); }}>
-                            💾 Guardar
+                          <Button
+                            size="sm"
+                            className="h-9 px-5 bg-[#39a9de] text-white hover:bg-[#2f9ed3]"
+                            onClick={async () => {
+                              if (!addressLabel.trim() || !addressValue.trim()) return;
+                              const addressToUpdate = addresses[index];
+                              if (!addressToUpdate?.id || !user?.id) {
+                                setAddresses((current) =>
+                                  current.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, label: addressLabel.trim(), value: addressValue.trim() } : item,
+                                  ),
+                                );
+                                setEditingIndex(null);
+                                setAddressLabel("");
+                                setAddressValue("");
+                                setMapPreviewUrl(null);
+                                return;
+                              }
+
+                              const success = await updateUserAddress({
+                                data: {
+                                  userId: user.id,
+                                  addressId: addressToUpdate.id,
+                                  label: addressLabel.trim(),
+                                  value: addressValue.trim(),
+                                },
+                              });
+
+                              if (success) {
+                                setAddresses((current) =>
+                                  current.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, label: addressLabel.trim(), value: addressValue.trim() } : item,
+                                  ),
+                                );
+                                toast.success("Dirección actualizada");
+                              } else {
+                                toast.error("Error al actualizar la dirección");
+                              }
+
+                              setEditingIndex(null);
+                              setAddressLabel("");
+                              setAddressValue("");
+                              setMapPreviewUrl(null);
+                            }}
+                          >
+                            <Save className="mr-2 size-4 text-current" /> Guardar
                           </Button>
                           <Button variant="destructive" size="sm" className="h-9 px-5" onClick={() => { setEditingIndex(null); setAddressLabel(""); setAddressValue(""); }}>
                             ✕ Cancelar
@@ -662,7 +847,24 @@ function AccountPageContent({
                     ) : (
                       <>
                         <p className="mt-3 text-sm text-muted-foreground">{address.value}</p>
-                        <div className="mt-4 flex gap-3">
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          <Button
+                            variant={address.isPrimary ? "secondary" : "outline"}
+                            size="sm"
+                            className="gap-2 h-9 px-5"
+                            onClick={async () => {
+                              if (!address.id || !user?.id) return;
+                              const success = await setPrimaryUserAddress({ data: { userId: user.id, addressId: address.id } });
+                              if (success) {
+                                setAddresses((current) => current.map((item) => ({ ...item, isPrimary: item.id === address.id })));
+                                toast.success("Dirección principal actualizada");
+                              } else {
+                                toast.error("No se pudo actualizar la dirección principal");
+                              }
+                            }}
+                          >
+                            {address.isPrimary ? <Check className="size-4 text-current" /> : <MapPin className="size-4" />} {address.isPrimary ? "Principal" : "Marcar principal"}
+                          </Button>
                           <Button variant="outline" size="sm" className="gap-2 h-9 px-5" onClick={() => { setEditingIndex(index); setAddressLabel(address.label); setAddressValue(address.value); setShowAddForm(false); }}>
                             <Pencil className="size-4" /> Editar
                           </Button>
