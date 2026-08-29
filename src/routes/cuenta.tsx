@@ -76,7 +76,7 @@ export const Route = createFileRoute("/cuenta")({
     ],
     links: [{ rel: "icon", href: "/LRG Store Shop PNG.png", type: "image/png" }],
   }),
-  component: AccountPage,
+  component: () => null,
 });
 
 type Address = {

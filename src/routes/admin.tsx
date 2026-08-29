@@ -37,7 +37,10 @@ import { applyAdminSettings, refreshBrandData } from "@/config/brands";
 import { applyTrashEntries } from "@/data/trash";
 
 export const Route = createFileRoute("/admin")({
-  component: AdminLayout,
+  beforeLoad: () => ({
+    redirect: "/admin/panel",
+  }),
+  component: () => null,
 });
 
 const navigation = [
