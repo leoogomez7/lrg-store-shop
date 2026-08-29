@@ -377,15 +377,15 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     to={item.to}
                     title={sidebarCollapsed ? item.label : undefined}
                     className={cn(
-                      "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                      "group relative flex items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
                       sidebarCollapsed && "justify-center px-2",
                       active
-                        ? "bg-surface-2 text-foreground"
-                        : "text-muted-foreground hover:text-foreground",
+                        ? "border-white/10 bg-surface-2 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                        : "text-muted-foreground",
                     )}
                   >
-                    <item.icon className="size-4 shrink-0" />
-                    {!sidebarCollapsed && item.label}
+                    <item.icon className="relative z-10 size-4 shrink-0" />
+                    {!sidebarCollapsed && <span className="relative z-10">{item.label}</span>}
                   </Link>
                 );
               })}
@@ -443,13 +443,13 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                       to={item.to}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                        "group relative overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:before:opacity-100",
                         active
-                          ? "bg-surface-2 text-foreground font-semibold shadow-sm"
-                          : "text-muted-foreground hover:text-foreground hover:bg-surface-2 hover:shadow-sm",
+                          ? "border-white/10 bg-surface-2 text-foreground font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                          : "text-muted-foreground",
                       )}
                     >
-                      {item.label}
+                      <span className="relative z-10">{item.label}</span>
                     </Link>
                   );
                 })}

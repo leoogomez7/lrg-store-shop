@@ -1319,9 +1319,11 @@ function AdminProducts() {
               });
 
               const tableHtml = `
-                <html>
+                <!DOCTYPE html>
+                <html lang="es">
                   <head>
                     <meta charset="utf-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1" />
                     <style>
                       body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
                       table { border-collapse: collapse; width: 100%; font-size: 12px; }

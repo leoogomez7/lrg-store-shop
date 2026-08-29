@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -144,6 +144,7 @@ function AccountPageContent({
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const { data: products } = useSuspenseQuery(catalogQueries.all());
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     user,
     isAuthenticated,
@@ -174,10 +175,6 @@ function AccountPageContent({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
 
-  useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
-
   const accountNavItems = [
     { key: "inicio", label: "Inicio", icon: House, route: "/cuenta" },
     { key: "orders", label: "Pedidos", icon: ShoppingCart, route: "/cuenta/pedidos" },
@@ -185,6 +182,35 @@ function AccountPageContent({
     { key: "addresses", label: "Direcciones", icon: MapPin, route: "/cuenta/direcciones" },
     { key: "favorites", label: "Favoritos", icon: Heart, route: "/cuenta/favoritos" },
   ] as const;
+
+  const resolveTabFromPath = (pathname: string): AccountTab => {
+    if (pathname === "/cuenta/pedidos") return "orders";
+    if (pathname === "/cuenta/perfil") return "profile";
+    if (pathname === "/cuenta/direcciones") return "addresses";
+    if (pathname === "/cuenta/favoritos") return "favorites";
+    return "inicio";
+  };
+
+  useEffect(() => {
+    const nextTab = resolveTabFromPath(location.pathname);
+    setActiveTab(nextTab);
+  }, [location.pathname]);
+
+  const handleTabChange = (tab: AccountTab) => {
+    const routeMap: Record<AccountTab, string> = {
+      inicio: "/cuenta",
+      orders: "/cuenta/pedidos",
+      profile: "/cuenta/perfil",
+      addresses: "/cuenta/direcciones",
+      favorites: "/cuenta/favoritos",
+    };
+
+    const nextRoute = routeMap[tab];
+    setActiveTab(tab);
+    if (location.pathname !== nextRoute) {
+      navigate({ to: nextRoute, replace: false });
+    }
+  };
 
   useEffect(() => {
     const kindeName = user ? user.givenName || user.email || null : null;
@@ -255,7 +281,7 @@ function AccountPageContent({
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <button
                 type="button"
-                onClick={() => setActiveTab("orders")}
+                onClick={() => handleTabChange("orders")}
                 className="rounded-2xl border border-border/60 bg-background/50 p-4 text-left transition hover:border-border hover:bg-background"
               >
                 <div className="mb-3 flex items-center justify-between">
@@ -267,7 +293,7 @@ function AccountPageContent({
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab("profile")}
+                onClick={() => handleTabChange("profile")}
                 className="rounded-2xl border border-border/60 bg-background/50 p-4 text-left transition hover:border-border hover:bg-background"
               >
                 <div className="mb-3 flex items-center justify-between">
@@ -279,7 +305,7 @@ function AccountPageContent({
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab("addresses")}
+                onClick={() => handleTabChange("addresses")}
                 className="rounded-2xl border border-border/60 bg-background/50 p-4 text-left transition hover:border-border hover:bg-background"
               >
                 <div className="mb-3 flex items-center justify-between">
@@ -291,7 +317,7 @@ function AccountPageContent({
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab("favorites")}
+                onClick={() => handleTabChange("favorites")}
                 className="rounded-2xl border border-border/60 bg-background/50 p-4 text-left transition hover:border-border hover:bg-background"
               >
                 <div className="mb-3 flex items-center justify-between">
@@ -617,12 +643,13 @@ function AccountPageContent({
               {accountNavItems.map(({ key, label, icon: Icon, route }) => {
                 const isActive = activeTab === key;
                 return (
-                  <Link
+                  <button
+                    type="button"
                     key={key}
-                    to={route}
+                    onClick={() => handleTabChange(key)}
                     title={sidebarCollapsed ? label : undefined}
                     className={cn(
-                      "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                      "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm transition-colors",
                       sidebarCollapsed && "justify-center px-2",
                       isActive
                         ? "bg-surface-2 text-foreground"
@@ -631,7 +658,7 @@ function AccountPageContent({
                   >
                     <Icon className="size-4 shrink-0" />
                     {!sidebarCollapsed && label}
-                  </Link>
+                  </button>
                 );
               })}
             </nav>
