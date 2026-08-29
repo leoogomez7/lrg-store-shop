@@ -101,8 +101,15 @@ export const getUserProfile = createServerFn({ method: "GET" })
 
 export const updateUserProfile = createServerFn({ method: "POST" })
   .validator(
-    (data: { userId: string; email?: string; phone?: string; document?: string; city?: string }) =>
-      data,
+    (data: {
+      userId: string;
+      email?: string;
+      givenName?: string;
+      familyName?: string;
+      phone?: string;
+      document?: string;
+      city?: string;
+    }) => data,
   )
   .handler(async ({ data }) => {
     if (!client || !data.userId) return false;
@@ -110,13 +117,19 @@ export const updateUserProfile = createServerFn({ method: "POST" })
     try {
       const now = new Date().toISOString();
       const normalizedEmail = data.email?.trim() || "";
+      const normalizedGivenName = data.givenName?.trim() || "";
+      const normalizedFamilyName = data.familyName?.trim() || "";
+      const fullName = [normalizedGivenName, normalizedFamilyName].filter(Boolean).join(" ");
 
       await client.execute({
         sql: `UPDATE users 
-              SET email = ?, phone = ?, document = ?, city = ?, updatedAt = ?
+              SET email = ?, givenName = ?, familyName = ?, fullName = ?, phone = ?, document = ?, city = ?, updatedAt = ?
               WHERE id = ?`,
         args: [
           normalizedEmail,
+          normalizedGivenName,
+          normalizedFamilyName,
+          fullName,
           data.phone ?? "",
           data.document ?? "",
           data.city ?? "",

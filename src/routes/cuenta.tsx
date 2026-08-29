@@ -162,10 +162,11 @@ function AccountPageContent({
     logout: async () => undefined,
   };
   const [userName, setUserName] = useState<string | null>(null);
+  const [userGivenName, setUserGivenName] = useState<string>("");
+  const [userFamilyName, setUserFamilyName] = useState<string>("");
   const [userEmail, setUserEmail] = useState<string>("");
   const [userPhone, setUserPhone] = useState<string>("");
   const [userDocument, setUserDocument] = useState<string>("");
-  const [userCity, setUserCity] = useState<string>("");
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [attachmentsOrder, setAttachmentsOrder] = useState<Order | null>(null);
   const visibleOrders = userName ? orders.filter((order) => order.customer === userName) : [];
@@ -233,30 +234,42 @@ function AccountPageContent({
   };
 
   useEffect(() => {
-    const kindeName = user ? user.givenName || user.email || null : null;
-
     if (isAuthenticated && user) {
-      setUserName(kindeName);
+      const nextGivenName = user.givenName ?? "";
+      const nextFamilyName = user.familyName ?? "";
+      const nextFullName = [nextGivenName, nextFamilyName].filter(Boolean).join(" ").trim();
+      setUserGivenName(nextGivenName);
+      setUserFamilyName(nextFamilyName);
+      setUserName(nextFullName || user.email || null);
+
       saveKindeUserToTurso({
         id: user.id,
         email: user.email || null,
-        givenName: user.givenName || null,
-        familyName: user.familyName || null,
+        givenName: nextGivenName || null,
+        familyName: nextFamilyName || null,
       });
 
       // Cargar perfil desde BD
       getUserProfile({ data: { userId: user.id } }).then((profile) => {
         if (profile) {
+          const profileGivenName = profile.givenName ?? "";
+          const profileFamilyName = profile.familyName ?? "";
+          const profileFullName = [profileGivenName, profileFamilyName].filter(Boolean).join(" ").trim();
+
+          setUserGivenName(profileGivenName || nextGivenName);
+          setUserFamilyName(profileFamilyName || nextFamilyName);
+          setUserName(profileFullName || nextFullName || user.email || null);
           setUserEmail(profile.email ?? user.email ?? "");
           setUserPhone(profile.phone ?? "");
           setUserDocument(profile.document ?? "");
-          setUserCity(profile.city ?? "");
         } else {
           setUserEmail(user.email ?? "");
         }
       });
     } else {
       setUserName(null);
+      setUserGivenName("");
+      setUserFamilyName("");
       setUserEmail("");
     }
   }, [user, isAuthenticated]);
@@ -460,11 +473,26 @@ function AccountPageContent({
             </div>
           </div>
           <div className="grid max-w-3xl gap-5 sm:grid-cols-2">
-            <div className="space-y-2.5">
-              <Label htmlFor="account-name" className="text-sm font-medium text-foreground">Nombre</Label>
-              <Input id="account-name" value={userName} disabled className="h-10 border-border/60 bg-muted/50 text-foreground opacity-60" />
+            <div className="space-y-2.5 sm:col-span-2">
+              <Label htmlFor="account-full-name" className="text-sm font-medium text-foreground">Nombre completo</Label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  id="account-name"
+                  value={userGivenName}
+                  onChange={(e) => setUserGivenName(e.target.value)}
+                  placeholder="Nombre"
+                  className="h-10 border-border/60"
+                />
+                <Input
+                  id="account-last-name"
+                  value={userFamilyName}
+                  onChange={(e) => setUserFamilyName(e.target.value)}
+                  placeholder="Apellido"
+                  className="h-10 border-border/60"
+                />
+              </div>
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 sm:col-span-2">
               <Label htmlFor="account-email" className="text-sm font-medium text-foreground">Email</Label>
               <Input id="account-email" type="email" value={userEmail} disabled className="h-10 border-border/60 bg-muted/50 text-foreground opacity-60" />
               <p className="text-xs text-muted-foreground leading-relaxed">Este email es el de acceso y no se puede modificar desde aquí.</p>
@@ -474,15 +502,50 @@ function AccountPageContent({
               <Input id="account-phone" value={userPhone} onChange={(e) => setUserPhone(e.target.value)} placeholder="Ingresá tu teléfono" className="h-10 border-border/60" />
             </div>
             <div className="space-y-2.5">
-              <Label htmlFor="account-city" className="text-sm font-medium text-foreground">Ciudad</Label>
-              <Input id="account-city" value={userCity} onChange={(e) => setUserCity(e.target.value)} placeholder="Ingresá tu ciudad" className="h-10 border-border/60" />
-            </div>
-            <div className="space-y-2.5 sm:col-span-2">
               <Label htmlFor="account-doc" className="text-sm font-medium text-foreground">Documento</Label>
               <Input id="account-doc" value={userDocument} onChange={(e) => setUserDocument(e.target.value)} placeholder="Ingresá tu documento" className="h-10 border-border/60" />
             </div>
-            <Button className="sm:col-span-2 sm:w-fit h-10 px-6" disabled={isSavingProfile} onClick={async () => { setIsSavingProfile(true); try { const nextEmail = userEmail.trim(); const success = await updateUserProfile({ data: { userId: user?.id || "", email: nextEmail, phone: userPhone, document: userDocument, city: userCity } }); if (success) { await saveKindeUserToTurso({ id: user?.id || "", email: nextEmail || user?.email || null, givenName: user?.givenName || null, familyName: user?.familyName || null }); toast.success("Perfil actualizado correctamente"); } else { toast.error("Error al actualizar el perfil"); } } catch (error) { console.error("Error al guardar:", error); toast.error("Error al guardar los cambios"); } finally { setIsSavingProfile(false); } }}>
-              {isSavingProfile ? "Guardando..." : "Guardar cambios"}
+            <Button
+              className="sm:col-span-2 sm:w-fit h-10 px-6"
+              disabled={isSavingProfile}
+              onClick={async () => {
+                setIsSavingProfile(true);
+                try {
+                  const nextEmail = userEmail.trim();
+                  const nextName = userGivenName.trim();
+                  const nextFamily = userFamilyName.trim();
+                  const nextFullName = [nextName, nextFamily].filter(Boolean).join(" ");
+                  const success = await updateUserProfile({
+                    data: {
+                      userId: user?.id || "",
+                      email: nextEmail,
+                      givenName: nextName,
+                      familyName: nextFamily,
+                      phone: userPhone,
+                      document: userDocument,
+                    },
+                  });
+                  if (success) {
+                    setUserName(nextFullName || nextEmail || user?.email || null);
+                    await saveKindeUserToTurso({
+                      id: user?.id || "",
+                      email: nextEmail || user?.email || null,
+                      givenName: nextName || null,
+                      familyName: nextFamily || null,
+                    });
+                    toast.success("Perfil actualizado correctamente");
+                  } else {
+                    toast.error("Error al actualizar el perfil");
+                  }
+                } catch (error) {
+                  console.error("Error al guardar:", error);
+                  toast.error("Error al guardar los cambios");
+                } finally {
+                  setIsSavingProfile(false);
+                }
+              }}
+            >
+              {isSavingProfile ? "Guardando..." : "✅ Guardar cambios"}
             </Button>
           </div>
         </div>
@@ -533,7 +596,7 @@ function AccountPageContent({
                   className="h-9 px-5"
                   onClick={async () => {
                     if (!addressLabel.trim() || !addressValue.trim()) return;
-                    const result = await saveUserAddress({ data: { userId: user?.id || "", label: addressLabel.trim(), value: addressValue.trim(), city: userCity } });
+                    const result = await saveUserAddress({ data: { userId: user?.id || "", label: addressLabel.trim(), value: addressValue.trim() } });
                     if (result) {
                       setAddresses((current) => [...current, { label: addressLabel.trim(), value: addressValue.trim() }]);
                       setAddressLabel("");
