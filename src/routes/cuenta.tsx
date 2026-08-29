@@ -539,33 +539,58 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   };
 
   return (
-    <div className="theme-webdesign min-h-screen bg-[#020b16] text-foreground">
+    <div className="theme-webdesign min-h-screen bg-background text-foreground">
       <div className="relative flex min-h-screen">
-        <aside className={"hidden shrink-0 border-r border-border/60 bg-[#0b1727]/90 lg:flex lg:flex-col " + (sidebarCollapsed ? "w-20" : "w-72")}>
-          <div className={"flex h-full flex-col p-4 " + (sidebarCollapsed ? "items-center px-3" : "")}>
-            <div className={"mb-6 flex items-center " + (sidebarCollapsed ? "justify-center" : "justify-between gap-2") + " w-full"}>
-              <div className="inline-flex min-w-0 items-center gap-3 text-base text-muted-foreground" title={userName ?? "Cliente"}>
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#1b2d45] text-primary shadow-inner shadow-black/20">
-                  <span className="text-xs font-bold uppercase text-[#dfe9ff]">{getUserInitials()}</span>
+        <aside className={cn(
+          "hidden shrink-0 border-r border-border/60 bg-surface/40 transition-[width] duration-200 lg:block",
+          sidebarCollapsed ? "w-20" : "w-64",
+        )}>
+          <div
+            className={cn(
+              "sticky top-0 flex h-screen flex-col p-5",
+              sidebarCollapsed && "items-center px-3",
+            )}
+          >
+            <div
+              className={cn(
+                "mb-4 mt-2 flex w-full items-center",
+                sidebarCollapsed ? "justify-center" : "justify-between gap-2",
+              )}
+            >
+              <div className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground" title={userName ?? "Cliente"}>
+                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-xs font-bold uppercase text-primary">
+                  {getUserInitials()}
                 </span>
                 {!sidebarCollapsed && (
-                  <span className="truncate text-lg font-semibold text-foreground">{userName || "Cliente"}</span>
+                  <span className="truncate font-medium text-foreground">{userName || "Cliente"}</span>
                 )}
               </div>
               {!sidebarCollapsed && (
-                <button type="button" onClick={() => setSidebarCollapsed(true)} className="rounded-md p-2 text-muted-foreground transition hover:bg-white/5 hover:text-foreground" title="Minimizar menú">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Minimizar menú"
+                >
                   <PanelLeftClose className="size-4" />
-                </button>
+                </Button>
               )}
             </div>
 
             {sidebarCollapsed && (
-              <button type="button" onClick={() => setSidebarCollapsed(false)} className="mb-3 rounded-md p-2 text-muted-foreground transition hover:bg-white/5 hover:text-foreground" title="Expandir menú">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarCollapsed(false)}
+                title="Expandir menú"
+                className="mb-2"
+              >
                 <PanelLeftOpen className="size-4" />
-              </button>
+              </Button>
             )}
-
-            <nav className="mt-2 w-full space-y-1">
+            <nav className="mt-3 w-full space-y-1">
               {accountNavItems.map(({ key, label, icon: Icon }) => {
                 const isActive = activeTab === key;
                 return (
@@ -574,58 +599,43 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     type="button"
                     onClick={() => setActiveTab(key)}
                     title={sidebarCollapsed ? label : undefined}
-                    className={
-                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] font-medium transition-all " +
-                      (sidebarCollapsed ? "justify-center px-2" : "") +
-                      (isActive
-                        ? "bg-[#1a2435] text-foreground shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
-                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground")
-                    }
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                      sidebarCollapsed && "justify-center px-2",
+                      isActive
+                        ? "bg-surface-2 text-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
                   >
                     <Icon className="size-4 shrink-0" />
-                    {!sidebarCollapsed && <span>{label}</span>}
+                    {!sidebarCollapsed && label}
                   </button>
                 );
               })}
             </nav>
 
-            <div className={"mt-auto pt-4 " + (sidebarCollapsed ? "flex justify-center" : "")}>
-              <button
-                type="button"
-                onClick={() => setLogoutOpen(true)}
-                className={"flex items-center gap-2 rounded-xl px-3 py-2.5 text-[15px] font-medium text-red-500 transition hover:bg-red-500/10 hover:text-red-600 " + (sidebarCollapsed ? "justify-center px-2" : "")}
-                title={sidebarCollapsed ? "Cerrar sesión" : undefined}
-              >
-                <LogOut className="size-4" />
-                {!sidebarCollapsed && <span>Cerrar sesión</span>}
-              </button>
+            <div className={cn("mt-auto flex gap-2", sidebarCollapsed && "justify-center")}>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "text-red-600 hover:border-red-500 hover:bg-red-500/10 hover:text-red-600",
+                    sidebarCollapsed && "size-9 px-0",
+                  )}
+                  title={sidebarCollapsed ? "Cerrar sesión" : undefined}
+                  onClick={() => setLogoutOpen(true)}
+                >
+                  <LogOut className="size-4" />
+                  {!sidebarCollapsed && "Cerrar sesión"}
+                </Button>
+              </>
             </div>
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 bg-[#020b16] px-4 py-4 md:px-6 md:py-6">
-          <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
-            <div className="flex items-center gap-2">
-              <span className="grid size-9 place-items-center rounded-xl bg-[#1b2d45] text-primary">
-                <User className="size-4" />
-              </span>
-              <span className="text-sm font-medium">Mi cuenta</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {accountNavItems.map(({ key, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setActiveTab(key)}
-                  className={"rounded-lg px-2.5 py-1.5 text-xs transition " + (activeTab === key ? "bg-[#1a2435] text-foreground" : "text-muted-foreground")}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="min-h-[calc(100vh-8rem)] rounded-2xl border border-border/60 bg-[#0d1a2a]/90 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+        <main className="min-w-0 flex-1 px-4 py-4 md:px-6 md:py-6">
+          <div className="min-h-[calc(100vh-8rem)]">
             {renderAccountContent()}
           </div>
         </main>
