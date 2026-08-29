@@ -217,6 +217,19 @@
     font-family: var(--font-sans);
   }
 
+  button,
+  [role="button"],
+  [type="button"],
+  [type="submit"],
+  [type="reset"],
+  a[href],
+  summary,
+  [data-slot="trigger"],
+  [data-clickable="true"],
+  .clickable {
+    cursor: pointer;
+  }
+
   h1,
   h2,
   h3,
