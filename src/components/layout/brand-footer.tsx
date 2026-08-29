@@ -15,6 +15,7 @@ import {
   Store,
   Trash2,
   Heart,
+  House,
   User,
   UserRound,
   Users,
@@ -175,25 +176,30 @@ function BrandFooterContent({
     window.sessionStorage.getItem("lrg_auth_role") === "admin" &&
     window.sessionStorage.getItem("lrg_admin_final_verified") === "true";
   const categories = section === "brand" ? brand.categories : [];
+  const accountMenu = [
+    ["Inicio", "/cuenta", House],
+    ["Pedidos", "/cuenta/pedidos", ShoppingCart],
+    ["Perfil", "/cuenta/perfil", User],
+    ["Direcciones", "/cuenta/direcciones", MapPin],
+    ["Favoritos", "/cuenta/favoritos", Heart],
+  ];
+  const adminMenu = [
+    ["Panel administrativo", "/admin/panel", LayoutDashboard],
+    ["Productos", "/admin/productos", Package],
+    ["Pedidos", "/admin/pedidos", ShoppingCart],
+    ["Clientes", "/admin/clientes", Users],
+    ["Proveedores", "/admin/proveedores", ContactRound],
+    ["Tiendas disponibles", "/admin/marcas", Store],
+    ["Configuración", "/admin/configuracion", Settings],
+    ["Papelera", "/admin/papelera", Trash2],
+  ];
   const menu = isAdmin
-    ? [
-        ["Panel administrativo", "/admin/panel", LayoutDashboard],
-        ["Productos", "/admin/productos", Package],
-        ["Pedidos", "/admin/pedidos", ShoppingCart],
-        ["Clientes", "/admin/clientes", Users],
-        ["Proveedores", "/admin/proveedores", ContactRound],
-        ["Tiendas disponibles", "/admin/marcas", Store],
-        ["Configuración", "/admin/configuracion", Settings],
-        ["Papelera", "/admin/papelera", Trash2],
-      ]
-    : isAuthenticated
-      ? [
-          ["Pedidos", "/cuenta/pedidos", ShoppingCart],
-          ["Perfil", "/cuenta/perfil", User],
-          ["Direcciones", "/cuenta/direcciones", MapPin],
-          ["Favoritos", "/cuenta/favoritos", Heart],
-        ]
-      : [];
+    ? adminMenu
+    : section === "account"
+      ? accountMenu
+      : isAuthenticated
+        ? accountMenu
+        : [];
   const renderLink = (label: string, to: string, Icon?: typeof LayoutDashboard) => (
     <li key={`${label}-${to}`}>
       <Link
