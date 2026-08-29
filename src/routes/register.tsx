@@ -39,7 +39,7 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
       toast.info("Ya hay un usuario logueado", {
         className: "!border-gray-200 !bg-white !text-gray-900",
       });
-      navigate({ to: "/cuenta" });
+      navigate({ to: "/cuenta/panel" });
     }
   }, [isAuthenticated, isLoading, navigate]);
 

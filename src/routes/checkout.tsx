@@ -247,7 +247,7 @@ function CheckoutPage() {
                 <Link to="/">Seguir comprando</Link>
               </Button>
               <Button asChild variant="secondary">
-                <Link to="/cuenta">Ver mis pedidos</Link>
+                <Link to="/cuenta/panel">Ver mis pedidos</Link>
               </Button>
             </div>
           </div>

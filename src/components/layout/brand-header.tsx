@@ -268,7 +268,7 @@ function BrandHeaderContent({
                 </>
               ) : (
                 <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
-                  <Link to={userRole === "admin" ? "/admin" : "/cuenta"} aria-label="Mi cuenta">
+                  <Link to={userRole === "admin" ? "/admin/panel" : "/cuenta/panel"} aria-label="Mi cuenta">
                     <User className="size-4" aria-hidden="true" />
                     <span>Mi cuenta</span>
                   </Link>
@@ -300,7 +300,7 @@ function BrandHeaderContent({
                 </>
               ) : (
                 <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
-                  <Link to={userRole === "admin" ? "/admin" : "/cuenta"} aria-label="Mi cuenta">
+                  <Link to={userRole === "admin" ? "/admin/panel" : "/cuenta/panel"} aria-label="Mi cuenta">
                     <User className="size-4" aria-hidden="true" />
                     <span>Mi cuenta</span>
                   </Link>

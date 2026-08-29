@@ -248,7 +248,7 @@ function BrandFooterContent({
               <>
                 <li>
                   <Link
-                    to="/cuenta"
+                    to="/cuenta/panel"
                     className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
                   >
                     <UserRound className="size-4" /> Cliente
@@ -275,7 +275,7 @@ function BrandFooterContent({
             ) : (
               <li>
                 <Link
-                  to="/cuenta"
+                  to="/cuenta/panel"
                   className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
                 >
                   <UserRound className="size-4" /> Cliente

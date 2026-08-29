@@ -39,7 +39,7 @@ export function SectorsContent() {
             <BrandMark />
           </a>
           <Button asChild variant="ghost" size="sm" className="gap-2">
-            <Link to="/cuenta">
+            <Link to="/cuenta/panel">
               <CircleArrowLeft className="size-4 text-white" /> Volver
             </Link>
           </Button>

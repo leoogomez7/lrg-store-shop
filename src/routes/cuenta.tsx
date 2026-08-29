@@ -58,6 +58,9 @@ import { hydrateFavorites } from "@/lib/favorites";
 
 export const Route = createFileRoute("/cuenta")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
+  beforeLoad: () => ({
+    redirect: "/cuenta/panel",
+  }),
   head: () => ({
     meta: [
       { title: "Mi cuenta" },
@@ -120,7 +123,7 @@ function AccountAuthGuard({
       typeof window !== "undefined" &&
       window.sessionStorage.getItem("lrg_auth_role") === "admin"
     ) {
-      navigate({ to: "/admin", replace: true });
+      navigate({ to: "/admin/panel", replace: true });
       return;
     }
     if (!auth.isLoading && !auth.isAuthenticated) {
@@ -177,8 +180,8 @@ function AccountPageContent({
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
 
   const accountNavItems = [
-    { key: "admin-panel", label: "Panel administrativo", icon: LayoutDashboard, route: "/admin/panel" },
     { key: "home", label: "Inicio", icon: House, route: "/" },
+    { key: "admin-panel", label: "Panel administrativo", icon: LayoutDashboard, route: "/cuenta/panel" },
     { key: "orders", label: "Pedidos", icon: ShoppingCart, route: "/cuenta/pedidos" },
     { key: "profile", label: "Perfil", icon: User, route: "/cuenta/perfil" },
     { key: "addresses", label: "Direcciones", icon: MapPin, route: "/cuenta/direcciones" },
@@ -207,12 +210,12 @@ function AccountPageContent({
     }
 
     if (tab === "admin-panel") {
-      navigate({ to: "/admin/panel", replace: false });
+      navigate({ to: "/cuenta/panel", replace: false });
       return;
     }
 
     const routeMap: Record<AccountTab, string> = {
-      inicio: "/cuenta",
+      inicio: "/cuenta/panel",
       orders: "/cuenta/pedidos",
       profile: "/cuenta/perfil",
       addresses: "/cuenta/direcciones",

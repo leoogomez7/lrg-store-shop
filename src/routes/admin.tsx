@@ -92,9 +92,16 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [finalPasswordError, setFinalPasswordError] = useState("");
 
   useEffect(() => {
+    if (pathname === "/admin") {
+      navigate({ to: "/admin/panel", replace: true });
+      return;
+    }
+  }, [navigate, pathname]);
+
+  useEffect(() => {
     if (!isAuthenticated || typeof window === "undefined") return;
     if (window.sessionStorage.getItem("lrg_auth_role") !== "admin") {
-      navigate({ to: "/cuenta", replace: true });
+      navigate({ to: "/cuenta/panel", replace: true });
     }
   }, [isAuthenticated, navigate]);
 
