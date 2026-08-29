@@ -58,9 +58,12 @@ import { hydrateFavorites } from "@/lib/favorites";
 
 export const Route = createFileRoute("/cuenta")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
-  beforeLoad: () => ({
-    redirect: "/cuenta/panel",
-  }),
+  beforeLoad: ({ location }) => {
+    if (location.pathname === "/cuenta") {
+      return { redirect: "/cuenta/panel" };
+    }
+    return undefined;
+  },
   head: () => ({
     meta: [
       { title: "Mi cuenta" },
@@ -76,7 +79,7 @@ export const Route = createFileRoute("/cuenta")({
     ],
     links: [{ rel: "icon", href: "/LRG Store Shop PNG.png", type: "image/png" }],
   }),
-  component: () => null,
+  component: AccountPage,
 });
 
 type Address = {
