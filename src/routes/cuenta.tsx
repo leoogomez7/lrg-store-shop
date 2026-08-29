@@ -539,35 +539,33 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   };
 
   return (
-    <div className="theme-webdesign min-h-screen bg-background text-foreground">
-      <BrandHeader brand={webDesignConfig} displayBrandName="LRG Store Shop" logoBrandSlug="store-shop" />
-      <div className="aurora-bg" />
-      <div className="relative mx-auto flex w-full max-w-7xl gap-6 px-4 pb-12 pt-20 sm:px-6">
-        <aside className={"hidden shrink-0 border-r border-border/60 bg-surface/40 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] lg:flex lg:flex-col " + (sidebarCollapsed ? "w-20" : "w-64")}>
+    <div className="theme-webdesign min-h-screen bg-[#020b16] text-foreground">
+      <div className="relative flex min-h-screen">
+        <aside className={"hidden shrink-0 border-r border-border/60 bg-[#0b1727]/90 lg:flex lg:flex-col " + (sidebarCollapsed ? "w-20" : "w-72")}>
           <div className={"flex h-full flex-col p-4 " + (sidebarCollapsed ? "items-center px-3" : "")}>
-            <div className={"mb-4 flex items-center " + (sidebarCollapsed ? "justify-center" : "justify-between gap-2") + " w-full"}>
-              <div className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground" title={userName ?? "Cliente"}>
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary shadow-inner shadow-black/10">
-                  <span className="text-xs font-semibold uppercase">{getUserInitials()}</span>
+            <div className={"mb-6 flex items-center " + (sidebarCollapsed ? "justify-center" : "justify-between gap-2") + " w-full"}>
+              <div className="inline-flex min-w-0 items-center gap-3 text-base text-muted-foreground" title={userName ?? "Cliente"}>
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#1b2d45] text-primary shadow-inner shadow-black/20">
+                  <span className="text-xs font-bold uppercase text-[#dfe9ff]">{getUserInitials()}</span>
                 </span>
                 {!sidebarCollapsed && (
-                  <span className="truncate font-medium text-foreground">{userName || "Cliente"}</span>
+                  <span className="truncate text-lg font-semibold text-foreground">{userName || "Cliente"}</span>
                 )}
               </div>
               {!sidebarCollapsed && (
-                <button type="button" onClick={() => setSidebarCollapsed(true)} className="rounded-md p-2 text-muted-foreground transition hover:bg-background hover:text-foreground" title="Minimizar menú">
+                <button type="button" onClick={() => setSidebarCollapsed(true)} className="rounded-md p-2 text-muted-foreground transition hover:bg-white/5 hover:text-foreground" title="Minimizar menú">
                   <PanelLeftClose className="size-4" />
                 </button>
               )}
             </div>
 
             {sidebarCollapsed && (
-              <button type="button" onClick={() => setSidebarCollapsed(false)} className="mb-3 rounded-md p-2 text-muted-foreground transition hover:bg-background hover:text-foreground" title="Expandir menú">
+              <button type="button" onClick={() => setSidebarCollapsed(false)} className="mb-3 rounded-md p-2 text-muted-foreground transition hover:bg-white/5 hover:text-foreground" title="Expandir menú">
                 <PanelLeftOpen className="size-4" />
               </button>
             )}
 
-            <nav className="mt-3 w-full space-y-1">
+            <nav className="mt-2 w-full space-y-1">
               {accountNavItems.map(({ key, label, icon: Icon }) => {
                 const isActive = activeTab === key;
                 return (
@@ -577,11 +575,11 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     onClick={() => setActiveTab(key)}
                     title={sidebarCollapsed ? label : undefined}
                     className={
-                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all " +
+                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] font-medium transition-all " +
                       (sidebarCollapsed ? "justify-center px-2" : "") +
                       (isActive
-                        ? "bg-background text-foreground shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] ring-1 ring-border/60"
-                        : "text-muted-foreground hover:bg-background hover:text-foreground")
+                        ? "bg-[#1a2435] text-foreground shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
+                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground")
                     }
                   >
                     <Icon className="size-4 shrink-0" />
@@ -595,7 +593,7 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               <button
                 type="button"
                 onClick={() => setLogoutOpen(true)}
-                className={"flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 transition hover:bg-red-500/10 hover:text-red-600 " + (sidebarCollapsed ? "justify-center px-2" : "")}
+                className={"flex items-center gap-2 rounded-xl px-3 py-2.5 text-[15px] font-medium text-red-500 transition hover:bg-red-500/10 hover:text-red-600 " + (sidebarCollapsed ? "justify-center px-2" : "")}
                 title={sidebarCollapsed ? "Cerrar sesión" : undefined}
               >
                 <LogOut className="size-4" />
@@ -605,10 +603,10 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1 bg-background/40 p-4 md:p-6">
+        <main className="min-w-0 flex-1 bg-[#020b16] px-4 py-4 md:px-6 md:py-6">
           <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
             <div className="flex items-center gap-2">
-              <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
+              <span className="grid size-9 place-items-center rounded-xl bg-[#1b2d45] text-primary">
                 <User className="size-4" />
               </span>
               <span className="text-sm font-medium">Mi cuenta</span>
@@ -619,19 +617,21 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   key={key}
                   type="button"
                   onClick={() => setActiveTab(key)}
-                  className={"rounded-lg px-2.5 py-1.5 text-xs transition " + (activeTab === key ? "bg-background text-foreground" : "text-muted-foreground")}
+                  className={"rounded-lg px-2.5 py-1.5 text-xs transition " + (activeTab === key ? "bg-[#1a2435] text-foreground" : "text-muted-foreground")}
                 >
                   {label}
                 </button>
               ))}
             </div>
           </div>
-          {renderAccountContent()}
-        </div>
+
+          <div className="min-h-[calc(100vh-8rem)] rounded-2xl border border-border/60 bg-[#0d1a2a]/90 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+            {renderAccountContent()}
+          </div>
+        </main>
       </div>
 
       <ConfirmDialog open={logoutOpen} onOpenChange={setLogoutOpen} title="¿Cerrar sesión?" description="¿Estás seguro de que deseas cerrar sesión?" confirmLabel="Sí, cerrar sesión" cancelLabel="No" onConfirm={async () => { await kindeLogout(); if (typeof window !== "undefined") { window.sessionStorage.removeItem("lrg_auth_role"); } navigate({ to: "/login", replace: true }); }} />
-      <BrandFooter brand={webDesignConfig} section="account" />
     </div>
   );
 }
