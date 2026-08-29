@@ -53,12 +53,12 @@ export const Route = createFileRoute("/admin/panel")({
   },
   head: () => ({
     meta: [
-      { title: "LRG Store Shop - Administrador" },
+      { title: "Administrador" },
       {
         name: "description",
         content: "Métricas de ventas, pedidos y stock de los tres sectores del negocio.",
       },
-      { property: "og:title", content: "LRG Store Shop - Administrador" },
+      { property: "og:title", content: "Administrador" },
       { property: "og:description", content: "Panel administrativo del negocio LRG." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

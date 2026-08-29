@@ -188,10 +188,10 @@ function BrandFooterContent({
       ]
     : isAuthenticated
       ? [
-          ["Pedidos", "/cuenta#orders", ShoppingCart],
-          ["Perfil", "/cuenta#profile", User],
-          ["Direcciones", "/cuenta#addresses", MapPin],
-          ["Favoritos", "/cuenta#favorites", Heart],
+          ["Pedidos", "/cuenta/pedidos", ShoppingCart],
+          ["Perfil", "/cuenta/perfil", User],
+          ["Direcciones", "/cuenta/direcciones", MapPin],
+          ["Favoritos", "/cuenta/favoritos", Heart],
         ]
       : [];
   const renderLink = (label: string, to: string, Icon?: typeof LayoutDashboard) => (

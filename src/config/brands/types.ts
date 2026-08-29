@@ -1,10 +1,16 @@
 export type BrandSlug = "arcade" | "scents" | "web-design";
 
+export type BrandSubcategory = {
+  slug: string;
+  name: string;
+  children?: BrandSubcategory[];
+};
+
 export type BrandCategory = {
   slug: string;
   name: string;
   description: string;
-  subcategories?: { slug: string; name: string }[];
+  subcategories?: BrandSubcategory[];
 };
 
 export type BrandPaymentMethod = {

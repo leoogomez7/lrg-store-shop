@@ -29,6 +29,7 @@ import { webDesignConfig } from "@/config/brands/web-design.config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -80,12 +81,18 @@ type Address = {
   value: string;
 };
 
-function AccountPage() {
+export type AccountTab = "inicio" | "orders" | "profile" | "addresses" | "favorites";
+
+export function AccountPageSection({ initialTab = "inicio" }: { initialTab?: AccountTab }) {
   return (
     <KindeAuthGate fallback={<AccountAuthRedirect />}>
-      {(auth) => <AccountAuthGuard auth={auth} />}
+      {(auth) => <AccountAuthGuard auth={auth} initialTab={initialTab} />}
     </KindeAuthGate>
   );
+}
+
+function AccountPage() {
+  return <AccountPageSection />;
 }
 
 function AccountAuthRedirect() {
@@ -98,7 +105,13 @@ function AccountAuthRedirect() {
   return null;
 }
 
-function AccountAuthGuard({ auth }: { auth: ReturnType<typeof useKindeAuth> }) {
+function AccountAuthGuard({
+  auth,
+  initialTab,
+}: {
+  auth: ReturnType<typeof useKindeAuth>;
+  initialTab?: AccountTab;
+}) {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -118,10 +131,16 @@ function AccountAuthGuard({ auth }: { auth: ReturnType<typeof useKindeAuth> }) {
     return null;
   }
 
-  return <AccountPageContent auth={auth} />;
+  return <AccountPageContent auth={auth} initialTab={initialTab} />;
 }
 
-function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
+function AccountPageContent({
+  auth,
+  initialTab = "inicio",
+}: {
+  auth: ReturnType<typeof useKindeAuth> | null;
+  initialTab?: AccountTab;
+}) {
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const { data: products } = useSuspenseQuery(catalogQueries.all());
   const navigate = useNavigate();
@@ -153,14 +172,18 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [addressValue, setAddressValue] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState<"inicio" | "orders" | "profile" | "addresses" | "favorites">("inicio");
+  const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const accountNavItems = [
-    { key: "inicio", label: "Inicio", icon: House },
-    { key: "orders", label: "Pedidos", icon: ShoppingCart },
-    { key: "profile", label: "Perfil", icon: User },
-    { key: "addresses", label: "Direcciones", icon: MapPin },
-    { key: "favorites", label: "Favoritos", icon: Heart },
+    { key: "inicio", label: "Inicio", icon: House, route: "/cuenta" },
+    { key: "orders", label: "Pedidos", icon: ShoppingCart, route: "/cuenta/pedidos" },
+    { key: "profile", label: "Perfil", icon: User, route: "/cuenta/perfil" },
+    { key: "addresses", label: "Direcciones", icon: MapPin, route: "/cuenta/direcciones" },
+    { key: "favorites", label: "Favoritos", icon: Heart, route: "/cuenta/favoritos" },
   ] as const;
 
   useEffect(() => {
@@ -591,25 +614,24 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               </Button>
             )}
             <nav className="mt-3 w-full space-y-1">
-              {accountNavItems.map(({ key, label, icon: Icon }) => {
+              {accountNavItems.map(({ key, label, icon: Icon, route }) => {
                 const isActive = activeTab === key;
                 return (
-                  <button
+                  <Link
                     key={key}
-                    type="button"
-                    onClick={() => setActiveTab(key)}
+                    to={route}
                     title={sidebarCollapsed ? label : undefined}
                     className={cn(
                       "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
                       sidebarCollapsed && "justify-center px-2",
                       isActive
                         ? "bg-surface-2 text-foreground"
-                        : "text-muted-foreground hover:text-foreground",
+                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
                     )}
                   >
                     <Icon className="size-4 shrink-0" />
                     {!sidebarCollapsed && label}
-                  </button>
+                  </Link>
                 );
               })}
             </nav>
@@ -635,7 +657,7 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
         </aside>
 
         <main className="min-w-0 flex-1 px-4 py-4 md:px-6 md:py-6">
-          <div className="min-h-[calc(100vh-8rem)]">
+          <div className="min-h-[calc(100vh-8rem)] rounded-2xl border border-border/60 bg-[#0d1a2a]/90 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
             {renderAccountContent()}
           </div>
         </main>

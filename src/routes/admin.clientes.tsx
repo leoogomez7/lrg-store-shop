@@ -37,7 +37,7 @@ import { saveOrders, orders as ordersData, type OrderAttachment } from "@/data/o
 
 export const Route = createFileRoute("/admin/clientes")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
-  head: () => ({ meta: [{ title: "LRG Store Shop - Administrador" }] }),
+  head: () => ({ meta: [{ title: "Administrador" }] }),
   component: AdminClients,
 });
 

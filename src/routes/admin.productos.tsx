@@ -112,12 +112,12 @@ type AppliedProductActions = {
 export const Route = createFileRoute("/admin/productos")({
   head: () => ({
     meta: [
-      { title: "LRG Store Shop - Administrador" },
+      { title: "Administrador" },
       {
         name: "description",
         content: "Administrá el catálogo completo: precios, stock y categorías por sector.",
       },
-      { property: "og:title", content: "LRG Store Shop - Administrador" },
+      { property: "og:title", content: "Administrador" },
       { property: "og:description", content: "Gestión de catálogo del negocio LRG." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

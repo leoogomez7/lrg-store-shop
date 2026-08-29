@@ -29,6 +29,10 @@ import { Route as AdminPapeleraRouteImport } from './routes/admin.papelera'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminProductosRouteImport } from './routes/admin.productos'
 import { Route as AdminProveedoresRouteImport } from './routes/admin.proveedores'
+import { Route as CuentaDireccionesRouteImport } from './routes/cuenta.direcciones'
+import { Route as CuentaFavoritosRouteImport } from './routes/cuenta.favoritos'
+import { Route as CuentaPedidosRouteImport } from './routes/cuenta.pedidos'
+import { Route as CuentaPerfilRouteImport } from './routes/cuenta.perfil'
 import { Route as BrandProductoSlugRouteImport } from './routes/$brand.producto.$slug'
 import { Route as ApiMercadopagoWebhookRouteImport } from './routes/api.mercadopago.webhook'
 
@@ -132,6 +136,26 @@ const AdminProveedoresRoute = AdminProveedoresRouteImport.update({
   path: '/proveedores',
   getParentRoute: () => AdminRoute,
 } as any)
+const CuentaDireccionesRoute = CuentaDireccionesRouteImport.update({
+  id: '/direcciones',
+  path: '/direcciones',
+  getParentRoute: () => CuentaRoute,
+} as any)
+const CuentaFavoritosRoute = CuentaFavoritosRouteImport.update({
+  id: '/favoritos',
+  path: '/favoritos',
+  getParentRoute: () => CuentaRoute,
+} as any)
+const CuentaPedidosRoute = CuentaPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => CuentaRoute,
+} as any)
+const CuentaPerfilRoute = CuentaPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => CuentaRoute,
+} as any)
 const BrandProductoSlugRoute = BrandProductoSlugRouteImport.update({
   id: '/producto/$slug',
   path: '/producto/$slug',
@@ -149,7 +173,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/carrito': typeof CarritoRoute
   '/checkout': typeof CheckoutRoute
-  '/cuenta': typeof CuentaRoute
+  '/cuenta': typeof CuentaRouteWithChildren
   '/login': typeof LoginRoute
   '/productos': typeof ProductosRoute
   '/register': typeof RegisterRoute
@@ -163,6 +187,10 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/proveedores': typeof AdminProveedoresRoute
+  '/cuenta/direcciones': typeof CuentaDireccionesRoute
+  '/cuenta/favoritos': typeof CuentaFavoritosRoute
+  '/cuenta/pedidos': typeof CuentaPedidosRoute
+  '/cuenta/perfil': typeof CuentaPerfilRoute
   '/$brand/': typeof BrandIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
   '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
@@ -172,7 +200,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/carrito': typeof CarritoRoute
   '/checkout': typeof CheckoutRoute
-  '/cuenta': typeof CuentaRoute
+  '/cuenta': typeof CuentaRouteWithChildren
   '/login': typeof LoginRoute
   '/productos': typeof ProductosRoute
   '/register': typeof RegisterRoute
@@ -186,6 +214,10 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/proveedores': typeof AdminProveedoresRoute
+  '/cuenta/direcciones': typeof CuentaDireccionesRoute
+  '/cuenta/favoritos': typeof CuentaFavoritosRoute
+  '/cuenta/pedidos': typeof CuentaPedidosRoute
+  '/cuenta/perfil': typeof CuentaPerfilRoute
   '/$brand': typeof BrandIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
   '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
@@ -197,7 +229,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/carrito': typeof CarritoRoute
   '/checkout': typeof CheckoutRoute
-  '/cuenta': typeof CuentaRoute
+  '/cuenta': typeof CuentaRouteWithChildren
   '/login': typeof LoginRoute
   '/productos': typeof ProductosRoute
   '/register': typeof RegisterRoute
@@ -211,6 +243,10 @@ export interface FileRoutesById {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/proveedores': typeof AdminProveedoresRoute
+  '/cuenta/direcciones': typeof CuentaDireccionesRoute
+  '/cuenta/favoritos': typeof CuentaFavoritosRoute
+  '/cuenta/pedidos': typeof CuentaPedidosRoute
+  '/cuenta/perfil': typeof CuentaPerfilRoute
   '/$brand/': typeof BrandIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
   '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
@@ -237,6 +273,10 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/proveedores'
+    | '/cuenta/direcciones'
+    | '/cuenta/favoritos'
+    | '/cuenta/pedidos'
+    | '/cuenta/perfil'
     | '/$brand/'
     | '/$brand/producto/$slug'
     | '/api/mercadopago/webhook'
@@ -260,6 +300,10 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/proveedores'
+    | '/cuenta/direcciones'
+    | '/cuenta/favoritos'
+    | '/cuenta/pedidos'
+    | '/cuenta/perfil'
     | '/$brand'
     | '/$brand/producto/$slug'
     | '/api/mercadopago/webhook'
@@ -284,6 +328,10 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/proveedores'
+    | '/cuenta/direcciones'
+    | '/cuenta/favoritos'
+    | '/cuenta/pedidos'
+    | '/cuenta/perfil'
     | '/$brand/'
     | '/$brand/producto/$slug'
     | '/api/mercadopago/webhook'
@@ -295,7 +343,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   CarritoRoute: typeof CarritoRoute
   CheckoutRoute: typeof CheckoutRoute
-  CuentaRoute: typeof CuentaRoute
+  CuentaRoute: typeof CuentaRouteWithChildren
   LoginRoute: typeof LoginRoute
   ProductosRoute: typeof ProductosRoute
   RegisterRoute: typeof RegisterRoute
@@ -445,6 +493,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProveedoresRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/cuenta/direcciones': {
+      id: '/cuenta/direcciones'
+      path: '/direcciones'
+      fullPath: '/cuenta/direcciones'
+      preLoaderRoute: typeof CuentaDireccionesRouteImport
+      parentRoute: typeof CuentaRoute
+    }
+    '/cuenta/favoritos': {
+      id: '/cuenta/favoritos'
+      path: '/favoritos'
+      fullPath: '/cuenta/favoritos'
+      preLoaderRoute: typeof CuentaFavoritosRouteImport
+      parentRoute: typeof CuentaRoute
+    }
+    '/cuenta/pedidos': {
+      id: '/cuenta/pedidos'
+      path: '/pedidos'
+      fullPath: '/cuenta/pedidos'
+      preLoaderRoute: typeof CuentaPedidosRouteImport
+      parentRoute: typeof CuentaRoute
+    }
+    '/cuenta/perfil': {
+      id: '/cuenta/perfil'
+      path: '/perfil'
+      fullPath: '/cuenta/perfil'
+      preLoaderRoute: typeof CuentaPerfilRouteImport
+      parentRoute: typeof CuentaRoute
+    }
     '/$brand/producto/$slug': {
       id: '/$brand/producto/$slug'
       path: '/producto/$slug'
@@ -500,13 +576,30 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CuentaRouteChildren {
+  CuentaDireccionesRoute: typeof CuentaDireccionesRoute
+  CuentaFavoritosRoute: typeof CuentaFavoritosRoute
+  CuentaPedidosRoute: typeof CuentaPedidosRoute
+  CuentaPerfilRoute: typeof CuentaPerfilRoute
+}
+
+const CuentaRouteChildren: CuentaRouteChildren = {
+  CuentaDireccionesRoute: CuentaDireccionesRoute,
+  CuentaFavoritosRoute: CuentaFavoritosRoute,
+  CuentaPedidosRoute: CuentaPedidosRoute,
+  CuentaPerfilRoute: CuentaPerfilRoute,
+}
+
+const CuentaRouteWithChildren =
+  CuentaRoute._addFileChildren(CuentaRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrandRoute: BrandRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
   CarritoRoute: CarritoRoute,
   CheckoutRoute: CheckoutRoute,
-  CuentaRoute: CuentaRoute,
+  CuentaRoute: CuentaRouteWithChildren,
   LoginRoute: LoginRoute,
   ProductosRoute: ProductosRoute,
   RegisterRoute: RegisterRoute,

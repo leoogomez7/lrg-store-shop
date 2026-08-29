@@ -48,9 +48,9 @@ import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
 export const Route = createFileRoute("/admin/configuracion")({
   head: () => ({
     meta: [
-      { title: "LRG Store Shop - Administrador" },
+      { title: "Administrador" },
       { name: "description", content: "Ajustes generales del admin: categorías, envíos y más." },
-      { property: "og:title", content: "LRG Store Shop - Administrador" },
+      { property: "og:title", content: "Administrador" },
       {
         property: "og:description",
         content: "Administrá categorías, envíos y ajustes del negocio.",
@@ -435,6 +435,70 @@ function AdminConfiguration() {
     }
   };
 
+  type SubcategoryNode = {
+    slug: string;
+    name: string;
+    children?: SubcategoryNode[];
+  };
+
+  const appendSubcategoryToTree = (
+    items: SubcategoryNode[] = [],
+    parentSlug: string | null,
+    name: string,
+  ): SubcategoryNode[] => {
+    const cleanName = name.trim();
+    if (!cleanName) return items;
+
+    const node: SubcategoryNode = {
+      slug: `${parentSlug ?? "root"}-${cleanName}`
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, ""),
+      name: cleanName,
+      children: [],
+    };
+
+    if (!parentSlug) {
+      return [...items, node];
+    }
+
+    return items.map((item) => {
+      if (item.slug === parentSlug) {
+        return { ...item, children: [...(item.children ?? []), node] };
+      }
+      if (item.children?.length) {
+        return {
+          ...item,
+          children: appendSubcategoryToTree(item.children, parentSlug, cleanName),
+        };
+      }
+      return item;
+    });
+  };
+
+  const updateSubcategoryInTree = (
+    items: SubcategoryNode[] = [],
+    targetSlug: string,
+    nextName: string,
+  ): SubcategoryNode[] =>
+    items.map((item) => {
+      if (item.slug === targetSlug) {
+        return { ...item, name: nextName };
+      }
+      if (item.children?.length) {
+        return { ...item, children: updateSubcategoryInTree(item.children, targetSlug, nextName) };
+      }
+      return item;
+    });
+
+  const removeSubcategoryFromTree = (items: SubcategoryNode[] = [], targetSlug: string): SubcategoryNode[] =>
+    items
+      .filter((item) => item.slug !== targetSlug)
+      .map((item) => ({
+        ...item,
+        children: item.children ? removeSubcategoryFromTree(item.children, targetSlug) : [],
+      }));
+
   const addCategory = () => {
     const trimmed = newCategory.trim();
     if (!trimmed) return;
@@ -461,38 +525,37 @@ function AdminConfiguration() {
     persistCategories(next);
   };
 
-  const addSubcategory = (categoryId: string) => {
+  const addSubcategory = (categoryId: string, parentSlug: string | null = null) => {
     const name = newSubcategoryName.trim();
     if (!name) return;
-    const subcategory = {
-      slug: `${categoryId}-${name}`
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, ""),
-      name,
-    };
-    persistCategories(
-      categories.map((category) =>
-        category.id === categoryId
-          ? { ...category, subcategories: [...(category.subcategories ?? []), subcategory] }
-          : category,
-      ),
-    );
+
+    const next = categories.map((category) => {
+      if (category.id !== categoryId) return category;
+      const nextChildren = appendSubcategoryToTree(
+        (category.subcategories ?? []) as SubcategoryNode[],
+        parentSlug,
+        name,
+      );
+      return { ...category, subcategories: nextChildren };
+    });
+
+    persistCategories(next);
     setNewSubcategoryName("");
+    setEditingSubcategoryKey(null);
   };
 
   const removeSubcategory = (categoryId: string, subcategorySlug: string) => {
     persistCategories(
-      categories.map((category) =>
-        category.id === categoryId
-          ? {
-              ...category,
-              subcategories: (category.subcategories ?? []).filter(
-                (item) => item.slug !== subcategorySlug,
-              ),
-            }
-          : category,
-      ),
+      categories.map((category) => {
+        if (category.id !== categoryId) return category;
+        return {
+          ...category,
+          subcategories: removeSubcategoryFromTree(
+            (category.subcategories ?? []) as SubcategoryNode[],
+            subcategorySlug,
+          ),
+        };
+      }),
     );
   };
 
@@ -500,16 +563,17 @@ function AdminConfiguration() {
     const name = editingSubcategoryName.trim();
     if (!name) return;
     persistCategories(
-      categories.map((category) =>
-        category.id === categoryId
-          ? {
-              ...category,
-              subcategories: (category.subcategories ?? []).map((item) =>
-                item.slug === subcategorySlug ? { ...item, name } : item,
-              ),
-            }
-          : category,
-      ),
+      categories.map((category) => {
+        if (category.id !== categoryId) return category;
+        return {
+          ...category,
+          subcategories: updateSubcategoryInTree(
+            (category.subcategories ?? []) as SubcategoryNode[],
+            subcategorySlug,
+            name,
+          ),
+        };
+      }),
     );
     setEditingSubcategoryKey(null);
     setEditingSubcategoryName("");
@@ -553,6 +617,95 @@ function AdminConfiguration() {
   const subcategoryDialogCategory = categories.find(
     (category) => category.id === subcategoryDialogCategoryId,
   );
+
+  const renderSubcategoryNode = (
+    node: SubcategoryNode,
+    categoryId: string,
+    depth = 0,
+  ): JSX.Element => {
+    const currentKey = `${categoryId}|${node.slug}`;
+    const isEditing = editingSubcategoryKey === currentKey;
+
+    return (
+      <div key={node.slug} className="space-y-2">
+        <div
+          className="flex items-center gap-2 rounded-xl border border-input p-3"
+          style={{ marginLeft: depth * 14 }}
+        >
+          {isEditing ? (
+            <>
+              <Input
+                value={editingSubcategoryName}
+                onChange={(event) => setEditingSubcategoryName(event.target.value)}
+                className="h-8 min-w-0 flex-1 text-sm"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={!editingSubcategoryName.trim()}
+                onClick={() => saveSubcategory(categoryId, node.slug)}
+                className="h-8 gap-1 px-2 text-sm text-green-600 hover:bg-green-100/80 hover:text-green-700"
+              >
+                <Check className="size-4" /> Guardar
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setEditingSubcategoryKey(null);
+                  setEditingSubcategoryName("");
+                }}
+                className="h-8 gap-1 px-2 text-sm text-destructive hover:bg-destructive/10"
+              >
+                <X className="size-4" /> Cancelar
+              </Button>
+            </>
+          ) : (
+            <>
+              <span className="min-w-0 flex-1 text-sm font-medium">{node.name}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setEditingSubcategoryKey(currentKey);
+                  setEditingSubcategoryName(node.name);
+                }}
+                className="h-8 gap-1 px-2 text-sm"
+              >
+                <Pencil className="size-4" /> Editar
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => addSubcategory(categoryId, node.slug)}
+                className="h-8 gap-1 px-2 text-sm"
+              >
+                <Plus className="size-4" /> Subcat.
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => removeSubcategory(categoryId, node.slug)}
+                className="h-8 gap-1 px-2 text-sm text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="size-4" /> Eliminar
+              </Button>
+            </>
+          )}
+        </div>
+        {node.children?.length ? (
+          <div className="space-y-2">
+            {node.children.map((child) => renderSubcategoryNode(child, categoryId, depth + 1))}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   useEffect(() => {
     return () => {
@@ -818,81 +971,9 @@ function AdminConfiguration() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2">
-              {subcategoryDialogCategory?.subcategories?.map((subcategory) => {
-                const editing =
-                  editingSubcategoryKey === `${subcategoryDialogCategory.id}|${subcategory.slug}`;
-                return (
-                  <div
-                    key={subcategory.slug}
-                    className="flex items-center gap-2 rounded-xl border border-input p-3"
-                  >
-                    {editing ? (
-                      <>
-                        <Input
-                          value={editingSubcategoryName}
-                          onChange={(event) => setEditingSubcategoryName(event.target.value)}
-                          className="h-8 min-w-0 flex-1 text-sm"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          disabled={!editingSubcategoryName.trim()}
-                          onClick={() =>
-                            saveSubcategory(subcategoryDialogCategory.id, subcategory.slug)
-                          }
-                          className="h-8 gap-1 px-2 text-sm text-green-600 hover:bg-green-100/80 hover:text-green-700"
-                        >
-                          <Check className="size-4" /> Guardar
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingSubcategoryKey(null);
-                            setEditingSubcategoryName("");
-                          }}
-                          className="h-8 gap-1 px-2 text-sm text-destructive hover:bg-destructive/10"
-                        >
-                          <X className="size-4" /> Cancelar
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="min-w-0 flex-1 text-sm font-medium">
-                          {subcategory.name}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingSubcategoryKey(
-                              `${subcategoryDialogCategory.id}|${subcategory.slug}`,
-                            );
-                            setEditingSubcategoryName(subcategory.name);
-                          }}
-                          className="h-8 gap-1 px-2 text-sm"
-                        >
-                          <Pencil className="size-4" /> Editar
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            removeSubcategory(subcategoryDialogCategory.id, subcategory.slug)
-                          }
-                          className="h-8 gap-1 px-2 text-sm text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="size-4" /> Eliminar
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+              {subcategoryDialogCategory?.subcategories?.map((subcategory) =>
+                renderSubcategoryNode(subcategory as SubcategoryNode, subcategoryDialogCategory.id),
+              )}
               {!subcategoryDialogCategory?.subcategories?.length && (
                 <p className="py-3 text-center text-sm text-muted-foreground">
                   Todavía no hay subcategorías.
@@ -908,7 +989,7 @@ function AdminConfiguration() {
                 <Button
                   type="button"
                   onClick={() =>
-                    subcategoryDialogCategoryId && addSubcategory(subcategoryDialogCategoryId)
+                    subcategoryDialogCategoryId && addSubcategory(subcategoryDialogCategoryId, null)
                   }
                   disabled={!newSubcategoryName.trim()}
                   className="h-9 shrink-0 gap-2"

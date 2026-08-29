@@ -30,12 +30,12 @@ export const Route = createFileRoute("/admin/marcas")({
   loader: ({ context }) => context.queryClient.ensureQueryData(catalogQueries.all()),
   head: () => ({
     meta: [
-      { title: "LRG Store Shop - Administrador" },
+      { title: "Administrador" },
       {
         name: "description",
         content: "Configuración de los tres sectores: identidad, categorías, contacto y pagos.",
       },
-      { property: "og:title", content: "LRG Store Shop - Administrador" },
+      { property: "og:title", content: "Administrador" },
       { property: "og:description", content: "Configuración de sectores del negocio LRG." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
