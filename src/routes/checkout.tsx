@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, CircleArrowLeft, CreditCard, Lock, Tag, Truck } from "lucide-react";
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { useCart } from "@/store/cart";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
@@ -19,6 +20,7 @@ import {
   type PaymentIntentData,
 } from "@/server/mercadopago";
 import { formatPrice } from "@/lib/format";
+import { getUserProfile, getUserAddresses } from "@/lib/user";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -39,6 +41,7 @@ export const Route = createFileRoute("/checkout")({
 function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
   const queryClient = useQueryClient();
+  const { user, isAuthenticated, isLoading: kindeLoading } = useKindeAuth();
   const [step, setStep] = useState("form");
   const [orderId, setOrderId] = useState("");
 
@@ -95,6 +98,8 @@ function CheckoutPage() {
   const [couponMessage, setCouponMessage] = useState("");
   const [validationMessage, setValidationMessage] = useState("");
   const validationRef = useRef<HTMLDivElement | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<Array<{ id?: string; label: string; value: string; city?: string }>>([]);
+  const [selectedSavedAddress, setSelectedSavedAddress] = useState("");
 
   useEffect(() => {
     if (validationMessage && validationRef.current) {
@@ -122,6 +127,26 @@ function CheckoutPage() {
     };
     checkPayment();
   }, []);
+
+  // Cargar datos del usuario si está logueado
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id || kindeLoading) return;
+
+    void getUserProfile({ data: { userId: user.id } }).then((profile) => {
+      if (profile) {
+        setCustomerName(user.givenName || "");
+        setEmail(user.email || "");
+        setPhone(profile.phone || "");
+        setCity(profile.city || "");
+        // address no se carga automáticamente, solo si selecciona una dirección guardada
+      }
+    });
+
+    // Cargar direcciones guardadas
+    void getUserAddresses({ data: { userId: user.id } }).then((addresses) => {
+      setSavedAddresses(addresses);
+    });
+  }, [isAuthenticated, user?.id, kindeLoading]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -307,6 +332,32 @@ function CheckoutPage() {
                     onChange={(e) => setCity(e.target.value)}
                   />
                 </div>
+                {isAuthenticated && savedAddresses.length > 0 && (
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Direcciones guardadas</Label>
+                    <div className="space-y-2">
+                      {savedAddresses.map((addr) => (
+                        <button
+                          key={addr.id}
+                          type="button"
+                          className={`w-full text-left rounded-lg border p-3 transition-colors ${
+                            selectedSavedAddress === addr.id
+                              ? "border-primary bg-primary/10"
+                              : "border-input hover:border-primary/50"
+                          }`}
+                          onClick={() => {
+                            setSelectedSavedAddress(addr.id || "");
+                            setAddress(addr.value);
+                            if (addr.city) setCity(addr.city);
+                          }}
+                        >
+                          <div className="font-medium">{addr.label}</div>
+                          <div className="text-sm text-muted-foreground">{addr.value}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="address">Dirección</Label>
                   <Input
@@ -314,7 +365,10 @@ function CheckoutPage() {
                     required
                     placeholder="Av. Siempre Viva 742"
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    onChange={(e) => {
+                      setAddress(e.target.value);
+                      setSelectedSavedAddress(""); // Deseleccionar dirección guardada al editar
+                    }}
                   />
                 </div>
                 <div className="space-y-2 sm:col-span-2">

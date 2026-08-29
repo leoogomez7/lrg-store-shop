@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Download,
@@ -11,6 +12,7 @@ import {
   Pencil,
   Paperclip,
   Plus,
+  ShoppingCart,
   Trash2,
   User,
 } from "lucide-react";
@@ -43,7 +45,7 @@ import {
 } from "@/components/ui/table";
 import { brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
-import { saveKindeUserToTurso } from "@/lib/user";
+import { saveKindeUserToTurso, getUserProfile, updateUserProfile, getUserAddresses, saveUserAddress, deleteUserAddress } from "@/lib/user";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 import type { Order } from "@/data/orders";
 import { hydrateFavorites } from "@/lib/favorites";
@@ -69,6 +71,7 @@ export const Route = createFileRoute("/cuenta")({
 });
 
 type Address = {
+  id?: string;
   label: string;
   value: string;
 };
@@ -128,21 +131,23 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     logout: async () => undefined,
   };
   const [userName, setUserName] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [userPhone, setUserPhone] = useState<string>("");
+  const [userDocument, setUserDocument] = useState<string>("");
+  const [userCity, setUserCity] = useState<string>("");
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [attachmentsOrder, setAttachmentsOrder] = useState<Order | null>(null);
   const visibleOrders = userName ? orders.filter((order) => order.customer === userName) : [];
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const favoriteProducts = products.filter((product) => favoriteIds.includes(product.id));
-  const [addresses, setAddresses] = useState<Address[]>([
-    { label: "Casa", value: "Av. Siempre Viva 742, Buenos Aires" },
-    { label: "Oficina", value: "Corrientes 1234, Piso 8, CABA" },
-  ]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addressLabel, setAddressLabel] = useState("");
   const [addressValue, setAddressValue] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
     const kindeName = user ? user.givenName || user.email || null : null;
@@ -151,16 +156,42 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
       setUserName(kindeName);
       saveKindeUserToTurso({
         id: user.id,
-        email: user.email,
-        givenName: user.givenName,
-        familyName: user.familyName,
+        email: user.email || null,
+        givenName: user.givenName || null,
+        familyName: user.familyName || null,
       });
-    } else setUserName(null);
+
+      // Cargar perfil desde BD
+      getUserProfile({ data: { userId: user.id } }).then((profile) => {
+        if (profile) {
+          setUserEmail(profile.email ?? user.email ?? "");
+          setUserPhone(profile.phone ?? "");
+          setUserDocument(profile.document ?? "");
+          setUserCity(profile.city ?? "");
+        } else {
+          setUserEmail(user.email ?? "");
+        }
+      });
+    } else {
+      setUserName(null);
+      setUserEmail("");
+    }
   }, [user, isAuthenticated]);
 
   useEffect(() => {
     if (!user?.id) return;
     void hydrateFavorites(user.id).then(setFavoriteIds);
+
+    // Cargar direcciones guardadas desde la BD
+    void getUserAddresses({ data: { userId: user.id } }).then((addresses) => {
+      setAddresses(
+        addresses.map((addr) => ({
+          ...(addr.id !== undefined ? { id: addr.id } : {}),
+          label: addr.label,
+          value: addr.value,
+        })) as Address[]
+      );
+    });
   }, [user?.id]);
 
   return (
@@ -182,17 +213,29 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             </span>
             <h1 className="text-3xl font-semibold">Hola{userName ? `, ${userName}` : ""}</h1>
           </div>
-          <TabsList>
-            <TabsTrigger value="orders">Pedidos</TabsTrigger>
-            <TabsTrigger value="profile">Perfil</TabsTrigger>
-            <TabsTrigger value="addresses">Direcciones</TabsTrigger>
-            <TabsTrigger value="favorites">Favoritos</TabsTrigger>
+          <TabsList className="border border-border/70 bg-card/50 p-1 shadow-inner shadow-black/10 backdrop-blur-sm">
+            <TabsTrigger value="orders" className="gap-2 px-4 py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+              <span aria-hidden="true">🛒</span>
+              <span>Pedidos</span>
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="gap-2 px-4 py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+              <span aria-hidden="true">👤</span>
+              <span>Perfil</span>
+            </TabsTrigger>
+            <TabsTrigger value="addresses" className="gap-2 px-4 py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+              <span aria-hidden="true">📍</span>
+              <span>Direcciones</span>
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="gap-2 px-4 py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+              <span aria-hidden="true">❤️</span>
+              <span>Favoritos</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="orders" className="pt-6">
-          <div className="glass-panel overflow-visible rounded-2xl">
-            <Table containerClassName="overflow-visible">
+          <div className="glass-panel overflow-hidden rounded-2xl border border-border/60 bg-card/40 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+            <Table containerClassName="overflow-hidden">
               <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
                   <TableHead>Pedido</TableHead>
@@ -299,24 +342,84 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             <div className="glass-panel grid max-w-xl gap-4 rounded-2xl p-6 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="account-name">Nombre</Label>
-                <Input id="account-name" defaultValue={userName} />
+                <Input id="account-name" value={userName} disabled className="opacity-50" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="account-email">Email</Label>
                 <Input
                   id="account-email"
-                  defaultValue={`${userName.toLowerCase().replace(/\s+/g, ".")}@lrgstore.shop`}
+                  type="email"
+                  value={userEmail}
+                  disabled
+                  className="opacity-50"
                 />
+                <p className="text-xs text-muted-foreground">Este email es el de acceso y no se puede modificar desde aquí.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="account-phone">Teléfono</Label>
-                <Input id="account-phone" defaultValue="+54 11 4444 4444" />
+                <Input
+                  id="account-phone"
+                  value={userPhone}
+                  onChange={(e) => setUserPhone(e.target.value)}
+                  placeholder="Ingresá tu teléfono"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="account-city">Ciudad</Label>
+                <Input
+                  id="account-city"
+                  value={userCity}
+                  onChange={(e) => setUserCity(e.target.value)}
+                  placeholder="Ingresá tu ciudad"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="account-doc">Documento</Label>
-                <Input id="account-doc" defaultValue="35.123.456" />
+                <Input
+                  id="account-doc"
+                  value={userDocument}
+                  onChange={(e) => setUserDocument(e.target.value)}
+                  placeholder="Ingresá tu documento"
+                />
               </div>
-              <Button className="sm:col-span-2 sm:w-fit">Guardar cambios</Button>
+              <Button
+                className="sm:col-span-2 sm:w-fit"
+                disabled={isSavingProfile}
+                onClick={async () => {
+                  setIsSavingProfile(true);
+                  try {
+                    const nextEmail = userEmail.trim();
+                    const success = await updateUserProfile({
+                      data: {
+                        userId: user?.id || "",
+                        email: nextEmail,
+                        phone: userPhone,
+                        document: userDocument,
+                        city: userCity,
+                      },
+                    });
+
+                    if (success) {
+                      await saveKindeUserToTurso({
+                        id: user?.id || "",
+                        email: nextEmail || user?.email || null,
+                        givenName: user?.givenName || null,
+                        familyName: user?.familyName || null,
+                      });
+                      toast.success("Perfil actualizado correctamente");
+                    } else {
+                      toast.error("Error al actualizar el perfil");
+                    }
+                  } catch (error) {
+                    console.error("Error al guardar:", error);
+                    toast.error("Error al guardar los cambios");
+                  } finally {
+                    setIsSavingProfile(false);
+                  }
+                }}
+              >
+                {isSavingProfile ? "Guardando..." : "Guardar cambios"}
+              </Button>
             </div>
           ) : (
             <div className="glass-panel rounded-2xl p-10 text-center text-base text-muted-foreground">
@@ -375,15 +478,29 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         if (!addressLabel.trim() || !addressValue.trim()) return;
-                        setAddresses((current) => [
-                          ...current,
-                          { label: addressLabel.trim(), value: addressValue.trim() },
-                        ]);
-                        setAddressLabel("");
-                        setAddressValue("");
-                        setShowAddForm(false);
+                        // Guardar en BD
+                        const result = await saveUserAddress({
+                          data: {
+                            userId: user?.id || "",
+                            label: addressLabel.trim(),
+                            value: addressValue.trim(),
+                            city: userCity,
+                          },
+                        });
+                        if (result) {
+                          setAddresses((current) => [
+                            ...current,
+                            { label: addressLabel.trim(), value: addressValue.trim() },
+                          ]);
+                          setAddressLabel("");
+                          setAddressValue("");
+                          setShowAddForm(false);
+                          toast.success("Dirección guardada correctamente");
+                        } else {
+                          toast.error("Error al guardar la dirección");
+                        }
                       }}
                     >
                       Guardar dirección
@@ -504,8 +621,13 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 description="Esta acción eliminará la dirección seleccionada."
                 confirmLabel="Borrar"
                 cancelLabel="Cancelar"
-                onConfirm={() => {
+                onConfirm={async () => {
                   if (deleteIndex === null) return;
+                  const addressToDelete = addresses[deleteIndex];
+                  // Eliminar de la BD si tiene ID
+                  if (addressToDelete?.id) {
+                    await deleteUserAddress({ data: { addressId: addressToDelete.id } });
+                  }
                   setAddresses((current) =>
                     current.filter((_, itemIndex) => itemIndex !== deleteIndex),
                   );
