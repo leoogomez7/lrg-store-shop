@@ -206,35 +206,35 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
         defaultValue="orders"
         className="relative mx-auto w-full max-w-6xl px-4 pb-12 pt-20 sm:px-6"
       >
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-6 rounded-3xl border border-border/60 bg-surface/90 p-4 shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
           <div className="flex items-center gap-4">
-            <span className="gradient-brand grid size-14 place-items-center rounded-2xl">
-              <User className="size-6 text-primary-foreground" />
+            <span className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <User className="size-6" />
             </span>
-            <h1 className="text-3xl font-semibold">Hola{userName ? `, ${userName}` : ""}</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">Hola{userName ? `, ${userName}` : ""}</h1>
           </div>
-          <TabsList className="border border-border/70 bg-card/50 p-1 shadow-inner shadow-black/10 backdrop-blur-sm">
-            <TabsTrigger value="orders" className="gap-2 px-4 py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+          <TabsList className="border border-border/70 bg-background/50 p-1 shadow-inner shadow-black/10 backdrop-blur-sm">
+            <TabsTrigger value="orders" className="gap-2 px-4 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-foreground">
               <span aria-hidden="true">🛒</span>
               <span>Pedidos</span>
             </TabsTrigger>
-            <TabsTrigger value="profile" className="gap-2 px-4 py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+            <TabsTrigger value="profile" className="gap-2 px-4 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-foreground">
               <span aria-hidden="true">👤</span>
               <span>Perfil</span>
             </TabsTrigger>
-            <TabsTrigger value="addresses" className="gap-2 px-4 py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+            <TabsTrigger value="addresses" className="gap-2 px-4 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-foreground">
               <span aria-hidden="true">📍</span>
               <span>Direcciones</span>
             </TabsTrigger>
-            <TabsTrigger value="favorites" className="gap-2 px-4 py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+            <TabsTrigger value="favorites" className="gap-2 px-4 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-foreground">
               <span aria-hidden="true">❤️</span>
               <span>Favoritos</span>
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="orders" className="pt-6">
-          <div className="glass-panel overflow-hidden rounded-2xl border border-border/60 bg-card/40 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+        <TabsContent value="orders" className="pt-2">
+          <div className="overflow-hidden rounded-3xl border border-border/60 bg-surface/90 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
             <Table containerClassName="overflow-hidden">
               <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
@@ -337,306 +337,317 @@ function AccountPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           </Dialog>
         </TabsContent>
 
-        <TabsContent value="profile" className="pt-6">
+        <TabsContent value="profile" className="pt-2">
           {userName ? (
-            <div className="glass-panel grid max-w-xl gap-4 rounded-2xl p-6 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="account-name">Nombre</Label>
-                <Input id="account-name" value={userName} disabled className="opacity-50" />
+            <div className="rounded-3xl border border-border/60 bg-surface/90 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary">
+                  <User className="size-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold">Perfil</h2>
+                  <p className="text-sm text-muted-foreground">Actualizá tus datos personales.</p>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="account-email">Email</Label>
-                <Input
-                  id="account-email"
-                  type="email"
-                  value={userEmail}
-                  disabled
-                  className="opacity-50"
-                />
-                <p className="text-xs text-muted-foreground">Este email es el de acceso y no se puede modificar desde aquí.</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="account-phone">Teléfono</Label>
-                <Input
-                  id="account-phone"
-                  value={userPhone}
-                  onChange={(e) => setUserPhone(e.target.value)}
-                  placeholder="Ingresá tu teléfono"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="account-city">Ciudad</Label>
-                <Input
-                  id="account-city"
-                  value={userCity}
-                  onChange={(e) => setUserCity(e.target.value)}
-                  placeholder="Ingresá tu ciudad"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="account-doc">Documento</Label>
-                <Input
-                  id="account-doc"
-                  value={userDocument}
-                  onChange={(e) => setUserDocument(e.target.value)}
-                  placeholder="Ingresá tu documento"
-                />
-              </div>
-              <Button
-                className="sm:col-span-2 sm:w-fit"
-                disabled={isSavingProfile}
-                onClick={async () => {
-                  setIsSavingProfile(true);
-                  try {
-                    const nextEmail = userEmail.trim();
-                    const success = await updateUserProfile({
-                      data: {
-                        userId: user?.id || "",
-                        email: nextEmail,
-                        phone: userPhone,
-                        document: userDocument,
-                        city: userCity,
-                      },
-                    });
-
-                    if (success) {
-                      await saveKindeUserToTurso({
-                        id: user?.id || "",
-                        email: nextEmail || user?.email || null,
-                        givenName: user?.givenName || null,
-                        familyName: user?.familyName || null,
+              <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="account-name">Nombre</Label>
+                  <Input id="account-name" value={userName} disabled className="opacity-50" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="account-email">Email</Label>
+                  <Input
+                    id="account-email"
+                    type="email"
+                    value={userEmail}
+                    disabled
+                    className="opacity-50"
+                  />
+                  <p className="text-xs text-muted-foreground">Este email es el de acceso y no se puede modificar desde aquí.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="account-phone">Teléfono</Label>
+                  <Input
+                    id="account-phone"
+                    value={userPhone}
+                    onChange={(e) => setUserPhone(e.target.value)}
+                    placeholder="Ingresá tu teléfono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="account-city">Ciudad</Label>
+                  <Input
+                    id="account-city"
+                    value={userCity}
+                    onChange={(e) => setUserCity(e.target.value)}
+                    placeholder="Ingresá tu ciudad"
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="account-doc">Documento</Label>
+                  <Input
+                    id="account-doc"
+                    value={userDocument}
+                    onChange={(e) => setUserDocument(e.target.value)}
+                    placeholder="Ingresá tu documento"
+                  />
+                </div>
+                <Button
+                  className="sm:col-span-2 sm:w-fit"
+                  disabled={isSavingProfile}
+                  onClick={async () => {
+                    setIsSavingProfile(true);
+                    try {
+                      const nextEmail = userEmail.trim();
+                      const success = await updateUserProfile({
+                        data: {
+                          userId: user?.id || "",
+                          email: nextEmail,
+                          phone: userPhone,
+                          document: userDocument,
+                          city: userCity,
+                        },
                       });
-                      toast.success("Perfil actualizado correctamente");
-                    } else {
-                      toast.error("Error al actualizar el perfil");
+
+                      if (success) {
+                        await saveKindeUserToTurso({
+                          id: user?.id || "",
+                          email: nextEmail || user?.email || null,
+                          givenName: user?.givenName || null,
+                          familyName: user?.familyName || null,
+                        });
+                        toast.success("Perfil actualizado correctamente");
+                      } else {
+                        toast.error("Error al actualizar el perfil");
+                      }
+                    } catch (error) {
+                      console.error("Error al guardar:", error);
+                      toast.error("Error al guardar los cambios");
+                    } finally {
+                      setIsSavingProfile(false);
                     }
-                  } catch (error) {
-                    console.error("Error al guardar:", error);
-                    toast.error("Error al guardar los cambios");
-                  } finally {
-                    setIsSavingProfile(false);
-                  }
-                }}
-              >
-                {isSavingProfile ? "Guardando..." : "Guardar cambios"}
-              </Button>
+                  }}
+                >
+                  {isSavingProfile ? "Guardando..." : "Guardar cambios"}
+                </Button>
+              </div>
             </div>
           ) : (
-            <div className="glass-panel rounded-2xl p-10 text-center text-base text-muted-foreground">
+            <div className="rounded-3xl border border-border/60 bg-surface/90 p-10 text-center text-base text-muted-foreground shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
               Inicia sesión para ver y editar tu perfil.
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="addresses" className="pt-6">
+        <TabsContent value="addresses" className="pt-2">
           {userName ? (
             <>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">Direcciones</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Agregá, editá o borrá tus direcciones de envío.
-                  </p>
-                </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => {
-                    setShowAddForm((current) => !current);
-                    setEditingIndex(null);
-                    setAddressLabel("");
-                    setAddressValue("");
-                  }}
-                >
-                  <Plus className="size-4" /> Nueva dirección
-                </Button>
-              </div>
-
-              {showAddForm && (
-                <div className="glass-panel rounded-2xl p-6">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="new-address-label">Etiqueta</Label>
-                      <Input
-                        id="new-address-label"
-                        value={addressLabel}
-                        onChange={(event) => setAddressLabel(event.target.value)}
-                        placeholder="Casa, Oficina, etc."
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="new-address-value">Dirección</Label>
-                      <Input
-                        id="new-address-value"
-                        value={addressValue}
-                        onChange={(event) => setAddressValue(event.target.value)}
-                        placeholder="Calle, número, ciudad, país"
-                      />
-                    </div>
+              <div className="rounded-3xl border border-border/60 bg-surface/90 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+                <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold">Direcciones</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Agregá, editá o borrá tus direcciones de envío.
+                    </p>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        if (!addressLabel.trim() || !addressValue.trim()) return;
-                        // Guardar en BD
-                        const result = await saveUserAddress({
-                          data: {
-                            userId: user?.id || "",
-                            label: addressLabel.trim(),
-                            value: addressValue.trim(),
-                            city: userCity,
-                          },
-                        });
-                        if (result) {
-                          setAddresses((current) => [
-                            ...current,
-                            { label: addressLabel.trim(), value: addressValue.trim() },
-                          ]);
-                          setAddressLabel("");
-                          setAddressValue("");
-                          setShowAddForm(false);
-                          toast.success("Dirección guardada correctamente");
-                        } else {
-                          toast.error("Error al guardar la dirección");
-                        }
-                      }}
-                    >
-                      Guardar dirección
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setShowAddForm(false);
-                        setAddressLabel("");
-                        setAddressValue("");
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      setShowAddForm((current) => !current);
+                      setEditingIndex(null);
+                      setAddressLabel("");
+                      setAddressValue("");
+                    }}
+                  >
+                    <Plus className="size-4" /> Nueva dirección
+                  </Button>
                 </div>
-              )}
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                {addresses.map((address, index) => (
-                  <div key={`${address.label}-${index}`} className="glass-panel rounded-2xl p-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h2 className="font-display flex items-center gap-2 font-semibold">
-                          <MapPin className="size-4 text-primary" /> {address.label}
-                        </h2>
-                        {editingIndex === index ? (
-                          <div className="mt-4 grid gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor={`edit-address-label-${index}`}>Etiqueta</Label>
-                              <Input
-                                id={`edit-address-label-${index}`}
-                                value={addressLabel}
-                                onChange={(event) => setAddressLabel(event.target.value)}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor={`edit-address-value-${index}`}>Dirección</Label>
-                              <Input
-                                id={`edit-address-value-${index}`}
-                                value={addressValue}
-                                onChange={(event) => setAddressValue(event.target.value)}
-                              />
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  if (!addressLabel.trim() || !addressValue.trim()) return;
-                                  setAddresses((current) =>
-                                    current.map((item, itemIndex) =>
-                                      itemIndex === index
-                                        ? { label: addressLabel.trim(), value: addressValue.trim() }
-                                        : item,
-                                    ),
-                                  );
-                                  setEditingIndex(null);
-                                  setAddressLabel("");
-                                  setAddressValue("");
-                                }}
-                              >
-                                Guardar
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingIndex(null);
-                                  setAddressLabel("");
-                                  setAddressValue("");
-                                }}
-                              >
-                                Cancelar
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="mt-2 text-sm text-muted-foreground">{address.value}</p>
-                            <div className="mt-4 flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-2"
-                                onClick={() => {
-                                  setEditingIndex(index);
-                                  setAddressLabel(address.label);
-                                  setAddressValue(address.value);
-                                  setShowAddForm(false);
-                                }}
-                              >
-                                <Pencil className="size-4" /> Editar
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="gap-2"
-                                onClick={() => {
-                                  setDeleteIndex(index);
-                                  setDeleteOpen(true);
-                                }}
-                              >
-                                <Trash2 className="size-4" /> Borrar
-                              </Button>
-                            </div>
-                          </>
-                        )}
+                {showAddForm && (
+                  <div className="mb-6 rounded-2xl border border-border/60 bg-background/40 p-6">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="new-address-label">Etiqueta</Label>
+                        <Input
+                          id="new-address-label"
+                          value={addressLabel}
+                          onChange={(event) => setAddressLabel(event.target.value)}
+                          placeholder="Casa, Oficina, etc."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new-address-value">Dirección</Label>
+                        <Input
+                          id="new-address-value"
+                          value={addressValue}
+                          onChange={(event) => setAddressValue(event.target.value)}
+                          placeholder="Calle, número, ciudad, país"
+                        />
                       </div>
                     </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          if (!addressLabel.trim() || !addressValue.trim()) return;
+                          const result = await saveUserAddress({
+                            data: {
+                              userId: user?.id || "",
+                              label: addressLabel.trim(),
+                              value: addressValue.trim(),
+                              city: userCity,
+                            },
+                          });
+                          if (result) {
+                            setAddresses((current) => [
+                              ...current,
+                              { label: addressLabel.trim(), value: addressValue.trim() },
+                            ]);
+                            setAddressLabel("");
+                            setAddressValue("");
+                            setShowAddForm(false);
+                            toast.success("Dirección guardada correctamente");
+                          } else {
+                            toast.error("Error al guardar la dirección");
+                          }
+                        }}
+                      >
+                        Guardar dirección
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddForm(false);
+                          setAddressLabel("");
+                          setAddressValue("");
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
                   </div>
-                ))}
+                )}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {addresses.map((address, index) => (
+                    <div key={`${address.label}-${index}`} className="rounded-2xl border border-border/60 bg-background/40 p-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="w-full">
+                          <h2 className="flex items-center gap-2 text-base font-semibold">
+                            <MapPin className="size-4 text-primary" /> {address.label}
+                          </h2>
+                          {editingIndex === index ? (
+                            <div className="mt-4 grid gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor={`edit-address-label-${index}`}>Etiqueta</Label>
+                                <Input
+                                  id={`edit-address-label-${index}`}
+                                  value={addressLabel}
+                                  onChange={(event) => setAddressLabel(event.target.value)}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor={`edit-address-value-${index}`}>Dirección</Label>
+                                <Input
+                                  id={`edit-address-value-${index}`}
+                                  value={addressValue}
+                                  onChange={(event) => setAddressValue(event.target.value)}
+                                />
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    if (!addressLabel.trim() || !addressValue.trim()) return;
+                                    setAddresses((current) =>
+                                      current.map((item, itemIndex) =>
+                                        itemIndex === index
+                                          ? { label: addressLabel.trim(), value: addressValue.trim() }
+                                          : item,
+                                      ),
+                                    );
+                                    setEditingIndex(null);
+                                    setAddressLabel("");
+                                    setAddressValue("");
+                                  }}
+                                >
+                                  Guardar
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingIndex(null);
+                                    setAddressLabel("");
+                                    setAddressValue("");
+                                  }}
+                                >
+                                  Cancelar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="mt-2 text-sm text-muted-foreground">{address.value}</p>
+                              <div className="mt-4 flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2"
+                                  onClick={() => {
+                                    setEditingIndex(index);
+                                    setAddressLabel(address.label);
+                                    setAddressValue(address.value);
+                                    setShowAddForm(false);
+                                  }}
+                                >
+                                  <Pencil className="size-4" /> Editar
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="gap-2"
+                                  onClick={() => {
+                                    setDeleteIndex(index);
+                                    setDeleteOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="size-4" /> Borrar
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <ConfirmDialog
+                  open={deleteOpen}
+                  onOpenChange={setDeleteOpen}
+                  title="¿Borrar dirección?"
+                  description="Esta acción eliminará la dirección seleccionada."
+                  confirmLabel="Borrar"
+                  cancelLabel="Cancelar"
+                  onConfirm={async () => {
+                    if (deleteIndex === null) return;
+                    const addressToDelete = addresses[deleteIndex];
+                    if (addressToDelete?.id) {
+                      await deleteUserAddress({ data: { addressId: addressToDelete.id } });
+                    }
+                    setAddresses((current) =>
+                      current.filter((_, itemIndex) => itemIndex !== deleteIndex),
+                    );
+                    setDeleteIndex(null);
+                  }}
+                />
               </div>
-              <ConfirmDialog
-                open={deleteOpen}
-                onOpenChange={setDeleteOpen}
-                title="¿Borrar dirección?"
-                description="Esta acción eliminará la dirección seleccionada."
-                confirmLabel="Borrar"
-                cancelLabel="Cancelar"
-                onConfirm={async () => {
-                  if (deleteIndex === null) return;
-                  const addressToDelete = addresses[deleteIndex];
-                  // Eliminar de la BD si tiene ID
-                  if (addressToDelete?.id) {
-                    await deleteUserAddress({ data: { addressId: addressToDelete.id } });
-                  }
-                  setAddresses((current) =>
-                    current.filter((_, itemIndex) => itemIndex !== deleteIndex),
-                  );
-                  setDeleteIndex(null);
-                }}
-              />
             </>
           ) : (
-            <div className="glass-panel rounded-2xl p-10 text-center text-base text-muted-foreground">
+            <div className="rounded-3xl border border-border/60 bg-surface/90 p-10 text-center text-base text-muted-foreground shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
               Inicia sesión para ver y administrar tus direcciones.
             </div>
           )}

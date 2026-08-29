@@ -25,6 +25,7 @@ const DEFAULT_SHIPPING_METHODS: BrandPaymentMethod[] = [];
 const remoteAdminSettings: Record<string, unknown> = {};
 
 function persistAdminSetting(settingKey: string, value: unknown) {
+  remoteAdminSettings[settingKey] = value;
   void saveAdminSetting({ data: { settingKey, settingValue: JSON.stringify(value) } });
 }
 

@@ -4,6 +4,7 @@ import * as React from "react";
 import { Check, Download, Eye, EyeOff, FileText, Plus, Save, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
 import {
   Dialog,
@@ -65,6 +66,19 @@ function AdminSuppliers() {
   const [page, setPage] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(10);
   const [pageSizeInput, setPageSizeInput] = React.useState("10");
+  const [selectedSupplierKeys, setSelectedSupplierKeys] = React.useState<string[]>([]);
+
+  const visibleSupplierKeys = visibleRows.map((row) => row.key);
+  const allVisibleSuppliersSelected =
+    visibleSupplierKeys.length > 0 && visibleSupplierKeys.every((key) => selectedSupplierKeys.includes(key));
+  const someVisibleSuppliersSelected =
+    visibleSupplierKeys.some((key) => selectedSupplierKeys.includes(key));
+
+  const toggleSupplierSelection = (key: string, checked: boolean) => {
+    setSelectedSupplierKeys((current) =>
+      checked ? [...new Set([...current, key])] : current.filter((item) => item !== key),
+    );
+  };
 
   React.useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
@@ -277,10 +291,38 @@ function AdminSuppliers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div className="glass-panel overflow-hidden rounded-2xl">
+      <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
+        <span className="text-sm font-medium">Seleccionar</span>
+        <Checkbox
+          checked={
+            allVisibleSuppliersSelected
+              ? true
+              : someVisibleSuppliersSelected
+                ? "indeterminate"
+                : false
+          }
+          onCheckedChange={(checked) => {
+            const shouldSelect = checked === true || checked === "indeterminate";
+            setSelectedSupplierKeys((current) =>
+              shouldSelect
+                ? [...new Set([...current, ...visibleSupplierKeys])]
+                : current.filter((key) => !visibleSupplierKeys.includes(key)),
+            );
+          }}
+          aria-label="Seleccionar proveedores visibles"
+        />
+        {selectedSupplierKeys.length > 0 ? (
+          <span className="text-xs text-muted-foreground">
+            {selectedSupplierKeys.length} seleccionados
+          </span>
+        ) : null}
+      </div>
+
+      <div className="glass-panel mt-3 overflow-hidden rounded-2xl">
         <Table className="text-center [&_td]:text-center [&_th]:text-center">
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">Seleccionar</TableHead>
               <TableHead>Nombre</TableHead>
               <TableHead>Celular</TableHead>
               <TableHead>Red social</TableHead>
@@ -291,9 +333,17 @@ function AdminSuppliers() {
           <TableBody>
             {visibleRows.map((row) => {
               const isExpanded = expandedSupplierKey === row.key;
+              const isChecked = selectedSupplierKeys.includes(row.key);
               return (
                 <React.Fragment key={row.key}>
                   <TableRow>
+                    <TableCell>
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(checked) => toggleSupplierSelection(row.key, checked === true)}
+                        aria-label={`Seleccionar ${row.name}`}
+                      />
+                    </TableCell>
                     <TableCell>{row.name}</TableCell>
                     <TableCell>{row.phone}</TableCell>
                     <TableCell>{row.social}</TableCell>
@@ -312,7 +362,7 @@ function AdminSuppliers() {
                   </TableRow>
                   {isExpanded ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="bg-surface-2/70 p-4 text-left">
+                      <TableCell colSpan={6} className="bg-surface-2/70 p-4 text-left">
                         <p className="mb-2 font-medium">Productos</p>
                         <div className="flex flex-wrap gap-2">
                           {row.products.map((product) => (
@@ -337,7 +387,7 @@ function AdminSuppliers() {
             })}
             {filteredRows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-16 text-muted-foreground">
+                <TableCell colSpan={6} className="py-16 text-muted-foreground">
                   No se encontraron proveedores.
                 </TableCell>
               </TableRow>

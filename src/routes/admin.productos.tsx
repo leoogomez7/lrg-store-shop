@@ -166,6 +166,7 @@ function AdminProducts() {
   const [usdRatePromptOpen, setUsdRatePromptOpen] = useState(false);
   const [usdRatePromptValue, setUsdRatePromptValue] = useState("");
   const multiProductInputRef = useRef<HTMLInputElement | null>(null);
+  const textProductInputRef = useRef<HTMLInputElement | null>(null);
   const [pendingImportedProducts, setPendingImportedProducts] = useState<Product[]>([]);
   const [importCategoryOpen, setImportCategoryOpen] = useState(false);
   const [importBrand, setImportBrand] = useState<BrandSlug>("arcade");
@@ -286,6 +287,148 @@ function AdminProducts() {
       usdRate,
     });
     setCreateDialogOpen(true);
+  };
+
+  const parseTextImportProducts = async (file: File) => {
+    const parseEntriesFromText = (rawText: string) => {
+      const normalized = rawText
+        .replace(/\r/g, "\n")
+        .replace(/\t/g, " ")
+        .replace(/[–—-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (!normalized) return [] as Array<{ name: string; price: number }>;
+
+      const entries: Array<{ name: string; price: number }> = [];
+      const lines = normalized
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      for (const line of lines) {
+        const lineValue = line.trim();
+        if (!lineValue || lineValue.length < 3) continue;
+
+        const priceMatch = [...lineValue.matchAll(/(\d{1,3}(?:[.,]\d{1,2})?)/g)]
+          .map((match) => match[1])
+          .find((value) => Number(value.replace(",", ".")) > 0);
+
+        if (!priceMatch) continue;
+
+        const priceValue = Number(priceMatch.replace(",", "."));
+        if (!Number.isFinite(priceValue) || priceValue <= 0) continue;
+
+        const beforePrice = lineValue.slice(0, lineValue.indexOf(priceMatch)).trim();
+        const afterPrice = lineValue.slice(lineValue.indexOf(priceMatch) + priceMatch.length).trim();
+        const candidateName = [beforePrice, afterPrice]
+          .filter(Boolean)
+          .find((part) => part.length >= 3 && !/^\d+$/.test(part)) ?? beforePrice;
+
+        const cleanedName = (candidateName ?? "")
+          .replace(/^(?:producto|item|articulo|artículo|precio|price|valor|total|importe)\s+/i, "")
+          .replace(/^[\s|\-:;,.]+|[\s|\-:;,.]+$/g, "")
+          .replace(/[^\p{L}\p{N}\s&()/%-]/gu, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        if (!cleanedName || cleanedName.length < 3 || cleanedName.length > 140) continue;
+
+        entries.push({ name: cleanedName, price: priceValue });
+      }
+
+      if (entries.length === 0) {
+        const fallbackMatch = normalized.match(/([A-Za-zÁÉÍÓÚáéíóúñÑ0-9][^\n]{2,100})\s*(?:[:\-]|\s)(\d{1,3}(?:[.,]\d{1,2})?)/);
+        if (!fallbackMatch) return [];
+        const candidateName = fallbackMatch[1]
+          .replace(/(?:precio|price|valor|total|importe|ars|usd|\$|€)\s*[:=-]*/gi, "")
+          .replace(/^[\s|\-:;,.]+|[\s|\-:;,.]+$/g, "")
+          .trim();
+        const candidatePrice = Number(fallbackMatch[2].replace(",", "."));
+        if (!candidateName || !Number.isFinite(candidatePrice) || candidatePrice <= 0) return [];
+        return [{ name: candidateName, price: candidatePrice }];
+      }
+
+      return entries.filter(
+        (entry, index, arr) =>
+          arr.findIndex(
+            (candidate) =>
+              candidate.name.toLowerCase() === entry.name.toLowerCase() &&
+              candidate.price === entry.price,
+          ) === index,
+      );
+    };
+
+    if (/\.(xlsx|xls)$/i.test(file.name)) {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
+      const rowsFromExcel: string[] = [];
+
+      workbook.SheetNames.forEach((sheetName) => {
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false }) as unknown[][];
+        rows.forEach((row) => {
+          const normalizedRow = row
+            .map((cell) => String(cell ?? "").trim())
+            .filter(Boolean)
+            .join(" | ");
+          if (normalizedRow) rowsFromExcel.push(normalizedRow);
+        });
+      });
+
+      return parseEntriesFromText(rowsFromExcel.join("\n"));
+    }
+
+    const textContent = await file.text();
+    return parseEntriesFromText(textContent);
+  };
+
+  const handleImportTextProduct = async (file: File | null) => {
+    if (!file) return;
+
+    const parsedProducts = await parseTextImportProducts(file);
+    if (!parsedProducts.length) {
+      toast.error("No pude detectar un nombre y un precio válidos en el archivo.");
+      return;
+    }
+
+    const defaultBrand: BrandSlug = "arcade";
+    const defaultCategory = brands[defaultBrand].categories[0]?.slug ?? "consolas";
+
+    const importedProducts = parsedProducts.map(({ name, price }, index) => {
+      const slugBase =
+        name
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "") || `producto-importado-${Date.now()}-${index + 1}`;
+
+      return {
+        id: `import-text-${Date.now()}-${index + 1}`,
+        slug: `${slugBase}-${index + 1}`,
+        brand: defaultBrand,
+        name,
+        category: defaultCategory,
+        price,
+        priceCurrency: "ARS",
+        stock: 1,
+        rating: 0,
+        reviews: 0,
+        short: "Producto creado desde archivo de texto.",
+        description: "Producto generado automáticamente a partir del contenido del archivo cargado.",
+        features: [],
+        images: [],
+        createdAt: new Date().toISOString().slice(0, 10),
+      } as Product;
+    });
+
+    setCreateChoiceOpen(false);
+    setPendingImportedProducts(importedProducts);
+    setImportBrand("arcade");
+    setImportCategory(defaultCategory);
+    setImportSubcategory("");
+    setImportCategoryOpen(true);
   };
 
   const handleImportMultipleProducts = (files: FileList | null) => {
@@ -2085,6 +2228,18 @@ function AdminProducts() {
         }}
       />
 
+      <input
+        ref={textProductInputRef}
+        type="file"
+        accept=".txt,.csv,.tsv,.xlsx,.xls"
+        className="hidden"
+        onChange={async (event) => {
+          const file = event.target.files?.[0] ?? null;
+          await handleImportTextProduct(file);
+          event.target.value = "";
+        }}
+      />
+
       <Dialog open={createChoiceOpen} onOpenChange={setCreateChoiceOpen}>
         <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader className="space-y-2">
@@ -2119,6 +2274,21 @@ function AdminProducts() {
               <span className="flex w-full items-center justify-between gap-3">
                 <span>Varios productos</span>
                 <span className="text-xs text-muted-foreground">Seleccionar imágenes</span>
+              </span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start text-left"
+              onClick={() => {
+                setCreateChoiceOpen(false);
+                textProductInputRef.current?.click();
+              }}
+            >
+              <span className="flex w-full items-center justify-between gap-3">
+                <span>Importar desde un archivo de texto</span>
+                <span className="text-xs text-muted-foreground">Abrir archivo del dispositivo</span>
               </span>
             </Button>
 

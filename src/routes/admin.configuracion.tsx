@@ -1186,18 +1186,20 @@ function AdminConfiguration() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSubcategoryDialogCategoryId(category.id);
-                        setNewSubcategoryName("");
-                      }}
-                      className="h-8 gap-1 px-2 text-xs"
-                    >
-                      <Plus className="size-3" /> Subcategorías
-                    </Button>
+                    {editingCategoryId !== category.id && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSubcategoryDialogCategoryId(category.id);
+                          setNewSubcategoryName("");
+                        }}
+                        className="h-8 gap-1 px-2 text-xs"
+                      >
+                        <Plus className="size-3" /> Subcategorías
+                      </Button>
+                    )}
                     {editingCategoryId === category.id ? (
                       <>
                         <Button
