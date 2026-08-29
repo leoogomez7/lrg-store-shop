@@ -284,6 +284,11 @@ function AccountPageContent({
     return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
   };
 
+  const getAddressBadge = (label: string) => {
+    const cleaned = label.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, "").slice(0, 3).toUpperCase();
+    return cleaned || "ADR";
+  };
+
   const renderAccountContent = () => {
     if (activeTab === "inicio") {
       return (
@@ -496,7 +501,16 @@ function AccountPageContent({
               <h2 className="text-xl font-semibold">Direcciones</h2>
               <p className="text-sm text-muted-foreground">Agregá, editá o borrá tus direcciones de envío.</p>
             </div>
-            <Button variant="secondary" size="sm" className="gap-2" onClick={() => { setShowAddForm((current) => !current); setEditingIndex(null); setAddressLabel(""); setAddressValue(""); }}>
+            <Button
+              size="sm"
+              className="gap-2 bg-sky-400 text-sky-950 hover:bg-sky-300"
+              onClick={() => {
+                setShowAddForm((current) => !current);
+                setEditingIndex(null);
+                setAddressLabel("");
+                setAddressValue("");
+              }}
+            >
               <Plus className="size-4" /> Nueva dirección
             </Button>
           </div>
@@ -514,11 +528,36 @@ function AccountPageContent({
                 </div>
               </div>
               <div className="mt-5 flex flex-wrap gap-3">
-                <Button size="sm" className="h-9 px-5" onClick={async () => { if (!addressLabel.trim() || !addressValue.trim()) return; const result = await saveUserAddress({ data: { userId: user?.id || "", label: addressLabel.trim(), value: addressValue.trim(), city: userCity } }); if (result) { setAddresses((current) => [...current, { label: addressLabel.trim(), value: addressValue.trim() }]); setAddressLabel(""); setAddressValue(""); setShowAddForm(false); toast.success("Dirección guardada correctamente"); } else { toast.error("Error al guardar la dirección"); } }}>
-                  Guardar dirección
+                <Button
+                  size="sm"
+                  className="h-9 px-5"
+                  onClick={async () => {
+                    if (!addressLabel.trim() || !addressValue.trim()) return;
+                    const result = await saveUserAddress({ data: { userId: user?.id || "", label: addressLabel.trim(), value: addressValue.trim(), city: userCity } });
+                    if (result) {
+                      setAddresses((current) => [...current, { label: addressLabel.trim(), value: addressValue.trim() }]);
+                      setAddressLabel("");
+                      setAddressValue("");
+                      setShowAddForm(false);
+                      toast.success("Dirección guardada correctamente");
+                    } else {
+                      toast.error("Error al guardar la dirección");
+                    }
+                  }}
+                >
+                  💾 Guardar
                 </Button>
-                <Button variant="outline" size="sm" className="h-9 px-5" onClick={() => { setShowAddForm(false); setAddressLabel(""); setAddressValue(""); }}>
-                  Cancelar
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-9 px-5"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setAddressLabel("");
+                    setAddressValue("");
+                  }}
+                >
+                  ✕ Cancelar
                 </Button>
               </div>
             </div>
@@ -529,9 +568,15 @@ function AccountPageContent({
               <div key={`${address.label}-${index}`} className="rounded-2xl border border-border/60 bg-background/50 p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div className="w-full">
-                    <h3 className="flex items-center gap-2 text-sm font-semibold">
-                      <MapPin className="size-4 text-primary" /> {address.label}
-                    </h3>
+                    <div className="flex items-center gap-3">
+                      <div className="relative grid size-10 place-items-center rounded-xl bg-sky-500/10 text-sky-400 ring-1 ring-sky-400/25">
+                        <MapPin className="size-4" />
+                        <span className="absolute bottom-1 right-1 text-[7px] font-bold leading-none tracking-[0.12em] text-sky-300">
+                          {getAddressBadge(address.label)}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-semibold text-foreground">{address.label}</h3>
+                    </div>
                     {editingIndex === index ? (
                       <div className="mt-4 grid gap-4">
                         <div className="space-y-2.5">
@@ -544,16 +589,16 @@ function AccountPageContent({
                         </div>
                         <div className="flex flex-wrap gap-3 pt-1">
                           <Button size="sm" className="h-9 px-5" onClick={() => { if (!addressLabel.trim() || !addressValue.trim()) return; setAddresses((current) => current.map((item, itemIndex) => itemIndex === index ? { label: addressLabel.trim(), value: addressValue.trim() } : item)); setEditingIndex(null); setAddressLabel(""); setAddressValue(""); }}>
-                            Guardar
+                            💾 Guardar
                           </Button>
-                          <Button variant="outline" size="sm" className="h-9 px-5" onClick={() => { setEditingIndex(null); setAddressLabel(""); setAddressValue(""); }}>
-                            Cancelar
+                          <Button variant="destructive" size="sm" className="h-9 px-5" onClick={() => { setEditingIndex(null); setAddressLabel(""); setAddressValue(""); }}>
+                            ✕ Cancelar
                           </Button>
                         </div>
                       </div>
                     ) : (
                       <>
-                        <p className="mt-2 text-sm text-muted-foreground">{address.value}</p>
+                        <p className="mt-3 text-sm text-muted-foreground">{address.value}</p>
                         <div className="mt-4 flex gap-3">
                           <Button variant="outline" size="sm" className="gap-2 h-9 px-5" onClick={() => { setEditingIndex(index); setAddressLabel(address.label); setAddressValue(address.value); setShowAddForm(false); }}>
                             <Pencil className="size-4" /> Editar
