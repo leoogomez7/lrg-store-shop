@@ -1,6 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AccountPageSection } from "./cuenta";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/cuenta/pedidos")({
-  component: () => <AccountPageSection initialTab="orders" />,
+  beforeLoad: () => {
+    throw redirect({ to: "/cuenta/compras" });
+  },
+  component: () => null,
 });

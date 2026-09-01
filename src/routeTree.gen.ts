@@ -29,6 +29,7 @@ import { Route as AdminPapeleraRouteImport } from './routes/admin.papelera'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminProductosRouteImport } from './routes/admin.productos'
 import { Route as AdminProveedoresRouteImport } from './routes/admin.proveedores'
+import { Route as CuentaComprasRouteImport } from './routes/cuenta.compras'
 import { Route as CuentaDireccionesRouteImport } from './routes/cuenta.direcciones'
 import { Route as CuentaFavoritosRouteImport } from './routes/cuenta.favoritos'
 import { Route as CuentaPanelRouteImport } from './routes/cuenta.panel'
@@ -137,6 +138,11 @@ const AdminProveedoresRoute = AdminProveedoresRouteImport.update({
   path: '/proveedores',
   getParentRoute: () => AdminRoute,
 } as any)
+const CuentaComprasRoute = CuentaComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
+  getParentRoute: () => CuentaRoute,
+} as any)
 const CuentaDireccionesRoute = CuentaDireccionesRouteImport.update({
   id: '/direcciones',
   path: '/direcciones',
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/proveedores': typeof AdminProveedoresRoute
+  '/cuenta/compras': typeof CuentaComprasRoute
   '/cuenta/direcciones': typeof CuentaDireccionesRoute
   '/cuenta/favoritos': typeof CuentaFavoritosRoute
   '/cuenta/panel': typeof CuentaPanelRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/proveedores': typeof AdminProveedoresRoute
+  '/cuenta/compras': typeof CuentaComprasRoute
   '/cuenta/direcciones': typeof CuentaDireccionesRoute
   '/cuenta/favoritos': typeof CuentaFavoritosRoute
   '/cuenta/panel': typeof CuentaPanelRoute
@@ -251,6 +259,7 @@ export interface FileRoutesById {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/proveedores': typeof AdminProveedoresRoute
+  '/cuenta/compras': typeof CuentaComprasRoute
   '/cuenta/direcciones': typeof CuentaDireccionesRoute
   '/cuenta/favoritos': typeof CuentaFavoritosRoute
   '/cuenta/panel': typeof CuentaPanelRoute
@@ -282,6 +291,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/proveedores'
+    | '/cuenta/compras'
     | '/cuenta/direcciones'
     | '/cuenta/favoritos'
     | '/cuenta/panel'
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/proveedores'
+    | '/cuenta/compras'
     | '/cuenta/direcciones'
     | '/cuenta/favoritos'
     | '/cuenta/panel'
@@ -339,6 +350,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/proveedores'
+    | '/cuenta/compras'
     | '/cuenta/direcciones'
     | '/cuenta/favoritos'
     | '/cuenta/panel'
@@ -505,6 +517,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProveedoresRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/cuenta/compras': {
+      id: '/cuenta/compras'
+      path: '/compras'
+      fullPath: '/cuenta/compras'
+      preLoaderRoute: typeof CuentaComprasRouteImport
+      parentRoute: typeof CuentaRoute
+    }
     '/cuenta/direcciones': {
       id: '/cuenta/direcciones'
       path: '/direcciones'
@@ -596,6 +615,7 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface CuentaRouteChildren {
+  CuentaComprasRoute: typeof CuentaComprasRoute
   CuentaDireccionesRoute: typeof CuentaDireccionesRoute
   CuentaFavoritosRoute: typeof CuentaFavoritosRoute
   CuentaPanelRoute: typeof CuentaPanelRoute
@@ -604,6 +624,7 @@ interface CuentaRouteChildren {
 }
 
 const CuentaRouteChildren: CuentaRouteChildren = {
+  CuentaComprasRoute: CuentaComprasRoute,
   CuentaDireccionesRoute: CuentaDireccionesRoute,
   CuentaFavoritosRoute: CuentaFavoritosRoute,
   CuentaPanelRoute: CuentaPanelRoute,
