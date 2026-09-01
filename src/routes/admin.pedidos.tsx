@@ -1798,7 +1798,7 @@ function AdminOrders() {
       <div className="glass-panel mt-3 overflow-hidden rounded-2xl pb-2">
         <Table
           containerClassName="overflow-x-auto overflow-y-visible"
-          className="w-full min-w-[1120px] table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
+          className="w-full min-w-[1120px] table-fixed text-center [&_td]:align-middle [&_th]:align-middle [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
@@ -1853,7 +1853,7 @@ function AdminOrders() {
                     }
                   >
                     <TableCell className="w-32 font-medium">
-                      <div className="flex min-w-0 items-center justify-start gap-2 text-left">
+                      <div className="flex min-w-0 items-center justify-center gap-2 text-center">
                         <Checkbox
                           className="shrink-0"
                           checked={selectedOrderIds.includes(order.id)}
@@ -2180,7 +2180,7 @@ function AdminOrders() {
           {visibleResults.length} de {results.length} pedidos mostrados
         </p>
         <div className="flex items-center gap-3">
-          <div className="text-sm text-muted-foreground">Detalles</div>
+          <div className="text-sm text-muted-foreground">Mostrar</div>
           <Input
             type="number"
             min={1}

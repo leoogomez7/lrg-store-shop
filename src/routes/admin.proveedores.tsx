@@ -290,7 +290,7 @@ function AdminSuppliers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
+      <div className="mt-2 flex basis-full flex-wrap items-center gap-2">
         <span className="text-sm font-medium">Seleccionar</span>
         <Checkbox
           checked={
@@ -317,11 +317,10 @@ function AdminSuppliers() {
         ) : null}
       </div>
 
-      <div className="glass-panel mt-3 overflow-hidden rounded-2xl">
-        <Table className="text-center [&_td]:text-center [&_th]:text-center">
+      <div className="glass-panel mt-2 overflow-hidden rounded-2xl pb-2">
+        <Table className="text-center [&_td]:text-center [&_th]:text-center [&_td]:align-middle [&_th]:align-middle">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12">Seleccionar</TableHead>
               <TableHead>Nombre</TableHead>
               <TableHead>Celular</TableHead>
               <TableHead>Red social</TableHead>
@@ -332,17 +331,9 @@ function AdminSuppliers() {
           <TableBody>
             {visibleRows.map((row) => {
               const isExpanded = expandedSupplierKey === row.key;
-              const isChecked = selectedSupplierKeys.includes(row.key);
               return (
                 <React.Fragment key={row.key}>
                   <TableRow>
-                    <TableCell>
-                      <Checkbox
-                        checked={isChecked}
-                        onCheckedChange={(checked) => toggleSupplierSelection(row.key, checked === true)}
-                        aria-label={`Seleccionar ${row.name}`}
-                      />
-                    </TableCell>
                     <TableCell>{row.name}</TableCell>
                     <TableCell>{row.phone}</TableCell>
                     <TableCell>{row.social}</TableCell>
@@ -361,7 +352,7 @@ function AdminSuppliers() {
                   </TableRow>
                   {isExpanded ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="bg-surface-2/70 p-4 text-left">
+                      <TableCell colSpan={5} className="bg-surface-2/70 p-4 text-left">
                         <p className="mb-2 font-medium">Productos</p>
                         <div className="flex flex-wrap gap-2">
                           {row.products.map((product) => (
@@ -386,7 +377,7 @@ function AdminSuppliers() {
             })}
             {filteredRows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-16 text-muted-foreground">
+                <TableCell colSpan={5} className="py-16 text-muted-foreground">
                   No se encontraron proveedores.
                 </TableCell>
               </TableRow>

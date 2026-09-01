@@ -211,7 +211,7 @@ function AdminClients() {
       <div className="glass-panel w-full max-w-full overflow-hidden rounded-2xl pb-2">
         <Table
           containerClassName="overflow-x-auto overflow-y-visible"
-          className="w-full min-w-[760px] table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
+          className="w-full min-w-[760px] table-fixed text-center [&_td]:align-middle [&_th]:align-middle [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
