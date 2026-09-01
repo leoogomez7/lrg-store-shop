@@ -1775,7 +1775,7 @@ function AdminOrders() {
       <div className="glass-panel mt-3 overflow-hidden rounded-2xl pb-2">
         <Table
           containerClassName="overflow-x-auto overflow-y-visible"
-          className="w-full min-w-[1120px] table-fixed text-center [&_td]:align-middle [&_th]:align-middle [&_td]:text-center [&_th]:text-center"
+          className="w-full min-w-280 table-fixed text-center [&_td]:align-middle [&_th]:align-middle [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>

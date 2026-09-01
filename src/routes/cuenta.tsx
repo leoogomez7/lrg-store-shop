@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -77,9 +77,9 @@ export const Route = createFileRoute("/cuenta")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
   beforeLoad: ({ location }) => {
     if (location.pathname === "/cuenta") {
-      return { redirect: "/cuenta/panel" };
+      throw redirect({ to: "/cuenta/panel" });
     }
-    return undefined;
+    return undefined as never;
   },
   head: () => ({
     meta: [
@@ -109,9 +109,11 @@ type Address = {
 export type AccountTab = "inicio" | "orders" | "profile" | "addresses" | "favorites";
 
 export function AccountPageSection({ initialTab = "inicio" }: { initialTab?: AccountTab }) {
+  const resolvedInitialTab: AccountTab = initialTab ?? "inicio";
+
   return (
     <KindeAuthGate fallback={<AccountAuthRedirect />}>
-      {(auth) => <AccountAuthGuard auth={auth} initialTab={initialTab} />}
+      {(auth) => <AccountAuthGuard auth={auth} initialTab={resolvedInitialTab} />}
     </KindeAuthGate>
   );
 }
@@ -156,7 +158,8 @@ function AccountAuthGuard({
     return null;
   }
 
-  return <AccountPageContent auth={auth} initialTab={initialTab} />;
+  const resolvedInitialTab: AccountTab = initialTab ?? "inicio";
+  return <AccountPageContent auth={auth} initialTab={resolvedInitialTab} />;
 }
 
 function AccountPageContent({
@@ -416,10 +419,13 @@ function AccountPageContent({
   }, [user?.id]);
 
   const getUserInitials = () => {
-    if (!userName) return "C";
-    const names = userName.trim().split(/\s+/).filter(Boolean);
-    if (names.length === 1) return names[0].slice(0, 2).toUpperCase();
-    return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+    const safeUserName = userName ?? "";
+    if (!safeUserName) return "C";
+    const names = safeUserName.trim().split(/\s+/).filter(Boolean);
+    const first = names[0]?.[0] ?? "";
+    const last = names[names.length - 1]?.[0] ?? "";
+    if (names.length === 1) return names[0]?.slice(0, 2).toUpperCase() || "C";
+    return `${first}${last}`.toUpperCase();
   };
 
   const getAddressBadge = (label: string) => {
@@ -460,18 +466,24 @@ function AccountPageContent({
               .trim();
 
           const formatAddress = (item: { display_name?: string; address?: Record<string, string> }) => {
-            const address = item.address ?? {};
-            const road = address.road || address.pedestrian || address.path || address.street || "";
-            const houseNumber = address.house_number || address.house || "";
-            const city =
-              address.city ||
-              address.town ||
-              address.village ||
-              address.municipality ||
-              address.county ||
-              address.state ||
+            const address = item.address ?? {} as Record<string, string>;
+            const road =
+              address["road"] ||
+              address["pedestrian"] ||
+              address["path"] ||
+              address["street"] ||
               "";
-            const district = address.suburb || address.neighbourhood || address.city_district || "";
+            const houseNumber = address["house_number"] || address["house"] || "";
+            const city =
+              address["city"] ||
+              address["town"] ||
+              address["village"] ||
+              address["municipality"] ||
+              address["county"] ||
+              address["state"] ||
+              "";
+            const district =
+              address["suburb"] || address["neighbourhood"] || address["city_district"] || "";
 
             const displayName = item.display_name || "";
             const extractedFromDisplay = displayName.split(",")[0]?.trim() || "";
@@ -504,13 +516,26 @@ function AccountPageContent({
             }
 
             seen.add(key);
-            acc.push({
+            const suggestion: {
+              label: string;
+              value: string;
+              display: { street: string; city: string };
+              lat?: string;
+              lon?: string;
+            } = {
               label: candidate,
               value: candidate,
               display: { street: formatted.street, city: formatted.city },
-              lat: item.lat,
-              lon: item.lon,
-            });
+            };
+
+            if (typeof item.lat === "string" && item.lat.length > 0) {
+              suggestion.lat = item.lat;
+            }
+            if (typeof item.lon === "string" && item.lon.length > 0) {
+              suggestion.lon = item.lon;
+            }
+
+            acc.push(suggestion);
             return acc;
           }, []);
 
@@ -546,8 +571,8 @@ function AccountPageContent({
         <div className="space-y-6">
           <div className="space-y-6">
             <div className="mb-6">
-              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Inicio</p>
-              <h1 className="mt-2 text-3xl font-semibold">Mi cuenta</h1>
+              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Mi cuenta</p>
+              <h1 className="mt-2 text-3xl font-semibold">Panel administrativo</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 Administrá tus compras, favoritos y tus datos personales.
               </p>
@@ -556,7 +581,7 @@ function AccountPageContent({
               <button
                 type="button"
                 onClick={() => handleTabChange("orders")}
-                className="glass-panel flex min-h-[146px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
+                className="glass-panel flex min-h-36.5 flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
                 <div className="flex items-center gap-3">
                   <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -572,7 +597,7 @@ function AccountPageContent({
               <button
                 type="button"
                 onClick={() => handleTabChange("profile")}
-                className="glass-panel flex min-h-[146px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
+                className="glass-panel flex min-h-36.5 flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
                 <div className="flex items-center gap-3">
                   <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -588,7 +613,7 @@ function AccountPageContent({
               <button
                 type="button"
                 onClick={() => handleTabChange("addresses")}
-                className="glass-panel flex min-h-[146px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
+                className="glass-panel flex min-h-36.5 flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
                 <div className="flex items-center gap-3">
                   <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -604,7 +629,7 @@ function AccountPageContent({
               <button
                 type="button"
                 onClick={() => handleTabChange("favorites")}
-                className="glass-panel flex min-h-[146px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
+                className="glass-panel flex min-h-36.5 flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
                 <div className="flex items-center gap-3">
                   <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -1320,7 +1345,7 @@ function AccountPageContent({
                     onClick={() => handleTabChange(key)}
                     title={sidebarCollapsed ? label : undefined}
                     className={cn(
-                      "group relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-left text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
+                      "group relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-left text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
                       sidebarCollapsed && "justify-center px-2",
                       isActive
                         ? "border-white/10 bg-surface-2 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"

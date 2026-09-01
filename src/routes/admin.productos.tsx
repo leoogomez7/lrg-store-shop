@@ -1686,7 +1686,7 @@ function AdminProducts() {
       <div className="glass-panel mt-3 overflow-hidden rounded-2xl pb-2">
         <Table
           containerClassName="overflow-x-auto overflow-y-visible"
-          className="w-full min-w-[1180px] table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
+          className="w-full min-w-295 table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
         >
           <TableHeader className="[&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
@@ -1930,7 +1930,7 @@ function AdminProducts() {
                             }
                             aria-label={`Seleccionar ${product.name}`}
                           />
-                          <span className="min-w-0 break-words font-medium">{product.name}</span>
+                          <span className="min-w-0 wrap-break-word font-medium">{product.name}</span>
                           {variant ? (
                             <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                               {variant.name}

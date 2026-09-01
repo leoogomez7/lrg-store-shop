@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
@@ -39,9 +39,9 @@ import { applyTrashEntries } from "@/data/trash";
 export const Route = createFileRoute("/admin")({
   beforeLoad: ({ location }) => {
     if (location.pathname === "/admin") {
-      return { redirect: "/admin/panel" };
+      throw redirect({ to: "/admin/panel" });
     }
-    return undefined;
+    return undefined as never;
   },
   component: AdminLayout,
 });
@@ -390,7 +390,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     to={item.to}
                     title={sidebarCollapsed ? item.label : undefined}
                     className={cn(
-                      "group relative flex items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
+                      "group relative flex items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
                       sidebarCollapsed && "justify-center px-2",
                       active
                         ? "border-white/10 bg-surface-2 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
@@ -456,7 +456,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                       to={item.to}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "group relative overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:before:opacity-100",
+                        "group relative overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:before:opacity-100",
                         active
                           ? "border-white/10 bg-surface-2 text-foreground font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
                           : "text-muted-foreground",
