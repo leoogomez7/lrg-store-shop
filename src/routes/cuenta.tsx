@@ -544,63 +544,77 @@ function AccountPageContent({
       return (
         <div className="space-y-6">
           <div className="space-y-6">
-            <div className="mb-6 flex items-center gap-4">
-              <span className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
-                <User className="size-5" />
-              </span>
-              <div>
-                <p className="text-sm text-muted-foreground">Mi cuenta</p>
-                <h1 className="text-2xl font-semibold">Hola{userName ? `, ${userName}` : ""}</h1>
-              </div>
+            <div className="mb-6">
+              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Inicio</p>
+              <h1 className="mt-2 text-3xl font-semibold">Mi cuenta</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Administrá tus compras, favoritos y tus datos personales.
+              </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <button
                 type="button"
                 onClick={() => handleTabChange("orders")}
-                className="rounded-2xl border border-border/60 bg-background/50 p-4 text-left transition hover:border-border hover:bg-background"
+                className="glass-panel flex min-h-[168px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <ShoppingCart className="size-5 text-primary" />
+                <div className="flex items-center justify-between">
+                  <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
+                    <ShoppingCart className="size-4" />
+                  </span>
                   <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Pedidos</span>
                 </div>
-                <p className="text-2xl font-semibold">{visibleOrders.length}</p>
-                <p className="mt-1 text-sm text-muted-foreground">Compras</p>
+                <div>
+                  <p className="text-2xl font-semibold">{visibleOrders.length}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Compras</p>
+                </div>
               </button>
               <button
                 type="button"
                 onClick={() => handleTabChange("profile")}
-                className="rounded-2xl border border-border/60 bg-background/50 p-4 text-left transition hover:border-border hover:bg-background"
+                className="glass-panel flex min-h-[168px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <User className="size-5 text-primary" />
+                <div className="flex items-center justify-between">
+                  <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
+                    <User className="size-4" />
+                  </span>
                   <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Perfil</span>
                 </div>
-                <p className="text-base font-medium">Editar información</p>
-                <p className="mt-1 text-sm text-muted-foreground">Datos personales</p>
+                <div>
+                  <p className="text-base font-medium">Editar información</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Datos personales</p>
+                </div>
               </button>
               <button
                 type="button"
                 onClick={() => handleTabChange("addresses")}
-                className="rounded-2xl border border-border/60 bg-background/50 p-4 text-left transition hover:border-border hover:bg-background"
+                className="glass-panel flex min-h-[168px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <MapPin className="size-5 text-primary" />
+                <div className="flex items-center justify-between">
+                  <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
+                    <MapPin className="size-4" />
+                  </span>
                   <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Direcciones</span>
                 </div>
-                <p className="text-2xl font-semibold">{addresses.length}</p>
-                <p className="mt-1 text-sm text-muted-foreground">Guardadas</p>
+                <div>
+                  <p className="text-2xl font-semibold">{addresses.length}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Guardadas</p>
+                </div>
               </button>
               <button
                 type="button"
                 onClick={() => handleTabChange("favorites")}
-                className="rounded-2xl border border-border/60 bg-background/50 p-4 text-left transition hover:border-border hover:bg-background"
+                className="glass-panel flex min-h-[168px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <Heart className="size-5 text-primary" />
+                <div className="flex items-center justify-between">
+                  <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
+                    <Heart className="size-4" />
+                  </span>
                   <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Favoritos</span>
                 </div>
-                <p className="text-2xl font-semibold">{favoriteProducts.length}</p>
-                <p className="mt-1 text-sm text-muted-foreground">Productos guardados</p>
+                <div>
+                  <p className="text-2xl font-semibold">{favoriteProducts.length}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Productos guardados</p>
+                </div>
               </button>
             </div>
           </div>
