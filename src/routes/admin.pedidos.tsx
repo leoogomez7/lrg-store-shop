@@ -483,7 +483,7 @@ function AdminOrders() {
   const [quantityMin, setQuantityMin] = useState(0);
   const [quantityMax, setQuantityMax] = useState(0);
   const [query, setQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState<OrderSort>("date_desc");
+  const [sortOrder, setSortOrder] = useState<OrderSort | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number | null>(null);
@@ -824,8 +824,10 @@ function AdminOrders() {
       );
     });
 
+    const activeSortOrder = sortOrder ?? "date_desc";
+
     return [...filtered].sort((a, b) => {
-      switch (sortOrder) {
+      switch (activeSortOrder) {
         case "customer_asc":
           return a.customer.localeCompare(b.customer);
         case "customer_desc":
@@ -1442,13 +1444,13 @@ function AdminOrders() {
                         setSortMenuOpen(false);
                       }}
                       className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
-                        sortOrder === value
+                        sortOrder !== null && sortOrder === value
                           ? "bg-surface-2 text-foreground"
                           : "text-muted-foreground"
                       }`}
                     >
                       <span>{label}</span>
-                      {sortOrder === value && <span aria-hidden="true">✓</span>}
+                      {sortOrder !== null && sortOrder === value && <span aria-hidden="true">✓</span>}
                     </button>
                   ))}
                 </div>
