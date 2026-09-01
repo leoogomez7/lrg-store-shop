@@ -239,7 +239,7 @@ function AccountPageContent({
   }, [visibleOrders, ordersPage, ordersPageSize]);
   const hasNextPage = ordersPage + 1 < totalOrdersPages;
   const hasPreviousPage = ordersPage > 0;
-  const canEditOrdersPageSize = totalOrdersPages > 1;
+  const canEditOrdersPageSize = true;
 
   const exportOrdersExcel = () => {
     const rows: (string | number)[][] = [
@@ -739,8 +739,6 @@ function AccountPageContent({
                 max={1000}
                 value={ordersPageSizeInput}
                 onChange={(e) => setOrdersPageSizeInput(e.target.value)}
-                disabled={!canEditOrdersPageSize}
-                readOnly={!canEditOrdersPageSize}
                 className="h-8 w-20 bg-background/50 text-foreground"
               />
               {(() => {
