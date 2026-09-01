@@ -197,7 +197,7 @@ function AccountPageContent({
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
-  const [addressSuggestions, setAddressSuggestions] = useState<Array<{ label: string; value: string; lat?: string; lon?: string }>>([]);
+  const [addressSuggestions, setAddressSuggestions] = useState<Array<{ label: string; value: string; display?: { street: string; city: string }; lat?: string; lon?: string }>>([]);
 
   const accountNavItems = [
     { key: "home", label: "Inicio", icon: House, route: "/" },
@@ -334,16 +334,29 @@ function AccountPageContent({
           `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(query)}`,
           { headers: { "Accept-Language": "es" } },
         );
-        const data = (await response.json()) as Array<{ lat?: string; lon?: string; display_name?: string }>;
+        const data = (await response.json()) as Array<{ lat?: string; lon?: string; display_name?: string; address?: Record<string, string> }>;
         
         if (data.length > 0) {
+          // Función para formatear la dirección de forma más clara
+          const formatAddress = (displayName: string) => {
+            const parts = displayName.split(',').map(p => p.trim());
+            // Tomar los primeros 2-3 elementos más relevantes
+            const street = parts[0] || "";
+            const city = parts.find(p => !p.match(/^\d+/) && p.length < 30) || parts[parts.length - 2] || "";
+            return { street: street.substring(0, 50), city: city.substring(0, 40) };
+          };
+
           // Mostrar sugerencias
-          const suggestions = data.map((item) => ({
-            label: item.display_name || "Dirección",
-            value: item.display_name || "",
-            lat: item.lat,
-            lon: item.lon,
-          }));
+          const suggestions = data.map((item) => {
+            const formatted = formatAddress(item.display_name || "");
+            return {
+              label: item.display_name || "Dirección",
+              value: item.display_name || "",
+              display: formatted,
+              lat: item.lat,
+              lon: item.lon,
+            };
+          });
           setAddressSuggestions(suggestions);
           
           // Mostrar mapa del primer resultado
@@ -653,7 +666,7 @@ function AccountPageContent({
             </div>
             <Button
               size="lg"
-              className="gap-2 bg-[#39a9de] text-white hover:bg-[#2f9ed3] shadow-[0_8px_20px_rgba(57,169,222,0.35)]"
+              className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={() => {
                 setShowAddForm((current) => !current);
                 setEditingIndex(null);
@@ -718,12 +731,19 @@ function AccountPageContent({
                               setAddressValue(suggestion.value);
                               setAddressSuggestions([]);
                             }}
-                            className="w-full border-b border-border/60 px-3 py-2.5 text-left text-sm text-foreground hover:bg-background/80 transition"
+                            className="w-full border-b border-border/60 px-3 py-3 text-left hover:bg-background/80 transition"
                           >
                             <div className="flex items-start gap-2">
                               <MapPin className="size-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-foreground">{suggestion.value}</p>
+                              <div className="min-w-0 flex-1">
+                                {suggestion.display ? (
+                                  <>
+                                    <p className="truncate text-sm font-medium text-foreground">{suggestion.display.street}</p>
+                                    <p className="truncate text-xs text-muted-foreground mt-0.5">{suggestion.display.city}</p>
+                                  </>
+                                ) : (
+                                  <p className="truncate text-sm font-medium text-foreground">{suggestion.value}</p>
+                                )}
                               </div>
                             </div>
                           </button>
@@ -737,7 +757,7 @@ function AccountPageContent({
               <div className="mt-5 flex flex-wrap gap-3">
                 <Button
                   size="lg"
-                  className="bg-[#39a9de] text-white hover:bg-[#2f9ed3]"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                   onClick={async () => {
                     if (!addressLabel.trim() || !addressValue.trim()) {
                       toast.error("Por favor completa etiqueta y dirección");
