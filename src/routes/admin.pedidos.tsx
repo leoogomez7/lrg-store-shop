@@ -824,10 +824,12 @@ function AdminOrders() {
       );
     });
 
-    const activeSortOrder = sortOrder ?? "date_desc";
+    if (!sortOrder) {
+      return [...filtered];
+    }
 
     return [...filtered].sort((a, b) => {
-      switch (activeSortOrder) {
+      switch (sortOrder) {
         case "customer_asc":
           return a.customer.localeCompare(b.customer);
         case "customer_desc":
