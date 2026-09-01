@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -203,6 +203,9 @@ function AccountPageContent({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
   const [addressSuggestions, setAddressSuggestions] = useState<Array<{ label: string; value: string; display?: { street: string; city: string }; lat?: string; lon?: string }>>([]);
+  const [ordersPage, setOrdersPage] = useState(0);
+  const [ordersPageSize, setOrdersPageSize] = useState<number>(10);
+  const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("10");
 
   const accountNavItems = [
     { key: "home", label: "Inicio", icon: House, route: "/" },
@@ -222,6 +225,23 @@ function AccountPageContent({
     if (pathname === "/cuenta/favoritos") return "favorites";
     return "inicio";
   };
+
+  const totalOrdersPages =
+    ordersPageSize && ordersPageSize > 0 ? Math.max(1, Math.ceil(visibleOrders.length / ordersPageSize)) : 1;
+  const paginatedOrders = useMemo(() => {
+    if (!ordersPageSize || ordersPageSize <= 0) return [] as typeof visibleOrders;
+    return visibleOrders.slice(
+      ordersPage * ordersPageSize,
+      ordersPage * ordersPageSize + ordersPageSize,
+    );
+  }, [visibleOrders, ordersPage, ordersPageSize]);
+  const hasNextPage = ordersPage + 1 < totalOrdersPages;
+  const hasPreviousPage = ordersPage > 0;
+  const canEditOrdersPageSize = totalOrdersPages > 1;
+
+  useEffect(() => {
+    setOrdersPage((currentPage) => Math.min(currentPage, Math.max(0, totalOrdersPages - 1)));
+  }, [totalOrdersPages]);
 
   useEffect(() => {
     const nextTab = resolveTabFromPath(location.pathname);
@@ -568,7 +588,7 @@ function AccountPageContent({
               </TableHeader>
               <TableBody>
                 {visibleOrders.length > 0 ? (
-                  visibleOrders.map((order) => (
+                  paginatedOrders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.id}</TableCell>
                       <TableCell>{brands[order.brand].shortName}</TableCell>
@@ -609,24 +629,78 @@ function AccountPageContent({
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              {visibleOrders.length} de {visibleOrders.length} compras mostradas
+              {paginatedOrders.length} de {visibleOrders.length} compras mostradas
             </p>
             <div className="flex items-center gap-3">
               <div className="text-sm text-muted-foreground">Mostrar</div>
-              <Input value="10" readOnly className="h-8 w-20 bg-background/50 text-foreground" />
-              <Button type="button" size="sm" className="h-8 px-4">
-                <Check className="mr-2 h-4 w-4" />
-                Confirmar
-              </Button>
+              <Input
+                type="number"
+                min={1}
+                max={1000}
+                value={ordersPageSizeInput}
+                onChange={(e) => setOrdersPageSizeInput(e.target.value)}
+                disabled={!canEditOrdersPageSize}
+                readOnly={!canEditOrdersPageSize}
+                className="h-8 w-20 bg-background/50 text-foreground"
+              />
+              {(() => {
+                const v = Number(ordersPageSizeInput);
+                const isValid = Number.isFinite(v) && v >= 1;
+                const isChanged =
+                  ordersPageSizeInput !== "" && String(Math.floor(v)) !== String(ordersPageSize);
+
+                return (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      if (!canEditOrdersPageSize || !isValid || !isChanged) return;
+                      const final = Math.min(1000, Math.floor(v));
+                      setOrdersPageSize(final);
+                      setOrdersPageSizeInput(String(final));
+                      setOrdersPage(0);
+                    }}
+                    disabled={!canEditOrdersPageSize || !isValid || !isChanged}
+                    className="h-8 px-4"
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    Confirmar
+                  </Button>
+                );
+              })()}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="outline" size="sm" className="h-9 rounded-full px-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setOrdersPage(0)}
+                disabled={!hasPreviousPage || !canEditOrdersPageSize}
+                className="h-9 rounded-full px-4"
+              >
                 Principio
               </Button>
               <div className="flex items-center gap-1 rounded-full border border-border/60 bg-background/50 px-3 py-1 text-sm text-foreground shadow-sm">
-                <button type="button" className="rounded-full bg-primary px-3 py-1 text-primary-foreground">1</button>
+                {Array.from({ length: totalOrdersPages }, (_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    className={`rounded-full px-3 py-1 ${index === ordersPage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-surface-2"}`}
+                    onClick={() => setOrdersPage(index)}
+                    disabled={!canEditOrdersPageSize}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
               </div>
-              <Button type="button" variant="outline" size="sm" className="h-9 rounded-full px-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setOrdersPage(totalOrdersPages - 1)}
+                disabled={!hasNextPage || !canEditOrdersPageSize}
+                className="h-9 rounded-full px-4"
+              >
                 Último
               </Button>
             </div>

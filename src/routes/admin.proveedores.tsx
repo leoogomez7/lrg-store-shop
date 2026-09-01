@@ -400,19 +400,28 @@ function AdminSuppliers() {
             onChange={(event) => setPageSizeInput(event.target.value)}
             className="h-8 w-20 bg-background/50"
           />
-          <Button
-            size="sm"
-            onClick={() => {
-              const value = Number(pageSizeInput);
-              if (!Number.isFinite(value) || value < 1) return;
-              setPageSize(Math.min(1000, Math.floor(value)));
-              setPage(0);
-            }}
-            disabled={!Number.isFinite(Number(pageSizeInput)) || Number(pageSizeInput) < 1}
-            className="h-8 px-4"
-          >
-            <Check className="mr-2 h-4 w-4" /> Confirmar
-          </Button>
+
+          {(() => {
+            const v = Number(pageSizeInput);
+            const isValid = Number.isFinite(v) && v >= 1;
+            const isChanged = pageSizeInput !== "" && String(Math.floor(v)) !== String(pageSize);
+            return (
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (!isValid || !isChanged) return;
+                  const final = Math.min(1000, Math.floor(v));
+                  setPageSize(final);
+                  setPage(0);
+                }}
+                disabled={!isValid || !isChanged}
+                className="h-8 px-4"
+              >
+                <Check className="mr-2 h-4 w-4" />
+                Confirmar
+              </Button>
+            );
+          })()}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
