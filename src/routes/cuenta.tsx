@@ -220,6 +220,7 @@ function AccountPageContent({
   type AccountNavKey = (typeof accountNavItems)[number]["key"];
 
   const resolveTabFromPath = (pathname: string): AccountTab => {
+    if (pathname === "/cuenta/panel") return "inicio";
     if (pathname === "/cuenta/compras" || pathname === "/cuenta/pedidos") return "orders";
     if (pathname === "/cuenta/perfil") return "profile";
     if (pathname === "/cuenta/direcciones") return "addresses";
@@ -555,65 +556,65 @@ function AccountPageContent({
               <button
                 type="button"
                 onClick={() => handleTabChange("orders")}
-                className="glass-panel flex min-h-[168px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
+                className="glass-panel flex min-h-[146px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
                   <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
                     <ShoppingCart className="size-4" />
                   </span>
                   <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Pedidos</span>
                 </div>
-                <div>
+                <div className="mt-2">
                   <p className="text-2xl font-semibold">{visibleOrders.length}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Compras</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">Compras</p>
                 </div>
               </button>
               <button
                 type="button"
                 onClick={() => handleTabChange("profile")}
-                className="glass-panel flex min-h-[168px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
+                className="glass-panel flex min-h-[146px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
                   <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
                     <User className="size-4" />
                   </span>
                   <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Perfil</span>
                 </div>
-                <div>
+                <div className="mt-2">
                   <p className="text-base font-medium">Editar información</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Datos personales</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">Datos personales</p>
                 </div>
               </button>
               <button
                 type="button"
                 onClick={() => handleTabChange("addresses")}
-                className="glass-panel flex min-h-[168px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
+                className="glass-panel flex min-h-[146px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
                   <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
                     <MapPin className="size-4" />
                   </span>
                   <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Direcciones</span>
                 </div>
-                <div>
+                <div className="mt-2">
                   <p className="text-2xl font-semibold">{addresses.length}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Guardadas</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">Guardadas</p>
                 </div>
               </button>
               <button
                 type="button"
                 onClick={() => handleTabChange("favorites")}
-                className="glass-panel flex min-h-[168px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
+                className="glass-panel flex min-h-[146px] flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
                   <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
                     <Heart className="size-4" />
                   </span>
                   <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Favoritos</span>
                 </div>
-                <div>
+                <div className="mt-2">
                   <p className="text-2xl font-semibold">{favoriteProducts.length}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Productos guardados</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">Productos guardados</p>
                 </div>
               </button>
             </div>
@@ -1310,7 +1311,9 @@ function AccountPageContent({
             )}
             <nav className="mt-3 w-full space-y-1">
               {accountNavItems.map(({ key, label, icon: Icon }) => {
-                const isActive = key === "home" || key === "admin-panel" ? false : activeTab === key;
+                const isActive =
+                  (key === "admin-panel" && location.pathname === "/cuenta/panel") ||
+                  (key !== "home" && key !== "admin-panel" && activeTab === key);
                 return (
                   <button
                     type="button"
