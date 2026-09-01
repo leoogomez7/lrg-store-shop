@@ -207,7 +207,7 @@ function AccountPageContent({
   const accountNavItems = [
     { key: "home", label: "Inicio", icon: House, route: "/" },
     { key: "admin-panel", label: "Panel administrativo", icon: LayoutDashboard, route: "/cuenta/panel" },
-    { key: "orders", label: "Pedidos", icon: ShoppingCart, route: "/cuenta/pedidos" },
+    { key: "orders", label: "Compras", icon: ShoppingCart, route: "/cuenta/compras" },
     { key: "profile", label: "Perfil", icon: User, route: "/cuenta/perfil" },
     { key: "addresses", label: "Direcciones", icon: MapPin, route: "/cuenta/direcciones" },
     { key: "favorites", label: "Favoritos", icon: Heart, route: "/cuenta/favoritos" },
@@ -216,7 +216,7 @@ function AccountPageContent({
   type AccountNavKey = (typeof accountNavItems)[number]["key"];
 
   const resolveTabFromPath = (pathname: string): AccountTab => {
-    if (pathname === "/cuenta/pedidos") return "orders";
+    if (pathname === "/cuenta/compras" || pathname === "/cuenta/pedidos") return "orders";
     if (pathname === "/cuenta/perfil") return "profile";
     if (pathname === "/cuenta/direcciones") return "addresses";
     if (pathname === "/cuenta/favoritos") return "favorites";
@@ -241,7 +241,7 @@ function AccountPageContent({
 
     const routeMap: Record<AccountTab, string> = {
       inicio: "/cuenta/panel",
-      orders: "/cuenta/pedidos",
+      orders: "/cuenta/compras",
       profile: "/cuenta/perfil",
       addresses: "/cuenta/direcciones",
       favorites: "/cuenta/favoritos",
@@ -511,7 +511,7 @@ function AccountPageContent({
         <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
           <div className="flex flex-wrap items-center gap-2">
             <div className="order-1 basis-full shrink-0">
-              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Mis compras</p>
+              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Compras</p>
               <h1 className="mt-2 text-3xl font-semibold">Pedidos</h1>
             </div>
 
@@ -607,15 +607,25 @@ function AccountPageContent({
             </Table>
           </div>
 
-          <div className="mt-4 flex items-center justify-between gap-3 text-sm text-muted-foreground">
-            <span>{visibleOrders.length} de {visibleOrders.length} pedidos mostrados</span>
-            <div className="flex items-center gap-2">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              {visibleOrders.length} de {visibleOrders.length} compras mostradas
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-muted-foreground">Mostrar</div>
+              <Input value="10" readOnly className="h-8 w-20 bg-background/50 text-foreground" />
+              <Button type="button" size="sm" className="h-8 px-4">
+                <Check className="mr-2 h-4 w-4" />
+                Confirmar
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <Button type="button" variant="outline" size="sm" className="h-9 rounded-full px-4">
                 Principio
               </Button>
-              <Button type="button" variant="secondary" size="sm" className="h-9 w-9 rounded-full p-0">
-                1
-              </Button>
+              <div className="flex items-center gap-1 rounded-full border border-border/60 bg-background/50 px-3 py-1 text-sm text-foreground shadow-sm">
+                <button type="button" className="rounded-full bg-primary px-3 py-1 text-primary-foreground">1</button>
+              </div>
               <Button type="button" variant="outline" size="sm" className="h-9 rounded-full px-4">
                 Último
               </Button>

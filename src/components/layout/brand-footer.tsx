@@ -178,7 +178,7 @@ function BrandFooterContent({
     window.sessionStorage.getItem("lrg_admin_final_verified") === "true";
   const categories = section === "brand" ? brand.categories : [];
   const accountMenu = [
-    ["Pedidos", "/cuenta/pedidos", ShoppingCart],
+    ["Compras", "/cuenta/compras", ShoppingCart],
     ["Perfil", "/cuenta/perfil", User],
     ["Direcciones", "/cuenta/direcciones", MapPin],
     ["Favoritos", "/cuenta/favoritos", Heart],

@@ -556,7 +556,7 @@ function AdminDashboard() {
                       max={1000}
                       value={ordersPageSizeInput}
                       onChange={(e) => setOrdersPageSizeInput(e.target.value)}
-                      className="h-8 w-20"
+                      className="h-8 w-20 bg-background/50"
                     />
                     {(() => {
                       const v = Number(ordersPageSizeInput);
@@ -575,6 +575,7 @@ function AdminDashboard() {
                             setOrdersPage(0);
                           }}
                           disabled={!isValid || !isChanged}
+                          className="h-8 px-4"
                         >
                           <Check className="mr-2 h-4 w-4" />
                           Confirmar
@@ -589,15 +590,16 @@ function AdminDashboard() {
                       size="sm"
                       onClick={() => setOrdersPage(0)}
                       disabled={ordersPage === 0}
+                      className="h-9 rounded-full px-4"
                     >
                       Principio
                     </Button>
-                    <div className="flex items-center gap-1 rounded-full border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm">
+                    <div className="flex items-center gap-1 rounded-full border border-border/60 bg-background/50 px-3 py-1 text-sm text-foreground shadow-sm">
                       {Array.from({ length: ordersPages }, (_, index) => (
                         <button
                           key={index}
                           type="button"
-                          className={`rounded-full px-3 py-1 ${index === ordersPage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-slate-100"}`}
+                          className={`rounded-full px-3 py-1 ${index === ordersPage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-surface-2"}`}
                           onClick={() => setOrdersPage(index)}
                         >
                           {index + 1}
@@ -610,6 +612,7 @@ function AdminDashboard() {
                       size="sm"
                       onClick={() => setOrdersPage(ordersPages - 1)}
                       disabled={ordersPage >= ordersPages - 1}
+                      className="h-9 rounded-full px-4"
                     >
                       Último
                     </Button>
@@ -684,7 +687,7 @@ function AdminDashboard() {
                       max={1000}
                       value={stockPageSizeInput}
                       onChange={(e) => setStockPageSizeInput(e.target.value)}
-                      className="h-8 w-20"
+                      className="h-8 w-20 bg-background/50"
                     />
                     {(() => {
                       const v = Number(stockPageSizeInput);
@@ -703,6 +706,7 @@ function AdminDashboard() {
                             setStockPage(0);
                           }}
                           disabled={!isValid || !isChanged}
+                          className="h-8 px-4"
                         >
                           <Check className="mr-2 h-4 w-4" />
                           Confirmar
@@ -717,15 +721,16 @@ function AdminDashboard() {
                       size="sm"
                       onClick={() => setStockPage(0)}
                       disabled={stockPage === 0}
+                      className="h-9 rounded-full px-4"
                     >
                       Principio
                     </Button>
-                    <div className="flex flex-wrap items-center gap-1 rounded-full border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm">
+                    <div className="flex flex-wrap items-center gap-1 rounded-full border border-border/60 bg-background/50 px-3 py-1 text-sm text-foreground shadow-sm">
                       {Array.from({ length: stockPages }, (_, index) => (
                         <button
                           key={index}
                           type="button"
-                          className={`rounded-full px-3 py-1 ${index === stockPage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-slate-100"}`}
+                          className={`rounded-full px-3 py-1 ${index === stockPage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-surface-2"}`}
                           onClick={() => setStockPage(index)}
                         >
                           {index + 1}
@@ -738,6 +743,7 @@ function AdminDashboard() {
                       size="sm"
                       onClick={() => setStockPage(stockPages - 1)}
                       disabled={stockPage >= stockPages - 1}
+                      className="h-9 rounded-full px-4"
                     >
                       Último
                     </Button>
