@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
-import { Check, Download, Eye, EyeOff, FileText, Plus, Save, Search } from "lucide-react";
+import { Check, Eye, EyeOff, FileText, Plus, Save, Search, Sheet } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -223,7 +223,7 @@ function AdminSuppliers() {
             onClick={exportExcel}
             className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
           >
-            <Download className="size-4" />
+            <Sheet className="size-4" />
             Exportar Excel
           </Button>
           <Button onClick={exportPdf} className="gap-2 bg-red-600 text-white hover:bg-red-700">

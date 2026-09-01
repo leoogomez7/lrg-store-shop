@@ -619,7 +619,7 @@ function AccountPageContent({
                 ) : (
                   <TableRow>
                     <TableCell colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
-                      {userName ? "No tenés pedidos registrados aún." : "Inicia sesión para ver tus pedidos."}
+                      {userName ? "No se encontraron compras." : "Inicia sesión para ver tus pedidos."}
                     </TableCell>
                   </TableRow>
                 )}
