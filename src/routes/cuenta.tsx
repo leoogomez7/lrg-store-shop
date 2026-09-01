@@ -738,7 +738,7 @@ function AccountPageContent({
                 </div>
               </div>
               {addressValue.trim() && (
-                <div className="mt-5 space-y-4">
+                <div className="mt-5">
                   <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/60">
                     <div className="flex items-center justify-between border-b border-border/60 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                       <span>Verificación de ubicación</span>
@@ -762,43 +762,6 @@ function AccountPageContent({
                       </div>
                     )}
                   </div>
-                  
-                  {addressSuggestions.length > 0 && (
-                    <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/60">
-                      <div className="border-b border-border/60 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                        Direcciones sugeridas
-                      </div>
-                      <div className="max-h-48 overflow-y-auto">
-                        {addressSuggestions.map((suggestion, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => {
-                              setAddressValue(suggestion.value);
-                              setAddressSuggestions([]);
-                            }}
-                            className="w-full border-b border-border/60 px-3 py-3 text-left transition hover:bg-background/80"
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="mt-1 inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-border/80 bg-background/60 text-muted-foreground">
-                                <MapPin className="size-3" />
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                {suggestion.display ? (
-                                  <>
-                                    <p className="truncate text-sm font-semibold text-foreground">{suggestion.display.street}</p>
-                                    <p className="mt-1 truncate text-xs text-muted-foreground">{suggestion.display.city}</p>
-                                  </>
-                                ) : (
-                                  <p className="truncate text-sm font-semibold text-foreground">{suggestion.value}</p>
-                                )}
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -820,7 +783,7 @@ function AccountPageContent({
                         data: {
                           userId: user.id,
                           label: addressLabel.trim(),
-                          value: addressValue.trim(),
+                          value: addressValue,
                           isPrimary: addresses.length === 0 || !addresses.some((address) => address.isPrimary),
                         },
                       });
@@ -942,7 +905,7 @@ function AccountPageContent({
                                   userId: user.id,
                                   addressId: addressToUpdate.id,
                                   label: addressLabel.trim(),
-                                  value: addressValue.trim(),
+                                  value: addressValue,
                                 },
                               });
 
@@ -1139,11 +1102,13 @@ function AccountPageContent({
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 py-4 md:px-6 md:py-6">
-          <div className="min-h-[calc(100vh-8rem)] p-0 md:p-0">
-            {renderAccountContent()}
+        <main className="min-w-0 flex-1 px-3 py-3 md:px-4 md:py-4">
+          <div className="mx-auto w-full max-w-[1500px]">
+            <div className="min-h-[calc(100vh-8rem)] p-0 md:p-0">
+              {renderAccountContent()}
+            </div>
+            <BrandFooter brand={webDesignConfig} section="account" />
           </div>
-          <BrandFooter brand={webDesignConfig} section="account" />
         </main>
       </div>
 

@@ -213,8 +213,8 @@ function BrandFooterContent({
   );
 
   return (
-    <footer className={cn("mt-24 border-t border-border/60 bg-surface/40", section === "account" && "w-full")}> 
-      <div className={cn("grid w-full gap-10 py-14 lg:grid-cols-5", section === "account" ? "max-w-none px-0 sm:px-0" : "mx-auto max-w-7xl px-4 sm:px-6") }>
+    <footer className="mt-24 border-t border-border/60 bg-surface/40">
+      <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-5">
         {categories.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold">Categorías</h3>
@@ -323,13 +323,10 @@ function BrandFooterContent({
           </div>
         </div>
       </div>
-      <div className={cn("border-t border-border/60 py-6", section === "account" && "w-full")}>
+      <div className="border-t border-border/60 py-6">
         <Link
           to="/"
-          className={cn(
-            "block text-xs text-muted-foreground transition-colors hover:text-foreground",
-            section === "account" ? "max-w-none px-0" : "mx-auto max-w-7xl px-4 sm:px-6",
-          )}
+          className="mx-auto block max-w-7xl px-4 text-xs text-muted-foreground transition-colors hover:text-foreground sm:px-6"
         >
           © {new Date().getFullYear()} LRG Store Shop · {brand.name}. Todos los derechos reservados.
         </Link>
