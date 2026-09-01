@@ -1353,8 +1353,10 @@ function AccountPageContent({
         </aside>
 
         <main className="min-w-0 flex-1">
-          <div className="min-h-[calc(100vh-8rem)]">
-            {renderAccountContent()}
+          <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+            <div className="min-h-[calc(100vh-8rem)]">
+              {renderAccountContent()}
+            </div>
           </div>
           <BrandFooter brand={webDesignConfig} section="account" />
         </main>
