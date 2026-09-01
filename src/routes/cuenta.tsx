@@ -365,14 +365,23 @@ function AccountPageContent({
               "";
             const district = address.suburb || address.neighbourhood || address.city_district || "";
 
-            const street = [road, houseNumber].filter(Boolean).join(" ").trim();
+            const displayName = item.display_name || "";
+            const extractedFromDisplay = displayName.split(",")[0]?.trim() || "";
+            const fallbackStreetMatch = extractedFromDisplay.match(/^(.*?\d+\s*[A-Za-z]?)$/);
+            const fallbackStreet = fallbackStreetMatch?.[1]?.trim() || extractedFromDisplay;
+            const fallbackNumber = extractedFromDisplay.match(/(\d+\s*[A-Za-z0-9-]*)$/)?.[1]?.trim() || "";
+
+            const resolvedRoad = road || fallbackStreet.replace(new RegExp(`\\s*${fallbackNumber.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"), "").trim();
+            const resolvedHouseNumber = houseNumber || fallbackNumber || "";
+
+            const street = [resolvedRoad, resolvedHouseNumber].filter(Boolean).join(" ").trim();
             const area = [district, city].filter(Boolean).join(", ").trim();
             const value = [street, area].filter(Boolean).join(", ").trim();
 
             return {
-              street: street || (item.display_name || "").split(",")[0]?.trim() || "",
-              city: area || (item.display_name || "").split(",").slice(1).join(", ").trim() || "",
-              value: value || item.display_name || "Dirección",
+              street: street || displayName.split(",")[0]?.trim() || "",
+              city: area || displayName.split(",").slice(1).join(", ").trim() || "",
+              value: value || displayName || "Dirección",
             };
           };
 
