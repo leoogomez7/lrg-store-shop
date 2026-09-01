@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  ArrowUpDown,
   Check,
   Download,
   Eye,
+  FileText,
+  Filter,
   Heart,
   House,
   LayoutDashboard,
@@ -19,6 +22,8 @@ import {
   Paperclip,
   Plus,
   Save,
+  Search,
+  Sheet,
   ShoppingCart,
   Trash2,
   User,
@@ -503,57 +508,120 @@ function AccountPageContent({
 
     if (activeTab === "orders") {
       return (
-        <div className="overflow-hidden">
-          <Table containerClassName="overflow-hidden">
-            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background [&_th]:shadow-[0_1px_0_var(--border)]">
-              <TableRow>
-                <TableHead>Pedido</TableHead>
-                <TableHead>Tienda</TableHead>
-                <TableHead>Fecha de compra</TableHead>
-                <TableHead>Estado de envío</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Archivos adjuntos</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleOrders.length > 0 ? (
-                visibleOrders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>{brands[order.brand].shortName}</TableCell>
-                    <TableCell>{formatDate(order.date)}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className="capitalize"
-                        variant={order.deliveryStatus === "Enviado" ? "success" : "outline"}
-                      >
-                        {order.deliveryStatus ?? "Pendiente"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
-                    <TableCell>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={!order.attachments?.length}
-                        onClick={() => setAttachmentsOrder(order)}
-                        className="gap-1.5 text-xs"
-                      >
-                        <Paperclip className="size-4" /> Mostrar
-                      </Button>
+        <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="order-1 basis-full shrink-0">
+              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Mis compras</p>
+              <h1 className="mt-2 text-3xl font-semibold">Pedidos</h1>
+            </div>
+
+            <div className="order-2 relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar pedido"
+                className="h-9 pl-9"
+                readOnly
+                aria-label="Buscar pedido"
+              />
+            </div>
+
+            <div className="order-3 flex shrink-0 flex-wrap items-center gap-2">
+              <Button type="button" variant="outline" className="h-9 shrink-0 gap-1.5 px-2.5">
+                <ArrowUpDown className="size-4 text-white" />
+                Ordenar por
+              </Button>
+
+              <Button type="button" variant="outline" className="h-9 shrink-0 gap-1.5 px-2.5">
+                <Filter className="size-4 text-white" />
+                Filtros
+              </Button>
+
+              <Button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
+              >
+                <Sheet className="size-4" />
+                Exportar Excel
+              </Button>
+
+              <Button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
+              >
+                <FileText className="size-4" />
+                Exportar PDF
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-hidden rounded-2xl border border-border/60 bg-muted/20 backdrop-blur-sm">
+            <Table containerClassName="overflow-hidden">
+              <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+                <TableRow>
+                  <TableHead>Pedido</TableHead>
+                  <TableHead>Tienda</TableHead>
+                  <TableHead>Fecha de compra</TableHead>
+                  <TableHead>Estado de envío</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>Archivos adjuntos</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleOrders.length > 0 ? (
+                  visibleOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">{order.id}</TableCell>
+                      <TableCell>{brands[order.brand].shortName}</TableCell>
+                      <TableCell>{formatDate(order.date)}</TableCell>
+                      <TableCell>
+                        <Badge
+                          className="capitalize"
+                          variant={order.deliveryStatus === "Enviado" ? "success" : "outline"}
+                        >
+                          {order.deliveryStatus ?? "Pendiente"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={!order.attachments?.length}
+                          onClick={() => setAttachmentsOrder(order)}
+                          className="gap-1.5 text-xs"
+                        >
+                          <Paperclip className="size-4" /> Mostrar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
+                      {userName ? "No tenés pedidos registrados aún." : "Inicia sesión para ver tus pedidos."}
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
-                    {userName ? "No tenés pedidos registrados aún." : "Inicia sesión para ver tus pedidos."}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-3 text-sm text-muted-foreground">
+            <span>{visibleOrders.length} de {visibleOrders.length} pedidos mostrados</span>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" className="h-9 rounded-full px-4">
+                Principio
+              </Button>
+              <Button type="button" variant="secondary" size="sm" className="h-9 w-9 rounded-full p-0">
+                1
+              </Button>
+              <Button type="button" variant="outline" size="sm" className="h-9 rounded-full px-4">
+                Último
+              </Button>
+            </div>
+          </div>
+
           <Dialog
             open={attachmentsOrder !== null}
             onOpenChange={(open) => !open && setAttachmentsOrder(null)}
@@ -586,7 +654,7 @@ function AccountPageContent({
               </div>
             </DialogContent>
           </Dialog>
-        </div>
+        </main>
       );
     }
 

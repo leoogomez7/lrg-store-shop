@@ -68,12 +68,6 @@ function AdminSuppliers() {
   const [pageSizeInput, setPageSizeInput] = React.useState("10");
   const [selectedSupplierKeys, setSelectedSupplierKeys] = React.useState<string[]>([]);
 
-  const visibleSupplierKeys = visibleRows.map((row) => row.key);
-  const allVisibleSuppliersSelected =
-    visibleSupplierKeys.length > 0 && visibleSupplierKeys.every((key) => selectedSupplierKeys.includes(key));
-  const someVisibleSuppliersSelected =
-    visibleSupplierKeys.some((key) => selectedSupplierKeys.includes(key));
-
   const toggleSupplierSelection = (key: string, checked: boolean) => {
     setSelectedSupplierKeys((current) =>
       checked ? [...new Set([...current, key])] : current.filter((item) => item !== key),
@@ -160,6 +154,11 @@ function AdminSuppliers() {
   );
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const visibleRows = filteredRows.slice(page * pageSize, page * pageSize + pageSize);
+  const visibleSupplierKeys = visibleRows.map((row) => row.key);
+  const allVisibleSuppliersSelected =
+    visibleSupplierKeys.length > 0 && visibleSupplierKeys.every((key) => selectedSupplierKeys.includes(key));
+  const someVisibleSuppliersSelected =
+    visibleSupplierKeys.some((key) => selectedSupplierKeys.includes(key));
   const hasPreviousPage = page > 0;
   const hasNextPage = page + 1 < totalPages;
 
