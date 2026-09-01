@@ -331,7 +331,7 @@ function AccountPageContent({
       try {
         setIsMapLoading(true);
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(query)}`,
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&addressdetails=1&q=${encodeURIComponent(query)}`,
           { headers: { "Accept-Language": "es" } },
         );
         const data = (await response.json()) as Array<{
@@ -342,40 +342,62 @@ function AccountPageContent({
         }>;
 
         if (data.length > 0) {
+          const normalizeAddressText = (value: string) =>
+            value
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-z0-9 ]/g, " ")
+              .replace(/\s+/g, " ")
+              .trim();
+
           const formatAddress = (item: { display_name?: string; address?: Record<string, string> }) => {
             const address = item.address ?? {};
             const road = address.road || address.pedestrian || address.path || address.street || "";
-            const houseNumber = address.house_number || "";
+            const houseNumber = address.house_number || address.house || "";
             const city =
               address.city ||
               address.town ||
               address.village ||
               address.municipality ||
               address.county ||
+              address.state ||
               "";
+            const district = address.suburb || address.neighbourhood || address.city_district || "";
 
-            const street = [road, houseNumber].filter(Boolean).join(" ");
+            const street = [road, houseNumber].filter(Boolean).join(" ").trim();
+            const area = [district, city].filter(Boolean).join(", ").trim();
+            const value = [street, area].filter(Boolean).join(", ").trim();
+
             return {
               street: street || (item.display_name || "").split(",")[0]?.trim() || "",
-              city: city || (item.display_name || "").split(",").slice(1).join(", ").trim() || "",
+              city: area || (item.display_name || "").split(",").slice(1).join(", ").trim() || "",
+              value: value || item.display_name || "Dirección",
             };
           };
 
-          const suggestions = data.map((item) => {
+          const seen = new Set<string>();
+          const suggestions = data.reduce<Array<{ label: string; value: string; display?: { street: string; city: string }; lat?: string; lon?: string }>>((acc, item) => {
             const formatted = formatAddress(item);
-            const street = formatted.street || item.display_name || "Dirección";
-            const city = formatted.city || "";
-            const value = [street, city].filter(Boolean).join(", ");
+            const candidate = formatted.value;
+            const key = normalizeAddressText(candidate);
 
-            return {
-              label: item.display_name || value || "Dirección",
-              value,
-              display: { street, city },
+            if (!candidate || !key || seen.has(key)) {
+              return acc;
+            }
+
+            seen.add(key);
+            acc.push({
+              label: candidate,
+              value: candidate,
+              display: { street: formatted.street, city: formatted.city },
               lat: item.lat,
               lon: item.lon,
-            };
-          });
-          setAddressSuggestions(suggestions);
+            });
+            return acc;
+          }, []);
+
+          setAddressSuggestions(suggestions.slice(0, 3));
 
           const location = data[0];
           if (location?.lat && location?.lon) {
@@ -1107,7 +1129,7 @@ function AccountPageContent({
         </aside>
 
         <main className="min-w-0 flex-1 px-4 py-4 md:px-6 md:py-6">
-          <div className="min-h-[calc(100vh-8rem)] rounded-2xl border border-border/60 p-6">
+          <div className="min-h-[calc(100vh-8rem)] p-0 md:p-0">
             {renderAccountContent()}
           </div>
           <BrandFooter brand={webDesignConfig} section="account" />
