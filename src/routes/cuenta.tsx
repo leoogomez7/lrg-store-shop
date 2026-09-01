@@ -625,12 +625,13 @@ function AccountPageContent({
 
     if (activeTab === "orders") {
       return (
-        <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+        <div className="space-y-6">
+          <div className="mb-2">
+            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Compras</p>
+            <h1 className="mt-2 text-3xl font-semibold">Pedidos</h1>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
-            <div className="order-1 basis-full shrink-0">
-              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Compras</p>
-              <h1 className="mt-2 text-3xl font-semibold">Pedidos</h1>
-            </div>
 
             <div className="order-2 relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -837,7 +838,7 @@ function AccountPageContent({
               </div>
             </DialogContent>
           </Dialog>
-        </main>
+        </div>
       );
     }
 
