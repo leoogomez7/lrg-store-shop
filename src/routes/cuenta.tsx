@@ -197,6 +197,7 @@ function AccountPageContent({
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
+  const [addressSuggestions, setAddressSuggestions] = useState<Array<{ label: string; value: string; lat?: string; lon?: string }>>([]);
 
   const accountNavItems = [
     { key: "home", label: "Inicio", icon: House, route: "/" },
@@ -322,6 +323,7 @@ function AccountPageContent({
     const query = addressValue.trim();
     if (!query) {
       setMapPreviewUrl(null);
+      setAddressSuggestions([]);
       return;
     }
 
@@ -329,27 +331,40 @@ function AccountPageContent({
       try {
         setIsMapLoading(true);
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(query)}`,
           { headers: { "Accept-Language": "es" } },
         );
-        const data = (await response.json()) as Array<{ lat?: string; lon?: string }>;
-        const location = data[0];
-        if (!location?.lat || !location?.lon) {
+        const data = (await response.json()) as Array<{ lat?: string; lon?: string; display_name?: string }>;
+        
+        if (data.length > 0) {
+          // Mostrar sugerencias
+          const suggestions = data.map((item) => ({
+            label: item.display_name || "Dirección",
+            value: item.display_name || "",
+            lat: item.lat,
+            lon: item.lon,
+          }));
+          setAddressSuggestions(suggestions);
+          
+          // Mostrar mapa del primer resultado
+          const location = data[0];
+          if (location?.lat && location?.lon) {
+            const lat = Number(location.lat);
+            const lon = Number(location.lon);
+            if (Number.isFinite(lat) && Number.isFinite(lon)) {
+              const margin = 0.004;
+              const bbox = `${(lon - margin).toFixed(6)},${(lat - margin).toFixed(6)},${(lon + margin).toFixed(6)},${(lat + margin).toFixed(6)}`;
+              setMapPreviewUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`);
+            }
+          }
+        } else {
           setMapPreviewUrl(null);
-          return;
+          setAddressSuggestions([]);
         }
-        const lat = Number(location.lat);
-        const lon = Number(location.lon);
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-          setMapPreviewUrl(null);
-          return;
-        }
-        const margin = 0.004;
-        const bbox = `${(lon - margin).toFixed(6)},${(lat - margin).toFixed(6)},${(lon + margin).toFixed(6)},${(lat + margin).toFixed(6)}`;
-        setMapPreviewUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`);
       } catch (error) {
         console.error("Error generando vista de mapa:", error);
         setMapPreviewUrl(null);
+        setAddressSuggestions([]);
       } finally {
         setIsMapLoading(false);
       }
@@ -383,7 +398,7 @@ function AccountPageContent({
                   <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Pedidos</span>
                 </div>
                 <p className="text-2xl font-semibold">{visibleOrders.length}</p>
-                <p className="mt-1 text-sm text-muted-foreground">Total registrados</p>
+                <p className="mt-1 text-sm text-muted-foreground">Compras</p>
               </button>
               <button
                 type="button"
@@ -394,8 +409,8 @@ function AccountPageContent({
                   <User className="size-5 text-primary" />
                   <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Perfil</span>
                 </div>
-                <p className="text-sm text-muted-foreground">Datos personales</p>
                 <p className="mt-2 text-base font-medium">Editar información</p>
+                <p className="text-sm text-muted-foreground">Datos personales</p>
               </button>
               <button
                 type="button"
@@ -556,26 +571,25 @@ function AccountPageContent({
               </div>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-3">
               <div className="space-y-2.5">
                 <Label htmlFor="account-email" className="text-sm font-medium text-foreground">Email</Label>
                 <Input id="account-email" type="email" value={userEmail} disabled className="h-10 border-border/60 bg-muted/50 text-foreground opacity-60" />
-                <p className="text-xs text-muted-foreground leading-relaxed">Este email es el de acceso y no se puede modificar desde aquí.</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">Email de acceso, no se puede modificar desde aquí.</p>
               </div>
               <div className="space-y-2.5">
                 <Label htmlFor="account-phone" className="text-sm font-medium text-foreground">Teléfono</Label>
                 <Input id="account-phone" value={userPhone} onChange={(e) => setUserPhone(e.target.value)} placeholder="Ingresá tu teléfono" className="h-10 border-border/60" />
               </div>
-            </div>
-
-            <div className="space-y-2.5">
-              <Label htmlFor="account-primary-address" className="text-sm font-medium text-foreground">Dirección</Label>
-              <Input
-                id="account-primary-address"
-                value={primaryAddress?.value ?? "Sin dirección principal"}
-                disabled
-                className="h-10 border-border/60 bg-muted/50 text-foreground opacity-80"
-              />
+              <div className="space-y-2.5">
+                <Label htmlFor="account-primary-address" className="text-sm font-medium text-foreground">Dirección</Label>
+                <Input
+                  id="account-primary-address"
+                  value={primaryAddress?.value ?? "Sin dirección principal"}
+                  disabled
+                  className="h-10 border-border/60 bg-muted/50 text-foreground opacity-80"
+                />
+              </div>
             </div>
 
             <Button
@@ -638,13 +652,14 @@ function AccountPageContent({
               <p className="text-sm text-muted-foreground">Agregá, editá o borrá tus direcciones de envío.</p>
             </div>
             <Button
-              size="sm"
+              size="lg"
               className="gap-2 bg-[#39a9de] text-white hover:bg-[#2f9ed3] shadow-[0_8px_20px_rgba(57,169,222,0.35)]"
               onClick={() => {
                 setShowAddForm((current) => !current);
                 setEditingIndex(null);
                 setAddressLabel("");
                 setAddressValue("");
+                setAddressSuggestions([]);
               }}
             >
               <Plus className="size-4" /> Nueva dirección
@@ -664,26 +679,56 @@ function AccountPageContent({
                 </div>
               </div>
               {addressValue.trim() && (
-                <div className="mt-5 overflow-hidden rounded-2xl border border-border/60 bg-background/60">
-                  <div className="flex items-center justify-between border-b border-border/60 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    <span>Verificación de ubicación</span>
-                    <MapPin className="size-3.5" />
-                  </div>
-                  {isMapLoading ? (
-                    <div className="flex h-52 items-center justify-center text-sm text-muted-foreground">
-                      Buscando ubicación…
+                <div className="mt-5 space-y-4">
+                  <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/60">
+                    <div className="flex items-center justify-between border-b border-border/60 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                      <span>Verificación de ubicación</span>
+                      <MapPin className="size-3.5" />
                     </div>
-                  ) : mapPreviewUrl ? (
-                    <iframe
-                      title="Mapa de la dirección"
-                      src={mapPreviewUrl}
-                      className="h-52 w-full border-0"
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                    />
-                  ) : (
-                    <div className="flex h-52 items-center justify-center px-4 text-center text-sm text-muted-foreground">
-                      No encontramos una ubicación precisa para esa dirección. Revisá el texto o agregá barrio, ciudad y país.
+                    {isMapLoading ? (
+                      <div className="flex h-52 items-center justify-center text-sm text-muted-foreground">
+                        Buscando ubicación…
+                      </div>
+                    ) : mapPreviewUrl ? (
+                      <iframe
+                        title="Mapa de la dirección"
+                        src={mapPreviewUrl}
+                        className="h-52 w-full border-0"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                    ) : (
+                      <div className="flex h-52 items-center justify-center px-4 text-center text-sm text-muted-foreground">
+                        No encontramos una ubicación precisa para esa dirección. Revisá el texto o agregá barrio, ciudad y país.
+                      </div>
+                    )}
+                  </div>
+                  
+                  {addressSuggestions.length > 0 && (
+                    <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/60">
+                      <div className="border-b border-border/60 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                        Direcciones sugeridas
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {addressSuggestions.map((suggestion, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setAddressValue(suggestion.value);
+                              setAddressSuggestions([]);
+                            }}
+                            className="w-full border-b border-border/60 px-3 py-2.5 text-left text-sm text-foreground hover:bg-background/80 transition"
+                          >
+                            <div className="flex items-start gap-2">
+                              <MapPin className="size-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-foreground">{suggestion.value}</p>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -691,34 +736,47 @@ function AccountPageContent({
 
               <div className="mt-5 flex flex-wrap gap-3">
                 <Button
-                  size="sm"
-                  className="h-9 px-5 bg-[#39a9de] text-white hover:bg-[#2f9ed3]"
+                  size="lg"
+                  className="bg-[#39a9de] text-white hover:bg-[#2f9ed3]"
                   onClick={async () => {
-                    if (!addressLabel.trim() || !addressValue.trim()) return;
-                    const result = await saveUserAddress({
-                      data: {
-                        userId: user?.id || "",
-                        label: addressLabel.trim(),
-                        value: addressValue.trim(),
-                        isPrimary: addresses.length === 0 || !addresses.some((address) => address.isPrimary),
-                      },
-                    });
-                    if (result) {
-                      setAddresses((current) => [
-                        ...current,
-                        {
-                          id: result.id,
-                          label: result.label,
-                          value: result.value,
-                          isPrimary: result.isPrimary ?? false,
+                    if (!addressLabel.trim() || !addressValue.trim()) {
+                      toast.error("Por favor completa etiqueta y dirección");
+                      return;
+                    }
+                    if (!user?.id) {
+                      toast.error("Error: usuario no identificado");
+                      return;
+                    }
+                    try {
+                      const result = await saveUserAddress({
+                        data: {
+                          userId: user.id,
+                          label: addressLabel.trim(),
+                          value: addressValue.trim(),
+                          isPrimary: addresses.length === 0 || !addresses.some((address) => address.isPrimary),
                         },
-                      ]);
-                      setAddressLabel("");
-                      setAddressValue("");
-                      setMapPreviewUrl(null);
-                      setShowAddForm(false);
-                      toast.success("Dirección guardada correctamente");
-                    } else {
+                      });
+                      if (result && result.id) {
+                        setAddresses((current) => [
+                          ...current,
+                          {
+                            id: result.id,
+                            label: result.label,
+                            value: result.value,
+                            isPrimary: result.isPrimary ?? false,
+                          },
+                        ]);
+                        setAddressLabel("");
+                        setAddressValue("");
+                        setMapPreviewUrl(null);
+                        setAddressSuggestions([]);
+                        setShowAddForm(false);
+                        toast.success("Dirección guardada correctamente");
+                      } else {
+                        toast.error("Error al guardar la dirección");
+                      }
+                    } catch (error) {
+                      console.error("Error guardando dirección:", error);
                       toast.error("Error al guardar la dirección");
                     }
                   }}
