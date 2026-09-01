@@ -1285,7 +1285,7 @@ function AccountPageContent({
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
       <div className="relative flex min-h-screen">
         <aside className={cn(
-          "hidden shrink-0 border-r border-border/60 bg-surface/40 transition-[width] duration-200 lg:block",
+          "hidden shrink-0 border-r border-border/60 bg-background/50 transition-[width] duration-200 lg:block",
           sidebarCollapsed ? "w-20" : "w-64",
         )}>
           <div
@@ -1348,7 +1348,7 @@ function AccountPageContent({
                       "group relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-left text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
                       sidebarCollapsed && "justify-center px-2",
                       isActive
-                        ? "border-white/10 bg-surface-2 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                        ? "border-white/10 bg-background/80 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
                         : "text-muted-foreground",
                     )}
                   >

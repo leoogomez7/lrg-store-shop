@@ -304,14 +304,23 @@ function AdminDashboard() {
         </Select>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
-          <div key={card.label} className="glass-panel w-full rounded-xl p-3">
-            <span className="gradient-brand grid size-7 place-items-center rounded-md">
-              <card.icon className="size-3.5 text-white" />
-            </span>
-            <p className="mt-2 text-[11px] leading-tight text-muted-foreground">{card.label}</p>
-            <p className="font-display mt-1 text-lg font-semibold leading-tight">{card.value}</p>
+          <div
+            key={card.label}
+            className="glass-panel flex min-h-36.5 flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
+          >
+            <div className="flex items-center gap-3">
+              <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
+                <card.icon className="size-4" />
+              </span>
+              <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                {card.label}
+              </span>
+            </div>
+            <div className="mt-2">
+              <p className="text-2xl font-semibold leading-tight">{card.value}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -507,7 +516,7 @@ function AdminDashboard() {
           <div className="flex items-center justify-between gap-4 border-b border-border/60 p-5">
             <h2 className="font-display font-semibold">Últimos pedidos</h2>
           </div>
-          <Table className="text-center [&_td]:text-center [&_th]:text-center">
+          <Table className="w-full text-center [&_td]:text-center [&_th]:text-center">
             <TableHeader>
               <TableRow>
                 <TableHead>Pedido</TableHead>
@@ -540,7 +549,7 @@ function AdminDashboard() {
             </TableBody>
           </Table>
           {recentOrders.length > 0 && (
-            <div className="border-t border-border/60 px-5 py-4">
+            <div className="border-t border-border/60 bg-background/30 px-5 py-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <p className="text-xs text-muted-foreground">
@@ -671,7 +680,7 @@ function AdminDashboard() {
             ) : null}
           </ul>
           {searchedStockItems.length > 0 && (
-            <div className="border-t border-border/60 px-5 py-4">
+            <div className="border-t border-border/60 bg-background/30 px-5 py-4">
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <p className="text-xs text-muted-foreground">
