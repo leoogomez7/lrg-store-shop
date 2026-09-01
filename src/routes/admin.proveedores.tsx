@@ -290,7 +290,7 @@ function AdminSuppliers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div className="mt-2 flex basis-full flex-wrap items-center gap-2">
+      <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
         <span className="text-sm font-medium">Seleccionar</span>
         <Checkbox
           checked={

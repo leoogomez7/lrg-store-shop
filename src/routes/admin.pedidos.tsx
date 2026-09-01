@@ -909,6 +909,7 @@ function AdminOrders() {
     pageSize && pageSize > 0 ? Math.max(1, Math.ceil(results.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
+  const canEditPageSize = totalPages > 1;
   const activeFilterCount =
     deliveryFilter.length +
     paymentFilter.length +
@@ -2188,6 +2189,8 @@ function AdminOrders() {
             value={pageSizeInput}
             placeholder="Ej: 10"
             onChange={(e) => setPageSizeInput(e.target.value)}
+            disabled={!canEditPageSize}
+            readOnly={!canEditPageSize}
             className="h-8 w-28"
           />
 
@@ -2199,12 +2202,13 @@ function AdminOrders() {
               <Button
                 size="sm"
                 onClick={() => {
-                  if (!isValid || !isChanged) return;
+                  if (!canEditPageSize || !isValid || !isChanged) return;
                   const final = Math.min(1000, Math.floor(v));
                   setPageSize(final);
+                  setPageSizeInput(String(final));
                   setPage(0);
                 }}
-                disabled={!isValid || !isChanged}
+                disabled={!canEditPageSize || !isValid || !isChanged}
               >
                 <Check className="h-4 w-4 mr-2" />
                 Confirmar
@@ -2218,7 +2222,7 @@ function AdminOrders() {
             variant="outline"
             size="sm"
             onClick={() => setPage(0)}
-            disabled={!hasPreviousPage}
+            disabled={!hasPreviousPage || !canEditPageSize}
           >
             Principio
           </Button>
@@ -2229,6 +2233,7 @@ function AdminOrders() {
                 type="button"
                 className={`rounded-full px-3 py-1 ${index === page ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-slate-100"}`}
                 onClick={() => setPage(index)}
+                disabled={!canEditPageSize}
               >
                 {index + 1}
               </button>
@@ -2239,7 +2244,7 @@ function AdminOrders() {
             variant="outline"
             size="sm"
             onClick={() => setPage(totalPages - 1)}
-            disabled={!hasNextPage}
+            disabled={!hasNextPage || !canEditPageSize}
           >
             Último
           </Button>
