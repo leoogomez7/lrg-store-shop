@@ -803,7 +803,7 @@ function AccountPageContent({
               >
                 Principio
               </Button>
-              <div className="flex items-center gap-1 rounded-full border border-border/60 bg-background/50 px-3 py-1 text-sm text-foreground shadow-sm">
+              <div className="flex items-center gap-1 rounded-full bg-background/50 px-3 py-1 text-sm text-foreground shadow-sm">
                 {Array.from({ length: totalOrdersPages }, (_, index) => (
                   <button
                     key={index}
