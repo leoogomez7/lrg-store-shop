@@ -10,7 +10,7 @@ import { products, saveProducts } from "@/data/products";
 import { readTrash, removeFromTrash, type TrashEntry } from "@/data/trash";
 
 export const Route = createFileRoute("/admin/papelera")({
-  head: () => ({ meta: [{ title: "LRG Store Shop - Papelera" }] }),
+  head: () => ({ meta: [{ title: "Administrador" }] }),
   component: AdminTrash,
 });
 

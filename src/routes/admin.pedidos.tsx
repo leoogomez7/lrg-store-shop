@@ -35,6 +35,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -452,12 +453,12 @@ export const Route = createFileRoute("/admin/pedidos")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
   head: () => ({
     meta: [
-      { title: "LRG Store Shop - Administrador" },
+      { title: "Administrador" },
       {
         name: "description",
         content: "Seguimiento de pedidos de los tres sectores con estados y detalle de items.",
       },
-      { property: "og:title", content: "LRG Store Shop - Administrador" },
+      { property: "og:title", content: "Administrador" },
       { property: "og:description", content: "Gestión de pedidos del negocio LRG." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

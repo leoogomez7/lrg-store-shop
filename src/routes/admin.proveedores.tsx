@@ -34,7 +34,7 @@ export const Route = createFileRoute("/admin/proveedores")({
       context.queryClient.ensureQueryData(orderQueries.list()),
     ]);
   },
-  head: () => ({ meta: [{ title: "LRG Store Shop - Proveedores" }] }),
+  head: () => ({ meta: [{ title: "Administrador" }] }),
   component: AdminSuppliers,
 });
 
