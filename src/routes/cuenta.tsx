@@ -409,8 +409,8 @@ function AccountPageContent({
                   <User className="size-5 text-primary" />
                   <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Perfil</span>
                 </div>
-                <p className="mt-2 text-base font-medium">Editar información</p>
-                <p className="text-sm text-muted-foreground">Datos personales</p>
+                <p className="text-base font-medium">Editar información</p>
+                <p className="mt-1 text-sm text-muted-foreground">Datos personales</p>
               </button>
               <button
                 type="button"
@@ -1072,7 +1072,7 @@ function AccountPageContent({
         </aside>
 
         <main className="min-w-0 flex-1 px-4 py-4 md:px-6 md:py-6">
-          <div className="min-h-[calc(100vh-8rem)] rounded-2xl border border-border/60 bg-[#0d1a2a]/90 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+          <div className="min-h-[calc(100vh-8rem)] rounded-2xl border border-border/60 p-6">
             {renderAccountContent()}
           </div>
           <BrandFooter brand={webDesignConfig} section="account" />
