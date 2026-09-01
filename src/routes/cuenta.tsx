@@ -334,40 +334,55 @@ function AccountPageContent({
           `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(query)}`,
           { headers: { "Accept-Language": "es" } },
         );
-        const data = (await response.json()) as Array<{ lat?: string; lon?: string; display_name?: string; address?: Record<string, string> }>;
-        
+        const data = (await response.json()) as Array<{
+          lat?: string;
+          lon?: string;
+          display_name?: string;
+          address?: Record<string, string>;
+        }>;
+
         if (data.length > 0) {
-          // Función para formatear la dirección de forma más clara
-          const formatAddress = (displayName: string) => {
-            const parts = displayName.split(',').map(p => p.trim());
-            // Tomar los primeros 2-3 elementos más relevantes
-            const street = parts[0] || "";
-            const city = parts.find(p => !p.match(/^\d+/) && p.length < 30) || parts[parts.length - 2] || "";
-            return { street: street.substring(0, 50), city: city.substring(0, 40) };
+          const formatAddress = (item: { display_name?: string; address?: Record<string, string> }) => {
+            const address = item.address ?? {};
+            const road = address.road || address.pedestrian || address.path || address.street || "";
+            const houseNumber = address.house_number || "";
+            const city =
+              address.city ||
+              address.town ||
+              address.village ||
+              address.municipality ||
+              address.county ||
+              "";
+
+            const street = [road, houseNumber].filter(Boolean).join(" ");
+            return {
+              street: street || (item.display_name || "").split(",")[0]?.trim() || "",
+              city: city || (item.display_name || "").split(",").slice(1).join(", ").trim() || "",
+            };
           };
 
-          // Mostrar sugerencias
           const suggestions = data.map((item) => {
-            const formatted = formatAddress(item.display_name || "");
+            const formatted = formatAddress(item);
+            const street = formatted.street || item.display_name || "Dirección";
+            const city = formatted.city || "";
+            const value = [street, city].filter(Boolean).join(", ");
+
             return {
-              label: item.display_name || "Dirección",
-              value: item.display_name || "",
-              display: formatted,
+              label: item.display_name || value || "Dirección",
+              value,
+              display: { street, city },
               lat: item.lat,
               lon: item.lon,
             };
           });
           setAddressSuggestions(suggestions);
-          
-          // Mostrar mapa del primer resultado
+
           const location = data[0];
           if (location?.lat && location?.lon) {
             const lat = Number(location.lat);
             const lon = Number(location.lon);
             if (Number.isFinite(lat) && Number.isFinite(lon)) {
-              const margin = 0.004;
-              const bbox = `${(lon - margin).toFixed(6)},${(lat - margin).toFixed(6)},${(lon + margin).toFixed(6)},${(lat + margin).toFixed(6)}`;
-              setMapPreviewUrl(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`);
+              setMapPreviewUrl(`https://maps.google.com/maps?q=${lat},${lon}&z=15&output=embed&hl=es`);
             }
           }
         } else {
@@ -390,7 +405,7 @@ function AccountPageContent({
     if (activeTab === "inicio") {
       return (
         <div className="space-y-6">
-          <div className="rounded-3xl border border-border/60 bg-surface/90 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+          <div className="space-y-6">
             <div className="mb-6 flex items-center gap-4">
               <span className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
                 <User className="size-5" />
@@ -457,7 +472,7 @@ function AccountPageContent({
 
     if (activeTab === "orders") {
       return (
-        <div className="overflow-hidden rounded-3xl border border-border/60 bg-surface/90 shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+        <div className="overflow-hidden">
           <Table containerClassName="overflow-hidden">
             <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
@@ -546,7 +561,7 @@ function AccountPageContent({
 
     if (activeTab === "profile") {
       return userName ? (
-        <div className="rounded-3xl border border-border/60 bg-surface/90 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+        <div className="space-y-6">
           <div className="mb-6 flex items-center gap-3">
             <div className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary">
               <User className="size-5" />
@@ -650,7 +665,7 @@ function AccountPageContent({
           </div>
         </div>
       ) : (
-        <div className="rounded-3xl border border-border/60 bg-surface/90 p-10 text-center text-base text-muted-foreground shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+        <div className="text-center text-base text-muted-foreground py-10">
           Inicia sesión para ver y editar tu perfil.
         </div>
       );
@@ -658,7 +673,7 @@ function AccountPageContent({
 
     if (activeTab === "addresses") {
       return userName ? (
-        <div className="rounded-3xl border border-border/60 bg-surface/90 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+        <div className="space-y-6">
           <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-semibold">Direcciones</h2>
@@ -805,8 +820,8 @@ function AccountPageContent({
                 </Button>
                 <Button
                   variant="destructive"
-                  size="sm"
-                  className="h-9 px-5"
+                  size="lg"
+                  className="h-11 px-5"
                   onClick={() => {
                     setShowAddForm(false);
                     setAddressLabel("");
@@ -871,8 +886,8 @@ function AccountPageContent({
 
                         <div className="flex flex-wrap gap-3 pt-1">
                           <Button
-                            size="sm"
-                            className="h-9 px-5 bg-[#39a9de] text-white hover:bg-[#2f9ed3]"
+                            size="lg"
+                            className="h-11 px-5 bg-[#39a9de] text-white hover:bg-[#2f9ed3]"
                             onClick={async () => {
                               if (!addressLabel.trim() || !addressValue.trim()) return;
                               const addressToUpdate = addresses[index];
@@ -917,7 +932,7 @@ function AccountPageContent({
                           >
                             <Save className="mr-2 size-4 text-current" /> Guardar
                           </Button>
-                          <Button variant="destructive" size="sm" className="h-9 px-5" onClick={() => { setEditingIndex(null); setAddressLabel(""); setAddressValue(""); }}>
+                          <Button variant="destructive" size="lg" className="h-11 px-5" onClick={() => { setEditingIndex(null); setAddressLabel(""); setAddressValue(""); }}>
                             ✕ Cancelar
                           </Button>
                         </div>
@@ -960,7 +975,7 @@ function AccountPageContent({
           <ConfirmDialog open={deleteOpen} onOpenChange={setDeleteOpen} title="¿Borrar dirección?" description="Esta acción eliminará la dirección seleccionada." confirmLabel="Borrar" cancelLabel="Cancelar" onConfirm={async () => { if (deleteIndex === null) return; const addressToDelete = addresses[deleteIndex]; if (addressToDelete?.id) { await deleteUserAddress({ data: { addressId: addressToDelete.id } }); } setAddresses((current) => current.filter((_, itemIndex) => itemIndex !== deleteIndex)); setDeleteIndex(null); }} />
         </div>
       ) : (
-        <div className="rounded-3xl border border-border/60 bg-surface/90 p-10 text-center text-base text-muted-foreground shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+        <div className="text-center text-base text-muted-foreground py-10">
           Inicia sesión para ver y administrar tus direcciones.
         </div>
       );
@@ -975,7 +990,7 @@ function AccountPageContent({
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3 rounded-3xl border border-border/60 bg-surface/90 p-14 text-center shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+          <div className="flex flex-col items-center gap-3 text-center py-14">
             <Heart className="size-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.</p>
             <Button asChild size="sm">
@@ -986,7 +1001,7 @@ function AccountPageContent({
           </div>
         )
       ) : (
-        <div className="rounded-3xl border border-border/60 bg-surface/90 p-10 text-center text-base text-muted-foreground shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+        <div className="text-center text-base text-muted-foreground py-10">
           Inicia sesión para ver tus favoritos.
         </div>
       );
