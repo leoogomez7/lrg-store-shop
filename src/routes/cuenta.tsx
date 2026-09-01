@@ -777,18 +777,20 @@ function AccountPageContent({
                               setAddressValue(suggestion.value);
                               setAddressSuggestions([]);
                             }}
-                            className="w-full border-b border-border/60 px-3 py-3 text-left hover:bg-background/80 transition"
+                            className="w-full border-b border-border/60 px-3 py-3 text-left transition hover:bg-background/80"
                           >
-                            <div className="flex items-start gap-2">
-                              <MapPin className="size-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                            <div className="flex items-start gap-3">
+                              <span className="mt-1 inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-border/80 bg-background/60 text-muted-foreground">
+                                <MapPin className="size-3" />
+                              </span>
                               <div className="min-w-0 flex-1">
                                 {suggestion.display ? (
                                   <>
-                                    <p className="truncate text-sm font-medium text-foreground">{suggestion.display.street}</p>
-                                    <p className="truncate text-xs text-muted-foreground mt-0.5">{suggestion.display.city}</p>
+                                    <p className="truncate text-sm font-semibold text-foreground">{suggestion.display.street}</p>
+                                    <p className="mt-1 truncate text-xs text-muted-foreground">{suggestion.display.city}</p>
                                   </>
                                 ) : (
-                                  <p className="truncate text-sm font-medium text-foreground">{suggestion.value}</p>
+                                  <p className="truncate text-sm font-semibold text-foreground">{suggestion.value}</p>
                                 )}
                               </div>
                             </div>
