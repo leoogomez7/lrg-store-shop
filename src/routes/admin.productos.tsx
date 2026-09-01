@@ -1208,68 +1208,304 @@ function AdminProducts() {
             <Plus className="size-4" /> Nuevo producto
           </Button>
 
-          <div className="relative">
-            <Button
-              ref={sortButtonRef}
-              variant={sortMenuOpen ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setSortMenuOpen((current) => !current)}
-              className="h-9 shrink-0 gap-1.5 px-2.5"
-              aria-expanded={sortMenuOpen}
-            >
-              <ArrowUpDown className="size-4 text-white" />
-              Ordenar por
-            </Button>
+          <Dialog open={sortMenuOpen} onOpenChange={setSortMenuOpen}>
+            <DialogTrigger asChild>
+              <Button
+                ref={sortButtonRef}
+                variant={sortMenuOpen ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setSortMenuOpen((current) => !current)}
+                className="h-9 shrink-0 gap-1.5 px-2.5"
+                aria-expanded={sortMenuOpen}
+              >
+                <ArrowUpDown className="size-4 text-white" />
+                Ordenar por
+              </Button>
+            </DialogTrigger>
 
-            {sortMenuOpen ? (
-              <div ref={sortMenuRef} className="absolute left-0 top-full z-20 mt-2 w-[320px]">
-                <div className="rounded-xl border border-border/60 bg-background/95 p-2 shadow-lg backdrop-blur-sm">
-                  {(
-                    [
-                      ["name_asc", "Producto: A-Z"],
-                      ["name_desc", "Producto: Z-A"],
-                      ["createdAt_asc", "Producto agregado: Antiguo a nuevo"],
-                      ["createdAt_desc", "Producto agregado: Nuevo a antiguo"],
-                      ["price_asc", "Precio: menor a mayor"],
-                      ["price_desc", "Precio: mayor a menor"],
-                      ["discountedPrice_asc", "Precio en la tienda: menor a mayor"],
-                      ["discountedPrice_desc", "Precio en la tienda: mayor a menor"],
-                      ["stock_asc", "Stock: menor a mayor"],
-                      ["stock_desc", "Stock: mayor a menor"],
-                    ] as [SortOrder, string][]
-                  ).map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => {
-                        setSortOrder(value);
-                        setSortMenuOpen(false);
-                      }}
-                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
-                        sortOrder === value
-                          ? "bg-surface-2 text-foreground"
-                          : "text-muted-foreground"
-                      }`}
+            <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+              <DialogHeader className="space-y-2">
+                <DialogTitle>Ordenar por</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-1 pt-2">
+                {(
+                  [
+                    ["name_asc", "Producto: A-Z"],
+                    ["name_desc", "Producto: Z-A"],
+                    ["createdAt_asc", "Producto agregado: Antiguo a nuevo"],
+                    ["createdAt_desc", "Producto agregado: Nuevo a antiguo"],
+                    ["price_asc", "Precio: menor a mayor"],
+                    ["price_desc", "Precio: mayor a menor"],
+                    ["discountedPrice_asc", "Precio en la tienda: menor a mayor"],
+                    ["discountedPrice_desc", "Precio en la tienda: mayor a menor"],
+                    ["stock_asc", "Stock: menor a mayor"],
+                    ["stock_desc", "Stock: mayor a menor"],
+                  ] as [SortOrder, string][]
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setSortOrder(value);
+                      setSortMenuOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
+                      sortOrder === value
+                        ? "bg-surface-2 text-foreground"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    <span>{label}</span>
+                    {sortOrder === value && <span aria-hidden="true">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant={filtersOpen ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setFiltersOpen((current) => !current)}
+                className="h-9 shrink-0 gap-1.5 px-2.5"
+                aria-expanded={filtersOpen}
+              >
+                <Filter className="size-4 text-white" />
+                Filtros
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent className="max-w-3xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+              <DialogHeader className="space-y-2">
+                <DialogTitle>Filtros</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6 pt-2">
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setCategoriesOpen((current) => !current)}
+                    className="flex items-center gap-2 text-sm font-medium"
+                    aria-expanded={categoriesOpen}
+                  >
+                    <span>Categorías</span>
+                    {categoryFilter.length > 0 && (
+                      <Badge variant="secondary">{categoryFilter.length}</Badge>
+                    )}
+                    {categoriesOpen ? (
+                      <ChevronUp className="size-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="size-4 text-muted-foreground" />
+                    )}
+                  </button>
+                  {categoriesOpen && (
+                    <div className="space-y-2.5">
+                      {availableCategories.map((category) => (
+                        <label key={category} className="flex cursor-pointer items-start gap-3 text-sm">
+                          <Checkbox
+                            checked={categoryFilter.includes(category)}
+                            onCheckedChange={(checked) =>
+                              setCategoryFilter((current) =>
+                                checked
+                                  ? [...current, category]
+                                  : current.filter((value) => value !== category),
+                              )
+                            }
+                          />
+                          <span className="font-medium">{category}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setBrandsOpen((current) => !current)}
+                    className="flex items-center gap-2 text-sm font-medium"
+                    aria-expanded={brandsOpen}
+                  >
+                    <span>Tienda</span>
+                    {brandFilter.length > 0 && <Badge variant="secondary">{brandFilter.length}</Badge>}
+                    {brandsOpen ? (
+                      <ChevronUp className="size-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="size-4 text-muted-foreground" />
+                    )}
+                  </button>
+                  {brandsOpen && (
+                    <div className="space-y-2.5">
+                      {brandList.map((brand) => (
+                        <label key={brand.slug} className="flex cursor-pointer items-start gap-3 text-sm">
+                          <Checkbox
+                            checked={brandFilter.includes(brand.slug)}
+                            onCheckedChange={(checked) =>
+                              setBrandFilter((current) =>
+                                checked
+                                  ? [...current, brand.slug]
+                                  : current.filter((value) => value !== brand.slug),
+                              )
+                            }
+                          />
+                          <span className="font-medium">{brand.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setPriceFilterOpen((current) => !current)}
+                    className="flex items-center gap-2 text-sm font-medium"
+                    aria-expanded={priceFilterOpen}
+                  >
+                    <span>Precio</span>
+                    <Badge variant="secondary">{priceFilterCount}</Badge>
+                    {priceFilterOpen ? (
+                      <ChevronUp className="size-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="size-4 text-muted-foreground" />
+                    )}
+                  </button>
+                  {priceFilterOpen && (
+                    <div className="space-y-2.5">
+                      <label className="flex cursor-pointer items-start gap-3 text-sm">
+                        <Checkbox
+                          checked={currencyFilter.includes("ARS")}
+                          onCheckedChange={(checked) =>
+                            setCurrencyFilter((current) =>
+                              checked ? [...current, "ARS"] : current.filter((value) => value !== "ARS"),
+                            )
+                          }
+                        />
+                        <span className="font-medium">$ (ARS)</span>
+                      </label>
+                      <label className="flex cursor-pointer items-start gap-3 text-sm">
+                        <Checkbox
+                          checked={currencyFilter.includes("USD")}
+                          onCheckedChange={(checked) =>
+                            setCurrencyFilter((current) =>
+                              checked ? [...current, "USD"] : current.filter((value) => value !== "USD"),
+                            )
+                          }
+                        />
+                        <span className="font-medium">USD (Dólar)</span>
+                      </label>
+                      <label className="flex cursor-pointer items-start gap-3 text-sm">
+                        <Checkbox
+                          checked={priceMode === "price"}
+                          onCheckedChange={(checked) => checked && setPriceMode("price")}
+                        />
+                        <span className="font-medium">Precio</span>
+                      </label>
+                      <label className="flex cursor-pointer items-start gap-3 text-sm">
+                        <Checkbox
+                          checked={priceMode === "storePrice"}
+                          onCheckedChange={(checked) => checked && setPriceMode("storePrice")}
+                        />
+                        <span className="font-medium">Precio en la tienda</span>
+                      </label>
+                      <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-foreground/90">
+                        <label className="flex shrink-0 items-center gap-2">
+                          <span>Desde {priceCurrencyLabel}</span>
+                          <Input
+                            aria-label="Precio mínimo"
+                            type="number"
+                            min={0}
+                            max={priceLimit}
+                            value={priceMin}
+                            aria-valuetext={formatPrice(priceMin, priceDisplayCurrency)}
+                            onChange={(event) => {
+                              const value = Number(event.target.value);
+                              if (!Number.isFinite(value)) return;
+                              setPriceMin(Math.min(Math.max(0, value), priceMax));
+                            }}
+                            className="h-8 w-20 px-2 sm:w-24"
+                          />
+                        </label>
+                        <label className="flex shrink-0 items-center justify-end gap-2">
+                          <span>Hasta {priceCurrencyLabel}</span>
+                          <Input
+                            aria-label="Precio máximo"
+                            type="number"
+                            min={0}
+                            max={priceLimit}
+                            value={priceMax}
+                            aria-valuetext={formatPrice(priceMax, priceDisplayCurrency)}
+                            onChange={(event) => {
+                              const value = Number(event.target.value);
+                              if (!Number.isFinite(value)) return;
+                              setPriceMax(Math.max(Math.min(priceLimit, value), priceMin));
+                            }}
+                            className="h-8 w-20 px-2 sm:w-24"
+                          />
+                        </label>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={priceLimit}
+                        step={Math.max(1, Math.round(priceLimit / 100))}
+                        value={[priceMin, priceMax]}
+                        onValueChange={(value) => {
+                          const nextMin = value[0] ?? 0;
+                          const nextMax = value[1] ?? priceLimit;
+                          setPriceMin(Math.min(nextMin, nextMax));
+                          setPriceMax(Math.max(nextMin, nextMax));
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
+                  <Label htmlFor="admin-filter-discount" className="cursor-pointer text-sm">
+                    Sólo con descuento
+                  </Label>
+                  <Switch
+                    id="admin-filter-discount"
+                    checked={discountOnly}
+                    onCheckedChange={setDiscountOnly}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
+                  <Label htmlFor="admin-filter-stock" className="cursor-pointer text-sm">
+                    Sólo con stock
+                  </Label>
+                  <Switch id="admin-filter-stock" checked={stockOnly} onCheckedChange={setStockOnly} />
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
+                  <Label htmlFor="admin-filter-available" className="cursor-pointer text-sm">
+                    Sólo disponible
+                  </Label>
+                  <Switch
+                    id="admin-filter-available"
+                    checked={availableOnly}
+                    onCheckedChange={setAvailableOnly}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-0">
+                  <p className="text-xs text-muted-foreground">{results.length} productos encontrados</p>
+                  {activeFilterCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetFilters}
+                      className="ml-auto flex h-8 px-2 text-xs"
                     >
-                      <span>{label}</span>
-                      {sortOrder === value && <span aria-hidden="true">✓</span>}
-                    </button>
-                  ))}
+                      <X className="mr-1 size-3.5" /> Limpiar
+                    </Button>
+                  )}
                 </div>
               </div>
-            ) : null}
-          </div>
-
-          <Button
-            variant={filtersOpen ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setFiltersOpen((current) => !current)}
-            className="h-9 shrink-0 gap-1.5 px-2.5"
-            aria-expanded={filtersOpen}
-          >
-            <Filter className="size-4 text-white" />
-            Filtros
-          </Button>
+            </DialogContent>
+          </Dialog>
 
           <Button
             className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
@@ -1390,231 +1626,6 @@ function AdminProducts() {
         </div>
       </div>
 
-      {filtersOpen ? (
-        <div className="glass-panel mt-4 w-fit max-w-full space-y-6 rounded-2xl p-5">
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setCategoriesOpen((current) => !current)}
-              className="flex items-center gap-2 text-sm font-medium"
-              aria-expanded={categoriesOpen}
-            >
-              <span>Categorías</span>
-              {categoryFilter.length > 0 && (
-                <Badge variant="secondary">{categoryFilter.length}</Badge>
-              )}
-              {categoriesOpen ? (
-                <ChevronUp className="size-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="size-4 text-muted-foreground" />
-              )}
-            </button>
-            {categoriesOpen && (
-              <div className="space-y-2.5">
-                {availableCategories.map((category) => (
-                  <label key={category} className="flex cursor-pointer items-start gap-3 text-sm">
-                    <Checkbox
-                      checked={categoryFilter.includes(category)}
-                      onCheckedChange={(checked) =>
-                        setCategoryFilter((current) =>
-                          checked
-                            ? [...current, category]
-                            : current.filter((value) => value !== category),
-                        )
-                      }
-                    />
-                    <span className="font-medium">{category}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setBrandsOpen((current) => !current)}
-              className="flex items-center gap-2 text-sm font-medium"
-              aria-expanded={brandsOpen}
-            >
-              <span>Tienda</span>
-              {brandFilter.length > 0 && <Badge variant="secondary">{brandFilter.length}</Badge>}
-              {brandsOpen ? (
-                <ChevronUp className="size-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="size-4 text-muted-foreground" />
-              )}
-            </button>
-            {brandsOpen && (
-              <div className="space-y-2.5">
-                {brandList.map((brand) => (
-                  <label key={brand.slug} className="flex cursor-pointer items-start gap-3 text-sm">
-                    <Checkbox
-                      checked={brandFilter.includes(brand.slug)}
-                      onCheckedChange={(checked) =>
-                        setBrandFilter((current) =>
-                          checked
-                            ? [...current, brand.slug]
-                            : current.filter((value) => value !== brand.slug),
-                        )
-                      }
-                    />
-                    <span className="font-medium">{brand.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setPriceFilterOpen((current) => !current)}
-              className="flex items-center gap-2 text-sm font-medium"
-              aria-expanded={priceFilterOpen}
-            >
-              <span>Precio</span>
-              <Badge variant="secondary">{priceFilterCount}</Badge>
-              {priceFilterOpen ? (
-                <ChevronUp className="size-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="size-4 text-muted-foreground" />
-              )}
-            </button>
-            {priceFilterOpen && (
-              <div className="space-y-2.5">
-                <label className="flex cursor-pointer items-start gap-3 text-sm">
-                  <Checkbox
-                    checked={currencyFilter.includes("ARS")}
-                    onCheckedChange={(checked) =>
-                      setCurrencyFilter((current) =>
-                        checked ? [...current, "ARS"] : current.filter((value) => value !== "ARS"),
-                      )
-                    }
-                  />
-                  <span className="font-medium">$ (ARS)</span>
-                </label>
-                <label className="flex cursor-pointer items-start gap-3 text-sm">
-                  <Checkbox
-                    checked={currencyFilter.includes("USD")}
-                    onCheckedChange={(checked) =>
-                      setCurrencyFilter((current) =>
-                        checked ? [...current, "USD"] : current.filter((value) => value !== "USD"),
-                      )
-                    }
-                  />
-                  <span className="font-medium">USD (Dólar)</span>
-                </label>
-                <label className="flex cursor-pointer items-start gap-3 text-sm">
-                  <Checkbox
-                    checked={priceMode === "price"}
-                    onCheckedChange={(checked) => checked && setPriceMode("price")}
-                  />
-                  <span className="font-medium">Precio</span>
-                </label>
-                <label className="flex cursor-pointer items-start gap-3 text-sm">
-                  <Checkbox
-                    checked={priceMode === "storePrice"}
-                    onCheckedChange={(checked) => checked && setPriceMode("storePrice")}
-                  />
-                  <span className="font-medium">Precio en la tienda</span>
-                </label>
-                <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-foreground/90">
-                  <label className="flex shrink-0 items-center gap-2">
-                    <span>Desde {priceCurrencyLabel}</span>
-                    <Input
-                      aria-label="Precio mínimo"
-                      type="number"
-                      min={0}
-                      max={priceLimit}
-                      value={priceMin}
-                      aria-valuetext={formatPrice(priceMin, priceDisplayCurrency)}
-                      onChange={(event) => {
-                        const value = Number(event.target.value);
-                        if (!Number.isFinite(value)) return;
-                        setPriceMin(Math.min(Math.max(0, value), priceMax));
-                      }}
-                      className="h-8 w-20 px-2 sm:w-24"
-                    />
-                  </label>
-                  <label className="flex shrink-0 items-center justify-end gap-2">
-                    <span>Hasta {priceCurrencyLabel}</span>
-                    <Input
-                      aria-label="Precio máximo"
-                      type="number"
-                      min={0}
-                      max={priceLimit}
-                      value={priceMax}
-                      aria-valuetext={formatPrice(priceMax, priceDisplayCurrency)}
-                      onChange={(event) => {
-                        const value = Number(event.target.value);
-                        if (!Number.isFinite(value)) return;
-                        setPriceMax(Math.max(Math.min(priceLimit, value), priceMin));
-                      }}
-                      className="h-8 w-20 px-2 sm:w-24"
-                    />
-                  </label>
-                </div>
-                <Slider
-                  min={0}
-                  max={priceLimit}
-                  step={Math.max(1, Math.round(priceLimit / 100))}
-                  value={[priceMin, priceMax]}
-                  onValueChange={(value) => {
-                    const nextMin = value[0] ?? 0;
-                    const nextMax = value[1] ?? priceLimit;
-                    setPriceMin(Math.min(nextMin, nextMax));
-                    setPriceMax(Math.max(nextMin, nextMax));
-                  }}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
-            <Label htmlFor="admin-filter-discount" className="cursor-pointer text-sm">
-              Sólo con descuento
-            </Label>
-            <Switch
-              id="admin-filter-discount"
-              checked={discountOnly}
-              onCheckedChange={setDiscountOnly}
-            />
-          </div>
-
-          <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
-            <Label htmlFor="admin-filter-stock" className="cursor-pointer text-sm">
-              Sólo con stock
-            </Label>
-            <Switch id="admin-filter-stock" checked={stockOnly} onCheckedChange={setStockOnly} />
-          </div>
-
-          <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
-            <Label htmlFor="admin-filter-available" className="cursor-pointer text-sm">
-              Sólo disponible
-            </Label>
-            <Switch
-              id="admin-filter-available"
-              checked={availableOnly}
-              onCheckedChange={setAvailableOnly}
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-2 pt-0">
-            <p className="text-xs text-muted-foreground">{results.length} productos encontrados</p>
-            {activeFilterCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetFilters}
-                className="ml-auto flex h-8 px-2 text-xs"
-              >
-                <X className="mr-1 size-3.5" /> Limpiar
-              </Button>
-            )}
-          </div>
-        </div>
-      ) : null}
 
       <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
         <span className="text-sm font-medium">Seleccionar</span>

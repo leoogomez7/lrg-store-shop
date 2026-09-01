@@ -1410,66 +1410,271 @@ function AdminOrders() {
             Nuevo pedido
           </Button>
 
-          <div className="relative">
-            <Button
-              ref={sortButtonRef as any}
-              variant={sortMenuOpen ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setSortMenuOpen((current) => !current)}
-              className="h-9 shrink-0 gap-1.5 px-2.5"
-              aria-expanded={sortMenuOpen}
-            >
-              <ArrowUpDown className="size-4 text-white" />
-              Ordenar por
-            </Button>
+          <Dialog open={sortMenuOpen} onOpenChange={setSortMenuOpen}>
+            <DialogTrigger asChild>
+              <Button
+                ref={sortButtonRef as any}
+                variant={sortMenuOpen ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setSortMenuOpen((current) => !current)}
+                className="h-9 shrink-0 gap-1.5 px-2.5"
+                aria-expanded={sortMenuOpen}
+              >
+                <ArrowUpDown className="size-4 text-white" />
+                Ordenar por
+              </Button>
+            </DialogTrigger>
 
-            {sortMenuOpen ? (
-              <div ref={sortMenuRef} className="absolute left-0 top-full z-20 mt-2 w-[320px]">
-                <div className="rounded-xl border border-border/60 bg-background/95 p-2 shadow-lg backdrop-blur-sm">
-                  {(
-                    [
-                      ["customer_asc", "Cliente: A-Z"],
-                      ["customer_desc", "Cliente: Z-A"],
-                      ["date_desc", "Fecha de venta: más recientes"],
-                      ["date_asc", "Fecha de venta: más antiguas"],
-                      ["total_asc", "Precio total: menor a mayor"],
-                      ["total_desc", "Precio total: mayor a menor"],
-                      ["profit_asc", "Ganancias: menor a mayor"],
-                      ["profit_desc", "Ganancias: mayor a menor"],
-                    ] as [OrderSort, string][]
-                  ).map(([value, label]) => (
+            <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+              <DialogHeader className="space-y-2">
+                <DialogTitle>Ordenar por</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-1 pt-2">
+                {(
+                  [
+                    ["customer_asc", "Cliente: A-Z"],
+                    ["customer_desc", "Cliente: Z-A"],
+                    ["date_desc", "Fecha de venta: más recientes"],
+                    ["date_asc", "Fecha de venta: más antiguas"],
+                    ["total_asc", "Precio total: menor a mayor"],
+                    ["total_desc", "Precio total: mayor a menor"],
+                    ["profit_asc", "Ganancias: menor a mayor"],
+                    ["profit_desc", "Ganancias: mayor a menor"],
+                  ] as [OrderSort, string][]
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setSortOrder(value);
+                      setSortMenuOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
+                      sortOrder !== null && sortOrder === value
+                        ? "bg-surface-2 text-foreground"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    <span>{label}</span>
+                    {sortOrder !== null && sortOrder === value && <span aria-hidden="true">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant={filtersOpen ? "secondary" : "outline"}
+                size="sm"
+                className="h-9 shrink-0 gap-1.5 px-2.5"
+                aria-expanded={filtersOpen}
+              >
+                <Filter className="size-4 text-white" />
+                Filtros
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent className="max-w-2xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+              <DialogHeader className="space-y-2">
+                <DialogTitle>Filtros</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-6 pt-2 sm:grid-cols-2">
+                {filterSections.map(({ label, open, setOpen, selected, setSelected, options }) => (
+                  <div key={label} className="space-y-3">
                     <button
-                      key={value}
                       type="button"
-                      onClick={() => {
-                        setSortOrder(value);
-                        setSortMenuOpen(false);
-                      }}
-                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
-                        sortOrder !== null && sortOrder === value
-                          ? "bg-surface-2 text-foreground"
-                          : "text-muted-foreground"
-                      }`}
+                      onClick={() => setOpen((current) => !current)}
+                      className="flex items-center gap-2 text-sm font-medium"
+                      aria-expanded={open}
                     >
                       <span>{label}</span>
-                      {sortOrder !== null && sortOrder === value && <span aria-hidden="true">✓</span>}
+                      {selected.length > 0 && <Badge variant="secondary">{selected.length}</Badge>}
+                      {open ? (
+                        <ChevronUp className="size-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="size-4 text-muted-foreground" />
+                      )}
                     </button>
-                  ))}
+                    {open && (
+                      <div className="space-y-2.5">
+                        {options.map((option) => (
+                          <label
+                            key={option.value}
+                            className="flex cursor-pointer items-start gap-3 text-sm"
+                          >
+                            <Checkbox
+                              checked={selected.includes(option.value)}
+                              onCheckedChange={(checked) => setSelected(option.value, checked === true)}
+                            />
+                            <span className="font-medium">{option.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setPriceFilterOpen((current) => !current)}
+                    className="flex items-center gap-2 text-sm font-medium"
+                    aria-expanded={priceFilterOpen}
+                  >
+                    <span>Precio total</span>
+                    {currencyFilter.length > 0 && (
+                      <Badge variant="secondary">{currencyFilter.length}</Badge>
+                    )}
+                    {priceFilterOpen ? (
+                      <ChevronUp className="size-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="size-4 text-muted-foreground" />
+                    )}
+                  </button>
+                  {priceFilterOpen && (
+                    <div className="space-y-2.5">
+                      {(["ARS", "USD"] as const).map((currency) => (
+                        <label key={currency} className="flex cursor-pointer items-start gap-3 text-sm">
+                          <Checkbox
+                            checked={currencyFilter.includes(currency)}
+                            onCheckedChange={(checked) =>
+                              setCurrencyFilter((current) =>
+                                checked
+                                  ? [...current, currency]
+                                  : current.filter((value) => value !== currency),
+                              )
+                            }
+                          />
+                          <span className="font-medium">
+                            {currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}
+                          </span>
+                        </label>
+                      ))}
+                      <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
+                        <label className="flex shrink-0 items-center gap-2">
+                          <span>Desde {priceCurrencyLabel}</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={priceLimit}
+                            value={priceMin}
+                            onChange={(event) =>
+                              setPriceMin(
+                                Math.min(Math.max(0, Number(event.target.value) || 0), priceMax),
+                              )
+                            }
+                            className="h-8 w-20 px-2 sm:w-24"
+                          />
+                        </label>
+                        <label className="flex shrink-0 items-center justify-end gap-2">
+                          <span>Hasta {priceCurrencyLabel}</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={priceLimit}
+                            value={priceMax}
+                            onChange={(event) =>
+                              setPriceMax(
+                                Math.max(Math.min(priceLimit, Number(event.target.value) || 0), priceMin),
+                              )
+                            }
+                            className="h-8 w-20 px-2 sm:w-24"
+                          />
+                        </label>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={priceLimit}
+                        step={Math.max(1, Math.round(priceLimit / 100))}
+                        value={[priceMin, priceMax]}
+                        onValueChange={(value) => {
+                          const nextMin = value[0] ?? 0;
+                          const nextMax = value[1] ?? priceLimit;
+                          setPriceMin(Math.min(nextMin, nextMax));
+                          setPriceMax(Math.max(nextMin, nextMax));
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setQuantityFilterOpen((current) => !current)}
+                    className="flex items-center gap-2 text-sm font-medium"
+                    aria-expanded={quantityFilterOpen}
+                  >
+                    <span>Cantidad</span>
+                    {(quantityMin > 0 || quantityMax < quantityLimit) && (
+                      <Badge variant="secondary">1</Badge>
+                    )}
+                    {quantityFilterOpen ? (
+                      <ChevronUp className="size-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="size-4 text-muted-foreground" />
+                    )}
+                  </button>
+                  {quantityFilterOpen && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
+                        <label className="flex shrink-0 items-center gap-2">
+                          <span>Desde</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={quantityLimit}
+                            value={quantityMin}
+                            onChange={(event) =>
+                              setQuantityMin(
+                                Math.min(Math.max(0, Number(event.target.value) || 0), quantityMax),
+                              )
+                            }
+                            className="h-8 w-20 px-2 sm:w-24"
+                          />
+                        </label>
+                        <label className="flex shrink-0 items-center justify-end gap-2">
+                          <span>Hasta</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={quantityLimit}
+                            value={quantityMax}
+                            onChange={(event) =>
+                              setQuantityMax(
+                                Math.max(
+                                  Math.min(quantityLimit, Number(event.target.value) || 0),
+                                  quantityMin,
+                                ),
+                              )
+                            }
+                            className="h-8 w-20 px-2 sm:w-24"
+                          />
+                        </label>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={quantityLimit}
+                        step={1}
+                        value={[quantityMin, quantityMax]}
+                        onValueChange={(value) => {
+                          const nextMin = value[0] ?? 0;
+                          const nextMax = value[1] ?? quantityLimit;
+                          setQuantityMin(Math.min(nextMin, nextMax));
+                          setQuantityMax(Math.max(nextMin, nextMax));
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
-            ) : null}
-          </div>
-
-          <Button
-            variant={filtersOpen ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setFiltersOpen((current) => !current)}
-            className="h-9 shrink-0 gap-1.5 px-2.5"
-            aria-expanded={filtersOpen}
-          >
-            <Filter className="size-4 text-white" />
-            Filtros
-          </Button>
+              <div className="flex justify-end pt-2">
+                <Button type="button" variant="outline" onClick={resetFilters}>Limpiar filtros</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <div id="lrg-export-pedidos-buttons" className="order-4 contents">
             <Button
@@ -1520,239 +1725,6 @@ function AdminOrders() {
           }
         }}
       />
-
-      {filtersOpen ? (
-        <div className="glass-panel mt-4 w-fit max-w-full space-y-6 rounded-2xl p-5">
-          {filterSections.map(({ label, open, setOpen, selected, setSelected, options }) => (
-            <div key={label} className="space-y-3">
-              <button
-                type="button"
-                onClick={() => setOpen((current) => !current)}
-                className="flex items-center gap-2 text-sm font-medium"
-                aria-expanded={open}
-              >
-                <span>{label}</span>
-                {selected.length > 0 && <Badge variant="secondary">{selected.length}</Badge>}
-                {open ? (
-                  <ChevronUp className="size-4 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="size-4 text-muted-foreground" />
-                )}
-              </button>
-              {open && (
-                <div className="space-y-2.5">
-                  {options.map((option) => (
-                    <label
-                      key={option.value}
-                      className="flex cursor-pointer items-start gap-3 text-sm"
-                    >
-                      <Checkbox
-                        checked={selected.includes(option.value)}
-                        onCheckedChange={(checked) => setSelected(option.value, checked === true)}
-                      />
-                      <span className="font-medium">{option.label}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setPriceFilterOpen((current) => !current)}
-              className="flex items-center gap-2 text-sm font-medium"
-              aria-expanded={priceFilterOpen}
-            >
-              <span>Precio total</span>
-              {currencyFilter.length > 0 && (
-                <Badge variant="secondary">{currencyFilter.length}</Badge>
-              )}
-              {priceFilterOpen ? (
-                <ChevronUp className="size-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="size-4 text-muted-foreground" />
-              )}
-            </button>
-            {priceFilterOpen && (
-              <div className="space-y-2.5">
-                {(["ARS", "USD"] as const).map((currency) => (
-                  <label key={currency} className="flex cursor-pointer items-start gap-3 text-sm">
-                    <Checkbox
-                      checked={currencyFilter.includes(currency)}
-                      onCheckedChange={(checked) =>
-                        setCurrencyFilter((current) =>
-                          checked
-                            ? [...current, currency]
-                            : current.filter((value) => value !== currency),
-                        )
-                      }
-                    />
-                    <span className="font-medium">
-                      {currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}
-                    </span>
-                  </label>
-                ))}
-                <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
-                  <label className="flex shrink-0 items-center gap-2">
-                    <span>Desde {priceCurrencyLabel}</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={priceLimit}
-                      value={priceMin}
-                      onChange={(event) =>
-                        setPriceMin(
-                          Math.min(Math.max(0, Number(event.target.value) || 0), priceMax),
-                        )
-                      }
-                      className="h-8 w-20 px-2 sm:w-24"
-                    />
-                  </label>
-                  <label className="flex shrink-0 items-center justify-end gap-2">
-                    <span>Hasta {priceCurrencyLabel}</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={priceLimit}
-                      value={priceMax}
-                      onChange={(event) =>
-                        setPriceMax(
-                          Math.max(Math.min(priceLimit, Number(event.target.value) || 0), priceMin),
-                        )
-                      }
-                      className="h-8 w-20 px-2 sm:w-24"
-                    />
-                  </label>
-                </div>
-                <Slider
-                  min={0}
-                  max={priceLimit}
-                  step={Math.max(1, Math.round(priceLimit / 100))}
-                  value={[priceMin, priceMax]}
-                  onValueChange={(value) => {
-                    const nextMin = value[0] ?? 0;
-                    const nextMax = value[1] ?? priceLimit;
-                    setPriceMin(Math.min(nextMin, nextMax));
-                    setPriceMax(Math.max(nextMin, nextMax));
-                  }}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setQuantityFilterOpen((current) => !current)}
-              className="flex items-center gap-2 text-sm font-medium"
-              aria-expanded={quantityFilterOpen}
-            >
-              <span>Cantidad</span>
-              {(quantityMin > 0 || quantityMax < quantityLimit) && (
-                <Badge variant="secondary">1</Badge>
-              )}
-              {quantityFilterOpen ? (
-                <ChevronUp className="size-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="size-4 text-muted-foreground" />
-              )}
-            </button>
-            {quantityFilterOpen && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
-                  <label className="flex shrink-0 items-center gap-2">
-                    <span>Desde</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={quantityLimit}
-                      value={quantityMin}
-                      onChange={(event) =>
-                        setQuantityMin(
-                          Math.min(Math.max(0, Number(event.target.value) || 0), quantityMax),
-                        )
-                      }
-                      className="h-8 w-20 px-2 sm:w-24"
-                    />
-                  </label>
-                  <label className="flex shrink-0 items-center justify-end gap-2">
-                    <span>Hasta</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={quantityLimit}
-                      value={quantityMax}
-                      onChange={(event) =>
-                        setQuantityMax(
-                          Math.max(
-                            Math.min(quantityLimit, Number(event.target.value) || 0),
-                            quantityMin,
-                          ),
-                        )
-                      }
-                      className="h-8 w-20 px-2 sm:w-24"
-                    />
-                  </label>
-                </div>
-                <Slider
-                  min={0}
-                  max={quantityLimit}
-                  step={1}
-                  value={[quantityMin, quantityMax]}
-                  onValueChange={(value) => {
-                    const nextMin = value[0] ?? 0;
-                    const nextMax = value[1] ?? quantityLimit;
-                    setQuantityMin(Math.min(nextMin, nextMax));
-                    setQuantityMax(Math.max(nextMin, nextMax));
-                  }}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between gap-2 pt-0">
-            <p className="text-xs text-muted-foreground">{results.length} pedidos encontrados</p>
-            {activeFilterCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetFilters}
-                className="ml-auto flex h-8 px-2 text-xs"
-              >
-                <X className="mr-1 size-3.5" /> Limpiar
-              </Button>
-            )}
-          </div>
-        </div>
-      ) : null}
-
-      {sortMenuOpen ? (
-        <div className="mt-4 w-full max-w-[320px]">
-          <Select
-            value={sortOrder}
-            onValueChange={(value) => {
-              setSortOrder(value as OrderSort);
-              setSortMenuOpen(false);
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Ordenar por" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="customer_asc">Cliente A-Z</SelectItem>
-              <SelectItem value="customer_desc">Cliente Z-A</SelectItem>
-              <SelectItem value="date_desc">Fecha compra más reciente</SelectItem>
-              <SelectItem value="date_asc">Fecha compra más antigua</SelectItem>
-              <SelectItem value="total_desc">Precio mayor a menor</SelectItem>
-              <SelectItem value="total_asc">Precio menor a mayor</SelectItem>
-              <SelectItem value="profit_asc">Ganancias: menor a mayor</SelectItem>
-              <SelectItem value="profit_desc">Ganancias: mayor a menor</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      ) : null}
 
       <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
         <span className="text-sm font-medium">Seleccionar</span>

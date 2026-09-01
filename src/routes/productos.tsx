@@ -11,6 +11,13 @@ import {
   sortLabels,
   type CatalogFilters,
 } from "@/components/product/product-filters";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { brandList } from "@/config/brands";
 import { webDesignConfig } from "@/config/brands/web-design.config";
@@ -190,20 +197,24 @@ function ProductosPage() {
               />
             </div>
 
-            <div ref={sortMenuRef} className="relative max-w-xs">
-              <button
-                type="button"
-                onClick={() => setShowSortOptions((value) => !value)}
-                className="inline-flex h-9 w-full max-w-xs items-center justify-between gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
-              >
-                <span className="flex items-center gap-2">
-                  <ArrowUpDown className="size-4 text-white" aria-hidden="true" />
-                  <span>Ordenar por</span>
-                </span>
-              </button>
+            <Dialog open={showSortOptions} onOpenChange={setShowSortOptions}>
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-9 w-full max-w-xs items-center justify-between gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
+                >
+                  <span className="flex items-center gap-2">
+                    <ArrowUpDown className="size-4 text-white" aria-hidden="true" />
+                    <span>Ordenar por</span>
+                  </span>
+                </button>
+              </DialogTrigger>
 
-              {showSortOptions && (
-                <div className="absolute right-0 z-20 mt-2 w-full min-w-55 rounded-xl border border-border/60 bg-background/95 p-2 shadow-lg backdrop-blur-sm">
+              <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                <DialogHeader className="space-y-2">
+                  <DialogTitle>Ordenar por</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-1 pt-2">
                   {Object.entries(sortLabels).map(([value, label]) => (
                     <button
                       key={value}
@@ -226,69 +237,71 @@ function ProductosPage() {
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
+              </DialogContent>
+            </Dialog>
 
-            <button
-              type="button"
-              onClick={() => setShowFilters((value) => !value)}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
-            >
-              <Funnel className="size-4 text-white" />
-              <span>Filtros</span>
-            </button>
+            <Dialog open={showFilters} onOpenChange={setShowFilters}>
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
+                >
+                  <Funnel className="size-4 text-white" />
+                  <span>Filtros</span>
+                </button>
+              </DialogTrigger>
+
+              <DialogContent className="max-w-4xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                <DialogHeader className="space-y-2">
+                  <DialogTitle>Filtros</DialogTitle>
+                </DialogHeader>
+                <div className="pt-2">
+                  <ProductFilters
+                    categories={categories}
+                    filters={filters}
+                    priceLimit={priceLimit}
+                    resultCount={results.length}
+                    onChange={(next) => {
+                      if ("priceCurrencies" in next) setPriceCurrencies(next.priceCurrencies ?? []);
+                      setFilters((current) => ({ ...current, ...next }));
+                    }}
+                    onReset={() => {
+                      setPriceCurrencies(["ARS", "USD"]);
+                      setFilters({
+                        search: "",
+                        categories: [],
+                        brands: [],
+                        priceCurrencies: ["ARS", "USD"],
+                        minPrice: 0,
+                        maxPrice: priceLimit,
+                        inStockOnly: false,
+                        sort: "precio-asc",
+                      });
+                    }}
+                    hideSearch
+                    showBrandFilter
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
-          <div
-            className={
-              "mt-6 grid gap-8 " + (showFilters ? "lg:grid-cols-[280px_1fr]" : "lg:grid-cols-1")
-            }
-          >
-            {showFilters && (
-              <ProductFilters
-                categories={categories}
-                filters={filters}
-                priceLimit={priceLimit}
-                resultCount={results.length}
-                onChange={(next) => {
-                  if ("priceCurrencies" in next) setPriceCurrencies(next.priceCurrencies ?? []);
-                  setFilters((current) => ({ ...current, ...next }));
-                }}
-                onReset={() => {
-                  setPriceCurrencies(["ARS", "USD"]);
-                  setFilters({
-                    search: "",
-                    categories: [],
-                    brands: [],
-                    priceCurrencies: ["ARS", "USD"],
-                    minPrice: 0,
-                    maxPrice: priceLimit,
-                    inStockOnly: false,
-                    sort: "precio-asc",
-                  });
-                }}
-                hideSearch
-                showBrandFilter
-              />
+          <section>
+            {results.length === 0 ? (
+              <div className="glass-panel rounded-2xl p-12 text-center">
+                <h2 className="font-display text-lg font-semibold">Sin resultados</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Probá ajustando los filtros o ampliando el rango de precio.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-4 lg:grid-cols-8 xl:grid-cols-12 2xl:grid-cols-16">
+                {results.map((product, index) => (
+                  <ProductCard key={product.id} product={product} index={index} />
+                ))}
+              </div>
             )}
-
-            <section>
-              {results.length === 0 ? (
-                <div className="glass-panel rounded-2xl p-12 text-center">
-                  <h2 className="font-display text-lg font-semibold">Sin resultados</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Probá ajustando los filtros o ampliando el rango de precio.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-4 lg:grid-cols-8 xl:grid-cols-12 2xl:grid-cols-16">
-                  {results.map((product, index) => (
-                    <ProductCard key={product.id} product={product} index={index} />
-                  ))}
-                </div>
-              )}
-            </section>
-          </div>
+          </section>
         </main>
 
         <BrandFooter brand={webDesignConfig} section="store-shop" />
