@@ -2,6 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import {
   ArrowLeft,
   ArrowUpDown,
@@ -238,6 +239,87 @@ function AccountPageContent({
   const hasNextPage = ordersPage + 1 < totalOrdersPages;
   const hasPreviousPage = ordersPage > 0;
   const canEditOrdersPageSize = totalOrdersPages > 1;
+
+  const exportOrdersExcel = () => {
+    const rows: (string | number)[][] = [
+      ["Pedido", "Tienda", "Fecha de compra", "Estado de envío", "Total"],
+      ...visibleOrders.map((order) => [
+        order.id,
+        brands[order.brand].shortName,
+        order.date,
+        order.deliveryStatus ?? "Pendiente",
+        order.total,
+      ]),
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Compras");
+    const date = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `compras_${date}.xlsx`);
+  };
+
+  const exportOrdersPdf = () => {
+    const rows = visibleOrders.map((order) => [
+      order.id,
+      brands[order.brand].shortName,
+      order.date,
+      order.deliveryStatus ?? "Pendiente",
+      order.total,
+    ]);
+
+    const tableHtml = `
+      <!DOCTYPE html>
+      <html lang="es">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <style>
+            body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
+            table { border-collapse: collapse; width: 100%; font-size: 12px; }
+            th, td { border: 1px solid #d4d4d4; padding: 8px; text-align: left; }
+            th { background: #f3f3f3; }
+          </style>
+        </head>
+        <body>
+          <h2>Compras</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Pedido</th>
+                <th>Tienda</th>
+                <th>Fecha de compra</th>
+                <th>Estado de envío</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows
+                .map(
+                  (row) =>
+                    `<tr>${row
+                      .map(
+                        (cell) =>
+                          `<td>${String(cell).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`,
+                      )
+                      .join("")}</tr>`,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    const date = new Date().toISOString().slice(0, 10);
+    printWindow.document.title = `compras_${date}`;
+    printWindow.document.write(tableHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
 
   useEffect(() => {
     setOrdersPage((currentPage) => Math.min(currentPage, Math.max(0, totalOrdersPages - 1)));
@@ -558,6 +640,7 @@ function AccountPageContent({
 
               <Button
                 type="button"
+                onClick={exportOrdersExcel}
                 className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
               >
                 <Sheet className="size-4" />
@@ -566,6 +649,7 @@ function AccountPageContent({
 
               <Button
                 type="button"
+                onClick={exportOrdersPdf}
                 className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
               >
                 <FileText className="size-4" />
