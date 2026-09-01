@@ -2163,9 +2163,9 @@ function AdminOrders() {
             min={1}
             max={1000}
             value={pageSizeInput}
-            placeholder="Ej: 10"
+            placeholder="Cantidad"
             onChange={(e) => setPageSizeInput(e.target.value)}
-            className="h-8 w-28"
+            className="h-8 w-20 bg-background/50"
           />
 
           {(() => {
@@ -2183,8 +2183,9 @@ function AdminOrders() {
                   setPage(0);
                 }}
                 disabled={!isValid || !isChanged}
+                className="h-8 px-4"
               >
-                <Check className="h-4 w-4 mr-2" />
+                <Check className="mr-2 h-4 w-4" />
                 Confirmar
               </Button>
             );
@@ -2197,15 +2198,16 @@ function AdminOrders() {
             size="sm"
             onClick={() => setPage(0)}
             disabled={!hasPreviousPage}
+            className="h-9 rounded-full px-4"
           >
             Principio
           </Button>
-          <div className="flex items-center gap-1 rounded-full border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm">
+          <div className="flex items-center gap-1 rounded-full bg-background/50 px-3 py-1 text-sm text-foreground shadow-sm">
             {Array.from({ length: totalPages }, (_, index) => (
               <button
                 key={index}
                 type="button"
-                className={`rounded-full px-3 py-1 ${index === page ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-slate-100"}`}
+                className={`rounded-full px-3 py-1 ${index === page ? "bg-primary/10 text-primary ring-1 ring-primary/30" : "text-muted-foreground hover:bg-surface-2"}`}
                 onClick={() => setPage(index)}
               >
                 {index + 1}
@@ -2218,6 +2220,7 @@ function AdminOrders() {
             size="sm"
             onClick={() => setPage(totalPages - 1)}
             disabled={!hasNextPage}
+            className="h-9 rounded-full px-4"
           >
             Último
           </Button>
