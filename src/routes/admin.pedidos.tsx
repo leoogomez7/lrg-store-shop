@@ -2209,7 +2209,6 @@ function AdminOrders() {
                 type="button"
                 className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                 onClick={() => setPage(index)}
-                disabled={totalPages === 0}
               >
                 {index + 1}
               </button>
