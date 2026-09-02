@@ -212,12 +212,12 @@ function AccountPageContent({
   const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("10");
 
   const accountNavItems = [
-    { key: "home", label: "Inicio", icon: House, route: "/" },
-    { key: "admin-panel", label: "Panel administrativo", icon: LayoutDashboard, route: "/cuenta/panel" },
-    { key: "orders", label: "Compras", icon: ShoppingCart, route: "/cuenta/compras" },
-    { key: "profile", label: "Perfil", icon: User, route: "/cuenta/perfil" },
-    { key: "addresses", label: "Direcciones", icon: MapPin, route: "/cuenta/direcciones" },
-    { key: "favorites", label: "Favoritos", icon: Heart, route: "/cuenta/favoritos" },
+    { key: "home", label: "Inicio", icon: House, route: "/", exact: true },
+    { key: "admin-panel", label: "Panel administrativo", icon: LayoutDashboard, route: "/cuenta/panel", exact: true },
+    { key: "orders", label: "Compras", icon: ShoppingCart, route: "/cuenta/compras", exact: false },
+    { key: "profile", label: "Perfil", icon: User, route: "/cuenta/perfil", exact: false },
+    { key: "addresses", label: "Direcciones", icon: MapPin, route: "/cuenta/direcciones", exact: false },
+    { key: "favorites", label: "Favoritos", icon: Heart, route: "/cuenta/favoritos", exact: false },
   ] as const;
 
   type AccountNavKey = (typeof accountNavItems)[number]["key"];
@@ -1334,10 +1334,8 @@ function AccountPageContent({
               </Button>
             )}
             <nav className="mt-3 w-full space-y-1">
-              {accountNavItems.map(({ key, label, icon: Icon }) => {
-                const isActive =
-                  (key === "admin-panel" && location.pathname === "/cuenta/panel") ||
-                  (key !== "home" && key !== "admin-panel" && activeTab === key);
+              {accountNavItems.map(({ key, label, icon: Icon, route, exact }) => {
+                const isActive = exact ? location.pathname === route : location.pathname.startsWith(route);
                 return (
                   <button
                     type="button"
@@ -1348,7 +1346,7 @@ function AccountPageContent({
                       "group relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-left text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
                       sidebarCollapsed && "justify-center px-2",
                       isActive
-                        ? "border-white/10 bg-background/80 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                        ? "border-white/10 bg-surface-2 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
                         : "text-muted-foreground",
                     )}
                   >

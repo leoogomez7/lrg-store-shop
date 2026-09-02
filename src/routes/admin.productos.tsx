@@ -2204,7 +2204,7 @@ function AdminProducts() {
             size="sm"
             onClick={() => setPage(0)}
             disabled={!hasPreviousPage}
-            className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+            className="h-9 rounded-full border-0 bg-[#1f2937] px-4 text-white shadow-none hover:bg-[#111827]"
           >
             Principio
           </Button>
@@ -2213,7 +2213,7 @@ function AdminProducts() {
               <button
                 key={index}
                 type="button"
-                className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#1f2937] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                 onClick={() => setPage(index)}
               >
                 {index + 1}
@@ -2226,7 +2226,7 @@ function AdminProducts() {
             size="sm"
             onClick={() => setPage(totalPages - 1)}
             disabled={!hasNextPage}
-            className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+            className="h-9 rounded-full border-0 bg-[#1f2937] px-4 text-white shadow-none hover:bg-[#111827]"
           >
             Último
           </Button>

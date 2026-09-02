@@ -513,10 +513,8 @@ function AdminDashboard() {
 
       <section className="mt-8 grid gap-6 pb-20">
         <div>
+          <h2 className="mb-3 font-display text-xl font-semibold">Últimos pedidos</h2>
           <div className="glass-panel overflow-hidden rounded-2xl">
-            <div className="flex items-center justify-between gap-4 px-5 pt-5 pb-3">
-              <h2 className="font-display font-semibold">Últimos pedidos</h2>
-            </div>
             <Table className="w-full min-w-fit text-center [&_td]:align-middle [&_th]:align-middle [&_td]:text-center [&_th]:text-center" containerClassName="overflow-x-auto overflow-y-visible">
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
@@ -596,7 +594,7 @@ function AdminDashboard() {
                 size="sm"
                 onClick={() => setOrdersPage(0)}
                 disabled={ordersPage === 0 || ordersPages === 0}
-                className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                className="h-9 rounded-full border-0 bg-[#1f2937] px-4 text-white shadow-none hover:bg-[#111827]"
               >
                 Principio
               </Button>
@@ -605,7 +603,7 @@ function AdminDashboard() {
                   <button
                     key={index}
                     type="button"
-                    className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                    className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#1f2937] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                     onClick={() => setOrdersPage(index)}
                     disabled={ordersPages === 0}
                   >
@@ -619,7 +617,7 @@ function AdminDashboard() {
                 size="sm"
                 onClick={() => setOrdersPage(ordersPages - 1)}
                 disabled={ordersPage >= ordersPages - 1 || ordersPages === 0}
-                className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                className="h-9 rounded-full border-0 bg-[#1f2937] px-4 text-white shadow-none hover:bg-[#111827]"
               >
                 Último
               </Button>
@@ -628,29 +626,29 @@ function AdminDashboard() {
         </div>
 
         <div>
-          <div className="glass-panel overflow-hidden rounded-2xl">
-            <div className="flex flex-wrap items-center justify-between gap-4 px-5 pt-5 pb-3">
-              <div className="flex items-center gap-3">
-                <h2 className="font-display font-semibold">Stock total</h2>
-                <span className="rounded-full bg-gradient-to-r from-blue-600 to-blue-500 px-3 py-1 text-sm font-medium text-white shadow-lg">
-                  {formatNumber(totalStockUnits)} total
-                </span>
-              </div>
-              <div className="relative w-full sm:w-64">
-                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="search"
-                  value={stockSearch}
-                  onChange={(event) => {
-                    setStockSearch(event.target.value);
-                    setStockPage(0);
-                  }}
-                  placeholder="Buscar productos..."
-                  aria-label="Buscar productos en stock"
-                  className="pl-9"
-                />
-              </div>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="font-display font-semibold">Stock total</h2>
+              <span className="rounded-full bg-gradient-to-r from-blue-600 to-blue-500 px-3 py-1 text-sm font-medium text-white shadow-lg">
+                {formatNumber(totalStockUnits)} total
+              </span>
             </div>
+            <div className="relative w-full sm:w-64">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                value={stockSearch}
+                onChange={(event) => {
+                  setStockSearch(event.target.value);
+                  setStockPage(0);
+                }}
+                placeholder="Buscar productos..."
+                aria-label="Buscar productos en stock"
+                className="pl-9"
+              />
+            </div>
+          </div>
+          <div className="glass-panel overflow-hidden rounded-2xl">
             <ul className="divide-y divide-border/60">
               {currentStockItems.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
