@@ -988,7 +988,7 @@ function AccountPageContent({
             </div>
             <Button
               size="lg"
-              className="h-11 gap-2 rounded-xl bg-[#3b82f6] px-5 text-[#f8fafc] shadow-none hover:bg-[#2563eb]"
+              className="h-11 gap-2 rounded-xl bg-[#3b82f6] px-5 text-[#111827] shadow-none hover:bg-[#2563eb]"
               onClick={() => {
                 setShowAddForm((current) => !current);
                 setEditingIndex(null);
@@ -1044,7 +1044,7 @@ function AccountPageContent({
               <div className="mt-5 flex flex-wrap gap-3">
                 <Button
                   size="lg"
-                  className="h-11 min-w-[140px] rounded-xl bg-[#3b82f6] px-5 text-[#f8fafc] shadow-none hover:bg-[#2563eb]"
+                  className="h-11 min-w-[140px] rounded-xl bg-[#3b82f6] px-5 text-[#111827] shadow-none hover:bg-[#2563eb]"
                   onClick={async () => {
                     if (!addressLabel.trim() || !addressValue.trim()) {
                       toast.error("Por favor completa etiqueta y dirección");
@@ -1159,7 +1159,7 @@ function AccountPageContent({
                         <div className="flex flex-wrap gap-3 pt-1">
                           <Button
                             size="lg"
-                            className="h-11 px-5 bg-[#39a9de] text-white hover:bg-[#2f9ed3]"
+                            className="h-11 px-5 bg-[#39a9de] text-[#111827] hover:bg-[#2f9ed3]"
                             onClick={async () => {
                               if (!addressLabel.trim() || !addressValue.trim()) return;
                               const addressToUpdate = addresses[index];
@@ -1271,7 +1271,7 @@ function AccountPageContent({
             <div className="flex flex-col items-center gap-3 rounded-2xl px-6 py-14 text-center">
               <Heart className="size-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.</p>
-              <Button asChild size="sm" className="rounded-xl bg-[#3b82f6] text-white hover:bg-[#2563eb]">
+              <Button asChild size="sm" className="rounded-xl bg-[#3b82f6] text-[#111827] hover:bg-[#2563eb]">
                 <Link to="/sectores">
                   <Package className="mr-2 size-4" /> Explorar sectores
                 </Link>
