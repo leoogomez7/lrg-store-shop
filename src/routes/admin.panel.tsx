@@ -671,7 +671,7 @@ function AdminDashboard() {
               </li>
             ))}
             {searchedStockItems.length === 0 ? (
-              <li className="px-5 py-6 text-sm text-muted-foreground">
+              <li className="flex min-h-[200px] items-center justify-center px-5 py-6 text-center text-sm text-muted-foreground">
                 {normalizedStockSearch
                   ? "No se encontraron productos."
                   : "No hay productos disponibles."}
