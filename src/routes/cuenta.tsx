@@ -699,7 +699,7 @@ function AccountPageContent({
             </div>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-2xl border border-border/60 bg-muted/20 backdrop-blur-sm">
+          <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
             <Table containerClassName="overflow-hidden">
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>

@@ -512,251 +512,243 @@ function AdminDashboard() {
       </section>
 
       <section className="mt-8 grid gap-6 pb-20">
-        <div className="glass-panel overflow-hidden rounded-2xl">
-          <div className="flex items-center justify-between gap-4 border-b border-border/60 p-5">
-            <h2 className="font-display font-semibold">Últimos pedidos</h2>
-          </div>
-          <Table className="w-full text-center [&_td]:text-center [&_th]:text-center">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Pedido</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Sector</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.id}</TableCell>
-                  <TableCell>{order.customer}</TableCell>
-                  <TableCell>{brands[order.brand].shortName}</TableCell>
-                  <TableCell>{formatDate(order.date)}</TableCell>
-                  <TableCell>{formatPrice(order.total)}</TableCell>
-                </TableRow>
-              ))}
-              {recentOrders.length === 0 ? (
+        <div>
+          <div className="glass-panel overflow-hidden rounded-2xl">
+            <div className="flex items-center justify-between gap-4 border-b border-border/60 p-5">
+              <h2 className="font-display font-semibold">Últimos pedidos</h2>
+            </div>
+            <Table className="w-full text-center [&_td]:text-center [&_th]:text-center">
+              <TableHeader>
                 <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="py-10 text-center text-sm text-muted-foreground"
-                  >
-                    No hay pedidos disponibles.
-                  </TableCell>
+                  <TableHead>Pedido</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Sector</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Total</TableHead>
                 </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
-          <div className="border-t border-border/60 bg-background/30 px-5 py-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <p className="text-xs text-muted-foreground">
-                  {currentOrders.length} de {recentOrders.length} pedidos mostrados
-                </p>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>Mostrar</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={1000}
-                    value={ordersPageSizeInput}
-                    onChange={(e) => setOrdersPageSizeInput(e.target.value)}
-                    className="h-8 w-20 bg-background/50"
-                  />
-                  {(() => {
-                    const v = Number(ordersPageSizeInput);
-                    const isValid = Number.isFinite(v) && v >= 1;
-                    const isChanged =
-                      ordersPageSizeInput !== "" &&
-                      String(Math.floor(v)) !== String(ordersPageSize);
-                    return (
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => {
-                          if (!isValid || !isChanged) return;
-                          const final = Math.min(1000, Math.floor(v));
-                          setOrdersPageSize(final);
-                          setOrdersPage(0);
-                        }}
-                        disabled={!isValid || !isChanged}
-                        className="h-8 px-4"
-                      >
-                        <Check className="mr-2 h-4 w-4" />
-                        Confirmar
-                      </Button>
-                    );
-                  })()}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
+              </TableHeader>
+              <TableBody>
+                {currentOrders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">{order.id}</TableCell>
+                    <TableCell>{order.customer}</TableCell>
+                    <TableCell>{brands[order.brand].shortName}</TableCell>
+                    <TableCell>{formatDate(order.date)}</TableCell>
+                    <TableCell>{formatPrice(order.total)}</TableCell>
+                  </TableRow>
+                ))}
+                {recentOrders.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="py-10 text-center text-sm text-muted-foreground"
+                    >
+                      No hay pedidos disponibles.
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              {currentOrders.length} de {recentOrders.length} pedidos mostrados
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-muted-foreground">Mostrar</div>
+              <Input
+                type="number"
+                min={1}
+                max={1000}
+                value={ordersPageSizeInput}
+                onChange={(e) => setOrdersPageSizeInput(e.target.value)}
+                className="h-8 w-20 bg-background/50"
+              />
+              {(() => {
+                const v = Number(ordersPageSizeInput);
+                const isValid = Number.isFinite(v) && v >= 1;
+                const isChanged =
+                  ordersPageSizeInput !== "" &&
+                  String(Math.floor(v)) !== String(ordersPageSize);
+                return (
                   <Button
                     type="button"
-                    variant="ghost"
                     size="sm"
-                    onClick={() => setOrdersPage(0)}
-                    disabled={ordersPage === 0 || ordersPages === 0}
-                    className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                    onClick={() => {
+                      if (!isValid || !isChanged) return;
+                      const final = Math.min(1000, Math.floor(v));
+                      setOrdersPageSize(final);
+                      setOrdersPage(0);
+                    }}
+                    disabled={!isValid || !isChanged}
+                    className="h-8 px-4"
                   >
-                    Principio
+                    <Check className="mr-2 h-4 w-4" />
+                    Confirmar
                   </Button>
-                  <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-                    {Array.from({ length: Math.max(ordersPages, 1) }, (_, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                        onClick={() => setOrdersPage(index)}
-                        disabled={ordersPages === 0}
-                      >
-                        {index + 1}
-                      </button>
-                    ))}
-                  </div>
-                  <Button
+                );
+              })()}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setOrdersPage(0)}
+                disabled={ordersPage === 0 || ordersPages === 0}
+                className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+              >
+                Principio
+              </Button>
+              <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+                {Array.from({ length: Math.max(ordersPages, 1) }, (_, index) => (
+                  <button
+                    key={index}
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setOrdersPage(ordersPages - 1)}
-                    disabled={ordersPage >= ordersPages - 1 || ordersPages === 0}
-                    className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                    className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                    onClick={() => setOrdersPage(index)}
+                    disabled={ordersPages === 0}
                   >
-                    Último
-                  </Button>
-                </div>
+                    {index + 1}
+                  </button>
+                ))}
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setOrdersPage(ordersPages - 1)}
+                disabled={ordersPage >= ordersPages - 1 || ordersPages === 0}
+                className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+              >
+                Último
+              </Button>
             </div>
           </div>
         </div>
 
-        <div className="glass-panel overflow-hidden rounded-2xl">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 p-5">
-            <div className="flex items-center gap-3">
-              <h2 className="font-display font-semibold">Stock total</h2>
-              <span className="rounded-full bg-secondary/60 px-3 py-1 text-sm font-medium text-foreground">
-                {formatNumber(totalStockUnits)} total
-              </span>
-            </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                value={stockSearch}
-                onChange={(event) => {
-                  setStockSearch(event.target.value);
-                  setStockPage(0);
-                }}
-                placeholder="Buscar productos..."
-                aria-label="Buscar productos en stock"
-                className="pl-9"
-              />
-            </div>
-          </div>
-          <ul className="divide-y divide-border/60">
-            {currentStockItems.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
-                <span className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-                  <span className="min-w-0 truncate">{item.name}</span>
-                  {item.variantName ? (
-                    <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
-                      {item.variantName}
-                    </span>
-                  ) : null}
-                </span>
-                <Badge variant={item.stock === 0 ? "destructive" : "secondary"}>
-                  {item.stock} unidades
-                </Badge>
-              </li>
-            ))}
-            {searchedStockItems.length === 0 ? (
-              <li className="flex min-h-[200px] items-center justify-center px-5 py-6 text-center text-sm text-muted-foreground">
-                {normalizedStockSearch
-                  ? "No se encontraron productos."
-                  : "No hay productos disponibles."}
-              </li>
-            ) : null}
-          </ul>
-          <div className="border-t border-border/60 bg-background/30 px-5 py-4">
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="glass-panel overflow-hidden rounded-2xl">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 p-5">
               <div className="flex items-center gap-3">
-                <p className="text-xs text-muted-foreground">
-                  {currentStockItems.length} de {searchedStockItems.length} productos mostrados
-                </p>
+                <h2 className="font-display font-semibold">Stock total</h2>
+                <span className="rounded-full bg-gradient-to-r from-blue-600 to-blue-500 px-3 py-1 text-sm font-medium text-white shadow-lg">
+                  {formatNumber(totalStockUnits)} total
+                </span>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>Mostrar</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={1000}
-                    value={stockPageSizeInput}
-                    onChange={(e) => setStockPageSizeInput(e.target.value)}
-                    className="h-8 w-20 bg-background/50"
-                  />
-                  {(() => {
-                    const v = Number(stockPageSizeInput);
-                    const isValid = Number.isFinite(v) && v >= 1;
-                    const isChanged =
-                      stockPageSizeInput !== "" &&
-                      String(Math.floor(v)) !== String(stockPageSize);
-                    return (
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => {
-                          if (!isValid || !isChanged) return;
-                          const final = Math.min(1000, Math.floor(v));
-                          setStockPageSize(final);
-                          setStockPage(0);
-                        }}
-                        disabled={!isValid || !isChanged}
-                        className="h-8 px-4"
-                      >
-                        <Check className="mr-2 h-4 w-4" />
-                        Confirmar
-                      </Button>
-                    );
-                  })()}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-full sm:w-64">
+                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="search"
+                  value={stockSearch}
+                  onChange={(event) => {
+                    setStockSearch(event.target.value);
+                    setStockPage(0);
+                  }}
+                  placeholder="Buscar productos..."
+                  aria-label="Buscar productos en stock"
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <ul className="divide-y divide-border/60">
+              {currentStockItems.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+                  <span className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+                    <span className="min-w-0 truncate">{item.name}</span>
+                    {item.variantName ? (
+                      <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+                        {item.variantName}
+                      </span>
+                    ) : null}
+                  </span>
+                  <Badge variant={item.stock === 0 ? "destructive" : "secondary"}>
+                    {item.stock} unidades
+                  </Badge>
+                </li>
+              ))}
+              {searchedStockItems.length === 0 ? (
+                <li className="flex min-h-[200px] items-center justify-center px-5 py-6 text-center text-sm text-muted-foreground">
+                  {normalizedStockSearch
+                    ? "No se encontraron productos."
+                    : "No hay productos disponibles."}
+                </li>
+              ) : null}
+            </ul>
+          </div>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              {currentStockItems.length} de {searchedStockItems.length} productos mostrados
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-muted-foreground">Mostrar</div>
+              <Input
+                type="number"
+                min={1}
+                max={1000}
+                value={stockPageSizeInput}
+                onChange={(e) => setStockPageSizeInput(e.target.value)}
+                className="h-8 w-20 bg-background/50"
+              />
+              {(() => {
+                const v = Number(stockPageSizeInput);
+                const isValid = Number.isFinite(v) && v >= 1;
+                const isChanged =
+                  stockPageSizeInput !== "" &&
+                  String(Math.floor(v)) !== String(stockPageSize);
+                return (
                   <Button
                     type="button"
-                    variant="ghost"
                     size="sm"
-                    onClick={() => setStockPage(0)}
-                    disabled={stockPage === 0 || stockPages === 0}
-                    className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                    onClick={() => {
+                      if (!isValid || !isChanged) return;
+                      const final = Math.min(1000, Math.floor(v));
+                      setStockPageSize(final);
+                      setStockPage(0);
+                    }}
+                    disabled={!isValid || !isChanged}
+                    className="h-8 px-4"
                   >
-                    Principio
+                    <Check className="mr-2 h-4 w-4" />
+                    Confirmar
                   </Button>
-                  <div className="flex flex-wrap items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-                    {Array.from({ length: Math.max(stockPages, 1) }, (_, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === stockPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                        onClick={() => setStockPage(index)}
-                        disabled={stockPages === 0}
-                      >
-                        {index + 1}
-                      </button>
-                    ))}
-                  </div>
-                  <Button
+                );
+              })()}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setStockPage(0)}
+                disabled={stockPage === 0 || stockPages === 0}
+                className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+              >
+                Principio
+              </Button>
+              <div className="flex flex-wrap items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+                {Array.from({ length: Math.max(stockPages, 1) }, (_, index) => (
+                  <button
+                    key={index}
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setStockPage(stockPages - 1)}
-                    disabled={stockPage >= stockPages - 1 || stockPages === 0}
-                    className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                    className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === stockPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                    onClick={() => setStockPage(index)}
+                    disabled={stockPages === 0}
                   >
-                    Último
-                  </Button>
-                </div>
+                    {index + 1}
+                  </button>
+                ))}
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setStockPage(stockPages - 1)}
+                disabled={stockPage >= stockPages - 1 || stockPages === 0}
+                className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+              >
+                Último
+              </Button>
             </div>
           </div>
         </div>
