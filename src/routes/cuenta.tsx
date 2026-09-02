@@ -795,11 +795,11 @@ function AccountPageContent({
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => setOrdersPage(0)}
                 disabled={!hasPreviousPage || !canEditOrdersPageSize}
-                className="h-9 rounded-full px-4"
+                className="h-9 rounded-full border-0 bg-transparent px-4 shadow-none hover:bg-surface-2"
               >
                 Principio
               </Button>
@@ -808,7 +808,7 @@ function AccountPageContent({
                   <button
                     key={index}
                     type="button"
-                    className={`rounded-full px-3 py-1 ${index === ordersPage ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-surface-2"}`}
+                    className={`rounded-full border-0 bg-transparent px-3 py-1 outline-none focus-visible:outline-none ${index === ordersPage ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-surface-2"}`}
                     onClick={() => setOrdersPage(index)}
                     disabled={!canEditOrdersPageSize}
                   >
@@ -818,11 +818,11 @@ function AccountPageContent({
               </div>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => setOrdersPage(totalOrdersPages - 1)}
                 disabled={!hasNextPage || !canEditOrdersPageSize}
-                className="h-9 rounded-full px-4"
+                className="h-9 rounded-full border-0 bg-transparent px-4 shadow-none hover:bg-surface-2"
               >
                 Último
               </Button>

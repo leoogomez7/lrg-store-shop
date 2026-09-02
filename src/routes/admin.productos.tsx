@@ -2200,11 +2200,11 @@ function AdminProducts() {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => setPage(0)}
             disabled={!hasPreviousPage}
-            className="h-9 rounded-full px-4"
+            className="h-9 rounded-full border-0 bg-transparent px-4 shadow-none hover:bg-surface-2"
           >
             Principio
           </Button>
@@ -2213,7 +2213,7 @@ function AdminProducts() {
               <button
                 key={index}
                 type="button"
-                className={`rounded-full px-3 py-1 ${index === page ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-surface-2"}`}
+                className={`rounded-full border-0 bg-transparent px-3 py-1 outline-none focus-visible:outline-none ${index === page ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-surface-2"}`}
                 onClick={() => setPage(index)}
               >
                 {index + 1}
@@ -2222,11 +2222,11 @@ function AdminProducts() {
           </div>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => setPage(totalPages - 1)}
             disabled={!hasNextPage}
-            className="h-9 rounded-full px-4"
+            className="h-9 rounded-full border-0 bg-transparent px-4 shadow-none hover:bg-surface-2"
           >
             Último
           </Button>
