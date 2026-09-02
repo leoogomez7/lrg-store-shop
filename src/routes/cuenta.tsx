@@ -876,7 +876,7 @@ function AccountPageContent({
             <h1 className="mt-2 text-3xl font-semibold">Tus datos</h1>
           </div>
 
-          <div className="glass-panel mt-4 rounded-2xl p-5">
+          <div className="mt-4 rounded-2xl p-5">
             <div className="grid max-w-5xl gap-5">
               <div className="grid gap-5 md:grid-cols-3">
                 <div className="space-y-2.5">
@@ -983,12 +983,12 @@ function AccountPageContent({
         <div className="space-y-6">
           <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Direcciones</p>
-              <h1 className="mt-2 text-3xl font-semibold">Tus direcciones</h1>
+              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Domicilio a entregar productos</p>
+              <h1 className="mt-2 text-3xl font-semibold">Direcciones</h1>
             </div>
             <Button
               size="lg"
-              className="h-11 gap-2 rounded-xl bg-[#3b82f6] px-5 text-white shadow-none hover:bg-[#2563eb]"
+              className="h-11 gap-2 rounded-xl bg-[#3b82f6] px-5 text-[#f8fafc] shadow-none hover:bg-[#2563eb]"
               onClick={() => {
                 setShowAddForm((current) => !current);
                 setEditingIndex(null);
@@ -1002,13 +1002,13 @@ function AccountPageContent({
           </div>
 
           {showAddForm && (
-            <div className="glass-panel mb-6 rounded-2xl p-5">
-              <div className="grid gap-5 sm:grid-cols-2">
-                <div className="space-y-2.5">
+            <div className="mb-6 rounded-2xl p-5">
+              <div className="mt-2 grid gap-5 sm:grid-cols-2">
+                <div className="space-y-3">
                   <Label htmlFor="new-address-label" className="text-sm font-medium">Etiqueta</Label>
                   <Input id="new-address-label" value={addressLabel} onChange={(event) => setAddressLabel(event.target.value)} placeholder="Casa, Oficina, etc." className="h-11 rounded-xl border-border/60 bg-background/40" />
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   <Label htmlFor="new-address-value" className="text-sm font-medium">Dirección</Label>
                   <Input id="new-address-value" value={addressValue} onChange={(event) => setAddressValue(event.target.value)} placeholder="Calle, número, ciudad, país" className="h-11 rounded-xl border-border/60 bg-background/40" />
                 </div>
@@ -1044,7 +1044,7 @@ function AccountPageContent({
               <div className="mt-5 flex flex-wrap gap-3">
                 <Button
                   size="lg"
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="h-11 min-w-[140px] rounded-xl bg-[#3b82f6] px-5 text-[#f8fafc] shadow-none hover:bg-[#2563eb]"
                   onClick={async () => {
                     if (!addressLabel.trim() || !addressValue.trim()) {
                       toast.error("Por favor completa etiqueta y dirección");
@@ -1093,7 +1093,7 @@ function AccountPageContent({
                 <Button
                   variant="destructive"
                   size="lg"
-                  className="h-11 px-5"
+                  className="h-11 min-w-[140px] rounded-xl px-5"
                   onClick={() => {
                     setShowAddForm(false);
                     setAddressLabel("");
@@ -1108,7 +1108,7 @@ function AccountPageContent({
 
           <div className="grid gap-5 sm:grid-cols-2">
             {addresses.map((address, index) => (
-              <div key={`${address.label}-${index}`} className="glass-panel rounded-2xl p-5">
+              <div key={`${address.label}-${index}`} className="rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="w-full">
                     <div className="flex items-center gap-3">
@@ -1268,7 +1268,7 @@ function AccountPageContent({
               ))}
             </div>
           ) : (
-            <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl px-6 py-14 text-center">
+            <div className="flex flex-col items-center gap-3 rounded-2xl px-6 py-14 text-center">
               <Heart className="size-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.</p>
               <Button asChild size="sm" className="rounded-xl bg-[#3b82f6] text-white hover:bg-[#2563eb]">
