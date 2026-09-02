@@ -1271,9 +1271,9 @@ function AccountPageContent({
             <div className="flex flex-col items-center gap-3 rounded-2xl px-6 py-14 text-center">
               <Heart className="size-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.</p>
-              <Button asChild size="sm" className="rounded-xl bg-[#3b82f6] text-[#111827] hover:bg-[#2563eb]">
-                <Link to="/sectores">
-                  <Package className="mr-2 size-4" /> Explorar sectores
+              <Button asChild size="lg" className="h-11 gap-2 rounded-xl bg-[#3b82f6] px-5 text-[#111827] shadow-none hover:bg-[#2563eb]">
+                <Link to="/productos" className="inline-flex items-center gap-2">
+                  <Package className="size-4" /> Explorar productos
                 </Link>
               </Button>
             </div>
