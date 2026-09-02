@@ -808,7 +808,7 @@ function AccountPageContent({
                   <button
                     key={index}
                     type="button"
-                    className={`rounded-full px-3 py-1 ${index === ordersPage ? "bg-primary/10 text-primary ring-1 ring-primary/30" : "text-muted-foreground hover:bg-surface-2"}`}
+                    className={`rounded-full px-3 py-1 ${index === ordersPage ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-surface-2"}`}
                     onClick={() => setOrdersPage(index)}
                     disabled={!canEditOrdersPageSize}
                   >
