@@ -517,14 +517,14 @@ function AdminDashboard() {
             <div className="flex items-center justify-between gap-4 border-b border-border/60 p-5">
               <h2 className="font-display font-semibold">Últimos pedidos</h2>
             </div>
-            <Table className="w-full text-center [&_td]:text-center [&_th]:text-center">
-              <TableHeader>
+            <Table className="w-full min-w-fit table-fixed text-center [&_td]:align-middle [&_th]:align-middle [&_td]:text-center [&_th]:text-center" containerClassName="overflow-x-auto overflow-y-visible">
+              <TableHeader className="[&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
-                  <TableHead>Pedido</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Sector</TableHead>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Total</TableHead>
+                  <TableHead className="w-24">Pedido</TableHead>
+                  <TableHead className="w-32">Cliente</TableHead>
+                  <TableHead className="w-24">Sector</TableHead>
+                  <TableHead className="w-28">Fecha</TableHead>
+                  <TableHead className="w-24">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
