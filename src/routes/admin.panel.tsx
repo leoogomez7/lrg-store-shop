@@ -514,11 +514,11 @@ function AdminDashboard() {
       <section className="mt-8 grid gap-6 pb-20">
         <div>
           <div className="glass-panel overflow-hidden rounded-2xl">
-            <div className="flex items-center justify-between gap-4 border-b border-border/60 p-5">
+            <div className="flex items-center justify-between gap-4 px-5 pt-5 pb-3">
               <h2 className="font-display font-semibold">Últimos pedidos</h2>
             </div>
-            <Table className="w-full min-w-fit table-fixed text-center [&_td]:align-middle [&_th]:align-middle [&_td]:text-center [&_th]:text-center" containerClassName="overflow-x-auto overflow-y-visible">
-              <TableHeader className="[&_th]:shadow-[0_1px_0_var(--border)]">
+            <Table className="w-full min-w-fit text-center [&_td]:align-middle [&_th]:align-middle [&_td]:text-center [&_th]:text-center" containerClassName="overflow-x-auto overflow-y-visible">
+              <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
                   <TableHead className="w-24">Pedido</TableHead>
                   <TableHead className="w-32">Cliente</TableHead>
@@ -629,7 +629,7 @@ function AdminDashboard() {
 
         <div>
           <div className="glass-panel overflow-hidden rounded-2xl">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-4 px-5 pt-5 pb-3">
               <div className="flex items-center gap-3">
                 <h2 className="font-display font-semibold">Stock total</h2>
                 <span className="rounded-full bg-gradient-to-r from-blue-600 to-blue-500 px-3 py-1 text-sm font-medium text-white shadow-lg">

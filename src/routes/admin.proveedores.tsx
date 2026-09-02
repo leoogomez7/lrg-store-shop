@@ -318,8 +318,11 @@ function AdminSuppliers() {
       </div>
 
       <div className="glass-panel mt-2 overflow-hidden rounded-2xl pb-2">
-        <Table className="text-center [&_td]:text-center [&_th]:text-center [&_td]:align-middle [&_th]:align-middle">
-          <TableHeader>
+        <Table
+          containerClassName="overflow-hidden"
+          className="w-full text-center [&_td]:text-center [&_th]:text-center [&_td]:align-middle [&_th]:align-middle"
+        >
+          <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
               <TableHead>Nombre</TableHead>
               <TableHead>Celular</TableHead>

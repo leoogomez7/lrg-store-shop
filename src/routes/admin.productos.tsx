@@ -1685,22 +1685,22 @@ function AdminProducts() {
 
       <div className="glass-panel mt-3 overflow-hidden rounded-2xl pb-2">
         <Table
-          containerClassName="overflow-x-auto overflow-y-visible"
-          className="w-full min-w-295 table-fixed text-center [&_td]:align-middle [&_th]:align-middle"
+          containerClassName="overflow-hidden"
+          className="w-full text-center [&_td]:align-middle [&_th]:align-middle [&_td]:text-center [&_th]:text-center"
         >
-          <TableHeader className="[&_th]:shadow-[0_1px_0_var(--border)]">
+          <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
-              <TableHead className="text-center w-40">Producto</TableHead>
-              <TableHead className="text-center w-20">Sector</TableHead>
-              <TableHead className="text-center w-16">Stock</TableHead>
-              <TableHead className="text-center w-24">Mi comisión</TableHead>
-              <TableHead className="text-center w-20">Gastos</TableHead>
-              <TableHead className="text-center w-20">Precio</TableHead>
-              <TableHead className="text-center w-20">Descuento</TableHead>
-              <TableHead className="text-center w-24">Precio tienda</TableHead>
-              <TableHead className="text-center w-24">Ganancias</TableHead>
-              <TableHead className="text-center w-56">Aplicar</TableHead>
-              <TableHead className="text-center w-56">Acciones</TableHead>
+              <TableHead className="w-40 text-center">Producto</TableHead>
+              <TableHead className="w-20 text-center">Sector</TableHead>
+              <TableHead className="w-16 text-center">Stock</TableHead>
+              <TableHead className="w-24 text-center">Mi comisión</TableHead>
+              <TableHead className="w-20 text-center">Gastos</TableHead>
+              <TableHead className="w-20 text-center">Precio</TableHead>
+              <TableHead className="w-20 text-center">Descuento</TableHead>
+              <TableHead className="w-24 text-center">Precio tienda</TableHead>
+              <TableHead className="w-24 text-center">Ganancias</TableHead>
+              <TableHead className="w-56 text-center">Aplicar</TableHead>
+              <TableHead className="w-56 text-center">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
