@@ -871,106 +871,104 @@ function AccountPageContent({
     if (activeTab === "profile") {
       return userName ? (
         <div className="space-y-6">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary">
-              <User className="size-5" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold">Perfil</h2>
-              <p className="text-sm text-muted-foreground">Actualizá tus datos personales.</p>
-            </div>
+          <div className="mb-2">
+            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Perfil</p>
+            <h1 className="mt-2 text-3xl font-semibold">Tus datos</h1>
           </div>
-          <div className="grid max-w-4xl gap-5">
-            <div className="grid gap-5 md:grid-cols-3">
-              <div className="space-y-2.5">
-                <Label htmlFor="account-name" className="text-sm font-medium text-foreground">Nombre</Label>
-                <Input
-                  id="account-name"
-                  value={userGivenName}
-                  onChange={(e) => setUserGivenName(e.target.value)}
-                  placeholder="Nombre"
-                  className="h-10 border-border/60"
-                />
-              </div>
-              <div className="space-y-2.5">
-                <Label htmlFor="account-last-name" className="text-sm font-medium text-foreground">Apellido</Label>
-                <Input
-                  id="account-last-name"
-                  value={userFamilyName}
-                  onChange={(e) => setUserFamilyName(e.target.value)}
-                  placeholder="Apellido"
-                  className="h-10 border-border/60"
-                />
-              </div>
-              <div className="space-y-2.5">
-                <Label htmlFor="account-doc" className="text-sm font-medium text-foreground">Documento</Label>
-                <Input id="account-doc" value={userDocument} onChange={(e) => setUserDocument(e.target.value)} placeholder="Ingresá tu documento" className="h-10 border-border/60" />
-              </div>
-            </div>
 
-            <div className="grid gap-5 md:grid-cols-3">
-              <div className="space-y-2.5">
-                <Label htmlFor="account-email" className="text-sm font-medium text-foreground">Email</Label>
-                <Input id="account-email" type="email" value={userEmail} disabled className="h-10 border-border/60 bg-muted/50 text-foreground opacity-60" />
-                <p className="text-xs text-muted-foreground leading-relaxed">Email de acceso, no se puede modificar desde aquí.</p>
+          <div className="glass-panel mt-4 rounded-2xl p-5">
+            <div className="grid max-w-5xl gap-5">
+              <div className="grid gap-5 md:grid-cols-3">
+                <div className="space-y-2.5">
+                  <Label htmlFor="account-name" className="text-sm font-medium text-foreground">Nombre</Label>
+                  <Input
+                    id="account-name"
+                    value={userGivenName}
+                    onChange={(e) => setUserGivenName(e.target.value)}
+                    placeholder="Nombre"
+                    className="h-11 rounded-xl border-border/60 bg-background/40"
+                  />
+                </div>
+                <div className="space-y-2.5">
+                  <Label htmlFor="account-last-name" className="text-sm font-medium text-foreground">Apellido</Label>
+                  <Input
+                    id="account-last-name"
+                    value={userFamilyName}
+                    onChange={(e) => setUserFamilyName(e.target.value)}
+                    placeholder="Apellido"
+                    className="h-11 rounded-xl border-border/60 bg-background/40"
+                  />
+                </div>
+                <div className="space-y-2.5">
+                  <Label htmlFor="account-doc" className="text-sm font-medium text-foreground">Documento</Label>
+                  <Input id="account-doc" value={userDocument} onChange={(e) => setUserDocument(e.target.value)} placeholder="Ingresá tu documento" className="h-11 rounded-xl border-border/60 bg-background/40" />
+                </div>
               </div>
-              <div className="space-y-2.5">
-                <Label htmlFor="account-phone" className="text-sm font-medium text-foreground">Teléfono</Label>
-                <Input id="account-phone" value={userPhone} onChange={(e) => setUserPhone(e.target.value)} placeholder="Ingresá tu teléfono" className="h-10 border-border/60" />
-              </div>
-              <div className="space-y-2.5">
-                <Label htmlFor="account-primary-address" className="text-sm font-medium text-foreground">Dirección</Label>
-                <Input
-                  id="account-primary-address"
-                  value={primaryAddress?.value ?? "Sin dirección principal"}
-                  disabled
-                  className="h-10 border-border/60 bg-muted/50 text-foreground opacity-80"
-                />
-              </div>
-            </div>
 
-            <Button
-              className="sm:w-fit h-10 px-6"
-              disabled={isSavingProfile}
-              onClick={async () => {
-                setIsSavingProfile(true);
-                try {
-                  const nextEmail = userEmail.trim();
-                  const nextName = userGivenName.trim();
-                  const nextFamily = userFamilyName.trim();
-                  const nextFullName = [nextName, nextFamily].filter(Boolean).join(" ");
-                  const success = await updateUserProfile({
-                    data: {
-                      userId: user?.id || "",
-                      email: nextEmail,
-                      givenName: nextName,
-                      familyName: nextFamily,
-                      phone: userPhone,
-                      document: userDocument,
-                    },
-                  });
-                  if (success) {
-                    setUserName(nextFullName || nextEmail || user?.email || null);
-                    await saveKindeUserToTurso({
-                      id: user?.id || "",
-                      email: nextEmail || user?.email || null,
-                      givenName: nextName || null,
-                      familyName: nextFamily || null,
+              <div className="grid gap-5 md:grid-cols-3">
+                <div className="space-y-2.5">
+                  <Label htmlFor="account-email" className="text-sm font-medium text-foreground">Email</Label>
+                  <Input id="account-email" type="email" value={userEmail} disabled className="h-11 rounded-xl border-border/60 bg-muted/50 text-foreground opacity-60" />
+                  <p className="text-xs text-muted-foreground leading-relaxed">Email de acceso, no se puede modificar desde aquí.</p>
+                </div>
+                <div className="space-y-2.5">
+                  <Label htmlFor="account-phone" className="text-sm font-medium text-foreground">Teléfono</Label>
+                  <Input id="account-phone" value={userPhone} onChange={(e) => setUserPhone(e.target.value)} placeholder="Ingresá tu teléfono" className="h-11 rounded-xl border-border/60 bg-background/40" />
+                </div>
+                <div className="space-y-2.5">
+                  <Label htmlFor="account-primary-address" className="text-sm font-medium text-foreground">Dirección</Label>
+                  <Input
+                    id="account-primary-address"
+                    value={primaryAddress?.value ?? "Sin dirección principal"}
+                    disabled
+                    className="h-11 rounded-xl border-border/60 bg-muted/50 text-foreground opacity-80"
+                  />
+                </div>
+              </div>
+
+              <Button
+                className="sm:w-fit h-11 rounded-xl bg-[#3b82f6] px-6 text-white shadow-none hover:bg-[#2563eb]"
+                disabled={isSavingProfile}
+                onClick={async () => {
+                  setIsSavingProfile(true);
+                  try {
+                    const nextEmail = userEmail.trim();
+                    const nextName = userGivenName.trim();
+                    const nextFamily = userFamilyName.trim();
+                    const nextFullName = [nextName, nextFamily].filter(Boolean).join(" ");
+                    const success = await updateUserProfile({
+                      data: {
+                        userId: user?.id || "",
+                        email: nextEmail,
+                        givenName: nextName,
+                        familyName: nextFamily,
+                        phone: userPhone,
+                        document: userDocument,
+                      },
                     });
-                    toast.success("Perfil actualizado correctamente");
-                  } else {
-                    toast.error("Error al actualizar el perfil");
+                    if (success) {
+                      setUserName(nextFullName || nextEmail || user?.email || null);
+                      await saveKindeUserToTurso({
+                        id: user?.id || "",
+                        email: nextEmail || user?.email || null,
+                        givenName: nextName || null,
+                        familyName: nextFamily || null,
+                      });
+                      toast.success("Perfil actualizado correctamente");
+                    } else {
+                      toast.error("Error al actualizar el perfil");
+                    }
+                  } catch (error) {
+                    console.error("Error al guardar:", error);
+                    toast.error("Error al guardar los cambios");
+                  } finally {
+                    setIsSavingProfile(false);
                   }
-                } catch (error) {
-                  console.error("Error al guardar:", error);
-                  toast.error("Error al guardar los cambios");
-                } finally {
-                  setIsSavingProfile(false);
-                }
-              }}
-            >
-              {isSavingProfile ? "Guardando..." : <><Check className="mr-2 size-4 text-current" /> Guardar cambios</>}
-            </Button>
+                }}
+              >
+                {isSavingProfile ? "Guardando..." : <><Check className="mr-2 size-4 text-current" /> Guardar cambios</>}
+              </Button>
+            </div>
           </div>
         </div>
       ) : (
@@ -983,14 +981,14 @@ function AccountPageContent({
     if (activeTab === "addresses") {
       return userName ? (
         <div className="space-y-6">
-          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Direcciones</h2>
-              <p className="text-sm text-muted-foreground">Agregá, editá o borrá tus direcciones de envío.</p>
+              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Direcciones</p>
+              <h1 className="mt-2 text-3xl font-semibold">Tus direcciones</h1>
             </div>
             <Button
               size="lg"
-              className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+              className="h-11 gap-2 rounded-xl bg-[#3b82f6] px-5 text-white shadow-none hover:bg-[#2563eb]"
               onClick={() => {
                 setShowAddForm((current) => !current);
                 setEditingIndex(null);
@@ -1004,15 +1002,15 @@ function AccountPageContent({
           </div>
 
           {showAddForm && (
-            <div className="mb-6 rounded-2xl border border-border/60 bg-background/50 p-6">
+            <div className="glass-panel mb-6 rounded-2xl p-5">
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-2.5">
                   <Label htmlFor="new-address-label" className="text-sm font-medium">Etiqueta</Label>
-                  <Input id="new-address-label" value={addressLabel} onChange={(event) => setAddressLabel(event.target.value)} placeholder="Casa, Oficina, etc." className="h-10 border-border/60" />
+                  <Input id="new-address-label" value={addressLabel} onChange={(event) => setAddressLabel(event.target.value)} placeholder="Casa, Oficina, etc." className="h-11 rounded-xl border-border/60 bg-background/40" />
                 </div>
                 <div className="space-y-2.5">
                   <Label htmlFor="new-address-value" className="text-sm font-medium">Dirección</Label>
-                  <Input id="new-address-value" value={addressValue} onChange={(event) => setAddressValue(event.target.value)} placeholder="Calle, número, ciudad, país" className="h-10 border-border/60" />
+                  <Input id="new-address-value" value={addressValue} onChange={(event) => setAddressValue(event.target.value)} placeholder="Calle, número, ciudad, país" className="h-11 rounded-xl border-border/60 bg-background/40" />
                 </div>
               </div>
               {addressValue.trim() && (
@@ -1110,7 +1108,7 @@ function AccountPageContent({
 
           <div className="grid gap-5 sm:grid-cols-2">
             {addresses.map((address, index) => (
-              <div key={`${address.label}-${index}`} className="rounded-2xl border border-border/60 bg-background/50 p-6">
+              <div key={`${address.label}-${index}`} className="glass-panel rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="w-full">
                     <div className="flex items-center gap-3">
@@ -1257,23 +1255,30 @@ function AccountPageContent({
 
     if (activeTab === "favorites") {
       return userName ? (
-        favoriteProducts.length > 0 ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {favoriteProducts.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
-            ))}
+        <div className="space-y-6">
+          <div className="mb-2">
+            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Favoritos</p>
+            <h1 className="mt-2 text-3xl font-semibold">Productos guardados</h1>
           </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3 text-center py-14">
-            <Heart className="size-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.</p>
-            <Button asChild size="sm">
-              <Link to="/sectores">
-                <Package className="mr-2 size-4" /> Explorar sectores
-              </Link>
-            </Button>
-          </div>
-        )
+
+          {favoriteProducts.length > 0 ? (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {favoriteProducts.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} />
+              ))}
+            </div>
+          ) : (
+            <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl px-6 py-14 text-center">
+              <Heart className="size-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.</p>
+              <Button asChild size="sm" className="rounded-xl bg-[#3b82f6] text-white hover:bg-[#2563eb]">
+                <Link to="/sectores">
+                  <Package className="mr-2 size-4" /> Explorar sectores
+                </Link>
+              </Button>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="text-center text-base text-muted-foreground py-10">
           Inicia sesión para ver tus favoritos.

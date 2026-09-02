@@ -539,7 +539,7 @@ function AdminDashboard() {
                   <TableRow>
                     <TableCell
                       colSpan={5}
-                      className="py-10 text-center text-sm text-muted-foreground"
+                      className="py-6 text-center text-sm text-muted-foreground"
                     >
                       No hay pedidos disponibles.
                     </TableCell>
@@ -666,7 +666,7 @@ function AdminDashboard() {
                 </li>
               ))}
               {searchedStockItems.length === 0 ? (
-                <li className="flex min-h-[120px] items-center justify-center px-5 py-3 text-center text-sm text-muted-foreground">
+                <li className="flex min-h-[90px] items-center justify-center px-5 py-3 text-center text-sm text-muted-foreground">
                   {normalizedStockSearch
                     ? "No se encontraron productos."
                     : "No hay productos disponibles."}
