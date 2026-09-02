@@ -514,9 +514,9 @@ function AdminDashboard() {
       <section className="mt-8 grid gap-6 pb-20">
         <div>
           <h2 className="mb-3 font-display text-xl font-semibold">Últimos pedidos</h2>
-          <div className="glass-panel overflow-hidden rounded-2xl">
-            <Table className="w-full min-w-fit text-center [&_td]:align-middle [&_th]:align-middle [&_td]:text-center [&_th]:text-center" containerClassName="overflow-x-auto overflow-y-visible">
-              <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+          <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
+            <Table className="w-full min-w-fit text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center" containerClassName="overflow-x-auto overflow-y-visible">
+              <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
                   <TableHead className="w-24">Pedido</TableHead>
                   <TableHead className="w-32">Cliente</TableHead>
@@ -648,7 +648,7 @@ function AdminDashboard() {
               />
             </div>
           </div>
-          <div className="glass-panel overflow-hidden rounded-2xl">
+          <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
             <ul className="divide-y divide-border/60">
               {currentStockItems.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
