@@ -599,16 +599,16 @@ function AdminDashboard() {
                       size="sm"
                       onClick={() => setOrdersPage(0)}
                       disabled={ordersPage === 0}
-                      className="h-9 rounded-full border-0 bg-transparent px-4 shadow-none hover:bg-surface-2"
+                      className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
                     >
                       Principio
                     </Button>
-                    <div className="flex items-center gap-1 rounded-full bg-background/50 px-3 py-1 text-sm text-foreground shadow-sm">
+                    <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
                       {Array.from({ length: ordersPages }, (_, index) => (
                         <button
                           key={index}
                           type="button"
-                          className={`rounded-full border-0 bg-transparent px-3 py-1 outline-none focus-visible:outline-none ${index === ordersPage ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-surface-2"}`}
+                          className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                           onClick={() => setOrdersPage(index)}
                         >
                           {index + 1}
@@ -621,7 +621,7 @@ function AdminDashboard() {
                       size="sm"
                       onClick={() => setOrdersPage(ordersPages - 1)}
                       disabled={ordersPage >= ordersPages - 1}
-                      className="h-9 rounded-full border-0 bg-transparent px-4 shadow-none hover:bg-surface-2"
+                      className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
                     >
                       Último
                     </Button>
@@ -730,16 +730,16 @@ function AdminDashboard() {
                       size="sm"
                       onClick={() => setStockPage(0)}
                       disabled={stockPage === 0}
-                      className="h-9 rounded-full border-0 bg-transparent px-4 shadow-none hover:bg-surface-2"
+                      className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
                     >
                       Principio
                     </Button>
-                    <div className="flex flex-wrap items-center gap-1 rounded-full bg-background/50 px-3 py-1 text-sm text-foreground shadow-sm">
+                    <div className="flex flex-wrap items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
                       {Array.from({ length: stockPages }, (_, index) => (
                         <button
                           key={index}
                           type="button"
-                          className={`rounded-full border-0 bg-transparent px-3 py-1 outline-none focus-visible:outline-none ${index === stockPage ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-surface-2"}`}
+                          className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === stockPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                           onClick={() => setStockPage(index)}
                         >
                           {index + 1}
@@ -752,7 +752,7 @@ function AdminDashboard() {
                       size="sm"
                       onClick={() => setStockPage(stockPages - 1)}
                       disabled={stockPage >= stockPages - 1}
-                      className="h-9 rounded-full border-0 bg-transparent px-4 shadow-none hover:bg-surface-2"
+                      className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
                     >
                       Último
                     </Button>
