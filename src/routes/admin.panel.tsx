@@ -548,88 +548,87 @@ function AdminDashboard() {
               ) : null}
             </TableBody>
           </Table>
-          {recentOrders.length > 0 && (
-            <div className="border-t border-border/60 bg-background/30 px-5 py-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <p className="text-xs text-muted-foreground">
-                    {currentOrders.length} de {recentOrders.length} pedidos mostrados
-                  </p>
+          <div className="border-t border-border/60 bg-background/30 px-5 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <p className="text-xs text-muted-foreground">
+                  {currentOrders.length} de {recentOrders.length} pedidos mostrados
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Mostrar</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    value={ordersPageSizeInput}
+                    onChange={(e) => setOrdersPageSizeInput(e.target.value)}
+                    className="h-8 w-20 bg-background/50"
+                  />
+                  {(() => {
+                    const v = Number(ordersPageSizeInput);
+                    const isValid = Number.isFinite(v) && v >= 1;
+                    const isChanged =
+                      ordersPageSizeInput !== "" &&
+                      String(Math.floor(v)) !== String(ordersPageSize);
+                    return (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          if (!isValid || !isChanged) return;
+                          const final = Math.min(1000, Math.floor(v));
+                          setOrdersPageSize(final);
+                          setOrdersPage(0);
+                        }}
+                        disabled={!isValid || !isChanged}
+                        className="h-8 px-4"
+                      >
+                        <Check className="mr-2 h-4 w-4" />
+                        Confirmar
+                      </Button>
+                    );
+                  })()}
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>Mostrar</span>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={1000}
-                      value={ordersPageSizeInput}
-                      onChange={(e) => setOrdersPageSizeInput(e.target.value)}
-                      className="h-8 w-20 bg-background/50"
-                    />
-                    {(() => {
-                      const v = Number(ordersPageSizeInput);
-                      const isValid = Number.isFinite(v) && v >= 1;
-                      const isChanged =
-                        ordersPageSizeInput !== "" &&
-                        String(Math.floor(v)) !== String(ordersPageSize);
-                      return (
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => {
-                            if (!isValid || !isChanged) return;
-                            const final = Math.min(1000, Math.floor(v));
-                            setOrdersPageSize(final);
-                            setOrdersPage(0);
-                          }}
-                          disabled={!isValid || !isChanged}
-                          className="h-8 px-4"
-                        >
-                          <Check className="mr-2 h-4 w-4" />
-                          Confirmar
-                        </Button>
-                      );
-                    })()}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setOrdersPage(0)}
+                    disabled={ordersPage === 0 || ordersPages === 0}
+                    className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                  >
+                    Principio
+                  </Button>
+                  <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+                    {Array.from({ length: Math.max(ordersPages, 1) }, (_, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                        onClick={() => setOrdersPage(index)}
+                        disabled={ordersPages === 0}
+                      >
+                        {index + 1}
+                      </button>
+                    ))}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setOrdersPage(0)}
-                      disabled={ordersPage === 0}
-                      className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
-                    >
-                      Principio
-                    </Button>
-                    <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-                      {Array.from({ length: ordersPages }, (_, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                          onClick={() => setOrdersPage(index)}
-                        >
-                          {index + 1}
-                        </button>
-                      ))}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setOrdersPage(ordersPages - 1)}
-                      disabled={ordersPage >= ordersPages - 1}
-                      className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
-                    >
-                      Último
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setOrdersPage(ordersPages - 1)}
+                    disabled={ordersPage >= ordersPages - 1 || ordersPages === 0}
+                    className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                  >
+                    Último
+                  </Button>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="glass-panel overflow-hidden rounded-2xl">
@@ -679,88 +678,87 @@ function AdminDashboard() {
               </li>
             ) : null}
           </ul>
-          {searchedStockItems.length > 0 && (
-            <div className="border-t border-border/60 bg-background/30 px-5 py-4">
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <p className="text-xs text-muted-foreground">
-                    {currentStockItems.length} de {searchedStockItems.length} productos mostrados
-                  </p>
+          <div className="border-t border-border/60 bg-background/30 px-5 py-4">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <p className="text-xs text-muted-foreground">
+                  {currentStockItems.length} de {searchedStockItems.length} productos mostrados
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Mostrar</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    value={stockPageSizeInput}
+                    onChange={(e) => setStockPageSizeInput(e.target.value)}
+                    className="h-8 w-20 bg-background/50"
+                  />
+                  {(() => {
+                    const v = Number(stockPageSizeInput);
+                    const isValid = Number.isFinite(v) && v >= 1;
+                    const isChanged =
+                      stockPageSizeInput !== "" &&
+                      String(Math.floor(v)) !== String(stockPageSize);
+                    return (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          if (!isValid || !isChanged) return;
+                          const final = Math.min(1000, Math.floor(v));
+                          setStockPageSize(final);
+                          setStockPage(0);
+                        }}
+                        disabled={!isValid || !isChanged}
+                        className="h-8 px-4"
+                      >
+                        <Check className="mr-2 h-4 w-4" />
+                        Confirmar
+                      </Button>
+                    );
+                  })()}
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>Mostrar</span>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={1000}
-                      value={stockPageSizeInput}
-                      onChange={(e) => setStockPageSizeInput(e.target.value)}
-                      className="h-8 w-20 bg-background/50"
-                    />
-                    {(() => {
-                      const v = Number(stockPageSizeInput);
-                      const isValid = Number.isFinite(v) && v >= 1;
-                      const isChanged =
-                        stockPageSizeInput !== "" &&
-                        String(Math.floor(v)) !== String(stockPageSize);
-                      return (
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => {
-                            if (!isValid || !isChanged) return;
-                            const final = Math.min(1000, Math.floor(v));
-                            setStockPageSize(final);
-                            setStockPage(0);
-                          }}
-                          disabled={!isValid || !isChanged}
-                          className="h-8 px-4"
-                        >
-                          <Check className="mr-2 h-4 w-4" />
-                          Confirmar
-                        </Button>
-                      );
-                    })()}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setStockPage(0)}
+                    disabled={stockPage === 0 || stockPages === 0}
+                    className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                  >
+                    Principio
+                  </Button>
+                  <div className="flex flex-wrap items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+                    {Array.from({ length: Math.max(stockPages, 1) }, (_, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === stockPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                        onClick={() => setStockPage(index)}
+                        disabled={stockPages === 0}
+                      >
+                        {index + 1}
+                      </button>
+                    ))}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setStockPage(0)}
-                      disabled={stockPage === 0}
-                      className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
-                    >
-                      Principio
-                    </Button>
-                    <div className="flex flex-wrap items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-                      {Array.from({ length: stockPages }, (_, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === stockPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                          onClick={() => setStockPage(index)}
-                        >
-                          {index + 1}
-                        </button>
-                      ))}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setStockPage(stockPages - 1)}
-                      disabled={stockPage >= stockPages - 1}
-                      className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
-                    >
-                      Último
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setStockPage(stockPages - 1)}
+                    disabled={stockPage >= stockPages - 1 || stockPages === 0}
+                    className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                  >
+                    Último
+                  </Button>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </section>
     </main>

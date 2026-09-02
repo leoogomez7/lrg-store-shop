@@ -2194,21 +2194,22 @@ function AdminOrders() {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => setPage(0)}
             disabled={!hasPreviousPage}
-            className="h-9 rounded-full px-4"
+            className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
           >
             Principio
           </Button>
-          <div className="flex items-center gap-1 rounded-full bg-background/50 px-3 py-1 text-sm text-foreground shadow-sm">
-            {Array.from({ length: totalPages }, (_, index) => (
+          <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+            {Array.from({ length: Math.max(totalPages, 1) }, (_, index) => (
               <button
                 key={index}
                 type="button"
-                className={`rounded-full px-3 py-1 ${index === page ? "bg-primary/10 text-primary ring-1 ring-primary/30" : "text-muted-foreground hover:bg-surface-2"}`}
+                className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                 onClick={() => setPage(index)}
+                disabled={totalPages === 0}
               >
                 {index + 1}
               </button>
@@ -2216,11 +2217,11 @@ function AdminOrders() {
           </div>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => setPage(totalPages - 1)}
             disabled={!hasNextPage}
-            className="h-9 rounded-full px-4"
+            className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
           >
             Último
           </Button>
