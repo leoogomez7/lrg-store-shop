@@ -700,7 +700,10 @@ function AccountPageContent({
           </div>
 
           <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
-            <Table containerClassName="overflow-hidden">
+            <Table
+              containerClassName="overflow-hidden"
+              className="w-full text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
+            >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
                   <TableHead>Pedido</TableHead>
@@ -743,7 +746,7 @@ function AccountPageContent({
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
                       {userName ? "No se encontraron compras." : "Inicia sesión para ver tus pedidos."}
                     </TableCell>
                   </TableRow>
