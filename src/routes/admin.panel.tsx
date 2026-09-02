@@ -651,7 +651,7 @@ function AdminDashboard() {
           <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
             <ul className="divide-y divide-border/60">
               {currentStockItems.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-2.5">
+                <li key={item.id} className="flex items-center justify-between gap-2 px-5 py-2">
                   <span className="flex min-w-0 flex-1 items-center gap-2 text-sm">
                     <span className="min-w-0 truncate">{item.name}</span>
                     {item.variantName ? (
@@ -660,13 +660,13 @@ function AdminDashboard() {
                       </span>
                     ) : null}
                   </span>
-                  <Badge variant={item.stock === 0 ? "destructive" : "secondary"} className="px-2.5 py-1 text-xs">
+                  <Badge variant={item.stock === 0 ? "destructive" : "secondary"} className="px-2 py-1 text-[11px]">
                     {item.stock} unidades
                   </Badge>
                 </li>
               ))}
               {searchedStockItems.length === 0 ? (
-                <li className="flex min-h-[150px] items-center justify-center px-5 py-4 text-center text-sm text-muted-foreground">
+                <li className="flex min-h-[120px] items-center justify-center px-5 py-3 text-center text-sm text-muted-foreground">
                   {normalizedStockSearch
                     ? "No se encontraron productos."
                     : "No hay productos disponibles."}
