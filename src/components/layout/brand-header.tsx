@@ -157,23 +157,28 @@ function BrandHeaderContent({
 
     const isAdmin = userRole === "admin";
     const roleLabel = isAdmin ? "Administrador" : "Cliente";
+    const accountPath = isAdmin ? "/admin/panel" : "/cuenta/panel";
 
     return (
       <div className="flex items-center gap-2">
-        <div
-          className={`px-2 py-1 rounded-md text-sm font-medium ${
+        <Link
+          to={accountPath}
+          aria-label="Abrir Mi cuenta"
+          className={`px-2 py-1 rounded-md text-sm font-medium transition-opacity hover:opacity-80 ${
             isAdmin ? "bg-amber-50 text-amber-800" : "bg-green-50 text-green-800"
           }`}
         >
           {userName}
-        </div>
-        <div
-          className={`px-2 py-1 rounded-md text-white text-xs font-semibold ${
+        </Link>
+        <Link
+          to={accountPath}
+          aria-label="Abrir Mi cuenta"
+          className={`px-2 py-1 rounded-md text-white text-xs font-semibold transition-opacity hover:opacity-80 ${
             isAdmin ? "bg-amber-600" : "bg-green-600"
           }`}
         >
           {roleLabel}
-        </div>
+        </Link>
       </div>
     );
   }

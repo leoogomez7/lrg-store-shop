@@ -260,19 +260,29 @@ function AdminProducts() {
     supplier: { name: "", phone: "", social: "", purchaseDate: "" },
   };
 
-  const handleUsdRateConfirm = () => {
+  const handleUsdRateConfirm = async () => {
     const nextUsdRate = Number(usdRatePromptValue);
     if (!Number.isFinite(nextUsdRate) || nextUsdRate <= 0) {
       toast.error("Ingresá un valor mayor a 0 para 1 USD.");
       return;
     }
-    setUsdRate(nextUsdRate);
-    void saveAdminSetting({
-      data: { settingKey: "lrg:usdRate", settingValue: String(nextUsdRate) },
-    });
-    setProductForm((current) => (current ? { ...current, usdRate: nextUsdRate } : current));
-    setUsdRatePromptOpen(false);
-    setUsdRatePromptValue("");
+    try {
+      const saved = await saveAdminSetting({
+        data: { settingKey: "lrg:usdRate", settingValue: String(nextUsdRate) },
+      });
+      if (!saved) {
+        toast.error("No se pudo guardar el tipo de cambio en Turso.");
+        return;
+      }
+      setUsdRate(nextUsdRate);
+      setProductForm((current) => (current ? { ...current, usdRate: nextUsdRate } : current));
+      setUsdRatePromptOpen(false);
+      setUsdRatePromptValue("");
+      toast.success("Tipo de cambio guardado");
+    } catch (error) {
+      console.error("Error guardando el tipo de cambio:", error);
+      toast.error("No se pudo guardar el tipo de cambio en Turso.");
+    }
   };
 
   const openNewProductDialog = () => {
@@ -2475,7 +2485,7 @@ function AdminProducts() {
                 Cancelar
               </Button>
               <Button type="button" onClick={handleUsdRateConfirm}>
-                Guardar valor
+                <Save className="mr-2 size-4" /> Guardar valor
               </Button>
             </div>
           </div>
