@@ -428,11 +428,6 @@ function AccountPageContent({
     return `${first}${last}`.toUpperCase();
   };
 
-  const getAddressBadge = (label: string) => {
-    const cleaned = label.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, "").slice(0, 3).toUpperCase();
-    return cleaned || "ADR";
-  };
-
   useEffect(() => {
     const query = addressValue.trim();
     if (!query) {
@@ -1108,15 +1103,15 @@ function AccountPageContent({
 
           <div className="grid gap-5 sm:grid-cols-2">
             {addresses.map((address, index) => (
-              <div key={`${address.label}-${index}`} className="rounded-2xl p-5">
+              <div
+                key={`${address.label}-${index}`}
+                className="glass-panel rounded-2xl border border-border/60 p-5"
+              >
                 <div className="flex items-start justify-between gap-4">
                   <div className="w-full">
                     <div className="flex items-center gap-3">
                       <div className="relative grid size-10 place-items-center rounded-xl bg-sky-500/10 text-sky-400 ring-1 ring-sky-400/25">
                         <MapPin className="size-4" />
-                        <span className="absolute bottom-1 right-1 text-[7px] font-bold leading-none tracking-[0.12em] text-sky-300">
-                          {getAddressBadge(address.label)}
-                        </span>
                       </div>
                       <h3 className="text-sm font-semibold text-foreground">{address.label}</h3>
                     </div>
@@ -1216,7 +1211,11 @@ function AccountPageContent({
                           <Button
                             variant={address.isPrimary ? "secondary" : "outline"}
                             size="sm"
-                            className="gap-2 h-9 px-5"
+                            className={
+                              address.isPrimary
+                                ? "h-9 gap-2 bg-amber-400 px-5 text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.25)] hover:bg-amber-300"
+                                : "h-9 gap-2 px-5"
+                            }
                             onClick={async () => {
                               if (!address.id || !user?.id) return;
                               const success = await setPrimaryUserAddress({ data: { userId: user.id, addressId: address.id } });
