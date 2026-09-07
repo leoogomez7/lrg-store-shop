@@ -263,11 +263,31 @@ export const getUserAddresses = createServerFn({ method: "GET" })
   });
 
 export const saveUserAddress = createServerFn({ method: "POST" })
-  .validator((data: { userId: string; label: string; value: string; city?: string; isPrimary?: boolean }) => data)
+  .validator(
+    (data: { userId: string; label: string; value: string; city?: string; isPrimary?: boolean }) =>
+      data,
+  )
   .handler(async ({ data }) => {
-    if (!client || !data.userId || !data.label || !data.value) return null;
+    const userId = data.userId.trim();
+    const label = data.label.trim();
+    const value = data.value.trim();
+    if (!client || !userId || !label || !value) return null;
 
     try {
+      await client.execute({
+        sql: `CREATE TABLE IF NOT EXISTS users (
+          id TEXT PRIMARY KEY,
+          email TEXT,
+          givenName TEXT,
+          familyName TEXT,
+          fullName TEXT,
+          phone TEXT,
+          document TEXT,
+          city TEXT,
+          createdAt TEXT,
+          updatedAt TEXT
+        )`,
+      });
       await client.execute({
         sql: `CREATE TABLE IF NOT EXISTS user_addresses (
           id TEXT PRIMARY KEY,
@@ -285,7 +305,7 @@ export const saveUserAddress = createServerFn({ method: "POST" })
 
       const existingPrimary = await client.execute({
         sql: "SELECT id FROM user_addresses WHERE userId = ? AND isPrimary = 1 LIMIT 1",
-        args: [data.userId],
+        args: [userId],
       });
       const shouldBePrimary = data.isPrimary === true || existingPrimary.rows.length === 0;
       const id = crypto.randomUUID();
@@ -294,18 +314,30 @@ export const saveUserAddress = createServerFn({ method: "POST" })
       await client.execute({
         sql: `INSERT INTO user_addresses (id, userId, label, value, city, isPrimary, createdAt, updatedAt)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [id, data.userId, data.label, data.value, data.city ?? "", shouldBePrimary ? 1 : 0, now, now],
+        args: [
+          id,
+          userId,
+          label,
+          value,
+          data.city?.trim() ?? "",
+          shouldBePrimary ? 1 : 0,
+          now,
+          now,
+        ],
       });
 
-      return { id, label: data.label, value: data.value, city: data.city, isPrimary: shouldBePrimary };
+      return { id, label, value, city: data.city?.trim(), isPrimary: shouldBePrimary };
     } catch (error) {
       console.error("Error guardando dirección:", error);
-      return null;
+      throw new Error("No se pudo guardar la dirección en Turso", { cause: error });
     }
   });
 
 export const updateUserAddress = createServerFn({ method: "POST" })
-  .validator((data: { userId: string; addressId: string; label: string; value: string; city?: string }) => data)
+  .validator(
+    (data: { userId: string; addressId: string; label: string; value: string; city?: string }) =>
+      data,
+  )
   .handler(async ({ data }) => {
     if (!client || !data.userId || !data.addressId || !data.label || !data.value) return false;
 
@@ -314,7 +346,14 @@ export const updateUserAddress = createServerFn({ method: "POST" })
         sql: `UPDATE user_addresses
               SET label = ?, value = ?, city = ?, updatedAt = ?
               WHERE id = ? AND userId = ?`,
-        args: [data.label.trim(), data.value.trim(), data.city ?? "", new Date().toISOString(), data.addressId, data.userId],
+        args: [
+          data.label.trim(),
+          data.value.trim(),
+          data.city ?? "",
+          new Date().toISOString(),
+          data.addressId,
+          data.userId,
+        ],
       });
       return true;
     } catch (error) {
