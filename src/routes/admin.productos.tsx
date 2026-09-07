@@ -537,7 +537,7 @@ function AdminProducts() {
       images: product.images ?? [],
       gastos: product.gastos ?? 0,
       gastosCurrency: product.gastosCurrency ?? "ARS",
-      usdRate: product.usdRate ?? usdRate,
+      usdRate: product.usdRate && product.usdRate > 0 ? product.usdRate : usdRate,
       deliveryUnit: "inmediata",
       deliveryAmount: 1,
       discount: discounts[product.id] ?? 0,
