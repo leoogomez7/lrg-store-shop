@@ -190,7 +190,9 @@ function AccountPageContent({
   const [userDocument, setUserDocument] = useState<string>("");
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [attachmentsOrder, setAttachmentsOrder] = useState<Order | null>(null);
-  const visibleOrders = userName ? orders.filter((order) => order.customer === userName) : [];
+  const visibleOrders = user?.email
+    ? orders.filter((order) => order.email.toLowerCase() === user.email?.toLowerCase())
+    : [];
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const favoriteProducts = products.filter((product) => favoriteIds.includes(product.id));
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -1261,7 +1263,7 @@ function AccountPageContent({
           </div>
 
           {favoriteProducts.length > 0 ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-4 lg:grid-cols-8 xl:grid-cols-12 2xl:grid-cols-16">
               {favoriteProducts.map((product, index) => (
                 <ProductCard key={product.id} product={product} index={index} />
               ))}

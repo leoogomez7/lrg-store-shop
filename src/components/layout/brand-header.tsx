@@ -188,7 +188,7 @@ function BrandHeaderContent({
       <header
         className={`${headerThemeClass} fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl`}
       >
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-16 w-full max-w-7xl min-w-0 items-center gap-1 px-2 sm:gap-4 sm:px-6">
           <Link to="/" className="shrink-0" aria-label={brandLabel}>
             <BrandMark compact brandSlug={brandLogoSlug} />
           </Link>
@@ -201,7 +201,7 @@ function BrandHeaderContent({
             {brandLabel}
           </a>
 
-          <div className="ml-auto flex items-center gap-4">
+          <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-4">
             <nav className="order-3 hidden items-center gap-3 md:flex">
               {links.map((l) => {
                 // anchor links for store-shop
@@ -292,22 +292,28 @@ function BrandHeaderContent({
                   <Button
                     onClick={() => navigate({ to: "/login" })}
                     variant="ghost"
-                    className="rounded-xl text-muted-foreground hover:text-foreground text-xs px-3 py-1"
+                    className="rounded-xl px-2 py-2 text-muted-foreground hover:text-foreground sm:px-3 sm:py-1"
+                    title="Iniciar sesión"
+                    aria-label="Iniciar sesión"
                   >
-                    <User className="h-4 w-4" /> Iniciar sesión
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">Iniciar sesión</span>
                   </Button>
                   <Button
                     onClick={() => navigate({ to: "/register" })}
-                    className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs px-3 py-1"
+                    className="rounded-xl bg-primary px-2 py-2 text-primary-foreground hover:bg-primary/90 sm:px-3 sm:py-1"
+                    title="Crear cuenta"
+                    aria-label="Crear cuenta"
                   >
-                    <UserPlus className="h-4 w-4" /> Crear cuenta
+                    <UserPlus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Crear cuenta</span>
                   </Button>
                 </>
               ) : (
                 <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
-                  <Link to={userRole === "admin" ? "/admin/panel" : "/cuenta/panel"} aria-label="Mi cuenta">
+                  <Link to={userRole === "admin" ? "/admin/panel" : "/cuenta/panel"} aria-label="Mi cuenta" title="Mi cuenta">
                     <User className="size-4" aria-hidden="true" />
-                    <span>Mi cuenta</span>
+                    <span className="hidden sm:inline">Mi cuenta</span>
                   </Link>
                 </Button>
               )}
@@ -328,7 +334,7 @@ function BrandHeaderContent({
 
             <DropdownMenu open={openBuyMenu} onOpenChange={setOpenBuyMenu}>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm" className="order-2 rounded-xl gap-2">
+                <Button variant="secondary" size="sm" className="order-2 rounded-xl gap-2 px-2 sm:px-3" title="Comprar">
                   <ShoppingBag className="size-4" />
                   <span className="hidden sm:inline">Comprar</span>
                 </Button>
@@ -352,8 +358,8 @@ function BrandHeaderContent({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button asChild variant="ghost" size="sm" className="order-0 rounded-xl gap-2">
-              <Link to="/" aria-label="Inicio">
+            <Button asChild variant="ghost" size="sm" className="order-0 rounded-xl gap-2 px-2 sm:px-3">
+              <Link to="/" aria-label="Inicio" title="Inicio">
                 <House className="size-4" aria-hidden="true" />
                 <span className="hidden sm:inline">Inicio</span>
               </Link>
@@ -361,7 +367,7 @@ function BrandHeaderContent({
 
             <DropdownMenu open={openCart} onOpenChange={setOpenCart}>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm" className="order-4 rounded-xl relative gap-2">
+                <Button variant="secondary" size="sm" className="order-4 relative gap-2 px-2 sm:px-3" title="Carrito">
                   <ShoppingCart className="size-4" />
                   <span className="hidden sm:inline">Carrito</span>
                   {count > 0 && (
@@ -481,7 +487,7 @@ function BrandHeaderContent({
 
             <DropdownMenu open={openMenu} onOpenChange={setOpenMenu}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="order-1 rounded-xl gap-2">
+                <Button variant="ghost" size="sm" className="order-1 rounded-xl gap-2 px-2 sm:px-3" title="Tiendas">
                   <Store className="size-4" aria-hidden="true" />
                   <span className="hidden sm:inline">Tiendas</span>
                 </Button>

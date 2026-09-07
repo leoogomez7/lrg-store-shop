@@ -73,6 +73,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
           <ProductVisual
             seed={product.id}
             label={product.name}
+            image={product.images?.[0]}
             className="aspect-3/2 transition-transform duration-500 group-hover:scale-[1.03]"
           />
           <div className="absolute left-3 top-3 flex flex-col gap-2">

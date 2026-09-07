@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, CircleArrowLeft, CreditCard, Lock, Tag, Truck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CreditCard, Lock, Tag, Truck } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { useCart } from "@/store/cart";
 import { BrandHeader } from "@/components/layout/brand-header";
@@ -155,7 +155,6 @@ function CheckoutPage() {
     if (!customerName.trim()) missingFields.push("Nombre completo");
     if (!email.trim()) missingFields.push("Email");
     if (!phone.trim()) missingFields.push("Teléfono");
-    if (!city.trim()) missingFields.push("Ciudad");
     if (!address.trim()) missingFields.push("Dirección");
     if (!paymentMethod.trim()) missingFields.push("Método de pago");
     if (missingFields.length > 0) {
@@ -223,7 +222,7 @@ function CheckoutPage() {
       return;
     }
 
-    orderService.create(order);
+    await orderService.create(order);
     const orderQueryKey = ["orders"] as const;
     queryClient.invalidateQueries({ queryKey: orderQueryKey });
     setOrderId(id);
@@ -235,8 +234,8 @@ function CheckoutPage() {
     return (
       <div className="theme-webdesign relative min-h-screen bg-background text-foreground">
         {Header}
-        <main className="mx-auto w-full max-w-2xl px-4 pb-16 pt-24 sm:px-6">
-          <div className="glass-panel rounded-3xl p-12 text-center">
+        <main className="min-h-screen px-4 pt-24 sm:px-6">
+          <div className="glass-panel fixed inset-x-4 top-20 z-40 mx-auto max-w-2xl rounded-3xl p-8 text-center shadow-2xl sm:p-12">
             <CheckCircle2 className="mx-auto size-12 text-primary" />
             <h1 className="font-display mt-6 text-3xl font-semibold">¡Gracias por tu compra!</h1>
             <p className="mt-3 text-muted-foreground">
@@ -252,7 +251,6 @@ function CheckoutPage() {
             </div>
           </div>
         </main>
-        <BrandFooter brand={brand} />
       </div>
     );
   }
@@ -268,7 +266,7 @@ function CheckoutPage() {
           </div>
           <Link to="/carrito">
             <Button className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm transition-colors hover:bg-slate-50">
-              <CircleArrowLeft className="size-4 text-white" /> Volver
+              <ArrowLeft className="size-4 text-current" /> Volver
             </Button>
           </Link>
         </div>
@@ -322,16 +320,6 @@ function CheckoutPage() {
                     onChange={(e) => setPhone(e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="city">Ciudad</Label>
-                  <Input
-                    id="city"
-                    required
-                    placeholder="Buenos Aires"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                  />
-                </div>
                 {isAuthenticated && savedAddresses.length > 0 && (
                   <div className="space-y-2 sm:col-span-2">
                     <Label>Direcciones guardadas</Label>
@@ -358,19 +346,6 @@ function CheckoutPage() {
                     </div>
                   </div>
                 )}
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="address">Dirección</Label>
-                  <Input
-                    id="address"
-                    required
-                    placeholder="Av. Siempre Viva 742"
-                    value={address}
-                    onChange={(e) => {
-                      setAddress(e.target.value);
-                      setSelectedSavedAddress(""); // Deseleccionar dirección guardada al editar
-                    }}
-                  />
-                </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="notes">Notas del pedido (opcional)</Label>
                   <Textarea
