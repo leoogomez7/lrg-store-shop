@@ -303,13 +303,19 @@ export const saveUserAddress = createServerFn({ method: "POST" })
       });
       await ensureUserAddressColumns();
 
+      const now = new Date().toISOString();
+      await client.execute({
+        sql: `INSERT OR IGNORE INTO users (id, email, givenName, familyName, fullName, createdAt, updatedAt)
+              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        args: [userId, "", "", "", "", now, now],
+      });
+
       const existingPrimary = await client.execute({
         sql: "SELECT id FROM user_addresses WHERE userId = ? AND isPrimary = 1 LIMIT 1",
         args: [userId],
       });
       const shouldBePrimary = data.isPrimary === true || existingPrimary.rows.length === 0;
       const id = crypto.randomUUID();
-      const now = new Date().toISOString();
 
       await client.execute({
         sql: `INSERT INTO user_addresses (id, userId, label, value, city, isPrimary, createdAt, updatedAt)
