@@ -162,8 +162,8 @@ function CatalogPage() {
         <p className="mt-3 text-muted-foreground">{brand.description}</p>
       </header>
 
-      <div className="mt-6 flex items-center justify-end gap-3">
-        <div className="relative max-w-md w-full">
+      <div className="mt-6 flex flex-wrap items-center justify-start gap-3">
+        <div className="relative w-full max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar producto"
@@ -177,7 +177,7 @@ function CatalogPage() {
           <DialogTrigger asChild>
             <button
               type="button"
-              className="inline-flex h-9 w-full max-w-xs items-center justify-between gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
             >
               <span className="flex items-center gap-2">
                 <ArrowUpDown className="size-4 text-white" aria-hidden="true" />
@@ -227,7 +227,7 @@ function CatalogPage() {
             </button>
           </DialogTrigger>
 
-          <DialogContent className="max-w-4xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+          <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
             <DialogHeader className="space-y-2">
               <DialogTitle>Filtros</DialogTitle>
             </DialogHeader>
@@ -260,7 +260,7 @@ function CatalogPage() {
         </Dialog>
       </div>
 
-      <section>
+      <section className="mt-8">
         {results.length === 0 ? (
           <div className="glass-panel rounded-2xl p-12 text-center">
             <h2 className="font-display text-lg font-semibold">Sin resultados</h2>

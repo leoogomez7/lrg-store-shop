@@ -87,7 +87,7 @@ export function ProductFilters({
         : "$";
 
   return (
-    <aside className="glass-panel h-fit w-fit max-w-full space-y-6 rounded-2xl p-5 lg:sticky lg:top-24">
+    <aside className="h-fit w-full max-w-full space-y-6 lg:sticky lg:top-24">
       {!hideSearch && (
         <div className="space-y-2">
           <Label htmlFor="filter-search">Buscar</Label>
@@ -289,8 +289,11 @@ export function ProductFilters({
         )}
       </div>
 
-      <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
-        <Label htmlFor="filter-stock" className="cursor-pointer text-sm">
+      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-surface-2/70 px-4 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
+        <Label
+          htmlFor="filter-stock"
+          className="cursor-pointer text-sm font-semibold text-foreground"
+        >
           Sólo con stock
         </Label>
         <Switch
