@@ -927,7 +927,7 @@ function AccountPageContent({
               </div>
 
               <Button
-                className="sm:w-fit h-11 rounded-xl bg-[#3b82f6] px-6 text-white shadow-none hover:bg-[#2563eb]"
+                className="sm:w-fit h-11 rounded-xl bg-[#3b82f6] px-6 shadow-none hover:bg-[#2563eb]"
                 disabled={isSavingProfile}
                 onClick={async () => {
                   setIsSavingProfile(true);
@@ -966,7 +966,7 @@ function AccountPageContent({
                   }
                 }}
               >
-                {isSavingProfile ? "Guardando..." : <><Check className="mr-2 size-4 text-current" /> Guardar cambios</>}
+                {isSavingProfile ? "Guardando..." : <><Save className="mr-2 size-4 text-current" /> Guardar cambios</>}
               </Button>
             </div>
           </div>
