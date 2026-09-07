@@ -1,9 +1,20 @@
 import { createClient } from "@libsql/client/web";
 
-const tursoUrl = import.meta.env["BDD_USER"]?.trim();
-const tursoToken = import.meta.env["TOK_BDD_USER"]?.trim();
-const tursoAdminUrl = import.meta.env["BDD_ADMIN"]?.trim();
-const tursoAdminToken = import.meta.env["TOK_BDD_ADMIN"]?.trim();
+function readEnv(...names: string[]) {
+  for (const name of names) {
+    const importMetaValue = import.meta.env[name]?.trim();
+    if (importMetaValue) return importMetaValue;
+
+    const processValue = typeof process !== "undefined" ? process.env[name]?.trim() : undefined;
+    if (processValue) return processValue;
+  }
+  return undefined;
+}
+
+const tursoUrl = readEnv("BDD_USER", "TURSO_DATABASE_URL");
+const tursoToken = readEnv("TOK_BDD_USER", "TURSO_AUTH_TOKEN");
+const tursoAdminUrl = readEnv("BDD_ADMIN", "TURSO_ADMIN_DATABASE_URL", "TURSO_DATABASE_URL");
+const tursoAdminToken = readEnv("TOK_BDD_ADMIN", "TURSO_ADMIN_AUTH_TOKEN", "TURSO_AUTH_TOKEN");
 const hasRealTursoConfig = Boolean(
   tursoUrl &&
   tursoToken &&

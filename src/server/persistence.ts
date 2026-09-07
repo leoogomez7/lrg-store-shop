@@ -143,6 +143,23 @@ async function ensureAdminTables() {
   return database;
 }
 
+export const initializeDatabase = createServerFn({ method: "POST" })
+  .validator(() => ({}))
+  .handler(async () => {
+    const [userDatabase, adminDatabase] = await Promise.all([
+      ensureUserTables(),
+      ensureAdminTables(),
+    ]);
+
+    if (!userDatabase || !adminDatabase) {
+      throw new Error(
+        `Turso no está configurado. Conexión de usuario: ${Boolean(userDatabase)}; conexión administrativa: ${Boolean(adminDatabase)}.`,
+      );
+    }
+
+    return true;
+  });
+
 export const loadUserCart = createServerFn({ method: "POST" })
   .validator((data: UserIdentity) => data)
   .handler(async ({ data }) => {

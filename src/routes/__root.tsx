@@ -22,7 +22,12 @@ import {
   getStoreShopContact,
   refreshBrandData,
 } from "../config/brands";
-import { ensureAdminSettings, loadAdminSettings, recordSiteVisit } from "../server/persistence";
+import {
+  ensureAdminSettings,
+  initializeDatabase,
+  loadAdminSettings,
+  recordSiteVisit,
+} from "../server/persistence";
 
 function NotFoundComponent() {
   return (
@@ -205,27 +210,32 @@ function RootComponent() {
     const brandPresentations = Object.fromEntries(
       brandList.map((brand) => [brand.slug, getBrandContactPresentation(brand.slug)]),
     );
-    void ensureAdminSettings({
-      data: {
-        settings: [
-          {
-            settingKey: "lrg-store-shop-contact-v1",
-            settingValue: JSON.stringify(getStoreShopContact()),
+    void initializeDatabase({ data: {} })
+      .then(() =>
+        ensureAdminSettings({
+          data: {
+            settings: [
+              {
+                settingKey: "lrg-store-shop-contact-v1",
+                settingValue: JSON.stringify(getStoreShopContact()),
+              },
+              {
+                settingKey: "lrg-brand-contact-presentation-v1",
+                settingValue: JSON.stringify(brandPresentations),
+              },
+            ],
           },
-          {
-            settingKey: "lrg-brand-contact-presentation-v1",
-            settingValue: JSON.stringify(brandPresentations),
-          },
-        ],
-      },
-    })
+        }),
+      )
       .then(() => loadAdminSettings({ data: {} }))
       .then((settings) => {
         applyAdminSettings(settings);
         refreshBrandData();
         window.dispatchEvent(new Event("lrg-brand-data-updated"));
       })
-      .catch(() => undefined);
+      .catch((error) => {
+        console.error("No se pudo inicializar la base de datos de Turso:", error);
+      });
   }, []);
 
   useEffect(() => {
