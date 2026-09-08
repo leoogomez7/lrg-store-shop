@@ -164,7 +164,7 @@ function BrandHeaderContent({
         <Link
           to={accountPath}
           aria-label="Abrir Mi cuenta"
-          className={`px-2 py-1 rounded-md text-sm font-medium transition-opacity hover:opacity-80 ${
+          className={`inline-flex h-9 items-center rounded-md px-3 py-1.5 text-sm font-medium transition-opacity hover:opacity-80 ${
             isAdmin ? "bg-amber-50 text-amber-800" : "bg-green-50 text-green-800"
           }`}
         >
@@ -173,7 +173,7 @@ function BrandHeaderContent({
         <Link
           to={accountPath}
           aria-label="Abrir Mi cuenta"
-          className={`px-2 py-1 rounded-md text-white text-xs font-semibold transition-opacity hover:opacity-80 ${
+          className={`inline-flex h-9 items-center rounded-md px-3 py-1.5 text-sm font-semibold text-white transition-opacity hover:opacity-80 ${
             isAdmin ? "bg-amber-600" : "bg-green-600"
           }`}
         >
@@ -226,7 +226,7 @@ function BrandHeaderContent({
                           }
                         }
                       }}
-                      className="text-sm font-medium px-3 py-1 rounded hover:bg-surface-2"
+                      className="inline-flex h-9 items-center rounded px-3 py-1.5 text-sm font-medium hover:bg-surface-2"
                     >
                       {l.label}
                     </a>
@@ -240,7 +240,7 @@ function BrandHeaderContent({
                       key={l.to}
                       to={l.to}
                       params={{ brand: brand.slug }}
-                      className="text-sm font-medium px-3 py-1 rounded hover:bg-surface-2"
+                      className="inline-flex h-9 items-center rounded px-3 py-1.5 text-sm font-medium hover:bg-surface-2"
                     >
                       {l.label}
                     </Link>
