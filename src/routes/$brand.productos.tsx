@@ -20,6 +20,7 @@ import { orders } from "@/data/orders";
 
 const searchSchema = z.object({
   categoria: z.string().optional(),
+  subcategoria: z.string().optional(),
 });
 
 export const Route = createFileRoute("/$brand/productos")({
