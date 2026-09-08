@@ -388,45 +388,8 @@ function AdminSuppliers() {
           </TableBody>
         </Table>
       </div>
-      <div className="mt-4 flex flex-col gap-3 pb-20 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted-foreground">
-          {visibleRows.length} de {filteredRows.length} proveedores mostrados
-        </p>
-        <div className="flex items-center gap-3">
-          <div className="text-sm text-muted-foreground">Mostrar</div>
-          <Input
-            type="number"
-            min={1}
-            max={1000}
-            value={pageSizeInput}
-            placeholder="Cantidad"
-            onChange={(event) => setPageSizeInput(event.target.value)}
-            className="h-8 w-20 bg-background/50"
-          />
-
-          {(() => {
-            const v = Number(pageSizeInput);
-            const isValid = Number.isFinite(v) && v >= 1;
-            const isChanged = pageSizeInput !== "" && String(Math.floor(v)) !== String(pageSize);
-            return (
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (!isValid || !isChanged) return;
-                  const final = Math.min(1000, Math.floor(v));
-                  setPageSize(final);
-                  setPage(0);
-                }}
-                disabled={!isValid || !isChanged}
-                className="h-8 px-4"
-              >
-                <Check className="mr-2 h-4 w-4" />
-                Confirmar
-              </Button>
-            );
-          })()}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="mt-4 flex flex-col gap-3 pb-20">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             type="button"
             variant="ghost"
@@ -460,6 +423,45 @@ function AdminSuppliers() {
             Último
           </Button>
         </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="text-sm text-muted-foreground">Mostrar</div>
+          <Input
+            type="number"
+            min={1}
+            max={1000}
+            value={pageSizeInput}
+            placeholder="Cantidad"
+            onChange={(event) => setPageSizeInput(event.target.value)}
+            className="h-8 w-20 bg-background/50"
+          />
+
+          {(() => {
+            const v = Number(pageSizeInput);
+            const isValid = Number.isFinite(v) && v >= 1;
+            const isChanged = pageSizeInput !== "" && String(Math.floor(v)) !== String(pageSize);
+            return (
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (!isValid || !isChanged) return;
+                  const final = Math.min(1000, Math.floor(v));
+                  setPageSize(final);
+                  setPage(0);
+                }}
+                disabled={!isValid || !isChanged}
+                className="h-8 px-4"
+              >
+                <Check className="mr-2 h-4 w-4" />
+                Confirmar
+              </Button>
+            );
+          })()}
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground">
+          {visibleRows.length} de {filteredRows.length} proveedores mostrados
+        </p>
       </div>
     </main>
   );

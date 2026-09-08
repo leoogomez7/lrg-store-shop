@@ -1004,11 +1004,44 @@ function AccountPageContent({
             </Table>
           </div>
 
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground">
-              {paginatedOrders.length} de {filteredOrders.length} compras mostradas
-            </p>
-            <div className="flex items-center gap-3">
+          <div className="mt-4 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setOrdersPage(0)}
+                disabled={!hasPreviousPage || !canEditOrdersPageSize}
+                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937]"
+              >
+                Principio
+              </Button>
+              <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+                {Array.from({ length: totalOrdersPages }, (_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                    onClick={() => setOrdersPage(index)}
+                    disabled={!canEditOrdersPageSize}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setOrdersPage(totalOrdersPages - 1)}
+                disabled={!hasNextPage || !canEditOrdersPageSize}
+                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937]"
+              >
+                Último
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <div className="text-sm text-muted-foreground">Mostrar</div>
               <Input
                 type="number"
@@ -1044,41 +1077,10 @@ function AccountPageContent({
                 );
               })()}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setOrdersPage(0)}
-                disabled={!hasPreviousPage || !canEditOrdersPageSize}
-                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937]"
-              >
-                Principio
-              </Button>
-              <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-                {Array.from({ length: totalOrdersPages }, (_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                    onClick={() => setOrdersPage(index)}
-                    disabled={!canEditOrdersPageSize}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setOrdersPage(totalOrdersPages - 1)}
-                disabled={!hasNextPage || !canEditOrdersPageSize}
-                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937]"
-              >
-                Último
-              </Button>
-            </div>
+
+            <p className="text-center text-xs text-muted-foreground">
+              {paginatedOrders.length} de {filteredOrders.length} compras mostradas
+            </p>
           </div>
 
           <Dialog

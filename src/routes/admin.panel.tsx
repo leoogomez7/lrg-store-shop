@@ -225,29 +225,42 @@ function AdminDashboard() {
     },
   ];
 
-  const stockItems = filteredProducts
-    .flatMap((product) =>
-      product.variants?.length
-        ? product.variants.map((variant) => ({
+  type StockItem = {
+    id: string;
+    name: string;
+    variantName?: string;
+    category: string;
+    brand: BrandSlug;
+    stock: number;
+  };
+
+  const stockItems: StockItem[] = filteredProducts
+    .flatMap((product): StockItem[] => {
+      if (product.variants?.length) {
+        return product.variants.map(
+          (variant): StockItem => ({
             id: `${product.id}-${variant.id}`,
             name: product.name,
             variantName: variant.name,
             category: product.category,
             brand: product.brand,
             stock: variant.stock,
-          }))
-        : [
-            {
-              id: product.id,
-              name: product.name,
-              variantName: undefined,
-              category: product.category,
-              brand: product.brand,
-              stock: product.stock,
-            },
-          ],
-    )
+          }),
+        );
+      }
+
+      return [
+        {
+          id: product.id,
+          name: product.name,
+          category: product.category,
+          brand: product.brand,
+          stock: product.stock,
+        },
+      ];
+    })
     .sort((a, b) => a.stock - b.stock);
+
   const totalStockUnits = stockItems.reduce((sum, item) => sum + item.stock, 0);
   const [stockSearch, setStockSearch] = useState("");
   const normalizedStockSearch = stockSearch.trim().toLowerCase();
@@ -548,46 +561,8 @@ function AdminDashboard() {
               </TableBody>
             </Table>
           </div>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground">
-              {currentOrders.length} de {recentOrders.length} pedidos mostrados
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="text-sm text-muted-foreground">Mostrar</div>
-              <Input
-                type="number"
-                min={1}
-                max={1000}
-                value={ordersPageSizeInput}
-                onChange={(e) => setOrdersPageSizeInput(e.target.value)}
-                className="h-8 w-20 bg-background/50"
-              />
-              {(() => {
-                const v = Number(ordersPageSizeInput);
-                const isValid = Number.isFinite(v) && v >= 1;
-                const isChanged =
-                  ordersPageSizeInput !== "" &&
-                  String(Math.floor(v)) !== String(ordersPageSize);
-                return (
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => {
-                      if (!isValid || !isChanged) return;
-                      const final = Math.min(1000, Math.floor(v));
-                      setOrdersPageSize(final);
-                      setOrdersPage(0);
-                    }}
-                    disabled={!isValid || !isChanged}
-                    className="h-8 px-4"
-                  >
-                    <Check className="mr-2 h-4 w-4" />
-                    Confirmar
-                  </Button>
-                );
-              })()}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="mt-4 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -622,6 +597,46 @@ function AdminDashboard() {
                 Último
               </Button>
             </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <div className="text-sm text-muted-foreground">Mostrar</div>
+              <Input
+                type="number"
+                min={1}
+                max={1000}
+                value={ordersPageSizeInput}
+                onChange={(e) => setOrdersPageSizeInput(e.target.value)}
+                className="h-8 w-20 bg-background/50"
+              />
+              {(() => {
+                const v = Number(ordersPageSizeInput);
+                const isValid = Number.isFinite(v) && v >= 1;
+                const isChanged =
+                  ordersPageSizeInput !== "" &&
+                  String(Math.floor(v)) !== String(ordersPageSize);
+                return (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      if (!isValid || !isChanged) return;
+                      const final = Math.min(1000, Math.floor(v));
+                      setOrdersPageSize(final);
+                      setOrdersPage(0);
+                    }}
+                    disabled={!isValid || !isChanged}
+                    className="h-8 px-4"
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    Confirmar
+                  </Button>
+                );
+              })()}
+            </div>
+
+            <p className="text-center text-xs text-muted-foreground">
+              {currentOrders.length} de {recentOrders.length} pedidos mostrados
+            </p>
           </div>
         </div>
 
@@ -629,7 +644,7 @@ function AdminDashboard() {
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <h2 className="font-display font-semibold">Stock total</h2>
-              <span className="rounded-full bg-gradient-to-r from-blue-600 to-blue-500 px-3 py-1 text-sm font-medium text-white shadow-lg">
+              <span className="rounded-full bg-linear-to-r from-blue-600 to-blue-500 px-3 py-1 text-sm font-medium text-white shadow-lg">
                 {formatNumber(totalStockUnits)} total
               </span>
             </div>
@@ -666,7 +681,7 @@ function AdminDashboard() {
                 </li>
               ))}
               {searchedStockItems.length === 0 ? (
-                <li className="flex min-h-[90px] items-center justify-center px-5 py-3 text-center text-sm text-muted-foreground">
+                <li className="flex min-h-22.5 items-center justify-center px-5 py-3 text-center text-sm text-muted-foreground">
                   {normalizedStockSearch
                     ? "No se encontraron productos."
                     : "No hay productos disponibles."}
@@ -674,46 +689,8 @@ function AdminDashboard() {
               ) : null}
             </ul>
           </div>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground">
-              {currentStockItems.length} de {searchedStockItems.length} productos mostrados
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="text-sm text-muted-foreground">Mostrar</div>
-              <Input
-                type="number"
-                min={1}
-                max={1000}
-                value={stockPageSizeInput}
-                onChange={(e) => setStockPageSizeInput(e.target.value)}
-                className="h-8 w-20 bg-background/50"
-              />
-              {(() => {
-                const v = Number(stockPageSizeInput);
-                const isValid = Number.isFinite(v) && v >= 1;
-                const isChanged =
-                  stockPageSizeInput !== "" &&
-                  String(Math.floor(v)) !== String(stockPageSize);
-                return (
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => {
-                      if (!isValid || !isChanged) return;
-                      const final = Math.min(1000, Math.floor(v));
-                      setStockPageSize(final);
-                      setStockPage(0);
-                    }}
-                    disabled={!isValid || !isChanged}
-                    className="h-8 px-4"
-                  >
-                    <Check className="mr-2 h-4 w-4" />
-                    Confirmar
-                  </Button>
-                );
-              })()}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="mt-4 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -748,6 +725,46 @@ function AdminDashboard() {
                 Último
               </Button>
             </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <div className="text-sm text-muted-foreground">Mostrar</div>
+              <Input
+                type="number"
+                min={1}
+                max={1000}
+                value={stockPageSizeInput}
+                onChange={(e) => setStockPageSizeInput(e.target.value)}
+                className="h-8 w-20 bg-background/50"
+              />
+              {(() => {
+                const v = Number(stockPageSizeInput);
+                const isValid = Number.isFinite(v) && v >= 1;
+                const isChanged =
+                  stockPageSizeInput !== "" &&
+                  String(Math.floor(v)) !== String(stockPageSize);
+                return (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      if (!isValid || !isChanged) return;
+                      const final = Math.min(1000, Math.floor(v));
+                      setStockPageSize(final);
+                      setStockPage(0);
+                    }}
+                    disabled={!isValid || !isChanged}
+                    className="h-8 px-4"
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    Confirmar
+                  </Button>
+                );
+              })()}
+            </div>
+
+            <p className="text-center text-xs text-muted-foreground">
+              {currentStockItems.length} de {searchedStockItems.length} productos mostrados
+            </p>
           </div>
         </div>
       </section>

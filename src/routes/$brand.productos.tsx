@@ -2,7 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { ArrowUpDown, Funnel, Search } from "lucide-react";
+import { ArrowUpDown, Check, Funnel, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -98,6 +98,15 @@ function CatalogPage() {
   const [showSortOptions, setShowSortOptions] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
 
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+
+  const totalPages = Math.max(1, Math.ceil(results.length / pageSize));
+  const hasPreviousPage = page > 0;
+  const hasNextPage = page + 1 < totalPages;
+  const paginatedResults = results.slice(page * pageSize, page * pageSize + pageSize);
+
   useEffect(() => {
     setFilters((current) => ({ ...current, minPrice: 0, maxPrice: priceLimit }));
   }, [priceLimit]);
@@ -115,6 +124,12 @@ function CatalogPage() {
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [showSortOptions]);
+
+  useEffect(() => {
+    if (page >= totalPages) {
+      setPage(Math.max(totalPages - 1, 0));
+    }
+  }, [page, totalPages]);
 
   const results = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
@@ -270,12 +285,86 @@ function CatalogPage() {
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            {results.map((product, index) => (
+            {paginatedResults.map((product, index) => (
               <ProductCard key={product.id} product={product} index={index} />
             ))}
           </div>
         )}
       </section>
+
+      {results.length > 0 && (
+        <div className="mt-4 flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage(0)}
+              disabled={!hasPreviousPage}
+              className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Principio
+            </button>
+            <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+              {Array.from({ length: totalPages }, (_, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                  onClick={() => setPage(index)}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setPage(totalPages - 1)}
+              disabled={!hasNextPage}
+              className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Último
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="text-sm text-muted-foreground">Mostrar</div>
+            <Input
+              type="number"
+              min={1}
+              max={1000}
+              value={pageSizeInput}
+              placeholder="Cantidad"
+              onChange={(e) => setPageSizeInput(e.target.value)}
+              className="h-8 w-20 bg-background/50"
+            />
+            {(() => {
+              const v = Number(pageSizeInput);
+              const isValid = Number.isFinite(v) && v >= 1;
+              const isChanged = pageSizeInput !== "" && String(Math.floor(v)) !== String(pageSize);
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isValid || !isChanged) return;
+                    const final = Math.min(1000, Math.floor(v));
+                    setPageSize(final);
+                    setPageSizeInput(String(final));
+                    setPage(0);
+                  }}
+                  disabled={!isValid || !isChanged}
+                  className="h-8 rounded-lg bg-[#111827] px-4 text-sm text-white hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Confirmar
+                </button>
+              );
+            })()}
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground">
+            {paginatedResults.length} de {results.length} productos mostrados
+          </p>
+        </div>
+      )}
     </main>
   );
 }
