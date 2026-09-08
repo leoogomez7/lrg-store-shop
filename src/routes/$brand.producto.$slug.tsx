@@ -121,9 +121,11 @@ function ProductDetail() {
 
     return "";
   })();
+  const freeShippingText =
+    freeShippingThreshold > 0 ? ` - Envío gratis desde ${formatPrice(freeShippingThreshold)}` : "";
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
+    <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-14 sm:px-6">
       <div className="mb-4 flex items-center justify-start">
         <Link
           to="/$brand/productos"
@@ -219,11 +221,12 @@ function ProductDetail() {
             )}
           </div>
           <h1 className="font-display mt-4 text-3xl font-semibold sm:text-4xl">{product.name}</h1>
-          {deliveryText && (
+          {(deliveryText || freeShippingText) && (
             <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Truck className="size-4 text-primary" />
                 {deliveryText}
+                {freeShippingText}
               </span>
             </div>
           )}
@@ -273,7 +276,7 @@ function ProductDetail() {
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center justify-end gap-3">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 <div className="glass flex items-center gap-1 rounded-xl p-1">
                   <Button
                     variant="ghost"
@@ -299,7 +302,7 @@ function ProductDetail() {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <Button
                 size="lg"
                 className="w-full max-w-44 gap-2"
@@ -328,7 +331,6 @@ function ProductDetail() {
           <Tabs defaultValue="features" className="mt-8">
             <TabsList>
               <TabsTrigger value="features">Características</TabsTrigger>
-              <TabsTrigger value="shipping">Envíos</TabsTrigger>
               <TabsTrigger value="payments">Pagos</TabsTrigger>
             </TabsList>
             <TabsContent value="features" className="pt-4">
@@ -340,13 +342,6 @@ function ProductDetail() {
                   </li>
                 ))}
               </ul>
-            </TabsContent>
-            <TabsContent value="shipping" className="pt-4 text-sm text-muted-foreground">
-              <div className="space-y-2">
-                <div>Despachamos desde {brand.contact.location} con seguimiento incluido.</div>
-                <div>Envío gratis en compras superiores a {formatPrice(freeShippingThreshold)}.</div>
-                {deliveryText && <div>{deliveryText}</div>}
-              </div>
             </TabsContent>
             <TabsContent value="payments" className="pt-4">
               <div className="flex flex-wrap gap-2">
