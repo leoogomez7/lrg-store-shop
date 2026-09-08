@@ -12,6 +12,7 @@ export type CartItem = {
   category?: string;
   subcategory?: string;
   variantName?: string;
+  image?: string;
   price: number;
   quantity: number;
   stock: number;

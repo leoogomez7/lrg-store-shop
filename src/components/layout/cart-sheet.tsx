@@ -155,6 +155,7 @@ export function CartSheet({
                           <ProductVisual
                             seed={item.id}
                             label={item.name}
+                            image={item.image}
                             className="h-20 w-20 rounded-3xl"
                           />
                           <div className="min-w-0 flex-1">

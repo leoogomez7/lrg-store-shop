@@ -89,6 +89,8 @@ function ProductDetail() {
         price: selectedVariant.price,
         description: selectedVariant.description,
         stock: selectedVariant.stock,
+        variantName: selectedVariant.name,
+        image: product.images?.[0],
         features: selectedVariant.features ?? product.features,
         ...(selectedVariant.priceCurrency ? { priceCurrency: selectedVariant.priceCurrency } : {}),
         ...(selectedVariant.comision !== undefined ? { comision: selectedVariant.comision } : {}),
@@ -279,9 +281,7 @@ function ProductDetail() {
             </div>
           ) : null}
 
-          <p className="mt-6 leading-relaxed text-muted-foreground">{activeProduct.description}</p>
-
-          <div className="mt-8 rounded-2xl p-6">
+          <div className="mt-6 rounded-2xl border border-border/50 bg-surface-2 p-5">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex min-w-37.5 flex-col items-start gap-2">
                 <span className="font-display text-3xl font-semibold leading-none">
@@ -348,6 +348,8 @@ function ProductDetail() {
               </Button>
             </div>
           </div>
+
+          <p className="mt-6 leading-relaxed text-muted-foreground">{activeProduct.description}</p>
 
           <Tabs defaultValue="features" className="mt-8">
             <TabsList>

@@ -41,6 +41,8 @@ export type Product = {
   name: string;
   category: string;
   subcategory?: string;
+  variantName?: string;
+  image?: string;
   price: number;
   priceCurrency?: CurrencyCode;
   comision?: number;

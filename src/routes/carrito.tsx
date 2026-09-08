@@ -107,6 +107,7 @@ function CartPage() {
                     <ProductVisual
                       seed={item.id}
                       label={item.name}
+                      image={item.image}
                       className="size-24 rounded-xl"
                     />
                     <div className="min-w-50 flex-1">
@@ -128,6 +129,11 @@ function CartPage() {
                         )}
                       </div>
                       <h2 className="font-display font-semibold">{item.name}</h2>
+                      {item.variantName && (
+                        <p className="mt-1 text-xs font-medium uppercase tracking-wide text-primary">
+                          Variante: {item.variantName}
+                        </p>
+                      )}
                       <p className="mt-1 text-sm text-muted-foreground">
                         {formatPrice(item.price)} · {item.stock} disponibles
                       </p>
