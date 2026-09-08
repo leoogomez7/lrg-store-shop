@@ -258,7 +258,7 @@ function ProductDetail() {
           <p className="mt-6 leading-relaxed text-muted-foreground">{activeProduct.description}</p>
 
           <div className="mt-8 rounded-2xl p-6">
-            <div className="flex flex-wrap items-start gap-4">
+            <div className="flex flex-wrap items-end gap-4">
               <div className="flex min-w-37.5 flex-col items-start gap-2">
                 <span className="font-display text-3xl font-semibold leading-none">
                   {formatPrice(activeProduct.price)}
