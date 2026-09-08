@@ -79,7 +79,7 @@ function BrandHome() {
           </div>
 
           <div className="flex items-center justify-start lg:justify-end">
-            <Button asChild size="lg" className="rounded-3xl px-8 py-4">
+            <Button asChild size="lg" className="rounded-3xl">
               <Link to="/$brand/productos" params={{ brand: brand.slug }}>
                 Comprar <ArrowRight className="size-4" />
               </Link>

@@ -86,7 +86,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
               type="button"
               variant={role === "client" ? "default" : "outline"}
               onClick={() => setRole("client")}
-              className="h-11"
+              className="h-9"
             >
               <UsersRound className="size-4" /> Cliente
             </Button>
@@ -94,7 +94,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
               type="button"
               variant={role === "admin" ? "default" : "outline"}
               onClick={() => setRole("admin")}
-              className="h-11"
+              className="h-9"
             >
               <ShieldCheck className="size-4" /> Administrador
             </Button>
