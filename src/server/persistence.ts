@@ -9,6 +9,8 @@ export type CartItem = {
   slug: string;
   brand: BrandSlug;
   name: string;
+  category?: string;
+  subcategory?: string;
   variantName?: string;
   price: number;
   quantity: number;
