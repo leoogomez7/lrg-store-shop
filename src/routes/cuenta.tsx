@@ -1108,8 +1108,8 @@ function AccountPageContent({
               <Button
                 className={cn(
                   hasProfileChanges && !isSavingProfile
-                    ? "sm:w-fit h-11 rounded-xl bg-[#3b82f6] px-6 shadow-none hover:bg-[#2563eb]"
-                    : "h-8 rounded-md bg-primary px-4 shadow-none disabled:opacity-50",
+                    ? "w-fit justify-self-start h-11 rounded-xl bg-[#3b82f6] px-6 shadow-none hover:bg-[#2563eb]"
+                    : "w-fit justify-self-start h-8 rounded-md bg-primary px-4 shadow-none disabled:opacity-50",
                 )}
                 disabled={isSavingProfile || !hasProfileChanges}
                 onClick={async () => {
@@ -1155,7 +1155,7 @@ function AccountPageContent({
                   }
                 }}
               >
-                {isSavingProfile ? "Guardando..." : <><Check className="mr-2 size-4 text-current" /> Guardar cambios</>}
+                {isSavingProfile ? "Guardando..." : <><Save className="mr-2 size-4 text-current" /> Guardar cambios</>}
               </Button>
             </div>
           </div>
@@ -1295,14 +1295,14 @@ function AccountPageContent({
             </div>
           )}
 
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid justify-items-start gap-5 sm:grid-cols-2">
             {addresses.map((address, index) => (
               <div
                 key={`${address.label}-${index}`}
-                className="glass-panel rounded-2xl border border-border/60 p-5"
+                className="glass-panel w-fit max-w-full rounded-2xl border border-border/60 p-5"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="w-full">
+                  <div className="w-fit max-w-full">
                     <div className="flex items-center gap-3">
                       <div className="relative grid size-10 place-items-center rounded-xl bg-sky-500/10 text-sky-400 ring-1 ring-sky-400/25">
                         <MapPin className="size-4" />
