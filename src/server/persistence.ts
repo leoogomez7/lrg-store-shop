@@ -146,16 +146,10 @@ async function ensureAdminTables() {
 export const initializeDatabase = createServerFn({ method: "POST" })
   .validator(() => ({}))
   .handler(async () => {
-    const [userDatabase, adminDatabase] = await Promise.all([
+    await Promise.all([
       ensureUserTables(),
       ensureAdminTables(),
     ]);
-
-    if (!userDatabase || !adminDatabase) {
-      throw new Error(
-        `Turso no está configurado. Conexión de usuario: ${Boolean(userDatabase)}; conexión administrativa: ${Boolean(adminDatabase)}.`,
-      );
-    }
 
     return true;
   });

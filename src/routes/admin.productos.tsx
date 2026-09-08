@@ -442,7 +442,7 @@ function AdminProducts() {
     setImportCategoryOpen(true);
   };
 
-  const handleImportMultipleProducts = (files: FileList | null) => {
+  const handleImportMultipleProducts = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
     const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
@@ -450,6 +450,8 @@ function AdminProducts() {
       toast.error("No se seleccionaron imágenes válidas.");
       return;
     }
+
+    const imageDataUrls = await Promise.all(imageFiles.map((file) => fileToDataUrl(file)));
 
     const importedProducts = imageFiles.map((file, index) => {
       const baseName = file.name
@@ -480,7 +482,7 @@ function AdminProducts() {
         short: "Producto agregado desde importación múltiple.",
         description: "Producto creado a partir de una imagen importada desde el dispositivo.",
         features: [],
-        images: [URL.createObjectURL(file)],
+        images: [imageDataUrls[index]],
         createdAt: new Date().toISOString().slice(0, 10),
       } as Product;
     });
@@ -2749,6 +2751,20 @@ function ProductEditDialog({
   const [confirmDeleteFeatureOpen, setConfirmDeleteFeatureOpen] = useState(false);
   const [featureToDeleteIndex, setFeatureToDeleteIndex] = useState<number | null>(null);
 
+  const fileToDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+        } else {
+          reject(new Error("No se pudo convertir la imagen seleccionada a datos persistibles."));
+        }
+      };
+      reader.onerror = () => reject(reader.error ?? new Error("No se pudo leer la imagen."));
+      reader.readAsDataURL(file);
+    });
+
   const requestUsdRateForCurrency = (
     field: "priceCurrency" | "comisionCurrency" | "gastosCurrency",
     nextCurrency: CurrencyCode,
@@ -2763,17 +2779,17 @@ function ProductEditDialog({
     });
   };
 
-  const handleAddImageFiles = (files: FileList | null) => {
+  const handleAddImageFiles = async (files: FileList | null) => {
     if (!productForm || !files?.length) return;
 
-    const imageUrls = Array.from(files)
-      .filter((file) => file.type.startsWith("image/"))
-      .map((file) => URL.createObjectURL(file));
-    if (!imageUrls.length) return;
+    const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
+    if (!imageFiles.length) return;
+
+    const imageDataUrls = await Promise.all(imageFiles.map((file) => fileToDataUrl(file)));
 
     setProductForm({
       ...productForm,
-      images: [...productForm.images, ...imageUrls],
+      images: [...productForm.images, ...imageDataUrls],
     });
   };
 

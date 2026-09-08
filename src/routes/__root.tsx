@@ -12,6 +12,7 @@ import { Component, Suspense, useEffect, type ErrorInfo, type ReactNode } from "
 
 import appCss from "../styles.css?url";
 import { reportClientError } from "../lib/error-reporting";
+import { hasTursoAdminConfig, hasTursoConfig } from "../lib/db";
 import { CartProvider } from "../store/cart";
 import { Toaster } from "../components/ui/sonner";
 import { getKindeConfig, getKindeRedirectUri, hasKindeConfig } from "../lib/kinde";
@@ -207,6 +208,10 @@ function RootComponent() {
   const hasKindConfig = hasKindeConfig();
 
   useEffect(() => {
+    if (!hasTursoConfig() && !hasTursoAdminConfig()) {
+      return;
+    }
+
     const brandPresentations = Object.fromEntries(
       brandList.map((brand) => [brand.slug, getBrandContactPresentation(brand.slug)]),
     );
@@ -239,6 +244,10 @@ function RootComponent() {
   }, []);
 
   useEffect(() => {
+    if (!hasTursoAdminConfig()) {
+      return;
+    }
+
     const match = document.cookie.match(/(?:^|; )lrg_visitor_id=([^;]+)/);
     const visitorId = match?.[1] ? decodeURIComponent(match[1]) : crypto.randomUUID();
     if (!match?.[1]) {
