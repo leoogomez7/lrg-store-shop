@@ -258,7 +258,7 @@ function ProductDetail() {
           <p className="mt-6 leading-relaxed text-muted-foreground">{activeProduct.description}</p>
 
           <div className="mt-8 rounded-2xl p-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-start gap-4">
               <div className="flex min-w-37.5 flex-col items-start gap-2">
                 <span className="font-display text-3xl font-semibold leading-none">
                   {formatPrice(activeProduct.price)}
@@ -272,34 +272,34 @@ function ProductDetail() {
                   {activeProduct.stock > 0 ? `${activeProduct.stock} en stock` : "Sin stock"}
                 </span>
               </div>
-            </div>
 
-            <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
-              <div className="glass flex items-center gap-1 rounded-xl p-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                  aria-label="Restar unidad"
-                >
-                  <Minus className="size-3.5" />
-                </Button>
-                <span className="w-8 text-center text-sm">{quantity}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  onClick={() => setQuantity((value) => Math.min(activeProduct.stock, value + 1))}
-                  aria-label="Sumar unidad"
-                  disabled={activeProduct.stock <= 0}
-                >
-                  <Plus className="size-3.5" />
-                </Button>
+              <div className="flex flex-wrap items-center justify-start gap-2">
+                <div className="glass flex items-center gap-1 rounded-xl p-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                    aria-label="Restar unidad"
+                  >
+                    <Minus className="size-3.5" />
+                  </Button>
+                  <span className="w-8 text-center text-sm">{quantity}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    onClick={() => setQuantity((value) => Math.min(activeProduct.stock, value + 1))}
+                    aria-label="Sumar unidad"
+                    disabled={activeProduct.stock <= 0}
+                  >
+                    <Plus className="size-3.5" />
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="mt-4 flex flex-wrap items-center justify-start gap-2">
               <Button
                 size="lg"
                 className="w-full max-w-44 gap-2"
