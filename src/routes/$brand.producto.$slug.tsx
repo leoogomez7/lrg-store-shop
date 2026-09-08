@@ -82,39 +82,42 @@ function ProductDetail() {
   const selectedVariant =
     product.variants?.find((variant) => variant.id === selectedVariantId) ?? product.variants?.[0];
 
-  const activeProduct: Product = selectedVariant
+  const activeProduct = selectedVariant
     ? {
         ...product,
         id: `${product.id}::${selectedVariant.id}`,
-        variantName: selectedVariant.name,
         price: selectedVariant.price,
-        comision: selectedVariant.comision,
-        gastos: selectedVariant.gastos,
         description: selectedVariant.description,
         stock: selectedVariant.stock,
         features: selectedVariant.features ?? product.features,
-        ...(selectedVariant.priceCurrency ?? product.priceCurrency
-          ? { priceCurrency: selectedVariant.priceCurrency ?? product.priceCurrency }
+        ...(selectedVariant.priceCurrency ? { priceCurrency: selectedVariant.priceCurrency } : {}),
+        ...(selectedVariant.comision !== undefined ? { comision: selectedVariant.comision } : {}),
+        ...(selectedVariant.comisionCurrency
+          ? { comisionCurrency: selectedVariant.comisionCurrency }
           : {}),
-        ...(selectedVariant.comisionCurrency ?? product.comisionCurrency
-          ? { comisionCurrency: selectedVariant.comisionCurrency ?? product.comisionCurrency }
-          : {}),
-        ...(selectedVariant.gastosCurrency ?? product.gastosCurrency
-          ? { gastosCurrency: selectedVariant.gastosCurrency ?? product.gastosCurrency }
-          : {}),
+        ...(selectedVariant.gastos !== undefined ? { gastos: selectedVariant.gastos } : {}),
+        ...(selectedVariant.gastosCurrency ? { gastosCurrency: selectedVariant.gastosCurrency } : {}),
       }
     : product;
   const category = brand.categories.find((item) => item.slug === product.category);
   const selectedSubcategory = category?.subcategories?.find((item) => item.slug === product.subcategory);
+  const freeShippingThreshold = brand.shipping?.freeShippingThreshold ?? 0;
 
-  const deliveryText =
-    selectedVariant?.deliveryUnit === "inmediata"
-      ? "Entrega inmediata"
-      : selectedVariant?.deliveryUnit === "horas"
-        ? `Entrega en ${selectedVariant.deliveryAmount ?? 24} horas`
-        : selectedVariant?.deliveryUnit === "dias"
-          ? `Entrega en ${selectedVariant.deliveryAmount ?? 3} días`
-          : "Envío en 24-72 h";
+  const deliveryText = (() => {
+    if (selectedVariant?.deliveryUnit === "inmediata") {
+      return "Entrega inmediata";
+    }
+
+    if (selectedVariant?.deliveryUnit === "horas" && selectedVariant.deliveryAmount) {
+      return `Entrega en ${selectedVariant.deliveryAmount} horas`;
+    }
+
+    if (selectedVariant?.deliveryUnit === "dias" && selectedVariant.deliveryAmount) {
+      return `Entrega en ${selectedVariant.deliveryAmount} días`;
+    }
+
+    return "";
+  })();
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
@@ -213,14 +216,14 @@ function ProductDetail() {
             )}
           </div>
           <h1 className="font-display mt-4 text-3xl font-semibold sm:text-4xl">{product.name}</h1>
-          <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Truck className="size-4 text-primary" />
-              {deliveryText}
-            </span>
-            <span>·</span>
-            <span>{activeProduct.stock > 0 ? `${activeProduct.stock} en stock` : "Sin stock"}</span>
-          </div>
+          {deliveryText && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Truck className="size-4 text-primary" />
+                {deliveryText}
+              </span>
+            </div>
+          )}
 
           {product.variants && product.variants.length > 1 ? (
             <div className="mt-5 max-w-xl">
@@ -252,7 +255,7 @@ function ProductDetail() {
           <p className="mt-6 leading-relaxed text-muted-foreground">{activeProduct.description}</p>
 
           <div className="mt-8 rounded-2xl p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex min-w-37.5 flex-col items-start gap-2">
                 <span className="font-display text-3xl font-semibold leading-none">
                   {formatPrice(activeProduct.price)}
@@ -293,10 +296,10 @@ function ProductDetail() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Button
                 size="lg"
-                className="min-w-42.5 flex-1 gap-2"
+                className="w-full max-w-44 gap-2"
                 disabled={activeProduct.stock <= 0}
                 onClick={() => addProduct(activeProduct, quantity)}
               >
@@ -306,7 +309,7 @@ function ProductDetail() {
               <Button
                 size="lg"
                 variant="secondary"
-                className="min-w-37.5 gap-2"
+                className="w-full max-w-44 gap-2"
                 onClick={() => {
                   if (activeProduct.stock <= 0) return;
                   addProduct(activeProduct, quantity);
@@ -338,8 +341,8 @@ function ProductDetail() {
             <TabsContent value="shipping" className="pt-4 text-sm text-muted-foreground">
               <div className="space-y-2">
                 <div>Despachamos desde {brand.contact.location} con seguimiento incluido.</div>
-                <div>Envío gratis en compras superiores a {formatPrice(300)}.</div>
-                <div>{deliveryText}</div>
+                <div>Envío gratis en compras superiores a {formatPrice(freeShippingThreshold)}.</div>
+                {deliveryText && <div>{deliveryText}</div>}
               </div>
             </TabsContent>
             <TabsContent value="payments" className="pt-4">
