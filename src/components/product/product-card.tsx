@@ -8,7 +8,7 @@ import { ProductVisual } from "@/components/common/product-visual";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import type { Product } from "@/data/products";
-import { hydrateFavorites, toggleFavoriteProduct } from "@/lib/favorites";
+import { hydrateFavorites, subscribeToFavoriteChanges, toggleFavoriteProduct } from "@/lib/favorites";
 
 export function ProductCard({
   product,
@@ -41,7 +41,11 @@ export function ProductCard({
     const owner = user?.id ?? null;
     setFavoriteOwner(owner);
     if (!owner) return;
+    const unsubscribe = subscribeToFavoriteChanges(owner, (ids) => {
+      setIsFavorite(ids.includes(product.id));
+    });
     void hydrateFavorites(owner).then((ids) => setIsFavorite(ids.includes(product.id)));
+    return unsubscribe;
   }, [product.id, user?.id]);
 
   return (

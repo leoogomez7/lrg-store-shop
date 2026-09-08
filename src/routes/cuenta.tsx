@@ -25,6 +25,7 @@ import {
   Save,
   Search,
   Sheet,
+  ShoppingBag,
   ShoppingCart,
   Trash2,
   User,
@@ -71,7 +72,7 @@ import {
 } from "@/lib/user";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 import type { Order } from "@/data/orders";
-import { hydrateFavorites } from "@/lib/favorites";
+import { hydrateFavorites, subscribeToFavoriteChanges } from "@/lib/favorites";
 
 export const Route = createFileRoute("/cuenta")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
@@ -478,6 +479,7 @@ function AccountPageContent({
 
   useEffect(() => {
     if (!user?.id) return;
+    const unsubscribe = subscribeToFavoriteChanges(user.id, setFavoriteIds);
     void hydrateFavorites(user.id).then(setFavoriteIds);
 
     // Cargar direcciones guardadas desde la BD
@@ -491,6 +493,7 @@ function AccountPageContent({
         })) as Address[]
       );
     });
+    return unsubscribe;
   }, [user?.id]);
 
   const getUserInitials = () => {
@@ -1565,6 +1568,17 @@ function AccountPageContent({
                   </button>
                 );
               })}
+              <a
+                href="https://lrg-store-shop.vercel.app/productos"
+                title={sidebarCollapsed ? "Comprar productos" : undefined}
+                className={cn(
+                  "group relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-left text-sm text-muted-foreground transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
+                  sidebarCollapsed && "justify-center px-2",
+                )}
+              >
+                <ShoppingBag className="relative z-10 size-4 shrink-0" />
+                {!sidebarCollapsed && <span className="relative z-10">Comprar productos</span>}
+              </a>
             </nav>
 
             <div className={cn("mt-auto flex gap-2", sidebarCollapsed && "justify-center")}>
