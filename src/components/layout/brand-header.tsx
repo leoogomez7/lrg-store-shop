@@ -160,26 +160,17 @@ function BrandHeaderContent({
     const accountPath = isAdmin ? "/admin/panel" : "/cuenta/panel";
 
     return (
-      <div className="flex items-center gap-2">
-        <Link
-          to={accountPath}
-          aria-label="Abrir Mi cuenta"
-          className={`inline-flex h-9 items-center rounded-md px-3 py-1.5 text-sm font-medium transition-opacity hover:opacity-80 ${
-            isAdmin ? "bg-amber-50 text-amber-800" : "bg-green-50 text-green-800"
-          }`}
-        >
-          {userName}
-        </Link>
-        <Link
-          to={accountPath}
-          aria-label="Abrir Mi cuenta"
-          className={`inline-flex h-9 items-center rounded-md px-3 py-1.5 text-sm font-semibold text-white transition-opacity hover:opacity-80 ${
-            isAdmin ? "bg-amber-600" : "bg-green-600"
-          }`}
-        >
-          {roleLabel}
-        </Link>
-      </div>
+      <Link
+        to={accountPath}
+        aria-label="Abrir Mi cuenta"
+        className={`inline-flex h-9 items-center rounded-md px-3 py-1.5 text-sm font-semibold text-white transition-opacity hover:opacity-80 ${
+          isAdmin ? "bg-amber-600" : "bg-green-600"
+        }`}
+      >
+        <span className="truncate">{userName}</span>
+        <span className="mx-1">-</span>
+        <span>{roleLabel}</span>
+      </Link>
     );
   }
 

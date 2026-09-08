@@ -1,7 +1,8 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Check, Minus, Plus, ShoppingBag, ShoppingCart, Thunder, Truck } from "lucide-react";
+import { ArrowLeft, Check, Minus, Plus, ShoppingBag, ShoppingCart, Truck } from "lucide-react";
 import { useState } from "react";
+import type { Product } from "@/data/products";
 import { ProductVisual } from "@/components/common/product-visual";
 import { SectionHeading } from "@/components/common/section-heading";
 import { ProductCard } from "@/components/product/product-card";
@@ -80,20 +81,27 @@ function ProductDetail() {
   if (!product) return null;
   const selectedVariant =
     product.variants?.find((variant) => variant.id === selectedVariantId) ?? product.variants?.[0];
-  const activeProduct = selectedVariant
+
+  const activeProduct: Product = selectedVariant
     ? {
         ...product,
         id: `${product.id}::${selectedVariant.id}`,
         variantName: selectedVariant.name,
         price: selectedVariant.price,
-        priceCurrency: selectedVariant.priceCurrency ?? product.priceCurrency,
         comision: selectedVariant.comision,
-        comisionCurrency: selectedVariant.comisionCurrency,
         gastos: selectedVariant.gastos,
-        gastosCurrency: selectedVariant.gastosCurrency,
         description: selectedVariant.description,
         stock: selectedVariant.stock,
         features: selectedVariant.features ?? product.features,
+        ...(selectedVariant.priceCurrency ?? product.priceCurrency
+          ? { priceCurrency: selectedVariant.priceCurrency ?? product.priceCurrency }
+          : {}),
+        ...(selectedVariant.comisionCurrency ?? product.comisionCurrency
+          ? { comisionCurrency: selectedVariant.comisionCurrency ?? product.comisionCurrency }
+          : {}),
+        ...(selectedVariant.gastosCurrency ?? product.gastosCurrency
+          ? { gastosCurrency: selectedVariant.gastosCurrency ?? product.gastosCurrency }
+          : {}),
       }
     : product;
   const category = brand.categories.find((item) => item.slug === product.category);
@@ -110,6 +118,17 @@ function ProductDetail() {
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
+      <div className="mb-4 flex items-center justify-start">
+        <Link
+          to="/$brand/productos"
+          params={{ brand: brand.slug }}
+          className="inline-flex items-center gap-2 rounded-full border border-border/70 px-4 py-2 text-sm font-medium text-foreground transition hover:bg-accent hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          <span>Volver</span>
+        </Link>
+      </div>
+
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -233,16 +252,19 @@ function ProductDetail() {
           <p className="mt-6 leading-relaxed text-muted-foreground">{activeProduct.description}</p>
 
           <div className="mt-8 rounded-2xl p-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex min-w-37.5 items-end gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex min-w-37.5 flex-col items-start gap-2">
                 <span className="font-display text-3xl font-semibold leading-none">
                   {formatPrice(activeProduct.price)}
                 </span>
                 {product.compareAtPrice && (
-                  <span className="pb-1 text-sm text-muted-foreground line-through">
+                  <span className="text-sm text-muted-foreground line-through">
                     {formatPrice(product.compareAtPrice)}
                   </span>
                 )}
+                <span className="text-sm font-medium text-muted-foreground">
+                  {activeProduct.stock > 0 ? `${activeProduct.stock} en stock` : "Sin stock"}
+                </span>
               </div>
 
               <div className="flex flex-wrap items-center justify-end gap-3">
@@ -268,29 +290,32 @@ function ProductDetail() {
                     <Plus className="size-3.5" />
                   </Button>
                 </div>
-                <Button
-                  size="lg"
-                  className="min-w-42.5 flex-1 gap-2"
-                  disabled={activeProduct.stock <= 0}
-                  onClick={() => addProduct(activeProduct, quantity)}
-                >
-                  <ShoppingCart className="size-4" />
-                  {activeProduct.stock > 0 ? "Agregar al carrito" : "Sin stock"}
-                </Button>
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  className="min-w-37.5 gap-2"
-                  onClick={() => {
-                    if (activeProduct.stock <= 0) return;
-                    addProduct(activeProduct, quantity);
-                    navigate({ to: "/checkout" });
-                  }}
-                >
-                  <ShoppingBag className="size-4" />
-                  Comprar ahora
-                </Button>
               </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Button
+                size="lg"
+                className="min-w-42.5 flex-1 gap-2"
+                disabled={activeProduct.stock <= 0}
+                onClick={() => addProduct(activeProduct, quantity)}
+              >
+                <ShoppingCart className="size-4" />
+                {activeProduct.stock > 0 ? "Agregar al carrito" : "Sin stock"}
+              </Button>
+              <Button
+                size="lg"
+                variant="secondary"
+                className="min-w-37.5 gap-2"
+                onClick={() => {
+                  if (activeProduct.stock <= 0) return;
+                  addProduct(activeProduct, quantity);
+                  navigate({ to: "/checkout" });
+                }}
+              >
+                <ShoppingBag className="size-4" />
+                Comprar ahora
+              </Button>
             </div>
           </div>
 
@@ -314,7 +339,6 @@ function ProductDetail() {
               <div className="space-y-2">
                 <div>Despachamos desde {brand.contact.location} con seguimiento incluido.</div>
                 <div>Envío gratis en compras superiores a {formatPrice(300)}.</div>
-                <div>Garantía oficial del producto.</div>
                 <div>{deliveryText}</div>
               </div>
             </TabsContent>
