@@ -155,6 +155,30 @@ function ProductDetail() {
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
+          {category && (
+            <>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/$brand/productos" params={{ brand: brand.slug }} search={{ categoria: category.slug }}>
+                    {category.name}
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+            </>
+          )}
+          {selectedSubcategory && (
+            <>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/$brand/productos" params={{ brand: brand.slug }} search={{ categoria: category?.slug, subcategoria: selectedSubcategory.slug }}>
+                    {selectedSubcategory.name}
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+            </>
+          )}
           <BreadcrumbItem>
             <BreadcrumbPage>{product.name}</BreadcrumbPage>
           </BreadcrumbItem>
