@@ -103,17 +103,20 @@ function ProductDetail() {
   const selectedSubcategory = category?.subcategories?.find((item) => item.slug === product.subcategory);
   const freeShippingThreshold = brand.shipping?.freeShippingThreshold ?? 0;
 
+  const deliveryUnit = selectedVariant?.deliveryUnit ?? product.deliveryUnit ?? "inmediata";
+  const deliveryAmount = selectedVariant?.deliveryAmount ?? product.deliveryAmount ?? 0;
+
   const deliveryText = (() => {
-    if (selectedVariant?.deliveryUnit === "inmediata") {
+    if (deliveryUnit === "inmediata") {
       return "Entrega inmediata";
     }
 
-    if (selectedVariant?.deliveryUnit === "horas" && selectedVariant.deliveryAmount) {
-      return `Entrega en ${selectedVariant.deliveryAmount} horas`;
+    if (deliveryUnit === "horas" && deliveryAmount) {
+      return `Entrega en ${deliveryAmount} horas`;
     }
 
-    if (selectedVariant?.deliveryUnit === "dias" && selectedVariant.deliveryAmount) {
-      return `Entrega en ${selectedVariant.deliveryAmount} días`;
+    if (deliveryUnit === "dias" && deliveryAmount) {
+      return `Entrega en ${deliveryAmount} días`;
     }
 
     return "";
@@ -156,8 +159,8 @@ function ProductDetail() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="mt-8 grid gap-10 lg:grid-cols-2">
-        <div className="overflow-hidden rounded-3xl p-4">
+      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(440px,0.95fr)_minmax(420px,1.05fr)]">
+        <div className="overflow-hidden rounded-3xl p-2">
           {product.images && product.images.length > 0 ? (
             <div>
               <img
@@ -199,7 +202,7 @@ function ProductDetail() {
           )}
         </div>
 
-        <div>
+        <div className="pl-0 lg:pl-3">
           <div className="flex flex-wrap items-center gap-2">
             {product.badge && <Badge>{product.badge}</Badge>}
           </div>
@@ -217,7 +220,7 @@ function ProductDetail() {
           </div>
           <h1 className="font-display mt-4 text-3xl font-semibold sm:text-4xl">{product.name}</h1>
           {deliveryText && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Truck className="size-4 text-primary" />
                 {deliveryText}

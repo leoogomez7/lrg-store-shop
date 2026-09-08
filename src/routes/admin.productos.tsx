@@ -911,6 +911,7 @@ function AdminProducts() {
               category: productForm.category,
               subcategory: productForm.subcategory || undefined,
               price: productForm.price,
+              priceCurrency: productForm.priceCurrency,
               comision: productForm.comision,
               comisionCurrency: productForm.comisionCurrency,
               gastos: productForm.gastos,
@@ -921,6 +922,8 @@ function AdminProducts() {
               images: productForm.images,
               variants: productForm.variants,
               supplier: productForm.supplier,
+              deliveryUnit: productForm.deliveryUnit || "inmediata",
+              deliveryAmount: productForm.deliveryAmount,
             }
           : item,
       );
@@ -953,6 +956,8 @@ function AdminProducts() {
           images: productForm.images,
           variants: productForm.variants,
           supplier: productForm.supplier,
+          deliveryUnit: productForm.deliveryUnit || "inmediata",
+          deliveryAmount: productForm.deliveryAmount,
           createdAt: new Date().toISOString().slice(0, 10),
         } as Product;
 
@@ -982,6 +987,8 @@ function AdminProducts() {
         existing.images = productForm.images;
         existing.variants = productForm.variants;
         existing.supplier = productForm.supplier;
+        existing.deliveryUnit = productForm.deliveryUnit || "inmediata";
+        existing.deliveryAmount = productForm.deliveryAmount;
       }
 
       return updated;

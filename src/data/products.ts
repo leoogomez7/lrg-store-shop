@@ -59,6 +59,8 @@ export type Product = {
   description: string;
   features: string[];
   images?: string[];
+  deliveryUnit?: "inmediata" | "horas" | "dias";
+  deliveryAmount?: number;
   createdAt: string;
 };
 
