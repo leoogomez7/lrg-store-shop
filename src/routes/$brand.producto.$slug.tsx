@@ -125,7 +125,7 @@ function ProductDetail() {
     freeShippingThreshold > 0 ? ` - Envío gratis desde ${formatPrice(freeShippingThreshold)}` : "";
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-14 sm:px-6">
+    <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-20 sm:px-6">
       <div className="mb-4 flex items-center justify-start">
         <Link
           to="/$brand/productos"
@@ -233,9 +233,6 @@ function ProductDetail() {
 
           {product.variants && product.variants.length > 1 ? (
             <div className="mt-5 max-w-xl">
-              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Variantes
-              </div>
               <div className="flex flex-wrap gap-2">
                 {product.variants.map((variant) => (
                   <button
@@ -275,34 +272,34 @@ function ProductDetail() {
                   {activeProduct.stock > 0 ? `${activeProduct.stock} en stock` : "Sin stock"}
                 </span>
               </div>
+            </div>
 
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                <div className="glass flex items-center gap-1 rounded-xl p-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8"
-                    onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                    aria-label="Restar unidad"
-                  >
-                    <Minus className="size-3.5" />
-                  </Button>
-                  <span className="w-8 text-center text-sm">{quantity}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8"
-                    onClick={() => setQuantity((value) => Math.min(activeProduct.stock, value + 1))}
-                    aria-label="Sumar unidad"
-                    disabled={activeProduct.stock <= 0}
-                  >
-                    <Plus className="size-3.5" />
-                  </Button>
-                </div>
+            <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+              <div className="glass flex items-center gap-1 rounded-xl p-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                  aria-label="Restar unidad"
+                >
+                  <Minus className="size-3.5" />
+                </Button>
+                <span className="w-8 text-center text-sm">{quantity}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  onClick={() => setQuantity((value) => Math.min(activeProduct.stock, value + 1))}
+                  aria-label="Sumar unidad"
+                  disabled={activeProduct.stock <= 0}
+                >
+                  <Plus className="size-3.5" />
+                </Button>
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <Button
                 size="lg"
                 className="w-full max-w-44 gap-2"
