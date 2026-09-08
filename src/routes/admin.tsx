@@ -1,8 +1,10 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import {
+  AlertTriangle,
   ContactRound,
   ArrowRight,
   CircleArrowLeft,
@@ -27,6 +29,15 @@ import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { logout } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { webDesignConfig } from "@/config/brands/web-design.config";
@@ -35,6 +46,8 @@ import { verifyAdminFinalPassword, verifyAdminPassword } from "@/server/admin-au
 import { loadAdminSettings } from "@/server/persistence";
 import { applyAdminSettings, refreshBrandData } from "@/config/brands";
 import { applyTrashEntries } from "@/data/trash";
+import { catalogQueries, orderQueries } from "@/services/catalog.service";
+import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: ({ location }) => {
@@ -431,6 +444,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     if (typeof window !== "undefined") {
                       window.sessionStorage.removeItem("lrg_auth_role");
                       window.sessionStorage.removeItem("lrg_admin_final_verified");
+                      window.sessionStorage.removeItem("lrg_admin_entry_notice_shown");
                     }
                     navigate({ to: "/" });
                   }}
@@ -473,6 +487,138 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           <BrandFooter brand={webDesignConfig} section="admin" />
         </div>
       </div>
+      <AdminEntryNotice />
     </div>
+  );
+}
+
+type AdminEntryNoticeData = {
+  lowStock: Array<{ id: string; name: string; variantName?: string; stock: number }>;
+  newOrders: Array<{ id: string; customer: string; date: string; total: number }>;
+};
+
+function AdminEntryNotice() {
+  const { data: products } = useSuspenseQuery(catalogQueries.all());
+  const { data: orders } = useSuspenseQuery(orderQueries.list());
+  const [notice, setNotice] = useState<AdminEntryNoticeData | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const noticeShownKey = "lrg_admin_entry_notice_shown";
+    if (window.sessionStorage.getItem(noticeShownKey) === "true") return;
+
+    const previousLogin = window.localStorage.getItem("lrg_admin_last_login");
+    const previousLoginTime = previousLogin ? new Date(previousLogin).getTime() : NaN;
+    const lowStock = products
+      .flatMap((product) =>
+        product.variants?.length
+          ? product.variants.map((variant) => ({
+              id: `${product.id}-${variant.id}`,
+              name: product.name,
+              variantName: variant.name,
+              stock: variant.stock,
+            }))
+          : [{ id: product.id, name: product.name, stock: product.stock }],
+      )
+      .filter((product) => product.stock <= 5)
+      .sort((first, second) => first.stock - second.stock);
+    const newOrders = orders
+      .filter((order) => {
+        if (!Number.isFinite(previousLoginTime)) return true;
+        const orderTime = new Date(order.date).getTime();
+        return Number.isFinite(orderTime) && orderTime >= previousLoginTime;
+      })
+      .sort((first, second) => new Date(second.date).getTime() - new Date(first.date).getTime())
+      .slice(0, 8)
+      .map((order) => ({
+        id: order.id,
+        customer: order.customer,
+        date: order.date,
+        total: order.total,
+      }));
+
+    window.localStorage.setItem("lrg_admin_last_login", new Date().toISOString());
+    window.sessionStorage.setItem(noticeShownKey, "true");
+    if (lowStock.length > 0 || newOrders.length > 0) {
+      setNotice({ lowStock, newOrders });
+    }
+  }, [orders, products]);
+
+  if (!notice) return null;
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && setNotice(null)}>
+      <DialogContent className="max-w-2xl overflow-hidden border-primary/40 bg-background/95 p-0 shadow-2xl shadow-primary/20">
+        <div className="h-2 bg-primary" />
+        <div className="p-6 sm:p-8">
+          <DialogHeader>
+            <div className="mb-3 flex items-center gap-3">
+              <div className="grid size-11 place-items-center rounded-full bg-primary/15 text-primary">
+                <AlertTriangle className="size-5" />
+              </div>
+              <div>
+                <DialogTitle>Resumen al ingresar</DialogTitle>
+                <DialogDescription>Hay novedades que requieren tu atención.</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <section className="rounded-xl border border-border/60 bg-surface/50 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold">Stock bajo o agotado</h3>
+                <Badge variant="destructive">{notice.lowStock.length}</Badge>
+              </div>
+              {notice.lowStock.length > 0 ? (
+                <ul className="max-h-52 space-y-2 overflow-y-auto text-sm text-muted-foreground">
+                  {notice.lowStock.map((product) => (
+                    <li key={product.id} className="flex items-start justify-between gap-3">
+                      <span>
+                        {product.name}
+                        {product.variantName ? ` · ${product.variantName}` : ""}
+                      </span>
+                      <Badge variant={product.stock === 0 ? "destructive" : "secondary"}>
+                        {product.stock} u.
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">No hay productos con stock bajo.</p>
+              )}
+            </section>
+
+            <section className="rounded-xl border border-border/60 bg-surface/50 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold">Compras recientes</h3>
+                <Badge variant="secondary">{notice.newOrders.length}</Badge>
+              </div>
+              {notice.newOrders.length > 0 ? (
+                <ul className="max-h-52 space-y-2 overflow-y-auto text-sm text-muted-foreground">
+                  {notice.newOrders.map((order) => (
+                    <li key={order.id} className="flex items-start justify-between gap-3">
+                      <span>
+                        <span className="block font-medium text-foreground">{order.customer}</span>
+                        <span className="text-xs">{order.id} · {formatDate(order.date)}</span>
+                      </span>
+                      <span className="whitespace-nowrap">${order.total.toLocaleString("es-AR")}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">No hay compras nuevas desde el último ingreso.</p>
+              )}
+            </section>
+          </div>
+
+          <DialogFooter className="mt-6">
+            <Button type="button" onClick={() => setNotice(null)}>
+              Entendido
+            </Button>
+          </DialogFooter>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -334,7 +334,7 @@ function BrandHeaderContent({
 
             <DropdownMenu open={openBuyMenu} onOpenChange={setOpenBuyMenu}>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm" className="order-2 rounded-xl gap-2 px-2 sm:px-3" title="Comprar">
+                <Button variant="secondary" size="sm" className="order-4 rounded-xl border border-input gap-2 px-2 sm:px-3" title="Comprar">
                   <ShoppingBag className="size-4" />
                   <span className="hidden sm:inline">Comprar</span>
                 </Button>
@@ -367,7 +367,7 @@ function BrandHeaderContent({
 
             <DropdownMenu open={openCart} onOpenChange={setOpenCart}>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm" className="order-4 relative gap-2 px-2 sm:px-3" title="Carrito">
+                <Button variant="secondary" size="sm" className="order-5 relative gap-2 px-2 sm:px-3" title="Carrito">
                   <ShoppingCart className="size-4" />
                   <span className="hidden sm:inline">Carrito</span>
                   {count > 0 && (

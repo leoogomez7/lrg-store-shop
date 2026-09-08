@@ -17,6 +17,7 @@ import {
   Trash2,
   Heart,
   House,
+  ShoppingBag,
   User,
   UserRound,
   Users,
@@ -180,6 +181,7 @@ function BrandFooterContent({
   const accountMenu = [
     ["Panel administrativo", "/cuenta/panel", LayoutDashboard],
     ["Compras", "/cuenta/compras", ShoppingCart],
+    ["Comprar productos", "/productos", ShoppingBag],
     ["Perfil", "/cuenta/perfil", User],
     ["Direcciones", "/cuenta/direcciones", MapPin],
     ["Favoritos", "/cuenta/favoritos", Heart],

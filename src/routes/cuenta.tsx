@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowUpDown,
   Check,
@@ -164,6 +165,19 @@ function AccountAuthGuard({
   return <AccountPageContent auth={auth} initialTab={resolvedInitialTab} />;
 }
 
+type CustomerOrderStatusChange = {
+  id: string;
+  date: string;
+  deliveryStatus: string;
+  paymentStatus: string;
+  previousDeliveryStatus: string;
+  previousPaymentStatus: string;
+};
+
+type CustomerOrderStatusNoticeData = {
+  changes: CustomerOrderStatusChange[];
+};
+
 function AccountPageContent({
   auth,
   initialTab = "inicio",
@@ -224,6 +238,7 @@ function AccountPageContent({
   const [ordersStatusFilter, setOrdersStatusFilter] = useState("all");
   const [ordersTotalMin, setOrdersTotalMin] = useState("");
   const [ordersTotalMax, setOrdersTotalMax] = useState("");
+  const [customerOrderNotice, setCustomerOrderNotice] = useState<CustomerOrderStatusNoticeData | null>(null);
   const hasProfileChanges =
     userGivenName !== savedProfileValues.current.givenName ||
     userFamilyName !== savedProfileValues.current.familyName ||
@@ -389,6 +404,58 @@ function AccountPageContent({
     ordersTotalMin,
     ordersTotalMax,
   ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !user?.email) return;
+
+    const accountEmail = user.email.trim().toLowerCase();
+    const noticeShownKey = `lrg_customer_order_status_notice_shown:${accountEmail}`;
+    if (window.sessionStorage.getItem(noticeShownKey) === "true") return;
+
+    const snapshotKey = `lrg_customer_order_status_snapshot:${accountEmail}`;
+    const previousSnapshotRaw = window.localStorage.getItem(snapshotKey);
+    const previousSnapshot = previousSnapshotRaw
+      ? (JSON.parse(previousSnapshotRaw) as Record<string, { deliveryStatus?: string; paymentStatus?: string }>)
+      : {};
+
+    const nextSnapshot = Object.fromEntries(
+      visibleOrders.map((order) => [
+        order.id,
+        {
+          deliveryStatus: order.deliveryStatus ?? "Pendiente",
+          paymentStatus: order.paymentStatus ?? "Pendiente",
+        },
+      ]),
+    );
+
+    const changes = visibleOrders
+      .filter((order) => {
+        const previous = previousSnapshot[order.id];
+        if (!previous) return false;
+        return (
+          (previous.deliveryStatus ?? "Pendiente") !== (order.deliveryStatus ?? "Pendiente") ||
+          (previous.paymentStatus ?? "Pendiente") !== (order.paymentStatus ?? "Pendiente")
+        );
+      })
+      .map((order) => {
+        const previous = previousSnapshot[order.id];
+        return {
+          id: order.id,
+          date: order.date,
+          deliveryStatus: order.deliveryStatus ?? "Pendiente",
+          paymentStatus: order.paymentStatus ?? "Pendiente",
+          previousDeliveryStatus: previous?.deliveryStatus ?? "Pendiente",
+          previousPaymentStatus: previous?.paymentStatus ?? "Pendiente",
+        };
+      });
+
+    window.localStorage.setItem(snapshotKey, JSON.stringify(nextSnapshot));
+
+    if (changes.length > 0) {
+      window.sessionStorage.setItem(noticeShownKey, "true");
+      setCustomerOrderNotice({ changes });
+    }
+  }, [user?.email, visibleOrders]);
 
   useEffect(() => {
     const nextTab = resolveTabFromPath(location.pathname);
@@ -984,7 +1051,7 @@ function AccountPageContent({
                 size="sm"
                 onClick={() => setOrdersPage(0)}
                 disabled={!hasPreviousPage || !canEditOrdersPageSize}
-                className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937]"
               >
                 Principio
               </Button>
@@ -993,7 +1060,7 @@ function AccountPageContent({
                   <button
                     key={index}
                     type="button"
-                    className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                     onClick={() => setOrdersPage(index)}
                     disabled={!canEditOrdersPageSize}
                   >
@@ -1007,7 +1074,7 @@ function AccountPageContent({
                 size="sm"
                 onClick={() => setOrdersPage(totalOrdersPages - 1)}
                 disabled={!hasNextPage || !canEditOrdersPageSize}
-                className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937]"
               >
                 Último
               </Button>
@@ -1614,6 +1681,42 @@ function AccountPageContent({
           <BrandFooter brand={webDesignConfig} section="account" />
         </main>
       </div>
+
+      <Dialog open={customerOrderNotice !== null} onOpenChange={(open) => !open && setCustomerOrderNotice(null)}>
+        <DialogContent className="max-w-2xl overflow-hidden border-primary/40 bg-background/95 p-0 shadow-2xl shadow-primary/20">
+          <div className="h-2 bg-primary" />
+          <div className="p-6 sm:p-8">
+            <DialogHeader>
+              <div className="mb-3 flex items-center gap-3">
+                <div className="grid size-11 place-items-center rounded-full bg-primary/15 text-primary">
+                  <AlertTriangle className="size-5" />
+                </div>
+                <div>
+                  <DialogTitle>Actualización de tus compras</DialogTitle>
+                  <DialogDescription>Se actualizaron el envío o el pago de algunas compras.</DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="mt-5 space-y-3">
+              {customerOrderNotice?.changes.map((change) => (
+                <div key={change.id} className="rounded-xl border border-border/60 bg-surface/50 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">Pedido {change.id}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(change.date)}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline">Envío: {change.previousDeliveryStatus} → {change.deliveryStatus}</Badge>
+                      <Badge variant="outline">Pago: {change.previousPaymentStatus} → {change.paymentStatus}</Badge>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog open={logoutOpen} onOpenChange={setLogoutOpen} title="¿Cerrar sesión?" description="¿Estás seguro de que deseas cerrar sesión?" confirmLabel="Sí, cerrar sesión" cancelLabel="No" onConfirm={async () => { await kindeLogout(); if (typeof window !== "undefined") { window.sessionStorage.removeItem("lrg_auth_role"); } navigate({ to: "/login", replace: true }); }} />
     </div>

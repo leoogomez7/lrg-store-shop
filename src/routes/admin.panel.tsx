@@ -594,7 +594,7 @@ function AdminDashboard() {
                 size="sm"
                 onClick={() => setOrdersPage(0)}
                 disabled={ordersPage === 0 || ordersPages === 0}
-                className="h-9 rounded-full border-0 bg-[#1f2937] px-4 text-white shadow-none hover:bg-[#111827]"
+                className="h-9 rounded-xl border border-input bg-[#1f2937] px-4 text-sm text-white shadow-none hover:bg-[#111827]"
               >
                 Principio
               </Button>
@@ -603,7 +603,7 @@ function AdminDashboard() {
                   <button
                     key={index}
                     type="button"
-                    className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#1f2937] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#1f2937] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                     onClick={() => setOrdersPage(index)}
                     disabled={ordersPages === 0}
                   >
@@ -617,7 +617,7 @@ function AdminDashboard() {
                 size="sm"
                 onClick={() => setOrdersPage(ordersPages - 1)}
                 disabled={ordersPage >= ordersPages - 1 || ordersPages === 0}
-                className="h-9 rounded-full border-0 bg-[#1f2937] px-4 text-white shadow-none hover:bg-[#111827]"
+                className="h-9 rounded-xl border border-input bg-[#1f2937] px-4 text-sm text-white shadow-none hover:bg-[#111827]"
               >
                 Último
               </Button>
@@ -720,7 +720,7 @@ function AdminDashboard() {
                 size="sm"
                 onClick={() => setStockPage(0)}
                 disabled={stockPage === 0 || stockPages === 0}
-                className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937]"
               >
                 Principio
               </Button>
@@ -729,7 +729,7 @@ function AdminDashboard() {
                   <button
                     key={index}
                     type="button"
-                    className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === stockPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === stockPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                     onClick={() => setStockPage(index)}
                     disabled={stockPages === 0}
                   >
@@ -743,7 +743,7 @@ function AdminDashboard() {
                 size="sm"
                 onClick={() => setStockPage(stockPages - 1)}
                 disabled={stockPage >= stockPages - 1 || stockPages === 0}
-                className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937]"
               >
                 Último
               </Button>
