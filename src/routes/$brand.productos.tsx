@@ -269,7 +269,7 @@ function CatalogPage() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-4 lg:grid-cols-8 xl:grid-cols-12 2xl:grid-cols-16">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {results.map((product, index) => (
               <ProductCard key={product.id} product={product} index={index} />
             ))}

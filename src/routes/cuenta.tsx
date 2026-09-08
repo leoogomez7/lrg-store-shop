@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import {
@@ -107,6 +107,7 @@ type Address = {
 };
 
 export type AccountTab = "inicio" | "orders" | "profile" | "addresses" | "favorites";
+type OrdersSort = "date-asc" | "date-desc" | "total-desc" | "total-asc";
 
 export function AccountPageSection({ initialTab = "inicio" }: { initialTab?: AccountTab }) {
   const resolvedInitialTab: AccountTab = initialTab ?? "inicio";
@@ -206,12 +207,27 @@ function AccountPageContent({
   const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null);
   const [isMapLoading, setIsMapLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const savedProfileValues = useRef({ givenName: "", familyName: "", phone: "", document: "" });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
   const [addressSuggestions, setAddressSuggestions] = useState<Array<{ label: string; value: string; display?: { street: string; city: string }; lat?: string; lon?: string }>>([]);
   const [ordersPage, setOrdersPage] = useState(0);
   const [ordersPageSize, setOrdersPageSize] = useState<number>(10);
   const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("10");
+  const [ordersSort, setOrdersSort] = useState<OrdersSort>("date-desc");
+  const [showOrdersSort, setShowOrdersSort] = useState(false);
+  const [showOrdersFilters, setShowOrdersFilters] = useState(false);
+  const [ordersBrandFilter, setOrdersBrandFilter] = useState("all");
+  const [ordersDateFrom, setOrdersDateFrom] = useState("");
+  const [ordersDateTo, setOrdersDateTo] = useState("");
+  const [ordersStatusFilter, setOrdersStatusFilter] = useState("all");
+  const [ordersTotalMin, setOrdersTotalMin] = useState("");
+  const [ordersTotalMax, setOrdersTotalMax] = useState("");
+  const hasProfileChanges =
+    userGivenName !== savedProfileValues.current.givenName ||
+    userFamilyName !== savedProfileValues.current.familyName ||
+    userPhone !== savedProfileValues.current.phone ||
+    userDocument !== savedProfileValues.current.document;
 
   const accountNavItems = [
     { key: "home", label: "Inicio", icon: House, route: "/", exact: true },
@@ -233,15 +249,45 @@ function AccountPageContent({
     return "inicio";
   };
 
-  const totalOrdersPages =
-    ordersPageSize && ordersPageSize > 0 ? Math.max(1, Math.ceil(visibleOrders.length / ordersPageSize)) : 1;
+  const filteredOrders = useMemo(() => {
+    const totalMin = ordersTotalMin === "" ? null : Number(ordersTotalMin);
+    const totalMax = ordersTotalMax === "" ? null : Number(ordersTotalMax);
+
+    return visibleOrders
+      .filter((order) => {
+        if (ordersBrandFilter !== "all" && order.brand !== ordersBrandFilter) return false;
+        if (ordersDateFrom && order.date < ordersDateFrom) return false;
+        if (ordersDateTo && order.date > ordersDateTo) return false;
+        if (ordersStatusFilter !== "all" && (order.deliveryStatus ?? "Pendiente") !== ordersStatusFilter) return false;
+        if (totalMin !== null && Number.isFinite(totalMin) && order.total < totalMin) return false;
+        if (totalMax !== null && Number.isFinite(totalMax) && order.total > totalMax) return false;
+        return true;
+      })
+      .sort((firstOrder, secondOrder) => {
+        if (ordersSort === "total-desc") return secondOrder.total - firstOrder.total;
+        if (ordersSort === "total-asc") return firstOrder.total - secondOrder.total;
+        const dateDifference = new Date(firstOrder.date).getTime() - new Date(secondOrder.date).getTime();
+        return ordersSort === "date-asc" ? dateDifference : -dateDifference;
+      });
+  }, [
+    visibleOrders,
+    ordersSort,
+    ordersBrandFilter,
+    ordersDateFrom,
+    ordersDateTo,
+    ordersStatusFilter,
+    ordersTotalMin,
+    ordersTotalMax,
+  ]);
   const paginatedOrders = useMemo(() => {
     if (!ordersPageSize || ordersPageSize <= 0) return [] as typeof visibleOrders;
-    return visibleOrders.slice(
+    return filteredOrders.slice(
       ordersPage * ordersPageSize,
       ordersPage * ordersPageSize + ordersPageSize,
     );
-  }, [visibleOrders, ordersPage, ordersPageSize]);
+  }, [filteredOrders, ordersPage, ordersPageSize]);
+  const totalOrdersPages =
+    ordersPageSize && ordersPageSize > 0 ? Math.max(1, Math.ceil(filteredOrders.length / ordersPageSize)) : 1;
   const hasNextPage = ordersPage + 1 < totalOrdersPages;
   const hasPreviousPage = ordersPage > 0;
   const canEditOrdersPageSize = true;
@@ -332,6 +378,18 @@ function AccountPageContent({
   }, [totalOrdersPages]);
 
   useEffect(() => {
+    setOrdersPage(0);
+  }, [
+    ordersSort,
+    ordersBrandFilter,
+    ordersDateFrom,
+    ordersDateTo,
+    ordersStatusFilter,
+    ordersTotalMin,
+    ordersTotalMax,
+  ]);
+
+  useEffect(() => {
     const nextTab = resolveTabFromPath(location.pathname);
     setActiveTab(nextTab);
   }, [location.pathname]);
@@ -369,6 +427,12 @@ function AccountPageContent({
       const nextFullName = [nextGivenName, nextFamilyName].filter(Boolean).join(" ").trim();
       setUserGivenName(nextGivenName);
       setUserFamilyName(nextFamilyName);
+      savedProfileValues.current = {
+        givenName: nextGivenName,
+        familyName: nextFamilyName,
+        phone: "",
+        document: "",
+      };
       setUserName(nextFullName || user.email || null);
 
       saveKindeUserToTurso({
@@ -391,6 +455,12 @@ function AccountPageContent({
           setUserEmail(profile.email ?? user.email ?? "");
           setUserPhone(profile.phone ?? "");
           setUserDocument(profile.document ?? "");
+          savedProfileValues.current = {
+            givenName: profileGivenName || nextGivenName,
+            familyName: profileFamilyName || nextFamilyName,
+            phone: profile.phone ?? "",
+            document: profile.document ?? "",
+          };
         } else {
           setUserEmail(user.email ?? "");
         }
@@ -400,6 +470,9 @@ function AccountPageContent({
       setUserGivenName("");
       setUserFamilyName("");
       setUserEmail("");
+      setUserPhone("");
+      setUserDocument("");
+      savedProfileValues.current = { givenName: "", familyName: "", phone: "", document: "" };
     }
   }, [user, isAuthenticated]);
 
@@ -649,8 +722,8 @@ function AccountPageContent({
       return (
         <div className="space-y-6">
           <div className="mb-2">
-            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Compras</p>
-            <h1 className="mt-2 text-3xl font-semibold">Pedidos</h1>
+            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Mis pedidos</p>
+            <h1 className="mt-2 text-3xl font-semibold">Compras</h1>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -666,12 +739,24 @@ function AccountPageContent({
             </div>
 
             <div className="order-3 flex shrink-0 flex-wrap items-center gap-2">
-              <Button type="button" variant="outline" className="h-9 shrink-0 gap-1.5 px-2.5">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 shrink-0 gap-1.5 px-2.5"
+                onClick={() => setShowOrdersSort((current) => !current)}
+                aria-expanded={showOrdersSort}
+              >
                 <ArrowUpDown className="size-4 text-white" />
                 Ordenar por
               </Button>
 
-              <Button type="button" variant="outline" className="h-9 shrink-0 gap-1.5 px-2.5">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 shrink-0 gap-1.5 px-2.5"
+                onClick={() => setShowOrdersFilters((current) => !current)}
+                aria-expanded={showOrdersFilters}
+              >
                 <Filter className="size-4 text-white" />
                 Filtros
               </Button>
@@ -696,10 +781,107 @@ function AccountPageContent({
             </div>
           </div>
 
+          {showOrdersSort ? (
+            <div className="glass-panel flex flex-wrap items-center gap-3 rounded-xl p-4">
+              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                Ordenar por
+                <select
+                  value={ordersSort}
+                  onChange={(event) => setOrdersSort(event.target.value as OrdersSort)}
+                  className="h-9 min-w-56 rounded-md border border-border/60 bg-background px-3 text-sm text-foreground"
+                >
+                  <option value="date-asc">Fecha de compra: antigua a reciente</option>
+                  <option value="date-desc">Fecha de compra: reciente a antigua</option>
+                  <option value="total-desc">Total gastado: mayor a menor</option>
+                  <option value="total-asc">Total gastado: menor a mayor</option>
+                </select>
+              </label>
+            </div>
+          ) : null}
+
+          {showOrdersFilters ? (
+            <div className="glass-panel grid gap-3 rounded-xl p-4 sm:grid-cols-2 lg:grid-cols-5">
+              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                Tienda
+                <select
+                  value={ordersBrandFilter}
+                  onChange={(event) => setOrdersBrandFilter(event.target.value)}
+                  className="h-9 rounded-md border border-border/60 bg-background px-3 text-sm text-foreground"
+                >
+                  <option value="all">Todas las tiendas</option>
+                  {Object.entries(brands).map(([brandSlug, brand]) => (
+                    <option key={brandSlug} value={brandSlug}>
+                      {brand.shortName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                Desde
+                <Input
+                  type="date"
+                  value={ordersDateFrom}
+                  onChange={(event) => setOrdersDateFrom(event.target.value)}
+                  className="h-9 bg-background"
+                  aria-label="Fecha de compra desde"
+                />
+              </label>
+
+              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                Hasta
+                <Input
+                  type="date"
+                  value={ordersDateTo}
+                  onChange={(event) => setOrdersDateTo(event.target.value)}
+                  className="h-9 bg-background"
+                  aria-label="Fecha de compra hasta"
+                />
+              </label>
+
+              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                Estado de envío
+                <select
+                  value={ordersStatusFilter}
+                  onChange={(event) => setOrdersStatusFilter(event.target.value)}
+                  className="h-9 rounded-md border border-border/60 bg-background px-3 text-sm text-foreground"
+                >
+                  <option value="all">Todos los estados</option>
+                  <option value="Pendiente">Pendiente</option>
+                  <option value="Enviado">Enviado</option>
+                </select>
+              </label>
+
+              <div className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                Total gastado
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={ordersTotalMin}
+                    onChange={(event) => setOrdersTotalMin(event.target.value)}
+                    placeholder="Mín."
+                    className="h-9 min-w-0 bg-background"
+                    aria-label="Total mínimo"
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    value={ordersTotalMax}
+                    onChange={(event) => setOrdersTotalMax(event.target.value)}
+                    placeholder="Máx."
+                    className="h-9 min-w-0 bg-background"
+                    aria-label="Total máximo"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
             <Table
               containerClassName="overflow-hidden"
-              className="w-full text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
+              className="w-full text-sm [&_td]:text-center [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
@@ -712,7 +894,7 @@ function AccountPageContent({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visibleOrders.length > 0 ? (
+                {filteredOrders.length > 0 ? (
                   paginatedOrders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.id}</TableCell>
@@ -754,7 +936,7 @@ function AccountPageContent({
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              {paginatedOrders.length} de {visibleOrders.length} compras mostradas
+              {paginatedOrders.length} de {filteredOrders.length} compras mostradas
             </p>
             <div className="flex items-center gap-3">
               <div className="text-sm text-muted-foreground">Mostrar</div>
@@ -869,8 +1051,8 @@ function AccountPageContent({
       return userName ? (
         <div className="space-y-6">
           <div className="mb-2">
-            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Perfil</p>
-            <h1 className="mt-2 text-3xl font-semibold">Tus datos</h1>
+            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Mis datos</p>
+            <h1 className="mt-2 text-3xl font-semibold">Perfil</h1>
           </div>
 
           <div className="mt-4 rounded-2xl p-5">
@@ -924,8 +1106,8 @@ function AccountPageContent({
               </div>
 
               <Button
-                className="sm:w-fit h-11 rounded-xl bg-[#3b82f6] px-6 shadow-none hover:bg-[#2563eb]"
-                disabled={isSavingProfile}
+                className="sm:w-fit h-11 rounded-xl bg-[#3b82f6] px-6 shadow-none hover:bg-[#2563eb] disabled:bg-[#bfdbfe] disabled:text-[#64748b] disabled:opacity-100"
+                disabled={isSavingProfile || !hasProfileChanges}
                 onClick={async () => {
                   setIsSavingProfile(true);
                   try {
@@ -944,6 +1126,12 @@ function AccountPageContent({
                       },
                     });
                     if (success) {
+                      savedProfileValues.current = {
+                        givenName: nextName,
+                        familyName: nextFamily,
+                        phone: userPhone,
+                        document: userDocument,
+                      };
                       setUserName(nextFullName || nextEmail || user?.email || null);
                       await saveKindeUserToTurso({
                         id: user?.id || "",
@@ -980,7 +1168,7 @@ function AccountPageContent({
         <div className="space-y-6">
           <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Domicilio a entregar productos</p>
+              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Entregas</p>
               <h1 className="mt-2 text-3xl font-semibold">Direcciones</h1>
             </div>
             <Button
@@ -1258,14 +1446,23 @@ function AccountPageContent({
       return userName ? (
         <div className="space-y-6">
           <div className="mb-2">
-            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Favoritos</p>
-            <h1 className="mt-2 text-3xl font-semibold">Productos guardados</h1>
+            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Productos guardados</p>
+            <h1 className="mt-2 text-3xl font-semibold">Favoritos</h1>
           </div>
 
           {favoriteProducts.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-4 lg:grid-cols-8 xl:grid-cols-12 2xl:grid-cols-16">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {favoriteProducts.map((product, index) => (
-                <ProductCard key={product.id} product={product} index={index} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  index={index}
+                  onFavoriteChange={(isFavorite) => {
+                    if (!isFavorite) {
+                      setFavoriteIds((current) => current.filter((productId) => productId !== product.id));
+                    }
+                  }}
+                />
               ))}
             </div>
           ) : (

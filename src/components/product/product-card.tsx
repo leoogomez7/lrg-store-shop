@@ -10,7 +10,15 @@ import { useCart } from "@/store/cart";
 import type { Product } from "@/data/products";
 import { hydrateFavorites, toggleFavoriteProduct } from "@/lib/favorites";
 
-export function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
+export function ProductCard({
+  product,
+  index = 0,
+  onFavoriteChange,
+}: {
+  product: Product;
+  index?: number;
+  onFavoriteChange?: (isFavorite: boolean) => void;
+}) {
   const { addProduct } = useCart();
   const { user } = useKindeAuth();
   const navigate = useNavigate();
@@ -103,7 +111,9 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
           onClick={(event) => {
             event.stopPropagation();
             if (!favoriteOwner) return;
-            setIsFavorite(toggleFavoriteProduct(favoriteOwner, product.id).includes(product.id));
+            const nextIsFavorite = toggleFavoriteProduct(favoriteOwner, product.id).includes(product.id);
+            setIsFavorite(nextIsFavorite);
+            onFavoriteChange?.(nextIsFavorite);
           }}
         >
           <Heart className={isFavorite ? "fill-current text-rose-500" : ""} />
