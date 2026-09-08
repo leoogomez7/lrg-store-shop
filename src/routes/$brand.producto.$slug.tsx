@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Check, Minus, Plus, Truck } from "lucide-react";
+import { Check, Minus, Plus, ShoppingBag, ShoppingCart, Thunder, Truck } from "lucide-react";
 import { useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { SectionHeading } from "@/components/common/section-heading";
@@ -97,8 +97,7 @@ function ProductDetail() {
       }
     : product;
   const category = brand.categories.find((item) => item.slug === product.category);
-  const subcategory = category?.subcategories?.find((item) => item.slug === product.subcategory);
-  const categorySubcategories = category?.subcategories ?? [];
+  const selectedSubcategory = category?.subcategories?.find((item) => item.slug === product.subcategory);
 
   const deliveryText =
     selectedVariant?.deliveryUnit === "inmediata"
@@ -181,7 +180,18 @@ function ProductDetail() {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             {product.badge && <Badge>{product.badge}</Badge>}
-            {category && <Badge variant="secondary">{category.name}</Badge>}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {category && (
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {category.name}
+              </span>
+            )}
+            {selectedSubcategory && (
+              <span className="rounded-full border px-2 py-0.5 text-xs font-medium text-foreground">
+                {selectedSubcategory.name}
+              </span>
+            )}
           </div>
           <h1 className="font-display mt-4 text-3xl font-semibold sm:text-4xl">{product.name}</h1>
           <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
@@ -191,25 +201,6 @@ function ProductDetail() {
             </span>
             <span>·</span>
             <span>{activeProduct.stock > 0 ? `${activeProduct.stock} en stock` : "Sin stock"}</span>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            {category && <span className="font-medium text-foreground">{category.name}</span>}
-            {categorySubcategories.length > 0 && (
-              <span className="flex flex-wrap items-center gap-1">
-                <span className="text-muted-foreground">/</span>
-                {categorySubcategories.map((item) => (
-                  <span key={item.slug} className="rounded-full border px-2 py-0.5 text-xs">
-                    {item.name}
-                  </span>
-                ))}
-              </span>
-            )}
-            {subcategory && (
-              <span className="rounded-full border px-2 py-0.5 text-xs font-medium text-foreground">
-                {subcategory.name}
-              </span>
-            )}
           </div>
 
           {product.variants && product.variants.length > 1 ? (
@@ -242,59 +233,64 @@ function ProductDetail() {
           <p className="mt-6 leading-relaxed text-muted-foreground">{activeProduct.description}</p>
 
           <div className="mt-8 rounded-2xl p-6">
-            <div className="flex items-end gap-3">
-              <span className="font-display text-3xl font-semibold">
-                {formatPrice(activeProduct.price)}
-              </span>
-              {product.compareAtPrice && (
-                <span className="text-sm text-muted-foreground line-through">
-                  {formatPrice(product.compareAtPrice)}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex min-w-37.5 items-end gap-3">
+                <span className="font-display text-3xl font-semibold leading-none">
+                  {formatPrice(activeProduct.price)}
                 </span>
-              )}
-            </div>
+                {product.compareAtPrice && (
+                  <span className="pb-1 text-sm text-muted-foreground line-through">
+                    {formatPrice(product.compareAtPrice)}
+                  </span>
+                )}
+              </div>
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <div className="glass flex items-center gap-1 rounded-xl p-1">
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <div className="glass flex items-center gap-1 rounded-xl p-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                    aria-label="Restar unidad"
+                  >
+                    <Minus className="size-3.5" />
+                  </Button>
+                  <span className="w-8 text-center text-sm">{quantity}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    onClick={() => setQuantity((value) => Math.min(activeProduct.stock, value + 1))}
+                    aria-label="Sumar unidad"
+                    disabled={activeProduct.stock <= 0}
+                  >
+                    <Plus className="size-3.5" />
+                  </Button>
+                </div>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                  aria-label="Restar unidad"
-                >
-                  <Minus className="size-3.5" />
-                </Button>
-                <span className="w-8 text-center text-sm">{quantity}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  onClick={() => setQuantity((value) => Math.min(activeProduct.stock, value + 1))}
-                  aria-label="Sumar unidad"
+                  size="lg"
+                  className="min-w-42.5 flex-1 gap-2"
                   disabled={activeProduct.stock <= 0}
+                  onClick={() => addProduct(activeProduct, quantity)}
                 >
-                  <Plus className="size-3.5" />
+                  <ShoppingCart className="size-4" />
+                  {activeProduct.stock > 0 ? "Agregar al carrito" : "Sin stock"}
+                </Button>
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="min-w-37.5 gap-2"
+                  onClick={() => {
+                    if (activeProduct.stock <= 0) return;
+                    addProduct(activeProduct, quantity);
+                    navigate({ to: "/checkout" });
+                  }}
+                >
+                  <ShoppingBag className="size-4" />
+                  Comprar ahora
                 </Button>
               </div>
-              <Button
-                size="lg"
-                className="flex-1"
-                disabled={activeProduct.stock <= 0}
-                onClick={() => addProduct(activeProduct, quantity)}
-              >
-                {activeProduct.stock > 0 ? "🛒 Agregar al carrito" : "Sin stock"}
-              </Button>
-              <Button
-                size="lg"
-                variant="secondary"
-                onClick={() => {
-                  if (activeProduct.stock <= 0) return;
-                  addProduct(activeProduct, quantity);
-                  navigate({ to: "/checkout" });
-                }}
-              >
-                ⚡ Comprar ahora
-              </Button>
             </div>
           </div>
 
