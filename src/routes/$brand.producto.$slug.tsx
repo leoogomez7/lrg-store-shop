@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Check, Minus, Plus, Shield, Star, Truck } from "lucide-react";
+import { Check, Minus, Plus, Truck } from "lucide-react";
 import { useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { SectionHeading } from "@/components/common/section-heading";
@@ -16,13 +16,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { getBrand } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { catalogQueries } from "@/services/catalog.service";
@@ -104,6 +97,17 @@ function ProductDetail() {
       }
     : product;
   const category = brand.categories.find((item) => item.slug === product.category);
+  const subcategory = category?.subcategories?.find((item) => item.slug === product.subcategory);
+  const categorySubcategories = category?.subcategories ?? [];
+
+  const deliveryText =
+    selectedVariant?.deliveryUnit === "inmediata"
+      ? "Entrega inmediata"
+      : selectedVariant?.deliveryUnit === "horas"
+        ? `Entrega en ${selectedVariant.deliveryAmount ?? 24} horas`
+        : selectedVariant?.deliveryUnit === "dias"
+          ? `Entrega en ${selectedVariant.deliveryAmount ?? 3} días`
+          : "Envío en 24-72 h";
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
@@ -132,7 +136,7 @@ function ProductDetail() {
       </Breadcrumb>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-2">
-        <div className="glass-panel overflow-hidden rounded-3xl p-4">
+        <div className="overflow-hidden rounded-3xl p-4">
           {product.images && product.images.length > 0 ? (
             <div>
               <img
@@ -182,44 +186,62 @@ function ProductDetail() {
           <h1 className="font-display mt-4 text-3xl font-semibold sm:text-4xl">{product.name}</h1>
           <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Star className="size-4 fill-primary text-primary" />
-              {product.rating}
+              <Truck className="size-4 text-primary" />
+              {deliveryText}
             </span>
-            <span>·</span>
-            <span>{product.reviews} valoraciones</span>
             <span>·</span>
             <span>{activeProduct.stock > 0 ? `${activeProduct.stock} en stock` : "Sin stock"}</span>
           </div>
 
-          {product.variants && product.variants.length > 0 ? (
-            <div className="mt-6 max-w-sm space-y-2">
-              <label className="text-sm font-medium" htmlFor="product-variant">
-                Elegí una variante
-              </label>
-              <Select
-                value={selectedVariant?.id}
-                onValueChange={(value) => {
-                  setSelectedVariantId(value);
-                  setQuantity(1);
-                }}
-              >
-                <SelectTrigger id="product-variant">
-                  <SelectValue placeholder="Seleccionar variante" />
-                </SelectTrigger>
-                <SelectContent>
-                  {product.variants.map((variant) => (
-                    <SelectItem key={variant.id} value={variant.id}>
-                      {variant.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            {category && <span className="font-medium text-foreground">{category.name}</span>}
+            {categorySubcategories.length > 0 && (
+              <span className="flex flex-wrap items-center gap-1">
+                <span className="text-muted-foreground">/</span>
+                {categorySubcategories.map((item) => (
+                  <span key={item.slug} className="rounded-full border px-2 py-0.5 text-xs">
+                    {item.name}
+                  </span>
+                ))}
+              </span>
+            )}
+            {subcategory && (
+              <span className="rounded-full border px-2 py-0.5 text-xs font-medium text-foreground">
+                {subcategory.name}
+              </span>
+            )}
+          </div>
+
+          {product.variants && product.variants.length > 1 ? (
+            <div className="mt-5 max-w-xl">
+              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Variantes
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {product.variants.map((variant) => (
+                  <button
+                    key={variant.id}
+                    type="button"
+                    className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                      selectedVariantId === variant.id
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-foreground hover:bg-accent"
+                    }`}
+                    onClick={() => {
+                      setSelectedVariantId(variant.id);
+                      setQuantity(1);
+                    }}
+                  >
+                    {variant.name}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : null}
 
           <p className="mt-6 leading-relaxed text-muted-foreground">{activeProduct.description}</p>
 
-          <div className="glass-panel mt-8 rounded-2xl p-6">
+          <div className="mt-8 rounded-2xl p-6">
             <div className="flex items-end gap-3">
               <span className="font-display text-3xl font-semibold">
                 {formatPrice(activeProduct.price)}
@@ -260,7 +282,7 @@ function ProductDetail() {
                 disabled={activeProduct.stock <= 0}
                 onClick={() => addProduct(activeProduct, quantity)}
               >
-                {activeProduct.stock > 0 ? "Agregar al carrito" : "Sin stock"}
+                {activeProduct.stock > 0 ? "🛒 Agregar al carrito" : "Sin stock"}
               </Button>
               <Button
                 size="lg"
@@ -271,18 +293,9 @@ function ProductDetail() {
                   navigate({ to: "/checkout" });
                 }}
               >
-                Comprar ahora
+                ⚡ Comprar ahora
               </Button>
             </div>
-
-            <ul className="mt-6 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-              <li className="flex items-center gap-2">
-                <Truck className="size-4 text-primary" /> Envío en 24-72 h
-              </li>
-              <li className="flex items-center gap-2">
-                <Shield className="size-4 text-primary" /> Garantía oficial
-              </li>
-            </ul>
           </div>
 
           <Tabs defaultValue="features" className="mt-8">
@@ -302,8 +315,12 @@ function ProductDetail() {
               </ul>
             </TabsContent>
             <TabsContent value="shipping" className="pt-4 text-sm text-muted-foreground">
-              Despachamos desde {brand.contact.location} con seguimiento incluido. Envío gratis en
-              compras superiores a {formatPrice(300)}.
+              <div className="space-y-2">
+                <div>Despachamos desde {brand.contact.location} con seguimiento incluido.</div>
+                <div>Envío gratis en compras superiores a {formatPrice(300)}.</div>
+                <div>Garantía oficial del producto.</div>
+                <div>{deliveryText}</div>
+              </div>
             </TabsContent>
             <TabsContent value="payments" className="pt-4">
               <div className="flex flex-wrap gap-2">

@@ -17,7 +17,16 @@ export const arcadeConfig: BrandConfig = {
     { slug: "videojuegos", name: "Videojuegos", description: "Físicos y digitales" },
     { slug: "accesorios", name: "Accesorios", description: "Mandos, headsets y volantes" },
     { slug: "pc-gaming", name: "PC Gaming", description: "Componentes y periféricos" },
-    { slug: "suscripciones", name: "Suscripciones", description: "PS Plus, Game Pass y más" },
+    {
+      slug: "suscripciones",
+      name: "Suscripciones",
+      description: "PS Plus, Game Pass y más",
+      subcategories: [
+        { slug: "ps-plus", name: "PS Plus" },
+        { slug: "game-pass", name: "Game Pass" },
+        { slug: "suscripciones-digitales", name: "Suscripciones digitales" },
+      ],
+    },
     { slug: "streaming", name: "Streaming", description: "Capturadoras, luces y audio" },
   ],
   social: [
