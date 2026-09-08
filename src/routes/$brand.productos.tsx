@@ -102,35 +102,6 @@ function CatalogPage() {
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
 
-  const totalPages = Math.max(1, Math.ceil(results.length / pageSize));
-  const hasPreviousPage = page > 0;
-  const hasNextPage = page + 1 < totalPages;
-  const paginatedResults = results.slice(page * pageSize, page * pageSize + pageSize);
-
-  useEffect(() => {
-    setFilters((current) => ({ ...current, minPrice: 0, maxPrice: priceLimit }));
-  }, [priceLimit]);
-
-  useEffect(() => {
-    if (!showSortOptions) return;
-
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!sortMenuRef.current?.contains(target)) {
-        setShowSortOptions(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [showSortOptions]);
-
-  useEffect(() => {
-    if (page >= totalPages) {
-      setPage(Math.max(totalPages - 1, 0));
-    }
-  }, [page, totalPages]);
-
   const results = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
     const filtered = products.filter((product) => {
@@ -168,6 +139,35 @@ function CatalogPage() {
         return filtered.sort((a, b) => a.price - b.price);
     }
   }, [products, filters]);
+
+  const totalPages = Math.max(1, Math.ceil(results.length / pageSize));
+  const hasPreviousPage = page > 0;
+  const hasNextPage = page + 1 < totalPages;
+  const paginatedResults = results.slice(page * pageSize, page * pageSize + pageSize);
+
+  useEffect(() => {
+    setFilters((current) => ({ ...current, minPrice: 0, maxPrice: priceLimit }));
+  }, [priceLimit]);
+
+  useEffect(() => {
+    if (!showSortOptions) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!sortMenuRef.current?.contains(target)) {
+        setShowSortOptions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [showSortOptions]);
+
+  useEffect(() => {
+    if (page >= totalPages) {
+      setPage(Math.max(totalPages - 1, 0));
+    }
+  }, [page, totalPages]);
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 pb-14 pt-28 sm:px-6">
