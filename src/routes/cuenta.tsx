@@ -1111,7 +1111,7 @@ function AccountPageContent({
               <Button
                 className={cn(
                   hasProfileChanges && !isSavingProfile
-                    ? "w-fit justify-self-start h-11 rounded-xl bg-[#3b82f6] px-6 shadow-none hover:bg-[#2563eb]"
+                    ? "w-fit justify-self-start h-9 rounded-md bg-[#3b82f6] px-4 shadow-none hover:bg-[#2563eb]"
                     : "w-fit justify-self-start h-8 rounded-md bg-primary px-4 shadow-none disabled:opacity-50",
                 )}
                 disabled={isSavingProfile || !hasProfileChanges}
@@ -1179,8 +1179,8 @@ function AccountPageContent({
               <h1 className="mt-2 text-3xl font-semibold">Direcciones</h1>
             </div>
             <Button
-              size="lg"
-              className="h-11 gap-2 rounded-xl bg-[#3b82f6] px-5 text-[#111827] shadow-none hover:bg-[#2563eb]"
+              size="sm"
+              className="h-9 gap-2 rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb]"
               onClick={() => {
                 setShowAddForm((current) => !current);
                 setEditingIndex(null);
@@ -1235,8 +1235,8 @@ function AccountPageContent({
 
               <div className="mt-5 flex flex-wrap gap-3">
                 <Button
-                  size="lg"
-                  className="h-11 min-w-[140px] rounded-xl bg-[#3b82f6] px-5 text-[#111827] shadow-none hover:bg-[#2563eb]"
+                  size="sm"
+                  className="h-9 rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb]"
                   onClick={async () => {
                     if (!addressLabel.trim() || !addressValue.trim()) {
                       toast.error("Por favor completa etiqueta y dirección");
@@ -1284,8 +1284,8 @@ function AccountPageContent({
                 </Button>
                 <Button
                   variant="destructive"
-                  size="lg"
-                  className="h-11 min-w-[140px] rounded-xl px-5"
+                  size="sm"
+                  className="h-9 rounded-md px-4"
                   onClick={() => {
                     setShowAddForm(false);
                     setAddressLabel("");
@@ -1298,19 +1298,44 @@ function AccountPageContent({
             </div>
           )}
 
-          <div className="grid justify-items-start gap-5 sm:grid-cols-2">
+          <div className="grid gap-5 lg:grid-cols-3">
             {addresses.map((address, index) => (
               <div
                 key={`${address.label}-${index}`}
-                className="glass-panel w-fit max-w-full rounded-2xl border border-border/60 p-5"
+                className="glass-panel w-full max-w-full rounded-2xl border border-border/60 p-5"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="w-fit max-w-full">
-                    <div className="flex items-center gap-3">
-                      <div className="relative grid size-10 place-items-center rounded-xl bg-sky-500/10 text-sky-400 ring-1 ring-sky-400/25">
-                        <MapPin className="size-4" />
+                  <div className="w-full max-w-full">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="relative grid size-10 shrink-0 place-items-center rounded-xl bg-sky-500/10 text-sky-400 ring-1 ring-sky-400/25">
+                          <MapPin className="size-4" />
+                        </div>
+                        <h3 className="truncate text-sm font-semibold text-foreground">{address.label}</h3>
                       </div>
-                      <h3 className="text-sm font-semibold text-foreground">{address.label}</h3>
+                      {editingIndex !== index && (
+                        <Button
+                          variant={address.isPrimary ? "secondary" : "outline"}
+                          size="sm"
+                          className={
+                            address.isPrimary
+                              ? "h-8 shrink-0 gap-1.5 bg-amber-400 px-3 text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.25)] hover:bg-amber-300"
+                              : "h-8 shrink-0 gap-1.5 px-3"
+                          }
+                          onClick={async () => {
+                            if (!address.id || !user?.id) return;
+                            const success = await setPrimaryUserAddress({ data: { userId: user.id, addressId: address.id } });
+                            if (success) {
+                              setAddresses((current) => current.map((item) => ({ ...item, isPrimary: item.id === address.id })));
+                              toast.success("Dirección principal actualizada");
+                            } else {
+                              toast.error("No se pudo actualizar la dirección principal");
+                            }
+                          }}
+                        >
+                          {address.isPrimary ? <Check className="size-4 text-current" /> : <MapPin className="size-4" />} {address.isPrimary ? "Principal" : "Marcar principal"}
+                        </Button>
+                      )}
                     </div>
                     {editingIndex === index ? (
                       <div className="mt-4 grid gap-4">
@@ -1350,8 +1375,8 @@ function AccountPageContent({
 
                         <div className="flex flex-wrap gap-3 pt-1">
                           <Button
-                            size="lg"
-                            className="h-11 px-5 bg-[#39a9de] text-[#111827] hover:bg-[#2f9ed3]"
+                            size="sm"
+                            className="h-9 px-4 bg-[#39a9de] text-[#111827] hover:bg-[#2f9ed3]"
                             onClick={async () => {
                               if (!addressLabel.trim() || !addressValue.trim()) return;
                               const addressToUpdate = addresses[index];
@@ -1396,7 +1421,7 @@ function AccountPageContent({
                           >
                             <Save className="mr-2 size-4 text-current" /> Guardar
                           </Button>
-                          <Button variant="destructive" size="lg" className="h-11 px-5" onClick={() => { setEditingIndex(null); setAddressLabel(""); setAddressValue(""); }}>
+                          <Button variant="destructive" size="sm" className="h-9 px-4" onClick={() => { setEditingIndex(null); setAddressLabel(""); setAddressValue(""); }}>
                             ✕ Cancelar
                           </Button>
                         </div>
@@ -1405,31 +1430,10 @@ function AccountPageContent({
                       <>
                         <p className="mt-3 text-sm text-muted-foreground">{address.value}</p>
                         <div className="mt-4 flex flex-wrap gap-3">
-                          <Button
-                            variant={address.isPrimary ? "secondary" : "outline"}
-                            size="sm"
-                            className={
-                              address.isPrimary
-                                ? "h-9 gap-2 bg-amber-400 px-5 text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.25)] hover:bg-amber-300"
-                                : "h-9 gap-2 px-5"
-                            }
-                            onClick={async () => {
-                              if (!address.id || !user?.id) return;
-                              const success = await setPrimaryUserAddress({ data: { userId: user.id, addressId: address.id } });
-                              if (success) {
-                                setAddresses((current) => current.map((item) => ({ ...item, isPrimary: item.id === address.id })));
-                                toast.success("Dirección principal actualizada");
-                              } else {
-                                toast.error("No se pudo actualizar la dirección principal");
-                              }
-                            }}
-                          >
-                            {address.isPrimary ? <Check className="size-4 text-current" /> : <MapPin className="size-4" />} {address.isPrimary ? "Principal" : "Marcar principal"}
-                          </Button>
-                          <Button variant="outline" size="sm" className="gap-2 h-9 px-5" onClick={() => { setEditingIndex(index); setAddressLabel(address.label); setAddressValue(address.value); setShowAddForm(false); }}>
+                          <Button variant="outline" size="sm" className="h-8 gap-1.5 px-3" onClick={() => { setEditingIndex(index); setAddressLabel(address.label); setAddressValue(address.value); setShowAddForm(false); }}>
                             <Pencil className="size-4" /> Editar
                           </Button>
-                          <Button variant="destructive" size="sm" className="gap-2 h-9 px-5" onClick={() => { setDeleteIndex(index); setDeleteOpen(true); }}>
+                          <Button variant="destructive" size="sm" className="h-8 gap-1.5 px-3" onClick={() => { setDeleteIndex(index); setDeleteOpen(true); }}>
                             <Trash2 className="size-4" /> Borrar
                           </Button>
                         </div>
