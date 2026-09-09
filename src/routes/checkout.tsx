@@ -6,7 +6,12 @@ import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { useCart } from "@/store/cart";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
-import { getBrand, type BrandSlug } from "@/config/brands";
+import {
+  applyAdminSettings,
+  getBrand,
+  refreshBrandData,
+  type BrandSlug,
+} from "@/config/brands";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,6 +72,7 @@ function CheckoutPage() {
   const [shippingMethodsByBrand, setShippingMethodsByBrand] = useState<Record<string, string>>({});
   const [paymentMethodsByBrand, setPaymentMethodsByBrand] = useState<Record<string, string>>({});
   const [bankCbu, setBankCbu] = useState("");
+  const [brandSettingsReady, setBrandSettingsReady] = useState(false);
   const [creditCardOpen, setCreditCardOpen] = useState(false);
   const [selectedInstallments, setSelectedInstallments] = useState(1);
   const getShippingMethods = (slug: BrandSlug) =>
@@ -95,6 +101,9 @@ function CheckoutPage() {
 
   useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
+      applyAdminSettings(settings);
+      refreshBrandData();
+      setBrandSettingsReady(true);
       const storedCbu = settings.find((item) => item.settingKey === "lrg:bank-cbu")?.settingValue;
       if (!storedCbu) return;
       try {
@@ -329,7 +338,12 @@ function CheckoutPage() {
           </Link>
         </div>
 
-        <form onSubmit={submit} noValidate className="mt-4 grid gap-8 lg:grid-cols-[1fr_360px]">
+        <form
+          onSubmit={submit}
+          noValidate
+          aria-busy={!brandSettingsReady}
+          className="mt-4 grid gap-8 lg:grid-cols-[1fr_360px]"
+        >
           {validationMessage && (
             <div
               ref={validationRef}
