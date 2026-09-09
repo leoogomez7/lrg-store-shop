@@ -1993,68 +1993,72 @@ function AdminOrders() {
                           </>
                         ) : (
                           <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                              title={isExpanded ? "Ocultar detalles" : "Mostrar detalles"}
-                              className="h-8 flex-none gap-1.5 bg-transparent px-2 text-xs font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
-                            >
-                              {isExpanded ? (
-                                <EyeOff className="size-4" />
-                              ) : (
-                                <Eye className="size-4" />
-                              )}
-                              <span className="hidden sm:inline">
-                                {isExpanded ? "Ocultar" : "Mostrar"}
-                              </span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startQuickEditOrder(order)}
-                              className="h-8 flex-none gap-1.5 px-2 text-xs"
-                            >
-                              <Edit3 className="size-4" />
-                              <span className="hidden sm:inline">Editar rápido</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditOrderDialog(order)}
-                              className="h-8 flex-none gap-1.5 px-2 text-xs"
-                            >
-                              <Pencil className="size-4" />
-                              <span className="hidden sm:inline">Editar</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setDocumentsOrder(order);
-                                setPendingAttachments([]);
-                              }}
-                              className="h-8 flex-none gap-1.5 px-2 text-xs"
-                            >
-                              <Paperclip className="size-4" />
-                              <span className="hidden sm:inline">Documentos</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                setConfirmState({
-                                  open: true,
-                                  title: `Eliminar pedido ${order.id}?`,
-                                  description: `Esta acción no se puede deshacer.`,
-                                  onConfirm: () => handleDeleteOrder(order),
-                                })
-                              }
-                              className="h-8 flex-none gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="size-4" />
-                              <span className="hidden sm:inline">Eliminar</span>
-                            </Button>
+                            <div className="flex flex-wrap items-center justify-center gap-1.5">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                                title={isExpanded ? "Ocultar detalles" : "Mostrar detalles"}
+                                className="h-8 flex-none gap-1.5 bg-transparent px-2 text-xs font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
+                              >
+                                {isExpanded ? (
+                                  <EyeOff className="size-4" />
+                                ) : (
+                                  <Eye className="size-4" />
+                                )}
+                                <span className="hidden sm:inline">
+                                  {isExpanded ? "Ocultar" : "Mostrar"}
+                                </span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setDocumentsOrder(order);
+                                  setPendingAttachments([]);
+                                }}
+                                className="h-8 flex-none gap-1.5 px-2 text-xs"
+                              >
+                                <Paperclip className="size-4" />
+                                <span className="hidden sm:inline">Documentos</span>
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap items-center justify-center gap-1.5">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => startQuickEditOrder(order)}
+                                className="h-8 flex-none gap-1.5 px-2 text-xs"
+                              >
+                                <Edit3 className="size-4" />
+                                <span className="hidden sm:inline">Editar rápido</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditOrderDialog(order)}
+                                className="h-8 flex-none gap-1.5 px-2 text-xs"
+                              >
+                                <Pencil className="size-4" />
+                                <span className="hidden sm:inline">Editar</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setConfirmState({
+                                    open: true,
+                                    title: `Eliminar pedido ${order.id}?`,
+                                    description: `Esta acción no se puede deshacer.`,
+                                    onConfirm: () => handleDeleteOrder(order),
+                                  })
+                                }
+                                className="h-8 flex-none gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="size-4" />
+                                <span className="hidden sm:inline">Eliminar</span>
+                              </Button>
+                            </div>
                           </>
                         )}
                       </div>
