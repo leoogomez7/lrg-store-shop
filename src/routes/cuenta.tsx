@@ -47,6 +47,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -809,27 +810,141 @@ function AccountPageContent({
             </div>
 
             <div className="order-3 flex shrink-0 flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 shrink-0 gap-1.5 px-2.5"
-                onClick={() => setShowOrdersSort((current) => !current)}
-                aria-expanded={showOrdersSort}
-              >
-                <ArrowUpDown className="size-4 text-white" />
-                Ordenar por
-              </Button>
+              <Dialog open={showOrdersSort} onOpenChange={setShowOrdersSort}>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 shrink-0 gap-1.5 px-2.5"
+                    aria-expanded={showOrdersSort}
+                  >
+                    <ArrowUpDown className="size-4 text-white" />
+                    Ordenar por
+                  </Button>
+                </DialogTrigger>
 
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 shrink-0 gap-1.5 px-2.5"
-                onClick={() => setShowOrdersFilters((current) => !current)}
-                aria-expanded={showOrdersFilters}
-              >
-                <Filter className="size-4 text-white" />
-                Filtros
-              </Button>
+                <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                  <DialogHeader className="space-y-2">
+                    <DialogTitle>Ordenar por</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-1 pt-2">
+                    <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                      <span className="text-[11px] uppercase tracking-wide">Ordenar por</span>
+                      <select
+                        value={ordersSort}
+                        onChange={(event) => {
+                          setOrdersSort(event.target.value as OrdersSort);
+                          setShowOrdersSort(false);
+                        }}
+                        className="h-9 min-w-56 rounded-md border border-border/60 bg-background px-3 text-sm text-foreground"
+                      >
+                        <option value="date-asc">Fecha de compra: antigua a reciente</option>
+                        <option value="date-desc">Fecha de compra: reciente a antigua</option>
+                        <option value="total-desc">Total gastado: mayor a menor</option>
+                        <option value="total-asc">Total gastado: menor a mayor</option>
+                      </select>
+                    </label>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={showOrdersFilters} onOpenChange={setShowOrdersFilters}>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 shrink-0 gap-1.5 px-2.5"
+                    aria-expanded={showOrdersFilters}
+                  >
+                    <Filter className="size-4 text-white" />
+                    Filtros
+                  </Button>
+                </DialogTrigger>
+
+                <DialogContent className="max-w-4xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                  <DialogHeader className="space-y-2">
+                    <DialogTitle>Filtros</DialogTitle>
+                  </DialogHeader>
+                  <div className="pt-2">
+                    <div className="grid gap-3 md:grid-cols-5">
+                      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                        <span className="text-[11px] uppercase tracking-wide">Tienda</span>
+                        <select
+                          value={ordersBrandFilter}
+                          onChange={(event) => setOrdersBrandFilter(event.target.value)}
+                          className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
+                        >
+                          <option value="all">Todas las tiendas</option>
+                          {Object.entries(brands).map(([brandSlug, brand]) => (
+                            <option key={brandSlug} value={brandSlug}>
+                              {brand.shortName}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                        <span className="text-[11px] uppercase tracking-wide">Desde</span>
+                        <Input
+                          type="date"
+                          value={ordersDateFrom}
+                          onChange={(event) => setOrdersDateFrom(event.target.value)}
+                          className="h-10 bg-background"
+                          aria-label="Fecha de compra desde"
+                        />
+                      </label>
+
+                      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                        <span className="text-[11px] uppercase tracking-wide">Hasta</span>
+                        <Input
+                          type="date"
+                          value={ordersDateTo}
+                          onChange={(event) => setOrdersDateTo(event.target.value)}
+                          className="h-10 bg-background"
+                          aria-label="Fecha de compra hasta"
+                        />
+                      </label>
+
+                      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                        <span className="text-[11px] uppercase tracking-wide">Estado de envío</span>
+                        <select
+                          value={ordersStatusFilter}
+                          onChange={(event) => setOrdersStatusFilter(event.target.value)}
+                          className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
+                        >
+                          <option value="all">Todos los estados</option>
+                          <option value="Pendiente">Pendiente</option>
+                          <option value="Enviado">Enviado</option>
+                        </select>
+                      </label>
+
+                      <div className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                        <span className="text-[11px] uppercase tracking-wide">Total gastado</span>
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            value={ordersTotalMin}
+                            onChange={(event) => setOrdersTotalMin(event.target.value)}
+                            placeholder="Mín."
+                            className="h-10 min-w-0 bg-background"
+                            aria-label="Total mínimo"
+                          />
+                          <Input
+                            type="number"
+                            min={0}
+                            value={ordersTotalMax}
+                            onChange={(event) => setOrdersTotalMax(event.target.value)}
+                            placeholder="Máx."
+                            className="h-10 min-w-0 bg-background"
+                            aria-label="Total máximo"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               <Button
                 type="button"
@@ -850,105 +965,6 @@ function AccountPageContent({
               </Button>
             </div>
           </div>
-
-          {showOrdersSort ? (
-            <div className="glass-panel flex flex-wrap items-center gap-3 rounded-xl p-4">
-              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                Ordenar por
-                <select
-                  value={ordersSort}
-                  onChange={(event) => setOrdersSort(event.target.value as OrdersSort)}
-                  className="h-9 min-w-56 rounded-md border border-border/60 bg-background px-3 text-sm text-foreground"
-                >
-                  <option value="date-asc">Fecha de compra: antigua a reciente</option>
-                  <option value="date-desc">Fecha de compra: reciente a antigua</option>
-                  <option value="total-desc">Total gastado: mayor a menor</option>
-                  <option value="total-asc">Total gastado: menor a mayor</option>
-                </select>
-              </label>
-            </div>
-          ) : null}
-
-          {showOrdersFilters ? (
-            <div className="glass-panel rounded-2xl p-3">
-              <div className="grid gap-3 md:grid-cols-5">
-                <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                  <span className="text-[11px] uppercase tracking-wide">Tienda</span>
-                  <select
-                    value={ordersBrandFilter}
-                    onChange={(event) => setOrdersBrandFilter(event.target.value)}
-                    className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
-                  >
-                    <option value="all">Todas las tiendas</option>
-                    {Object.entries(brands).map(([brandSlug, brand]) => (
-                      <option key={brandSlug} value={brandSlug}>
-                        {brand.shortName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                  <span className="text-[11px] uppercase tracking-wide">Desde</span>
-                  <Input
-                    type="date"
-                    value={ordersDateFrom}
-                    onChange={(event) => setOrdersDateFrom(event.target.value)}
-                    className="h-10 bg-background"
-                    aria-label="Fecha de compra desde"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                  <span className="text-[11px] uppercase tracking-wide">Hasta</span>
-                  <Input
-                    type="date"
-                    value={ordersDateTo}
-                    onChange={(event) => setOrdersDateTo(event.target.value)}
-                    className="h-10 bg-background"
-                    aria-label="Fecha de compra hasta"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                  <span className="text-[11px] uppercase tracking-wide">Estado de envío</span>
-                  <select
-                    value={ordersStatusFilter}
-                    onChange={(event) => setOrdersStatusFilter(event.target.value)}
-                    className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
-                  >
-                    <option value="all">Todos los estados</option>
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="Enviado">Enviado</option>
-                  </select>
-                </label>
-
-                <div className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                  <span className="text-[11px] uppercase tracking-wide">Total gastado</span>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={ordersTotalMin}
-                      onChange={(event) => setOrdersTotalMin(event.target.value)}
-                      placeholder="Mín."
-                      className="h-10 min-w-0 bg-background"
-                      aria-label="Total mínimo"
-                    />
-                    <Input
-                      type="number"
-                      min={0}
-                      value={ordersTotalMax}
-                      onChange={(event) => setOrdersTotalMax(event.target.value)}
-                      placeholder="Máx."
-                      className="h-10 min-w-0 bg-background"
-                      aria-label="Total máximo"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
 
           <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
             <Table
