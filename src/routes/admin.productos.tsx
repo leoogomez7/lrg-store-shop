@@ -3242,7 +3242,7 @@ function ProductEditDialog({
                 </div>
               )}
 
-              {showUsdRateInput && (
+              {!productForm.id && showUsdRateInput && (
                 <>
                   {showUsdRateInput ? (
                     <div className="h-full space-y-2 sm:col-span-2">

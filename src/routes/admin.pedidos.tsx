@@ -8,7 +8,6 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  Copy,
   Edit3,
   Filter,
   Lock,
@@ -1751,9 +1750,6 @@ function AdminOrders() {
             <Button size="sm" variant="outline" onClick={handleBulkEditOrders}>
               <Pencil className="size-4" /> Editar
             </Button>
-            <Button size="sm" variant="outline" onClick={handleBulkDuplicateOrders}>
-              <Copy className="size-4" /> Duplicar
-            </Button>
             <Button
               size="sm"
               variant="destructive"
@@ -2152,11 +2148,43 @@ function AdminOrders() {
         </Table>
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted-foreground">
-          {visibleResults.length} de {results.length} pedidos mostrados
-        </p>
-        <div className="flex items-center gap-3">
+      <div className="mt-4 flex flex-col gap-3 pb-20">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setPage(0)}
+            disabled={!hasPreviousPage}
+            className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+          >
+            Principio
+          </Button>
+          <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+            {Array.from({ length: Math.max(totalPages, 1) }, (_, index) => (
+              <button
+                key={index}
+                type="button"
+                className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                onClick={() => setPage(index)}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setPage(totalPages - 1)}
+            disabled={!hasNextPage}
+            className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+          >
+            Último
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <div className="text-sm text-muted-foreground">Mostrar</div>
           <Input
             type="number"
@@ -2191,40 +2219,9 @@ function AdminOrders() {
             );
           })()}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setPage(0)}
-            disabled={!hasPreviousPage}
-            className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
-          >
-            Principio
-          </Button>
-          <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-            {Array.from({ length: Math.max(totalPages, 1) }, (_, index) => (
-              <button
-                key={index}
-                type="button"
-                className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                onClick={() => setPage(index)}
-              >
-                {index + 1}
-              </button>
-            ))}
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setPage(totalPages - 1)}
-            disabled={!hasNextPage}
-            className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
-          >
-            Último
-          </Button>
-        </div>
+        <p className="text-center text-xs text-muted-foreground">
+          {visibleResults.length} de {results.length} pedidos mostrados
+        </p>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
