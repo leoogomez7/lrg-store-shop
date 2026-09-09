@@ -3,6 +3,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { ArrowUpDown, Check, Funnel, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -342,8 +343,9 @@ function CatalogPage() {
               const isValid = Number.isFinite(v) && v >= 1;
               const isChanged = pageSizeInput !== "" && String(Math.floor(v)) !== String(pageSize);
               return (
-                <button
+                <Button
                   type="button"
+                  size="sm"
                   onClick={() => {
                     if (!isValid || !isChanged) return;
                     const final = Math.min(1000, Math.floor(v));
@@ -352,11 +354,11 @@ function CatalogPage() {
                     setPage(0);
                   }}
                   disabled={!isValid || !isChanged}
-                  className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-input bg-[#111827] px-4 text-sm font-medium text-white shadow-none transition-colors hover:bg-[#1f2937] disabled:opacity-60"
+                  className="h-8 px-4"
                 >
-                  <Check className="h-4 w-4" />
+                  <Check className="mr-2 h-4 w-4" />
                   Confirmar
-                </button>
+                </Button>
               );
             })()}
           </div>
