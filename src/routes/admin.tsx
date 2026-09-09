@@ -153,6 +153,20 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     }
     setInitialPasswordVerified(true);
     setPassword("");
+    startKindeFlow("login");
+  }
+
+  function startKindeFlow(flow: "login" | "register") {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("lrg_auth_role", "admin");
+    }
+    const redirectURL = getKindeRedirectUri("/login");
+    const options = { redirectURL: redirectURL ?? "http://localhost:5174/login" };
+    if (flow === "login") {
+      login(options);
+    } else {
+      register(options);
+    }
   }
 
   async function unlockFinalAdminAccess(event: FormEvent<HTMLFormElement>) {
@@ -169,19 +183,6 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     }
     setFinalPassword("");
     navigate({ to: "/admin/panel" });
-  }
-
-  function startKindeFlow(flow: "login" | "register") {
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem("lrg_auth_role", "admin");
-    }
-    const redirectURL = getKindeRedirectUri("/login");
-    const options = { redirectURL: redirectURL ?? "http://localhost:5174/login" };
-    if (flow === "login") {
-      login(options);
-    } else {
-      register(options);
-    }
   }
 
   if (!adminUnlocked && !isAuthenticated && !initialPasswordVerified) {
