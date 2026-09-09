@@ -828,22 +828,41 @@ function AccountPageContent({
                     <DialogTitle>Ordenar por</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-1 pt-2">
-                    <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                      <span className="text-[11px] uppercase tracking-wide">Ordenar por</span>
-                      <select
-                        value={ordersSort}
-                        onChange={(event) => {
-                          setOrdersSort(event.target.value as OrdersSort);
+                    {[
+                      {
+                        value: "date-asc" as OrdersSort,
+                        label: "Fecha de compra: antigua a reciente",
+                      },
+                      {
+                        value: "date-desc" as OrdersSort,
+                        label: "Fecha de compra: reciente a antigua",
+                      },
+                      {
+                        value: "total-desc" as OrdersSort,
+                        label: "Total gastado: mayor a menor",
+                      },
+                      {
+                        value: "total-asc" as OrdersSort,
+                        label: "Total gastado: menor a mayor",
+                      },
+                    ].map((item) => (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() => {
+                          setOrdersSort(item.value);
                           setShowOrdersSort(false);
                         }}
-                        className="h-9 min-w-56 rounded-md border border-border/60 bg-background px-3 text-sm text-foreground"
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
+                          ordersSort === item.value
+                            ? "bg-surface-2 text-foreground"
+                            : "text-muted-foreground"
+                        }`}
                       >
-                        <option value="date-asc">Fecha de compra: antigua a reciente</option>
-                        <option value="date-desc">Fecha de compra: reciente a antigua</option>
-                        <option value="total-desc">Total gastado: mayor a menor</option>
-                        <option value="total-asc">Total gastado: menor a mayor</option>
-                      </select>
-                    </label>
+                        <span>{item.label}</span>
+                        {ordersSort === item.value && <span aria-hidden="true">✓</span>}
+                      </button>
+                    ))}
                   </div>
                 </DialogContent>
               </Dialog>
