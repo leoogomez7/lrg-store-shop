@@ -197,7 +197,6 @@ function AdminProducts() {
       }
     >
   >({});
-  const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
   const sortButtonRef = useRef<HTMLButtonElement | null>(null);
   const [page, setPage] = useState(0);
@@ -1085,25 +1084,6 @@ function AdminProducts() {
   };
 
   useEffect(() => {
-    if (!quickEditProductId) return;
-
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const isInsideRow = quickEditRowRef.current?.contains(target);
-      const isInsideSelectPortal = !!(target as Element)?.closest?.(
-        "[data-radix-popper-content-wrapper]",
-      );
-
-      if (!isInsideRow && !isInsideSelectPortal) {
-        cancelQuickEdit();
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [quickEditProductId, quickEditVariantId]);
-
-  useEffect(() => {
     if (!sortMenuOpen) return;
 
     const handlePointerDown = (event: MouseEvent) => {
@@ -1818,7 +1798,6 @@ function AdminProducts() {
               return (
                 <TableRow
                   key={`${product.id}-${variant?.id ?? "base"}`}
-                  ref={isQuickEditing ? quickEditRowRef : undefined}
                 >
                   {isQuickEditing ? (
                     <>
@@ -2062,7 +2041,7 @@ function AdminProducts() {
                           return (
                             <div className="flex flex-wrap items-center justify-center gap-1">
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
                                 className={`h-7 gap-1 px-2 text-[11px] ${actions.coupon ? activeActionClass : ""}`}
                                 onClick={() => {
@@ -2084,7 +2063,7 @@ function AdminProducts() {
                                 <Tag className="size-3" /> Cupón
                               </Button>
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
                                 className={`h-7 gap-1 px-2 text-[11px] ${actions.interestFree ? activeActionClass : ""}`}
                                 onClick={() => {
@@ -2111,7 +2090,7 @@ function AdminProducts() {
                                 <CreditCard className="size-3" /> Cuotas s/int
                               </Button>
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
                                 className={`h-7 gap-1 px-2 text-[11px] ${actions.cardCommission ? activeActionClass : ""}`}
                                 onClick={() => {
@@ -2131,7 +2110,7 @@ function AdminProducts() {
                                 <span className="text-sm font-semibold">$</span> Comisión tarjeta
                               </Button>
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
                                 className="h-7 gap-1 px-2 text-[11px]"
                                 onClick={() => handleResetDiscount(product.id)}
