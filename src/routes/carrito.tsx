@@ -93,7 +93,7 @@ function CartPage() {
                 Agregá productos y volvé para finalizar tu compra.
               </p>
               <Button asChild>
-                <Link to="/">
+                <Link to="/productos">
                   <Package className="size-4" /> Explorar productos
                 </Link>
               </Button>
