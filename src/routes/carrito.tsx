@@ -215,7 +215,7 @@ function CartPage() {
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Envío</dt>
-                    <dd>Acordar entrega</dd>
+                    <dd>Elegir en checkout</dd>
                   </div>
                   <div className="flex justify-between font-semibold text-foreground">
                     <dt>Total</dt>

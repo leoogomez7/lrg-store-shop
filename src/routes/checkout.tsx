@@ -147,6 +147,12 @@ function CheckoutPage() {
         name: getBrand(slug)?.name ?? slug,
         method: shippingMethodsByBrand[slug],
       }));
+  const paymentSummary = brandSlugs.length <= 1
+    ? paymentMethodsByBrand[brandSlugs[0] ?? ""]
+    : brandSlugs.map((slug) => ({
+        name: getBrand(slug)?.name ?? slug,
+        method: paymentMethodsByBrand[slug],
+      }));
 
   useEffect(() => {
     if (validationMessage && validationRef.current) {
@@ -626,6 +632,25 @@ function CheckoutPage() {
                 <div className="space-y-2">
                   <span>Envío</span>
                   {shippingSummary.map((entry) =>
+                    entry.method ? (
+                      <div key={entry.name} className="rounded-lg bg-surface-2/60 px-3 py-2">
+                        <p className="font-semibold">{entry.name}</p>
+                        <p className="text-right text-muted-foreground">{entry.method}</p>
+                      </div>
+                    ) : null,
+                  )}
+                </div>
+              )}
+              {typeof paymentSummary === "string" && paymentSummary && (
+                <div className="flex items-center justify-between gap-4">
+                  <span>Pago</span>
+                  <span className="text-right">{paymentSummary}</span>
+                </div>
+              )}
+              {Array.isArray(paymentSummary) && paymentSummary.some((entry) => entry.method) && (
+                <div className="space-y-2">
+                  <span>Pago</span>
+                  {paymentSummary.map((entry) =>
                     entry.method ? (
                       <div key={entry.name} className="rounded-lg bg-surface-2/60 px-3 py-2">
                         <p className="font-semibold">{entry.name}</p>

@@ -174,7 +174,7 @@ export function CartSheet({
                                     {item.name}
                                   </p>
                                   {item.variantName ? (
-                                    <span className="rounded-full border border-border px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                                    <span className="truncate text-sm text-muted-foreground">
                                       {item.variantName}
                                     </span>
                                   ) : null}
