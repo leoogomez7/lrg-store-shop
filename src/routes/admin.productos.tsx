@@ -3254,7 +3254,7 @@ function ProductEditDialog({
   const activePriceValue = activeCommissionValue + activeExpensesValue;
   const activeDiscountValue = activePriceValue * (activeDiscount / 100);
   const activeStorePrice = activePriceValue - activeDiscountValue;
-  const activeProfit = activeStorePrice - activeExpensesValue;
+  const activeProfit = activeCommissionValue - activeExpensesValue;
   const activeUsdRequired = activeCommissionCurrency === "USD" || activeExpensesCurrency === "USD";
   const hasBulkNavigation = bulkEditCount > 1;
   const canNavigatePrevious = bulkEditPosition > 0;
@@ -3809,9 +3809,7 @@ function ProductEditDialog({
                 </div>
               </div>
             </div>
-            <div
-              className={`mt-4 grid items-start gap-4 ${showsDeliveryDetails ? "sm:grid-cols-4" : "sm:grid-cols-2"}`}
-            >
+            <div className="mt-4 grid items-start gap-4 sm:grid-cols-2">
               <div className="flex min-w-0 flex-col gap-1">
                 <Label className="min-h-8">Stock</Label>
                 <div className={`grid gap-2 ${activeStockUnlimited ? "grid-cols-1" : "grid-cols-2"}`}>
@@ -3841,47 +3839,49 @@ function ProductEditDialog({
                   )}
                 </div>
               </div>
-              <div className="flex min-w-0 flex-col gap-1">
-                <Label className="min-h-8">Tiempo de entrega</Label>
-                <Select
-                  value={activeDeliveryUnit}
-                  onValueChange={(value) =>
-                    updateActiveVariant({ deliveryUnit: value as DeliveryUnit })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="inmediata">Entrega inmediata</SelectItem>
-                    <SelectItem value="horas">Horas</SelectItem>
-                    <SelectItem value="dias">Días</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {showsDeliveryDetails && (
-                <>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <Label className="min-h-8">Cantidad</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={activeDeliveryAmount === 0 ? "" : activeDeliveryAmount}
-                      onChange={(event) =>
-                        updateActiveVariant({ deliveryAmount: Number(event.target.value) || 0 })
-                      }
-                    />
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <Label className="min-h-8">Entrega</Label>
-                    <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm opacity-60">
-                      {activeDeliveryAmount > 0
-                        ? `${activeDeliveryAmount} ${activeDeliveryUnit}`
-                        : ""}
+              <div className="grid min-w-0 gap-4 sm:grid-cols-3">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <Label className="min-h-8">Tiempo de entrega</Label>
+                  <Select
+                    value={activeDeliveryUnit}
+                    onValueChange={(value) =>
+                      updateActiveVariant({ deliveryUnit: value as DeliveryUnit })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="inmediata">Entrega inmediata</SelectItem>
+                      <SelectItem value="horas">Horas</SelectItem>
+                      <SelectItem value="dias">Días</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {showsDeliveryDetails && (
+                  <>
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <Label className="min-h-8">Cantidad</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={activeDeliveryAmount === 0 ? "" : activeDeliveryAmount}
+                        onChange={(event) =>
+                          updateActiveVariant({ deliveryAmount: Number(event.target.value) || 0 })
+                        }
+                      />
                     </div>
-                  </div>
-                </>
-              )}
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <Label className="min-h-8">Entrega</Label>
+                      <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm opacity-60">
+                        {activeDeliveryAmount > 0
+                          ? `${activeDeliveryAmount} ${activeDeliveryUnit}`
+                          : ""}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
