@@ -880,84 +880,86 @@ function AccountPageContent({
                   </Button>
                 </DialogTrigger>
 
-                <DialogContent className="max-w-4xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
-                  <DialogHeader className="space-y-2">
-                    <DialogTitle>Filtros</DialogTitle>
+                <DialogContent className="max-w-2xl rounded-3xl border border-border/60 bg-background p-0 shadow-2xl">
+                  <DialogHeader className="px-5 pt-5">
+                    <DialogTitle className="text-2xl font-semibold leading-tight">Filtros</DialogTitle>
                   </DialogHeader>
-                  <div className="pt-2">
-                    <div className="grid gap-3 md:grid-cols-5">
-                      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                        <span className="text-[11px] uppercase tracking-wide">Tienda</span>
-                        <select
-                          value={ordersBrandFilter}
-                          onChange={(event) => setOrdersBrandFilter(event.target.value)}
-                          className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
-                        >
-                          <option value="all">Todas las tiendas</option>
-                          {Object.entries(brands).map(([brandSlug, brand]) => (
-                            <option key={brandSlug} value={brandSlug}>
-                              {brand.shortName}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                  <div className="px-5 pb-5 pt-2">
+                    <div className="border-t border-border/50 pt-4">
+                      <div className="grid gap-3 md:grid-cols-5">
+                        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                          <span className="text-[11px] uppercase tracking-wide">Tienda</span>
+                          <select
+                            value={ordersBrandFilter}
+                            onChange={(event) => setOrdersBrandFilter(event.target.value)}
+                            className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
+                          >
+                            <option value="all">Todas las tiendas</option>
+                            {Object.entries(brands).map(([brandSlug, brand]) => (
+                              <option key={brandSlug} value={brandSlug}>
+                                {brand.shortName}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
 
-                      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                        <span className="text-[11px] uppercase tracking-wide">Desde</span>
-                        <Input
-                          type="date"
-                          value={ordersDateFrom}
-                          onChange={(event) => setOrdersDateFrom(event.target.value)}
-                          className="h-10 bg-background"
-                          aria-label="Fecha de compra desde"
-                        />
-                      </label>
-
-                      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                        <span className="text-[11px] uppercase tracking-wide">Hasta</span>
-                        <Input
-                          type="date"
-                          value={ordersDateTo}
-                          onChange={(event) => setOrdersDateTo(event.target.value)}
-                          className="h-10 bg-background"
-                          aria-label="Fecha de compra hasta"
-                        />
-                      </label>
-
-                      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                        <span className="text-[11px] uppercase tracking-wide">Estado de envío</span>
-                        <select
-                          value={ordersStatusFilter}
-                          onChange={(event) => setOrdersStatusFilter(event.target.value)}
-                          className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
-                        >
-                          <option value="all">Todos los estados</option>
-                          <option value="Pendiente">Pendiente</option>
-                          <option value="Enviado">Enviado</option>
-                        </select>
-                      </label>
-
-                      <div className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                        <span className="text-[11px] uppercase tracking-wide">Total gastado</span>
-                        <div className="flex gap-2">
+                        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                          <span className="text-[11px] uppercase tracking-wide">Desde</span>
                           <Input
-                            type="number"
-                            min={0}
-                            value={ordersTotalMin}
-                            onChange={(event) => setOrdersTotalMin(event.target.value)}
-                            placeholder="Mín."
-                            className="h-10 min-w-0 bg-background"
-                            aria-label="Total mínimo"
+                            type="date"
+                            value={ordersDateFrom}
+                            onChange={(event) => setOrdersDateFrom(event.target.value)}
+                            className="h-10 bg-background"
+                            aria-label="Fecha de compra desde"
                           />
+                        </label>
+
+                        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                          <span className="text-[11px] uppercase tracking-wide">Hasta</span>
                           <Input
-                            type="number"
-                            min={0}
-                            value={ordersTotalMax}
-                            onChange={(event) => setOrdersTotalMax(event.target.value)}
-                            placeholder="Máx."
-                            className="h-10 min-w-0 bg-background"
-                            aria-label="Total máximo"
+                            type="date"
+                            value={ordersDateTo}
+                            onChange={(event) => setOrdersDateTo(event.target.value)}
+                            className="h-10 bg-background"
+                            aria-label="Fecha de compra hasta"
                           />
+                        </label>
+
+                        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                          <span className="text-[11px] uppercase tracking-wide">Estado de envío</span>
+                          <select
+                            value={ordersStatusFilter}
+                            onChange={(event) => setOrdersStatusFilter(event.target.value)}
+                            className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
+                          >
+                            <option value="all">Todos los estados</option>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Enviado">Enviado</option>
+                          </select>
+                        </label>
+
+                        <div className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                          <span className="text-[11px] uppercase tracking-wide">Total gastado</span>
+                          <div className="flex gap-2">
+                            <Input
+                              type="number"
+                              min={0}
+                              value={ordersTotalMin}
+                              onChange={(event) => setOrdersTotalMin(event.target.value)}
+                              placeholder="Mín."
+                              className="h-10 min-w-0 bg-background"
+                              aria-label="Total mínimo"
+                            />
+                            <Input
+                              type="number"
+                              min={0}
+                              value={ordersTotalMax}
+                              onChange={(event) => setOrdersTotalMax(event.target.value)}
+                              placeholder="Máx."
+                              className="h-10 min-w-0 bg-background"
+                              aria-label="Total máximo"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
