@@ -17,6 +17,7 @@ export type CartItem = {
   price: number;
   quantity: number;
   stock: number;
+  stockUnlimited?: boolean;
 };
 
 type UserIdentity = { id: string; email?: string };

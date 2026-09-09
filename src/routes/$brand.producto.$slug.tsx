@@ -100,6 +100,9 @@ function ProductDetail() {
         ...(selectedVariant.cardCommission !== undefined
           ? { cardCommission: selectedVariant.cardCommission }
           : {}),
+        ...(selectedVariant.stockUnlimited !== undefined
+          ? { stockUnlimited: selectedVariant.stockUnlimited }
+          : {}),
         ...(selectedVariant.gastos !== undefined ? { gastos: selectedVariant.gastos } : {}),
         ...(selectedVariant.gastosCurrency ? { gastosCurrency: selectedVariant.gastosCurrency } : {}),
       }

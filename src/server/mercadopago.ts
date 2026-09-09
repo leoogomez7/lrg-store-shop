@@ -17,7 +17,14 @@ export type PaymentIntentData = {
   discountCode?: string;
   cardFee: number;
   shippingMethod: string;
-  items: { name: string; quantity: number; price: number }[];
+  items: {
+    name: string;
+    quantity: number;
+    price: number;
+    brand?: string;
+    paymentMethod?: string;
+    shippingMethod?: string;
+  }[];
 };
 
 function getAccessToken() {

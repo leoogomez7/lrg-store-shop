@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, CreditCard, Lock, Tag, Truck } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, CreditCard, Lock, Tag, Truck } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { useCart } from "@/store/cart";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
-import { getBrand } from "@/config/brands";
+import { getBrand, type BrandSlug } from "@/config/brands";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ import {
   type PaymentIntentData,
 } from "@/server/mercadopago";
 import { formatPrice } from "@/lib/format";
-import { getUserProfile, getUserAddresses } from "@/lib/user";
+import { getUserProfile, getUserAddresses, updateUserProfile } from "@/lib/user";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -48,37 +48,50 @@ function CheckoutPage() {
   // Choose brand from first item in cart if available, otherwise default to web-design
   const firstBrandSlug = items[0]?.brand ?? "web-design";
   const brand = getBrand(firstBrandSlug)!;
-  const availablePaymentMethods = (brand.paymentMethods ?? []).filter((method) => method.enabled);
-  const cardPaymentMethods = availablePaymentMethods.filter((method) =>
-    /visa|mastercard|amex|tarjeta|d[eé]bito|cr[eé]dito/i.test(method.name),
-  );
-  const otherPaymentMethods = availablePaymentMethods.filter(
-    (method) => !cardPaymentMethods.includes(method),
-  );
   const interestFreeOptions = [1];
 
   // Ensure header and footer are shown on checkout
   const Header = <BrandHeader brand={brand} headerTheme="theme-webdesign" />;
 
-  const shippingMethod = "Acordar entrega";
-
   const [customerName, setCustomerName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [document, setDocument] = useState("");
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<string>(
-    availablePaymentMethods[0]?.name ?? "Tarjeta",
+  const brandSlugs = useMemo(
+    () => Array.from(new Set(items.map((item) => item.brand))),
+    [items],
   );
+  const [shippingMethodsByBrand, setShippingMethodsByBrand] = useState<Record<string, string>>({});
+  const [paymentMethodsByBrand, setPaymentMethodsByBrand] = useState<Record<string, string>>({});
   const [bankCbu, setBankCbu] = useState("");
   const [creditCardOpen, setCreditCardOpen] = useState(false);
   const [selectedInstallments, setSelectedInstallments] = useState(1);
-  const isCardPaymentSelected = cardPaymentMethods.some(
-    (payment) => payment.name === paymentMethod,
+  const getShippingMethods = (slug: BrandSlug) =>
+    (getBrand(slug)?.shipping?.methods ?? []).filter((method) => method.enabled);
+  const getPaymentMethods = (slug: BrandSlug) =>
+    (getBrand(slug)?.paymentMethods ?? []).filter((method) => method.enabled);
+  const isCardMethod = (value: string) =>
+    /visa|mastercard|amex|tarjeta|d[eé]bito|cr[eé]dito/i.test(value);
+  const isCardPayment = Object.values(paymentMethodsByBrand).some(isCardMethod);
+  const isMercadoPagoPayment = Object.values(paymentMethodsByBrand).some((value) =>
+    /mercado pago|mercadopago/i.test(value),
   );
-  const isCardPayment = /tarjeta|visa|mastercard|amex|d[eé]bito|cr[eé]dito/i.test(paymentMethod);
-  const isMercadoPagoPayment = /mercado pago|mercadopago/i.test(paymentMethod);
+
+  useEffect(() => {
+    setShippingMethodsByBrand((current) =>
+      Object.fromEntries(
+        brandSlugs.map((slug) => [slug, current[slug] ?? ""]),
+      ),
+    );
+    setPaymentMethodsByBrand((current) =>
+      Object.fromEntries(
+        brandSlugs.map((slug) => [slug, current[slug] ?? ""]),
+      ),
+    );
+  }, [brandSlugs]);
 
   useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
@@ -102,13 +115,23 @@ function CheckoutPage() {
   const [selectedSavedAddress, setSelectedSavedAddress] = useState("");
   const discountedSubtotal = couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal;
   const eligibleCardSubtotal = items.reduce(
-    (total, item) => total + (item.cardCommission ? item.price * item.quantity : 0),
+    (total, item) =>
+      total +
+      (item.cardCommission && isCardMethod(paymentMethodsByBrand[item.brand] ?? "")
+        ? item.price * item.quantity
+        : 0),
     0,
   );
   const cardFee = isCardPayment
     ? eligibleCardSubtotal * (couponApplied ? 1 - couponPercentage / 100 : 1) * 0.1
     : 0;
   const total = discountedSubtotal + cardFee;
+  const combinedPaymentMethod = Object.entries(paymentMethodsByBrand)
+    .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
+    .join(" | ");
+  const combinedShippingMethod = Object.entries(shippingMethodsByBrand)
+    .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
+    .join(" | ");
 
   useEffect(() => {
     if (validationMessage && validationRef.current) {
@@ -146,6 +169,7 @@ function CheckoutPage() {
         setCustomerName(user.givenName || "");
         setEmail(user.email || "");
         setPhone(profile.phone || "");
+        setDocument(profile.document || "");
         setCity(profile.city || "");
         // address no se carga automáticamente, solo si selecciona una dirección guardada
       }
@@ -165,7 +189,10 @@ function CheckoutPage() {
     if (!email.trim()) missingFields.push("Email");
     if (!phone.trim()) missingFields.push("Teléfono");
     if (!address.trim()) missingFields.push("Dirección");
-    if (!paymentMethod.trim()) missingFields.push("Método de pago");
+    brandSlugs.forEach((slug) => {
+      if (!shippingMethodsByBrand[slug]) missingFields.push(`Método de envío de ${getBrand(slug)?.name}`);
+      if (!paymentMethodsByBrand[slug]) missingFields.push(`Método de pago de ${getBrand(slug)?.name}`);
+    });
     if (missingFields.length > 0) {
       setValidationMessage(`Faltan completar: ${missingFields.join(", ")}.`);
       return;
@@ -173,6 +200,19 @@ function CheckoutPage() {
 
     setValidationMessage("");
     if (items.length === 0) return;
+    if (isAuthenticated && user?.id) {
+      void updateUserProfile({
+        data: {
+          userId: user.id,
+          email: user.email || email,
+          givenName: user.givenName || customerName,
+          familyName: user.familyName || "",
+          phone,
+          document: document.trim(),
+          city,
+        },
+      });
+    }
     const id = `LRG-${Math.floor(10000 + Math.random() * 89999)}`;
     const expenses = Math.round(total * 0.65);
     const order = {
@@ -181,18 +221,30 @@ function CheckoutPage() {
       customer: customerName,
       email,
       phone,
+      document: document.trim() || undefined,
       extraInfo: notes,
       date: new Date().toISOString().slice(0, 10),
       total,
       expenses,
       profit: total - expenses,
       status: "pendiente",
-      paymentMethod,
+      paymentMethod: Object.entries(paymentMethodsByBrand)
+        .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
+        .join(" | "),
       installments: isCardPayment ? selectedInstallments : 1,
       discountCode: couponApplied ? couponCode.trim().toUpperCase() : undefined,
       cardFee,
-      shippingMethod,
-      items: items.map((item) => ({ name: item.name, quantity: item.quantity, price: item.price })),
+      shippingMethod: Object.entries(shippingMethodsByBrand)
+        .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
+        .join(" | "),
+      items: items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        brand: item.brand,
+        paymentMethod: paymentMethodsByBrand[item.brand],
+        shippingMethod: shippingMethodsByBrand[item.brand],
+      })),
     };
 
     if (isMercadoPagoPayment) {
@@ -209,11 +261,11 @@ function CheckoutPage() {
           total,
           expenses,
           profit: total - expenses,
-          paymentMethod,
+          paymentMethod: combinedPaymentMethod,
           installments: isCardPayment ? selectedInstallments : 1,
           discountCode: couponApplied ? couponCode.trim().toUpperCase() : undefined,
           cardFee,
-          shippingMethod,
+          shippingMethod: combinedShippingMethod,
           items: order.items,
         };
         const preference = await createMercadoPagoPreference({
@@ -326,6 +378,15 @@ function CheckoutPage() {
                     onChange={(e) => setPhone(e.target.value)}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="document">Documento (opcional)</Label>
+                  <Input
+                    id="document"
+                    placeholder="DNI / CUIT"
+                    value={document}
+                    onChange={(e) => setDocument(e.target.value)}
+                  />
+                </div>
                 {isAuthenticated && savedAddresses.length > 0 && (
                   <div className="space-y-2 sm:col-span-2">
                     <Label>Direcciones guardadas</Label>
@@ -413,89 +474,89 @@ function CheckoutPage() {
               <h2 className="font-display flex items-center gap-2 font-semibold">
                 <Truck className="size-4 text-primary" /> Método de envío
               </h2>
-              <p className="mt-4 rounded-xl bg-surface-2/60 px-4 py-3 text-sm">{shippingMethod}</p>
+              <div className="mt-4 space-y-3">
+                {brandSlugs.map((slug) => (
+                  <div key={slug} className="space-y-2">
+                    <Label>{getBrand(slug)?.name}</Label>
+                    <RadioGroup
+                      value={shippingMethodsByBrand[slug] ?? ""}
+                      onValueChange={(value) =>
+                        setShippingMethodsByBrand((current) => ({ ...current, [slug]: value }))
+                      }
+                      className="grid gap-2 sm:grid-cols-2"
+                    >
+                      {getShippingMethods(slug).map((method) => (
+                        <label
+                          key={method.id}
+                          className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-2/60 px-4 py-3 text-sm"
+                        >
+                          <RadioGroupItem value={method.name} />
+                          {method.name}
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  </div>
+                ))}
+              </div>
             </section>
 
             <section className="glass-panel rounded-2xl p-6">
               <h2 className="font-display flex items-center gap-2 font-semibold">
                 <CreditCard className="size-4 text-primary" /> Método de pago
               </h2>
-              <RadioGroup
-                value={paymentMethod}
-                onValueChange={setPaymentMethod}
-                className="mt-5 space-y-3"
-              >
-                {cardPaymentMethods.length > 0 && (
-                  <div className="rounded-xl bg-surface-2/60 px-4 py-3">
-                    <div className="flex items-center gap-3 text-sm">
-                      <RadioGroupItem value={cardPaymentMethods[0].name} />
-                      <span className="flex-1">Tarjeta de crédito o débito</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setCreditCardOpen((current) => !current)}
-                      >
-                        {creditCardOpen ? "Ver menos" : "Ver más"}
-                      </Button>
-                    </div>
-                    {creditCardOpen && (
-                      <div className="mt-3 space-y-3 border-t border-border/60 pt-3">
-                        <p className="text-xs text-muted-foreground">
-                          Elegí la tarjeta y la cantidad de cuotas.
-                        </p>
-                        <div className="space-y-2">
-                          {cardPaymentMethods.map((payment) => (
-                            <label
-                              key={payment.id}
-                              className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/60 px-3 py-2 text-sm"
-                            >
-                              <RadioGroupItem value={payment.name} />
-                              {payment.name}
-                            </label>
-                          ))}
-                        </div>
-                        {isCardPaymentSelected && interestFreeOptions.length > 1 && (
-                          <div className="space-y-2">
-                            <Label>Cantidad de cuotas</Label>
-                            <div className="grid gap-2 sm:grid-cols-3">
-                              {interestFreeOptions.map((installments) => (
-                                <label
-                                  key={installments}
-                                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm"
-                                >
-                                  <input
-                                    type="radio"
-                                    name="installments"
-                                    checked={selectedInstallments === installments}
-                                    onChange={() => setSelectedInstallments(installments)}
-                                  />
-                                  {installments === 1 ? "1 pago" : `${installments} cuotas`}
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+              <div className="mt-5 space-y-4">
+                {brandSlugs.map((slug) => (
+                  <div key={slug} className="space-y-2">
+                    <Label>{getBrand(slug)?.name}</Label>
+                    <RadioGroup
+                      value={paymentMethodsByBrand[slug] ?? ""}
+                      onValueChange={(value) =>
+                        setPaymentMethodsByBrand((current) => ({ ...current, [slug]: value }))
+                      }
+                      className="grid gap-2 sm:grid-cols-2"
+                    >
+                      {getPaymentMethods(slug).map((method) => (
+                        <label
+                          key={method.id}
+                          className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-2/60 px-4 py-3 text-sm"
+                        >
+                          <RadioGroupItem value={method.name} />
+                          {method.name}
+                        </label>
+                      ))}
+                    </RadioGroup>
+                    {/transferencia/i.test(paymentMethodsByBrand[slug] ?? "") && bankCbu && slug === firstBrandSlug && (
+                      <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+                        <p className="font-semibold">Datos para transferencia bancaria</p>
+                        <p className="mt-1 text-muted-foreground">CBU: {bankCbu}</p>
                       </div>
                     )}
                   </div>
-                )}
-                {otherPaymentMethods.map((payment) => (
-                  <label
-                    key={payment.id}
-                    className="flex cursor-pointer items-center gap-3 rounded-xl bg-surface-2/60 px-4 py-3 text-sm"
-                  >
-                    <RadioGroupItem value={payment.name} />
-                    {payment.name}
-                  </label>
                 ))}
-                {/transferencia/i.test(paymentMethod) && bankCbu && (
-                  <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
-                    <p className="font-semibold">Datos para transferencia bancaria</p>
-                    <p className="mt-1 text-muted-foreground">CBU: {bankCbu}</p>
+                {isCardPayment && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCreditCardOpen((current) => !current)}
+                    >
+                      {creditCardOpen ? "Ocultar cuotas" : "Configurar cuotas"}
+                    </Button>
+                    {creditCardOpen && interestFreeOptions.map((installments) => (
+                      <label key={installments} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="radio"
+                          name="installments"
+                          checked={selectedInstallments === installments}
+                          onChange={() => setSelectedInstallments(installments)}
+                        />
+                        {installments === 1 ? "1 pago" : `${installments} cuotas`}
+                      </label>
+                    ))}
                   </div>
                 )}
-              </RadioGroup>
+              </div>
               <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
                 <Lock className="size-3.5" /> Demostración: no se procesan pagos reales.
               </p>
@@ -506,7 +567,7 @@ function CheckoutPage() {
             <h2 className="font-display font-semibold">Tu pedido</h2>
             <div className="mt-5 space-y-3 text-sm">
               {items.map((item) => {
-                const appliedInstallments = isCardPaymentSelected ? selectedInstallments : 1;
+                const appliedInstallments = isCardPayment ? selectedInstallments : 1;
                 return appliedInstallments > 1 ? (
                   <div
                     key={item.id}
@@ -535,10 +596,12 @@ function CheckoutPage() {
                   <span>{formatPrice(cardFee)}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between">
-                <span>Envío</span>
-                <span>{shippingMethod}</span>
-              </div>
+              {combinedShippingMethod && (
+                <div className="flex items-center justify-between gap-4">
+                  <span>Envío</span>
+                  <span className="text-right">{combinedShippingMethod}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between font-semibold text-foreground">
                 <span>Total</span>
                 <span>
@@ -549,7 +612,7 @@ function CheckoutPage() {
                 type="submit"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                Confirmar pedido
+                <Check className="size-4" /> Confirmar pedido
               </Button>
             </div>
           </aside>

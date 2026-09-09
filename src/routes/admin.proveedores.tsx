@@ -1,4 +1,4 @@
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 import {
@@ -43,10 +43,7 @@ import { saveProducts, type Product } from "@/data/products";
 
 export const Route = createFileRoute("/admin/proveedores")({
   loader: async ({ context }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(catalogQueries.all()),
-      context.queryClient.ensureQueryData(orderQueries.list()),
-    ]);
+    await context.queryClient.ensureQueryData(catalogQueries.all());
   },
   head: () => ({ meta: [{ title: "Administrador" }] }),
   component: AdminSuppliers,
@@ -67,7 +64,7 @@ const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
 
 function AdminSuppliers() {
   const { data: products } = useSuspenseQuery(catalogQueries.all());
-  const { data: orders } = useSuspenseQuery(orderQueries.list());
+  const { data: orders = [] } = useQuery(orderQueries.list());
   const queryClient = useQueryClient();
   const [query, setQuery] = React.useState("");
   const [expandedSupplierKey, setExpandedSupplierKey] = React.useState<string | null>(null);

@@ -1784,7 +1784,7 @@ function AdminOrders() {
               <TableHead className="w-20">Gastos</TableHead>
               <TableHead className="w-24">Precio total</TableHead>
               <TableHead className="w-20">Ganancias</TableHead>
-              <TableHead className="w-56">Acciones</TableHead>
+              <TableHead className="w-72 min-w-72">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1967,8 +1967,8 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.expenses)}</TableCell>
                     <TableCell>{formatPrice(order.total)}</TableCell>
                     <TableCell>{formatPrice(order.profit)}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap items-center justify-center gap-1.5">
+                    <TableCell className="min-w-72">
+                      <div className="flex flex-col items-center justify-center gap-1.5">
                         {isQuickEditing ? (
                           <>
                             <Button
@@ -1993,7 +1993,7 @@ function AdminOrders() {
                           </>
                         ) : (
                           <>
-                            <div className="flex flex-wrap items-center justify-center gap-1.5">
+                            <div className="flex flex-nowrap items-center justify-center gap-1.5">
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -2023,7 +2023,7 @@ function AdminOrders() {
                                 <span className="hidden sm:inline">Documentos</span>
                               </Button>
                             </div>
-                            <div className="flex flex-wrap items-center justify-center gap-1.5">
+                            <div className="flex flex-nowrap items-center justify-center gap-1.5">
                               <Button
                                 variant="ghost"
                                 size="sm"

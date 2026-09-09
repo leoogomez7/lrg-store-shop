@@ -16,6 +16,7 @@ export type Order = {
   customer: string;
   email: string;
   phone: string;
+  document?: string;
   extraInfo: string;
   date: string;
   total: number;
@@ -30,7 +31,14 @@ export type Order = {
     "Por correo fisico" | "Por correo electronico" | "Por Whatsapp" | string | undefined;
   shippingNumber?: string | undefined;
   attachments?: OrderAttachment[];
-  items: { name: string; quantity: number; price: number }[];
+  items: {
+    name: string;
+    quantity: number;
+    price: number;
+    brand?: BrandSlug;
+    paymentMethod?: string;
+    shippingMethod?: string;
+  }[];
 };
 
 function readStoredOrders(): Order[] {

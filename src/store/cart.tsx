@@ -51,7 +51,9 @@ function reducer(state: CartState, action: CartAction): CartState {
             item.id === action.item.id
               ? {
                   ...item,
-                  quantity: Math.min(item.quantity + action.item.quantity, item.stock),
+                    quantity: item.stockUnlimited
+                      ? item.quantity + action.item.quantity
+                      : Math.min(item.quantity + action.item.quantity, item.stock),
                 }
               : item,
           ),
@@ -66,7 +68,12 @@ function reducer(state: CartState, action: CartAction): CartState {
         ...state,
         items: state.items.map((item) =>
           item.id === action.id
-            ? { ...item, quantity: Math.max(1, Math.min(action.quantity, item.stock)) }
+          ? {
+              ...item,
+              quantity: item.stockUnlimited
+                ? Math.max(1, action.quantity)
+                : Math.max(1, Math.min(action.quantity, item.stock)),
+            }
             : item,
         ),
       };
@@ -142,7 +149,7 @@ export function CartProvider({
   }, [isAuthenticated, state.hydrated, state.items, state.remoteHydrated, user?.email, user?.id]);
 
   const addProduct = useCallback((product: Product, quantity = 1) => {
-    if (product.stock <= 0) {
+    if (!product.stockUnlimited && product.stock <= 0) {
       toast.error("Sin stock disponible", {
         description: `${product.name} no está disponible por el momento.`,
       });
@@ -150,13 +157,15 @@ export function CartProvider({
     }
     const existing = state.items.find((i) => i.id === product.id);
     if (existing) {
-      if (existing.quantity >= product.stock) {
+      if (!product.stockUnlimited && existing.quantity >= product.stock) {
         toast.error("No hay más stock disponible", {
           description: `${product.name} alcanzó su límite de stock.`,
         });
         return;
       }
-      const canAdd = Math.min(quantity, product.stock - existing.quantity);
+      const canAdd = product.stockUnlimited
+        ? quantity
+        : Math.min(quantity, product.stock - existing.quantity);
       if (canAdd <= 0) {
         toast.error("No hay más stock disponible", {
           description: `${product.name} alcanzó su límite de stock.`,
@@ -178,6 +187,7 @@ export function CartProvider({
           price: product.price,
           quantity: canAdd,
           stock: product.stock,
+          stockUnlimited: product.stockUnlimited,
         },
       });
       if (canAdd < quantity) {
@@ -190,7 +200,7 @@ export function CartProvider({
       return;
     }
 
-    const toAdd = Math.min(quantity, product.stock);
+    const toAdd = product.stockUnlimited ? quantity : Math.min(quantity, product.stock);
     dispatch({
       type: "add",
       item: {
@@ -206,6 +216,7 @@ export function CartProvider({
         price: product.price,
         quantity: toAdd,
         stock: product.stock,
+        stockUnlimited: product.stockUnlimited,
       },
     });
     if (toAdd < quantity) {

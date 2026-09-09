@@ -19,6 +19,7 @@ export type ProductVariant = {
   gastosCurrency?: CurrencyCode;
   description: string;
   stock: number;
+  stockUnlimited?: boolean;
   features?: string[];
   deliveryUnit?: "inmediata" | "horas" | "dias";
   deliveryAmount?: number;
@@ -56,6 +57,7 @@ export type Product = {
   usdRate?: number;
   compareAtPrice?: number;
   stock: number;
+  stockUnlimited?: boolean;
   rating: number;
   reviews: number;
   badge?: string;

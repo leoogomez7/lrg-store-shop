@@ -88,6 +88,7 @@ type ProductFormState = {
   comision: number;
   comisionCurrency: CurrencyCode;
   stock: number;
+  stockUnlimited: boolean;
   description: string;
   features: string[];
   images: string[];
@@ -249,6 +250,7 @@ function AdminProducts() {
     comision: 0,
     comisionCurrency: "ARS",
     stock: 0,
+    stockUnlimited: false,
     description: "",
     features: [],
     images: [],
@@ -536,6 +538,7 @@ function AdminProducts() {
       comision: product.comision ?? 0,
       comisionCurrency: product.comisionCurrency ?? "ARS",
       stock: product.stock,
+      stockUnlimited: product.stockUnlimited ?? false,
       description: product.description,
       features: product.features ?? [],
       images: product.images ?? [],
@@ -989,6 +992,7 @@ function AdminProducts() {
               gastos: productForm.gastos,
               gastosCurrency: productForm.gastosCurrency,
               stock: productForm.stock,
+              stockUnlimited: productForm.stockUnlimited,
               description: productForm.description,
               features: productForm.features,
               images: productForm.images,
@@ -1020,6 +1024,7 @@ function AdminProducts() {
           gastosCurrency: productForm.gastosCurrency,
           usdRate: productForm.usdRate,
           stock: productForm.stock,
+          stockUnlimited: productForm.stockUnlimited,
           rating: 0,
           reviews: 0,
           short: productForm.description,
@@ -1054,6 +1059,7 @@ function AdminProducts() {
         existing.gastosCurrency = productForm.gastosCurrency;
         existing.usdRate = productForm.usdRate;
         existing.stock = productForm.stock;
+        existing.stockUnlimited = productForm.stockUnlimited;
         existing.description = productForm.description;
         existing.features = productForm.features;
         existing.images = productForm.images;
@@ -3145,6 +3151,7 @@ function ProductEditDialog({
   const activeExpensesCurrency = activeVariant?.gastosCurrency ?? productForm.gastosCurrency;
   const activeDiscount = activeVariant?.discount ?? productForm.discount;
   const activeStock = activeVariant?.stock ?? productForm.stock;
+  const activeStockUnlimited = activeVariant?.stockUnlimited ?? productForm.stockUnlimited;
   const activeDeliveryUnit = activeVariant?.deliveryUnit ?? productForm.deliveryUnit;
   const activeDeliveryAmount = activeVariant?.deliveryAmount ?? productForm.deliveryAmount;
   const showsDeliveryDetails = activeDeliveryUnit === "horas" || activeDeliveryUnit === "dias";
@@ -3666,7 +3673,7 @@ function ProductEditDialog({
                 <Input
                   type="number"
                   min={0}
-                  value={isNewProduct && activeExpenses === 0 ? "" : activeExpenses}
+                  value={activeExpenses === 0 ? "" : activeExpenses}
                   onChange={(event) =>
                     updateActivePricing({ gastos: Number(event.target.value) || 0 })
                   }
@@ -3689,7 +3696,7 @@ function ProductEditDialog({
                   type="number"
                   min={0}
                   max={100}
-                  value={isNewProduct && activeDiscount === 0 ? "" : activeDiscount}
+                  value={activeDiscount === 0 ? "" : activeDiscount}
                   onChange={(event) =>
                     updateActiveVariant({ discount: Number(event.target.value) || 0 })
                   }
@@ -3719,14 +3726,30 @@ function ProductEditDialog({
             >
               <div className="flex min-w-0 flex-col gap-1">
                 <Label className="min-h-8">Stock</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={isNewProduct && activeStock === 0 ? "" : activeStock}
-                  onChange={(event) =>
-                    updateActiveVariant({ stock: Number(event.target.value) || 0 })
+                <Select
+                  value={activeStockUnlimited ? "unlimited" : "limited"}
+                  onValueChange={(value) =>
+                    updateActiveVariant({ stockUnlimited: value === "unlimited" })
                   }
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="limited">Cantidad</SelectItem>
+                    <SelectItem value="unlimited">Ilimitado</SelectItem>
+                  </SelectContent>
+                </Select>
+                {!activeStockUnlimited && (
+                  <Input
+                    type="number"
+                    min={0}
+                    value={activeStock === 0 ? "" : activeStock}
+                    onChange={(event) =>
+                      updateActiveVariant({ stock: Number(event.target.value) || 0 })
+                    }
+                  />
+                )}
               </div>
               <div className="flex min-w-0 flex-col gap-1">
                 <Label className="min-h-8">Tiempo de entrega</Label>
