@@ -2,6 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, Check, Minus, Plus, ShoppingBag, ShoppingCart, Truck } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import type { Product } from "@/data/products";
 import { ProductVisual } from "@/components/common/product-visual";
 import { SectionHeading } from "@/components/common/section-heading";
@@ -132,6 +133,17 @@ function ProductDetail() {
   })();
   const freeShippingText =
     freeShippingThreshold > 0 ? ` - Envío gratis desde ${formatPrice(freeShippingThreshold)}` : "";
+
+  const increaseQuantity = () => {
+    if (activeProduct.stockUnlimited || quantity < activeProduct.stock) {
+      setQuantity((value) => value + 1);
+      return;
+    }
+
+    toast.error("No se puede agregar más unidades", {
+      description: `${activeProduct.name} alcanzó su límite de stock (${activeProduct.stock}).`,
+    });
+  };
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-20 sm:px-6">
@@ -265,7 +277,7 @@ function ProductDetail() {
           )}
           <div className="mt-3 flex flex-wrap gap-2">
             {brand.payments.map((payment) => (
-              <span key={payment} className="glass rounded-md px-2.5 py-1 text-xs">
+              <span key={payment} className="text-xs text-muted-foreground">
                 {payment}
               </span>
             ))}
@@ -295,7 +307,7 @@ function ProductDetail() {
             </div>
           ) : null}
 
-          <div className="mt-6 w-full max-w-xl rounded-2xl border border-border/50 bg-surface-2 p-4">
+          <div className="mt-6 w-full max-w-md rounded-2xl border border-border/50 bg-surface-2 p-4">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex min-w-37.5 flex-col items-start gap-2">
                 <span className="font-display text-3xl font-semibold leading-none">
@@ -327,7 +339,7 @@ function ProductDetail() {
                     variant="ghost"
                     size="icon"
                     className="size-8"
-                    onClick={() => setQuantity((value) => Math.min(activeProduct.stock, value + 1))}
+                    onClick={increaseQuantity}
                     aria-label="Sumar unidad"
                     disabled={activeProduct.stock <= 0}
                   >

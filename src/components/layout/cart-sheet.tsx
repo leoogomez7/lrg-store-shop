@@ -1,4 +1,5 @@
 ﻿import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import {
   cloneElement,
@@ -15,6 +16,7 @@ import { formatPrice } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import { getBrand } from "@/config/brands";
 import type { BrandConfig } from "@/config/brands";
+import { catalogQueries } from "@/services/catalog.service";
 
 export function CartSheet({
   brand,
@@ -33,7 +35,19 @@ export function CartSheet({
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   const { items, setQuantity, removeItem } = useCart();
+  const { data: catalog } = useQuery(catalogQueries.all());
   const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
+
+  const getCartVariantName = (item: (typeof items)[number]) => {
+    if (item.variantName) return item.variantName;
+    const [productId, variantId] = item.id.split("::");
+    if (!variantId) return "";
+    return (
+      catalog
+        ?.find((product) => product.id === productId && product.brand === item.brand)
+        ?.variants?.find((variant) => variant.id === variantId)?.name ?? ""
+    );
+  };
 
   const handleOpenChange = (next: boolean) => {
     if (controlledOpen === undefined) {
@@ -148,6 +162,9 @@ export function CartSheet({
                   ) : (
                     <div className="space-y-4">
                       {items.map((item) => (
+                        (() => {
+                          const variantName = getCartVariantName(item);
+                          return (
                         <div
                           key={item.id}
                           className="group flex gap-4 rounded-3xl border border-border bg-surface-2 p-4 shadow-sm transition hover:border-primary/60"
@@ -173,9 +190,9 @@ export function CartSheet({
                                   <p className="truncate text-base font-semibold text-foreground">
                                     {item.name}
                                   </p>
-                                  {item.variantName ? (
+                                  {variantName ? (
                                     <span className="truncate text-sm text-muted-foreground">
-                                      {item.variantName}
+                                      {variantName}
                                     </span>
                                   ) : null}
                                 </div>
@@ -238,6 +255,8 @@ export function CartSheet({
                             )}
                           </div>
                         </div>
+                          );
+                        })()
                       ))}
                     </div>
                   )}

@@ -1,7 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, CheckCircle2, CreditCard, Lock, Tag, Truck } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  CheckCircle2,
+  CreditCard,
+  Lock,
+  Package,
+  ShoppingBag,
+  Tag,
+  Truck,
+} from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { useCart } from "@/store/cart";
 import { BrandHeader } from "@/components/layout/brand-header";
@@ -322,10 +332,14 @@ function CheckoutPage() {
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button asChild>
-                <Link to="/">Seguir comprando</Link>
+                <Link to="/">
+                  <ShoppingBag className="size-4" /> Seguir comprando
+                </Link>
               </Button>
               <Button asChild variant="secondary">
-                <Link to="/cuenta/panel">Ver mis pedidos</Link>
+                <Link to="/cuenta/panel">
+                  <Package className="size-4" /> Ver mis pedidos
+                </Link>
               </Button>
             </div>
           </div>
