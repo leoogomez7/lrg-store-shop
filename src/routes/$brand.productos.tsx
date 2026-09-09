@@ -352,7 +352,7 @@ function CatalogPage() {
                     setPage(0);
                   }}
                   disabled={!isValid || !isChanged}
-                  className="inline-flex h-8 items-center justify-center gap-2 rounded-lg bg-[#3b82f6] px-4 text-sm font-medium text-white shadow-none transition-colors hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-input bg-[#111827] px-4 text-sm font-medium text-white shadow-none transition-colors hover:bg-[#1f2937] disabled:opacity-60"
                 >
                   <Check className="h-4 w-4" />
                   Confirmar
