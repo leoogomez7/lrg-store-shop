@@ -1008,16 +1008,14 @@ function AccountPageContent({
 
           <div className="mt-4 flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
                 onClick={() => setOrdersPage(0)}
                 disabled={!hasPreviousPage || !canEditOrdersPageSize}
-                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937]"
+                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:opacity-60"
               >
                 Principio
-              </Button>
+              </button>
               <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
                 {Array.from({ length: totalOrdersPages }, (_, index) => (
                   <button
@@ -1031,16 +1029,14 @@ function AccountPageContent({
                   </button>
                 ))}
               </div>
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
                 onClick={() => setOrdersPage(totalOrdersPages - 1)}
                 disabled={!hasNextPage || !canEditOrdersPageSize}
-                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937]"
+                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:opacity-60"
               >
                 Último
-              </Button>
+              </button>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-3">
