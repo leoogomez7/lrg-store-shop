@@ -261,6 +261,47 @@ function AdminSuppliers() {
     queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
   };
 
+  const editSelectedSupplier = () => {
+    const selectedRow = rows.find((row) => selectedSupplierKeys.includes(row.key));
+    if (selectedRow) openSupplierEditor(selectedRow);
+  };
+
+  const deleteSelectedSuppliers = () => {
+    const selectedKeys = new Set(selectedSupplierKeys);
+    const nextStandaloneSuppliers = standaloneSuppliers.filter(
+      (supplier) => !selectedKeys.has(`${supplier.name}|${supplier.phone}|${supplier.social}`),
+    );
+    const nextProducts = (products as Product[]).map((product) => ({
+      ...product,
+      supplier:
+        product.supplier &&
+        selectedKeys.has(
+          `${product.supplier.name}|${product.supplier.phone}|${product.supplier.social}`,
+        )
+          ? undefined
+          : product.supplier,
+      variants: product.variants?.map((variant) => ({
+        ...variant,
+        supplier:
+          variant.supplier &&
+          selectedKeys.has(`${variant.supplier.name}|${variant.supplier.phone}|${variant.supplier.social}`)
+            ? undefined
+            : variant.supplier,
+      })),
+    }));
+
+    setStandaloneSuppliers(nextStandaloneSuppliers);
+    setSelectedSupplierKeys([]);
+    void saveAdminSetting({
+      data: {
+        settingKey: SUPPLIERS_STORAGE_KEY,
+        settingValue: JSON.stringify(nextStandaloneSuppliers),
+      },
+    });
+    saveProducts(nextProducts);
+    queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
+  };
+
   const filteredRows = rows.filter((row) =>
     [row.name, row.phone, row.social, ...row.products].some((value) =>
       value.toLowerCase().includes(query.toLowerCase()),
@@ -440,6 +481,20 @@ function AdminSuppliers() {
             <span className="text-xs text-muted-foreground">
               {selectedSupplierKeys.length} seleccionados
             </span>
+            <Button size="sm" variant="outline" onClick={editSelectedSupplier}>
+              <Pencil className="size-4" /> Editar
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => {
+                if (window.confirm("¿Eliminar proveedores seleccionados?")) {
+                  deleteSelectedSuppliers();
+                }
+              }}
+            >
+              <Trash2 className="size-4" /> Eliminar
+            </Button>
           </div>
         ) : null}
       </div>
@@ -471,6 +526,14 @@ function AdminSuppliers() {
                 <React.Fragment key={row.key}>
                   <TableRow>
                     <TableCell>
+                      <Checkbox
+                        className="mr-2"
+                        checked={selectedSupplierKeys.includes(row.key)}
+                        onCheckedChange={(checked) =>
+                          toggleSupplierSelection(row.key, checked === true)
+                        }
+                        aria-label={`Seleccionar proveedor ${row.name}`}
+                      />
                       {isQuickEditing ? (
                         <Input
                           value={quickSupplier.name}

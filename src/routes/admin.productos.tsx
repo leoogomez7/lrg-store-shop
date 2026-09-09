@@ -1771,8 +1771,8 @@ function AdminProducts() {
               <TableHead className="w-20 text-center">Descuento</TableHead>
               <TableHead className="w-24 text-center">Precio tienda</TableHead>
               <TableHead className="w-24 text-center">Ganancias</TableHead>
-              <TableHead className="w-56 text-center">Aplicar</TableHead>
-              <TableHead className="w-56 text-center">Acciones</TableHead>
+              <TableHead className="w-64 min-w-64 text-center">Aplicar</TableHead>
+              <TableHead className="w-72 min-w-72 text-center">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -2058,7 +2058,7 @@ function AdminProducts() {
                     </>
                   ) : (
                     <>
-                      <TableCell>
+                      <TableCell className="min-w-64">
                         <div className="flex min-w-0 flex-wrap items-center gap-2 text-left">
                           <Checkbox
                             className="shrink-0"
@@ -2133,7 +2133,7 @@ function AdminProducts() {
                             "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white";
                           return (
                             <div className="flex flex-col items-center justify-center gap-1">
-                              <div className="flex flex-wrap items-center justify-center gap-1">
+                              <div className="flex flex-nowrap items-center justify-center gap-1">
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -2184,7 +2184,7 @@ function AdminProducts() {
                                   <CreditCard className="size-3" /> Cuotas s/int
                                 </Button>
                               </div>
-                              <div className="flex flex-wrap items-center justify-center gap-1">
+                              <div className="flex flex-nowrap items-center justify-center gap-1">
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -2218,9 +2218,9 @@ function AdminProducts() {
                           );
                         })()}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-72">
                         <div className="flex flex-col items-center justify-center gap-1.5">
-                          <div className="flex flex-wrap items-center justify-center gap-1.5">
+                          <div className="flex flex-nowrap items-center justify-center gap-1.5">
                             <label className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
                               <span>{product.hidden ? "No disponible" : "Disponible"}</span>
                               <Switch
@@ -2245,7 +2245,7 @@ function AdminProducts() {
                               <span>Duplicar</span>
                             </Button>
                           </div>
-                          <div className="flex flex-wrap items-center justify-center gap-1.5">
+                          <div className="flex flex-nowrap items-center justify-center gap-1.5">
                             <Button
                             variant="ghost"
                             size="sm"
