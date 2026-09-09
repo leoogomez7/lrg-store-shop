@@ -1756,10 +1756,10 @@ function AdminProducts() {
         ) : null}
       </div>
 
-      <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
+      <div className="glass-panel mt-4 rounded-2xl">
         <Table
-          containerClassName="overflow-hidden"
-          className="w-full text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
+          containerClassName="overflow-x-auto overflow-y-visible"
+          className="w-full min-w-max text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
