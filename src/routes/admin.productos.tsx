@@ -728,6 +728,51 @@ function AdminProducts() {
     });
   };
 
+  const toggleCardCommission = (product: Product, variant: ProductVariant | undefined) => {
+    const nextCardCommission = !(variant?.cardCommission ?? product.cardCommission ?? false);
+    const productIndex = (productsData as Product[]).findIndex((item) => item.id === product.id);
+    if (productIndex === -1) return;
+
+    const currentProduct = (productsData as Product[])[productIndex];
+    if (variant) {
+      currentProduct.variants = currentProduct.variants?.map((itemVariant) =>
+        itemVariant.id === variant.id
+          ? { ...itemVariant, cardCommission: nextCardCommission }
+          : itemVariant,
+      );
+    } else {
+      currentProduct.cardCommission = nextCardCommission;
+    }
+
+    saveProducts(productsData as Product[]);
+    setEditableProducts((current) =>
+      current.map((item) =>
+        item.id !== product.id
+          ? item
+          : variant
+            ? {
+                ...item,
+                variants: item.variants?.map((itemVariant) =>
+                  itemVariant.id === variant.id
+                    ? { ...itemVariant, cardCommission: nextCardCommission }
+                    : itemVariant,
+                ),
+              }
+            : { ...item, cardCommission: nextCardCommission },
+      ),
+    );
+    setAppliedProductActions((current) => ({
+      ...current,
+      [getQuickEditKey(product, variant)]: {
+        ...(current[getQuickEditKey(product, variant)] ?? {
+          coupon: false,
+          interestFree: false,
+        }),
+        cardCommission: nextCardCommission,
+      },
+    }));
+  };
+
   const handleResetDiscount = (productId: string) => {
     setDiscounts((current) => ({ ...current, [productId]: 0 }));
     setPendingDiscounts((current) => ({ ...current, [productId]: "0" }));
@@ -738,6 +783,15 @@ function AdminProducts() {
         .forEach((key) => delete next[key]);
       return next;
     });
+    const product = (productsData as Product[]).find((item) => item.id === productId);
+    if (product) {
+      product.cardCommission = false;
+      product.variants = product.variants?.map((variant) => ({
+        ...variant,
+        cardCommission: false,
+      }));
+      saveProducts(productsData as Product[]);
+    }
     const resetProduct = products.find((product) => product.id === productId);
     toast.success("Aplicaciones restablecidas", {
       description: `Se restablecieron las opciones seleccionadas de "${resetProduct?.name ?? productId}".`,
@@ -2001,7 +2055,7 @@ function AdminProducts() {
                           const actions = appliedProductActions[actionKey] ?? {
                             coupon: false,
                             interestFree: false,
-                            cardCommission: false,
+                            cardCommission: variant?.cardCommission ?? product.cardCommission ?? false,
                           };
                           const activeActionClass =
                             "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white";
@@ -2061,20 +2115,13 @@ function AdminProducts() {
                                 size="sm"
                                 className={`h-7 gap-1 px-2 text-[11px] ${actions.cardCommission ? activeActionClass : ""}`}
                                 onClick={() => {
-                                  const nextCardCommissionState = !actions.cardCommission;
-                                  setAppliedProductActions((current) => ({
-                                    ...current,
-                                    [actionKey]: {
-                                      ...actions,
-                                      cardCommission: nextCardCommissionState,
-                                    },
-                                  }));
+                                  toggleCardCommission(product, variant);
                                   toast.success(
-                                    nextCardCommissionState
+                                    !actions.cardCommission
                                       ? "Comisión de tarjeta aplicada"
                                       : "Comisión de tarjeta desactivada",
                                     {
-                                      description: nextCardCommissionState
+                                      description: !actions.cardCommission
                                         ? "Se sumará un 10% al pagar con débito o crédito."
                                         : "La comisión ya no se aplicará.",
                                     },

@@ -100,6 +100,15 @@ function CheckoutPage() {
   const validationRef = useRef<HTMLDivElement | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<Array<{ id?: string; label: string; value: string; city?: string }>>([]);
   const [selectedSavedAddress, setSelectedSavedAddress] = useState("");
+  const discountedSubtotal = couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal;
+  const eligibleCardSubtotal = items.reduce(
+    (total, item) => total + (item.cardCommission ? item.price * item.quantity : 0),
+    0,
+  );
+  const cardFee = isCardPayment
+    ? eligibleCardSubtotal * (couponApplied ? 1 - couponPercentage / 100 : 1) * 0.1
+    : 0;
+  const total = discountedSubtotal + cardFee;
 
   useEffect(() => {
     if (validationMessage && validationRef.current) {
@@ -165,9 +174,6 @@ function CheckoutPage() {
     setValidationMessage("");
     if (items.length === 0) return;
     const id = `LRG-${Math.floor(10000 + Math.random() * 89999)}`;
-    const discountedSubtotal = couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal;
-    const cardFee = isCardPayment ? discountedSubtotal * 0.1 : 0;
-    const total = discountedSubtotal + cardFee;
     const expenses = Math.round(total * 0.65);
     const order = {
       id,
@@ -523,14 +529,10 @@ function CheckoutPage() {
                   <span>-{formatPrice((subtotal * couponPercentage) / 100)}</span>
                 </div>
               )}
-              {isCardPayment && (
+              {isCardPayment && cardFee > 0 && (
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Comisión tarjeta (10%)</span>
-                  <span>
-                    {formatPrice(
-                      (couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal) * 0.1,
-                    )}
-                  </span>
+                  <span>{formatPrice(cardFee)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
@@ -540,12 +542,7 @@ function CheckoutPage() {
               <div className="flex items-center justify-between font-semibold text-foreground">
                 <span>Total</span>
                 <span>
-                  {formatPrice(
-                    (couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal) +
-                      (isCardPayment
-                        ? (couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal) * 0.1
-                        : 0),
-                  )}
+                  {formatPrice(total)}
                 </span>
               </div>
               <Button

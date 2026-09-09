@@ -14,6 +14,7 @@ export type ProductVariant = {
   priceCurrency?: CurrencyCode;
   comision?: number;
   comisionCurrency?: CurrencyCode;
+  cardCommission?: boolean;
   gastos?: number;
   gastosCurrency?: CurrencyCode;
   description: string;
@@ -47,6 +48,7 @@ export type Product = {
   priceCurrency?: CurrencyCode;
   comision?: number;
   comisionCurrency?: CurrencyCode;
+  cardCommission?: boolean;
   variants?: ProductVariant[];
   supplier?: ProductSupplier;
   gastos?: number;

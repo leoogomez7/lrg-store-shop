@@ -97,6 +97,9 @@ function ProductDetail() {
         ...(selectedVariant.comisionCurrency
           ? { comisionCurrency: selectedVariant.comisionCurrency }
           : {}),
+        ...(selectedVariant.cardCommission !== undefined
+          ? { cardCommission: selectedVariant.cardCommission }
+          : {}),
         ...(selectedVariant.gastos !== undefined ? { gastos: selectedVariant.gastos } : {}),
         ...(selectedVariant.gastosCurrency ? { gastosCurrency: selectedVariant.gastosCurrency } : {}),
       }
