@@ -50,7 +50,7 @@ export function ProductCard({
 
   return (
     <article
-      className="glass-panel hover-lift group flex cursor-pointer flex-col overflow-hidden rounded-2xl"
+      className="glass-panel group flex flex-col overflow-hidden rounded-2xl"
       role="link"
       tabIndex={0}
       aria-label={`Ver descripción de ${product.name}`}
@@ -80,13 +80,13 @@ export function ProductCard({
         <Link
           to="/$brand/producto/$slug"
           params={{ brand: product.brand, slug: product.slug }}
-          className="relative block"
+          className="relative block cursor-pointer"
         >
           <ProductVisual
             seed={product.id}
             label={product.name}
             image={product.images?.[0]}
-            className="aspect-3/2 transition-transform duration-500 group-hover:scale-[1.03]"
+            className="aspect-3/2"
           />
           <div className="absolute left-3 top-3 flex flex-col gap-2">
             {discountLabel && (
@@ -131,7 +131,7 @@ export function ProductCard({
               <Link
                 to="/$brand/producto/$slug"
                 params={{ brand: product.brand, slug: product.slug }}
-                className="transition-colors hover:text-primary"
+                className="cursor-pointer transition-colors hover:text-primary"
               >
                 {product.name}
               </Link>
