@@ -21,6 +21,7 @@ export type ProductVariant = {
   stock: number;
   stockUnlimited?: boolean;
   features?: string[];
+  includes?: string[];
   deliveryUnit?: "inmediata" | "horas" | "dias";
   deliveryAmount?: number;
   discount?: number;
@@ -64,6 +65,7 @@ export type Product = {
   short: string;
   description: string;
   features: string[];
+  includes?: string[];
   images?: string[];
   deliveryUnit?: "inmediata" | "horas" | "dias";
   deliveryAmount?: number;

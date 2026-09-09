@@ -141,6 +141,12 @@ function CheckoutPage() {
   const combinedShippingMethod = Object.entries(shippingMethodsByBrand)
     .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
     .join(" | ");
+  const shippingSummary = brandSlugs.length <= 1
+    ? shippingMethodsByBrand[brandSlugs[0] ?? ""]
+    : brandSlugs.map((slug) => ({
+        name: getBrand(slug)?.name ?? slug,
+        method: shippingMethodsByBrand[slug],
+      }));
 
   useEffect(() => {
     if (validationMessage && validationRef.current) {
@@ -610,10 +616,23 @@ function CheckoutPage() {
                   <span>{formatPrice(cardFee)}</span>
                 </div>
               )}
-              {combinedShippingMethod && (
+              {typeof shippingSummary === "string" && shippingSummary && (
                 <div className="flex items-center justify-between gap-4">
                   <span>Envío</span>
-                  <span className="text-right">{combinedShippingMethod}</span>
+                  <span className="text-right">{shippingSummary}</span>
+                </div>
+              )}
+              {Array.isArray(shippingSummary) && shippingSummary.some((entry) => entry.method) && (
+                <div className="space-y-2">
+                  <span>Envío</span>
+                  {shippingSummary.map((entry) =>
+                    entry.method ? (
+                      <div key={entry.name} className="rounded-lg bg-surface-2/60 px-3 py-2">
+                        <p className="font-semibold">{entry.name}</p>
+                        <p className="text-right text-muted-foreground">{entry.method}</p>
+                      </div>
+                    ) : null,
+                  )}
                 </div>
               )}
               <div className="flex items-center justify-between font-semibold text-foreground">

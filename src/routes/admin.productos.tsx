@@ -91,6 +91,7 @@ type ProductFormState = {
   stockUnlimited: boolean;
   description: string;
   features: string[];
+  includes: string[];
   images: string[];
   gastos: number;
   gastosCurrency: CurrencyCode;
@@ -253,6 +254,7 @@ function AdminProducts() {
     stockUnlimited: false,
     description: "",
     features: [],
+    includes: [],
     images: [],
     gastos: 0,
     gastosCurrency: "ARS",
@@ -541,6 +543,7 @@ function AdminProducts() {
       stockUnlimited: product.stockUnlimited ?? false,
       description: product.description,
       features: product.features ?? [],
+      includes: product.includes ?? [],
       images: product.images ?? [],
       gastos: product.gastos ?? 0,
       gastosCurrency: product.gastosCurrency ?? "ARS",
@@ -995,6 +998,7 @@ function AdminProducts() {
               stockUnlimited: productForm.stockUnlimited,
               description: productForm.description,
               features: productForm.features,
+              includes: productForm.includes,
               images: productForm.images,
               variants: productForm.variants,
               supplier: productForm.supplier,
@@ -1030,6 +1034,7 @@ function AdminProducts() {
           short: productForm.description,
           description: productForm.description,
           features: productForm.features,
+          includes: productForm.includes,
           images: productForm.images,
           variants: productForm.variants,
           supplier: productForm.supplier,
@@ -1062,6 +1067,7 @@ function AdminProducts() {
         existing.stockUnlimited = productForm.stockUnlimited;
         existing.description = productForm.description;
         existing.features = productForm.features;
+        existing.includes = productForm.includes;
         existing.images = productForm.images;
         existing.variants = productForm.variants;
         existing.supplier = productForm.supplier;
@@ -2677,8 +2683,11 @@ function ProductEditDialog({
   supplierProducts: Product[];
 }) {
   const [newFeature, setNewFeature] = useState("");
+  const [newInclude, setNewInclude] = useState("");
   const [editingFeatureIndex, setEditingFeatureIndex] = useState<number | null>(null);
+  const [editingIncludeIndex, setEditingIncludeIndex] = useState<number | null>(null);
   const [inlineFeatureText, setInlineFeatureText] = useState("");
+  const [inlineIncludeText, setInlineIncludeText] = useState("");
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [confirmExitOpen, setConfirmExitOpen] = useState(false);
   const initialFormRef = useRef<string | null>(null);
@@ -2824,6 +2833,75 @@ function ProductEditDialog({
         : { features: [...activeFeatures, feature] }),
     });
     setNewFeature("");
+  };
+
+  const handleAddInclude = () => {
+    if (!productForm) return;
+    const include = newInclude.trim();
+    if (!include) return;
+
+    setProductForm({
+      ...productForm,
+      ...(activeVariant
+        ? {
+            variants: productForm.variants.map((variant) =>
+              variant.id === activeVariant.id
+                ? { ...variant, includes: [...activeIncludes, include] }
+                : variant,
+            ),
+          }
+        : { includes: [...activeIncludes, include] }),
+    });
+    setNewInclude("");
+  };
+
+  const handleDeleteInclude = (index: number) => {
+    if (!productForm) return;
+    setProductForm({
+      ...productForm,
+      ...(activeVariant
+        ? {
+            variants: productForm.variants.map((variant) =>
+              variant.id === activeVariant.id
+                ? { ...variant, includes: activeIncludes.filter((_, itemIndex) => itemIndex !== index) }
+                : variant,
+            ),
+          }
+        : { includes: activeIncludes.filter((_, itemIndex) => itemIndex !== index) }),
+    });
+  };
+
+  const handleSaveInclude = () => {
+    if (!productForm || editingIncludeIndex === null) return;
+    const include = inlineIncludeText.trim();
+    if (!include) return;
+    const nextIncludes = activeIncludes.map((item, index) =>
+      index === editingIncludeIndex ? include : item,
+    );
+    setProductForm({
+      ...productForm,
+      ...(activeVariant
+        ? {
+            variants: productForm.variants.map((variant) =>
+              variant.id === activeVariant.id ? { ...variant, includes: nextIncludes } : variant,
+            ),
+          }
+        : { includes: nextIncludes }),
+    });
+    setEditingIncludeIndex(null);
+    setInlineIncludeText("");
+  };
+
+  const applyIncludesToAllVariants = () => {
+    if (!productForm || !activeVariant) return;
+    setProductForm({
+      ...productForm,
+      variants: productForm.variants.map((variant) => ({
+        ...variant,
+        includes: [...activeIncludes],
+      })),
+    });
+    toast.success("Incluye aplicado a todas las variantes");
   };
 
   const handleStartInlineEdit = (index: number) => {
@@ -2984,6 +3062,7 @@ function ProductEditDialog({
       description: productForm.description,
       stock: productForm.stock,
       features: productForm.features,
+      includes: productForm.includes,
       deliveryUnit: productForm.deliveryUnit,
       deliveryAmount: productForm.deliveryAmount,
       discount: productForm.discount,
@@ -3039,6 +3118,7 @@ function ProductEditDialog({
   const activeSupplier = activeVariant?.supplier ??
     productForm?.supplier ?? { name: "", phone: "", social: "", purchaseDate: "" };
   const activeFeatures = activeVariant?.features ?? productForm?.features ?? [];
+  const activeIncludes = activeVariant?.includes ?? productForm?.includes ?? [];
   const updateActiveVariant = (updates: Partial<ProductVariant>) => {
     if (!productForm) return;
     if (!activeVariant) {
@@ -4061,6 +4141,7 @@ function ProductEditDialog({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <Input
                   id="new-feature"
+                  className="flex-1"
                   value={newFeature}
                   onChange={(event) => setNewFeature(event.target.value)}
                   onKeyDown={(event) => {
@@ -4071,9 +4152,20 @@ function ProductEditDialog({
                   }}
                   placeholder="Escribir nueva característica"
                 />
-                <Button type="button" onClick={handleAddFeature} className="whitespace-nowrap">
-                  <Plus className="h-4 w-4" /> Agregar
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" onClick={handleAddFeature} className="whitespace-nowrap">
+                    <Plus className="h-4 w-4" /> Agregar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    onClick={applyFeaturesToAllVariants}
+                    disabled={!canApplyFeatures}
+                    className="whitespace-nowrap"
+                  >
+                    <Check className="size-3.5" /> Aplicar a todos
+                  </Button>
+                </div>
               </div>
 
               {activeFeatures.length > 0 && (
@@ -4162,17 +4254,108 @@ function ProductEditDialog({
                   ))}
                 </div>
               )}
-              <Button
-                type="button"
-                size="sm"
-                variant="default"
-                onClick={applyFeaturesToAllVariants}
-                disabled={!canApplyFeatures}
-                className="text-sm"
-              >
-                <Check className="mr-2 size-3.5" />
-                Aplicar a todos
-              </Button>
+              <div className="mt-5 border-t border-border/50 pt-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                    Incluye
+                  </span>
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                  <Input
+                    id="new-include"
+                    value={newInclude}
+                    onChange={(event) => setNewInclude(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        handleAddInclude();
+                      }
+                    }}
+                    placeholder="Escribir qué incluye"
+                  />
+                  <Button type="button" onClick={handleAddInclude} className="whitespace-nowrap">
+                    <Plus className="h-4 w-4" /> Agregar
+                  </Button>
+                </div>
+                {activeIncludes.length > 0 && (
+                  <div className="mt-2 grid gap-2">
+                    {activeIncludes.map((include, index) => (
+                      <div
+                        key={`${include}-${index}`}
+                        className="flex flex-col gap-2 rounded-lg border border-input px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        {editingIncludeIndex === index ? (
+                          <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <Input
+                              value={inlineIncludeText}
+                              onChange={(event) => setInlineIncludeText(event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  handleSaveInclude();
+                                }
+                              }}
+                              className="flex-1"
+                            />
+                            <div className="flex items-center gap-2">
+                              <Button type="button" size="sm" onClick={handleSaveInclude}>
+                                <Check className="h-4 w-4" /> Guardar
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditingIncludeIndex(null)}
+                              >
+                                <X className="h-4 w-4" /> Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-1 items-center justify-between gap-2">
+                            <span className="truncate">{include}</span>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-2 px-3 text-sm"
+                                onClick={() => {
+                                  setEditingIncludeIndex(index);
+                                  setInlineIncludeText(include);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" /> Editar
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
+                                onClick={() => handleDeleteInclude(index)}
+                                aria-label={`Eliminar incluye ${index + 1}`}
+                              >
+                                <Trash2 className="h-4 w-4" /> Eliminar
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="default"
+                  onClick={applyIncludesToAllVariants}
+                  disabled={!activeVariant || productForm.variants.length < 2}
+                  className="mt-2 text-sm"
+                >
+                  <Check className="mr-2 size-3.5" />
+                  Aplicar a todos
+                </Button>
+              </div>
               <div className="space-y-2">
                 <Label>Descripción</Label>
                 <Textarea

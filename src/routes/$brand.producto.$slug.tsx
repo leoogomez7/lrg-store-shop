@@ -92,6 +92,7 @@ function ProductDetail() {
         variantName: selectedVariant.name,
         image: product.images?.[0],
         features: selectedVariant.features ?? product.features,
+        includes: selectedVariant.includes ?? product.includes ?? [],
         ...(selectedVariant.priceCurrency ? { priceCurrency: selectedVariant.priceCurrency } : {}),
         ...(selectedVariant.comision !== undefined ? { comision: selectedVariant.comision } : {}),
         ...(selectedVariant.comisionCurrency
@@ -262,6 +263,13 @@ function ProductDetail() {
               </span>
             </div>
           )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {brand.payments.map((payment) => (
+              <span key={payment} className="glass rounded-md px-2.5 py-1 text-xs">
+                {payment}
+              </span>
+            ))}
+          </div>
 
           {product.variants && product.variants.length > 1 ? (
             <div className="mt-5 max-w-xl">
@@ -287,7 +295,7 @@ function ProductDetail() {
             </div>
           ) : null}
 
-          <div className="mt-6 rounded-2xl border border-border/50 bg-surface-2 p-5">
+          <div className="mt-6 w-full max-w-xl rounded-2xl border border-border/50 bg-surface-2 p-4">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex min-w-37.5 flex-col items-start gap-2">
                 <span className="font-display text-3xl font-semibold leading-none">
@@ -355,12 +363,11 @@ function ProductDetail() {
             </div>
           </div>
 
-          <p className="mt-6 leading-relaxed text-muted-foreground">{activeProduct.description}</p>
-
           <Tabs defaultValue="features" className="mt-8">
             <TabsList>
               <TabsTrigger value="features">Características</TabsTrigger>
-              <TabsTrigger value="payments">Pagos</TabsTrigger>
+              <TabsTrigger value="description">Descripción</TabsTrigger>
+              <TabsTrigger value="includes">Incluye</TabsTrigger>
             </TabsList>
             <TabsContent value="features" className="pt-4">
               <ul className="grid gap-2.5 text-sm">
@@ -372,14 +379,18 @@ function ProductDetail() {
                 ))}
               </ul>
             </TabsContent>
-            <TabsContent value="payments" className="pt-4">
-              <div className="flex flex-wrap gap-2">
-                {brand.payments.map((payment) => (
-                  <span key={payment} className="glass rounded-md px-2.5 py-1 text-xs">
-                    {payment}
-                  </span>
+            <TabsContent value="description" className="pt-4">
+              <p className="leading-relaxed text-muted-foreground">{activeProduct.description}</p>
+            </TabsContent>
+            <TabsContent value="includes" className="pt-4">
+              <ul className="grid gap-2.5 text-sm">
+                {(activeProduct.includes ?? []).map((include) => (
+                  <li key={include} className="flex items-center gap-2">
+                    <Check className="size-4 text-primary" />
+                    {include}
+                  </li>
                 ))}
-              </div>
+              </ul>
             </TabsContent>
           </Tabs>
         </div>
