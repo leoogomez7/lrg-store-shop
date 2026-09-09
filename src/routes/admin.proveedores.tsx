@@ -1,7 +1,20 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
-import { Check, Eye, EyeOff, FileText, Plus, Save, Search, Sheet } from "lucide-react";
+import {
+  Check,
+  Edit3,
+  Eye,
+  EyeOff,
+  FileText,
+  Pencil,
+  Plus,
+  Save,
+  Search,
+  Sheet,
+  Trash2,
+  X,
+} from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,6 +39,7 @@ import {
 } from "@/components/ui/table";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 import { formatPrice } from "@/lib/format";
+import { saveProducts, type Product } from "@/data/products";
 
 export const Route = createFileRoute("/admin/proveedores")({
   loader: async ({ context }) => {
@@ -54,6 +68,7 @@ const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
 function AdminSuppliers() {
   const { data: products } = useSuspenseQuery(catalogQueries.all());
   const { data: orders } = useSuspenseQuery(orderQueries.list());
+  const queryClient = useQueryClient();
   const [query, setQuery] = React.useState("");
   const [expandedSupplierKey, setExpandedSupplierKey] = React.useState<string | null>(null);
   const [standaloneSuppliers, setStandaloneSuppliers] = React.useState<StandaloneSupplier[]>([]);
@@ -67,6 +82,9 @@ function AdminSuppliers() {
   const [pageSize, setPageSize] = React.useState(10);
   const [pageSizeInput, setPageSizeInput] = React.useState("10");
   const [selectedSupplierKeys, setSelectedSupplierKeys] = React.useState<string[]>([]);
+  const [quickEditSupplierKey, setQuickEditSupplierKey] = React.useState<string | null>(null);
+  const [quickEditSupplier, setQuickEditSupplier] = React.useState<StandaloneSupplier | null>(null);
+  const [editingSupplierKey, setEditingSupplierKey] = React.useState<string | null>(null);
 
   const toggleSupplierSelection = (key: string, checked: boolean) => {
     setSelectedSupplierKeys((current) =>
@@ -138,6 +156,11 @@ function AdminSuppliers() {
       social: newSupplier.social.trim(),
     };
     if (!supplier.name || !supplier.phone || !supplier.social) return;
+    if (editingSupplierKey) {
+      saveSupplierChanges(editingSupplierKey, supplier);
+      setNewSupplierOpen(false);
+      return;
+    }
     const nextSuppliers = [...standaloneSuppliers, supplier];
     setStandaloneSuppliers(nextSuppliers);
     void saveAdminSetting({
@@ -145,6 +168,97 @@ function AdminSuppliers() {
     });
     setNewSupplier({ name: "", phone: "", social: "" });
     setNewSupplierOpen(false);
+  };
+
+  const openSupplierEditor = (row: SupplierRow) => {
+    setEditingSupplierKey(row.key);
+    setNewSupplier({ name: row.name, phone: row.phone, social: row.social });
+    setNewSupplierOpen(true);
+  };
+
+  const startQuickEditSupplier = (row: SupplierRow) => {
+    setQuickEditSupplierKey(row.key);
+    setQuickEditSupplier({ name: row.name, phone: row.phone, social: row.social });
+  };
+
+  const cancelQuickEditSupplier = () => {
+    setQuickEditSupplierKey(null);
+    setQuickEditSupplier(null);
+  };
+
+  const saveSupplierChanges = (supplierKey: string, nextSupplier: StandaloneSupplier) => {
+    const normalized = {
+      name: nextSupplier.name.trim(),
+      phone: nextSupplier.phone.trim(),
+      social: nextSupplier.social.trim(),
+    };
+    if (!normalized.name || !normalized.phone || !normalized.social) return;
+
+    const nextStandaloneSuppliers = standaloneSuppliers.map((supplier) =>
+      `${supplier.name}|${supplier.phone}|${supplier.social}` === supplierKey
+        ? normalized
+        : supplier,
+    );
+    const nextProducts = (products as Product[]).map((product) => ({
+      ...product,
+      supplier:
+        product.supplier && `${product.supplier.name}|${product.supplier.phone}|${product.supplier.social}` === supplierKey
+          ? normalized
+          : product.supplier,
+      variants: product.variants?.map((variant) => ({
+        ...variant,
+        supplier:
+          variant.supplier &&
+          `${variant.supplier.name}|${variant.supplier.phone}|${variant.supplier.social}` === supplierKey
+            ? normalized
+            : variant.supplier,
+      })),
+    }));
+
+    setStandaloneSuppliers(nextStandaloneSuppliers);
+    void saveAdminSetting({
+      data: {
+        settingKey: SUPPLIERS_STORAGE_KEY,
+        settingValue: JSON.stringify(nextStandaloneSuppliers),
+      },
+    });
+    saveProducts(nextProducts);
+    queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
+    setQuickEditSupplierKey(null);
+    setQuickEditSupplier(null);
+    setEditingSupplierKey(null);
+  };
+
+  const deleteSupplier = (supplierKey: string) => {
+    const nextStandaloneSuppliers = standaloneSuppliers.filter(
+      (supplier) => `${supplier.name}|${supplier.phone}|${supplier.social}` !== supplierKey,
+    );
+    const nextProducts = (products as Product[]).map((product) => ({
+      ...product,
+      supplier:
+        product.supplier && `${product.supplier.name}|${product.supplier.phone}|${product.supplier.social}` === supplierKey
+          ? undefined
+          : product.supplier,
+      variants: product.variants?.map((variant) => ({
+        ...variant,
+        supplier:
+          variant.supplier &&
+          `${variant.supplier.name}|${variant.supplier.phone}|${variant.supplier.social}` === supplierKey
+            ? undefined
+            : variant.supplier,
+      })),
+    }));
+
+    setStandaloneSuppliers(nextStandaloneSuppliers);
+    setSelectedSupplierKeys((current) => current.filter((key) => key !== supplierKey));
+    void saveAdminSetting({
+      data: {
+        settingKey: SUPPLIERS_STORAGE_KEY,
+        settingValue: JSON.stringify(nextStandaloneSuppliers),
+      },
+    });
+    saveProducts(nextProducts);
+    queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
   };
 
   const filteredRows = rows.filter((row) =>
@@ -211,6 +325,7 @@ function AdminSuppliers() {
         <div className="order-3 flex shrink-0 flex-wrap items-center gap-2">
           <Button
             onClick={() => {
+              setEditingSupplierKey(null);
               setNewSupplier({ name: "", phone: "", social: "" });
               setNewSupplierOpen(true);
             }}
@@ -232,11 +347,21 @@ function AdminSuppliers() {
           </Button>
         </div>
       </div>
-      <Dialog open={newSupplierOpen} onOpenChange={setNewSupplierOpen}>
+      <Dialog
+        open={newSupplierOpen}
+        onOpenChange={(open) => {
+          setNewSupplierOpen(open);
+          if (!open) setEditingSupplierKey(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nuevo proveedor</DialogTitle>
-            <DialogDescription>Ingresá los datos del nuevo proveedor.</DialogDescription>
+            <DialogTitle>{editingSupplierKey ? "Editar proveedor" : "Nuevo proveedor"}</DialogTitle>
+            <DialogDescription>
+              {editingSupplierKey
+                ? "Actualizá el nombre, celular y red social del proveedor."
+                : "Ingresá los datos del nuevo proveedor."}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -285,7 +410,7 @@ function AdminSuppliers() {
               }
             >
               <Save className="size-4" />
-              Guardar proveedor
+              {editingSupplierKey ? "Guardar cambios" : "Guardar proveedor"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -311,9 +436,11 @@ function AdminSuppliers() {
           aria-label="Seleccionar proveedores visibles"
         />
         {selectedSupplierKeys.length > 0 ? (
-          <span className="text-xs text-muted-foreground">
-            {selectedSupplierKeys.length} seleccionados
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {selectedSupplierKeys.length} seleccionados
+            </span>
+          </div>
         ) : null}
       </div>
 
@@ -334,23 +461,115 @@ function AdminSuppliers() {
           <TableBody>
             {visibleRows.map((row) => {
               const isExpanded = expandedSupplierKey === row.key;
+              const isQuickEditing = quickEditSupplierKey === row.key;
+              const quickSupplier = quickEditSupplier ?? {
+                name: row.name,
+                phone: row.phone,
+                social: row.social,
+              };
               return (
                 <React.Fragment key={row.key}>
                   <TableRow>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.phone}</TableCell>
-                    <TableCell>{row.social}</TableCell>
+                    <TableCell>
+                      {isQuickEditing ? (
+                        <Input
+                          value={quickSupplier.name}
+                          onChange={(event) =>
+                            setQuickEditSupplier({ ...quickSupplier, name: event.target.value })
+                          }
+                        />
+                      ) : (
+                        row.name
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {isQuickEditing ? (
+                        <Input
+                          value={quickSupplier.phone}
+                          onChange={(event) =>
+                            setQuickEditSupplier({ ...quickSupplier, phone: event.target.value })
+                          }
+                        />
+                      ) : (
+                        row.phone
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {isQuickEditing ? (
+                        <Input
+                          value={quickSupplier.social}
+                          onChange={(event) =>
+                            setQuickEditSupplier({ ...quickSupplier, social: event.target.value })
+                          }
+                        />
+                      ) : (
+                        row.social
+                      )}
+                    </TableCell>
                     <TableCell>{formatPrice(row.sales)}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setExpandedSupplierKey(isExpanded ? null : row.key)}
-                        className="gap-1.5 text-xs"
-                      >
-                        {isExpanded ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        {isExpanded ? "Ocultar" : "Detalles"}
-                      </Button>
+                      <div className="flex flex-wrap items-center justify-center gap-1.5">
+                        {isQuickEditing ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => saveSupplierChanges(row.key, quickSupplier)}
+                              className="h-7 gap-1 px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                            >
+                              <Check className="size-3.5" /> Guardar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={cancelQuickEditSupplier}
+                              className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                            >
+                              <X className="size-3.5" /> Cancelar
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setExpandedSupplierKey(isExpanded ? null : row.key)}
+                              className="h-7 gap-1.5 px-2 text-xs"
+                            >
+                              {isExpanded ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                              {isExpanded ? "Ocultar" : "Detalles"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startQuickEditSupplier(row)}
+                              className="h-7 gap-1 px-2 text-xs"
+                            >
+                              <Edit3 className="size-3.5" /> Editar rápido
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openSupplierEditor(row)}
+                              className="h-7 gap-1 px-2 text-xs"
+                            >
+                              <Pencil className="size-3.5" /> Editar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (window.confirm(`¿Eliminar el proveedor "${row.name}"?`)) {
+                                  deleteSupplier(row.key);
+                                }
+                              }}
+                              className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="size-3.5" /> Eliminar
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                   {isExpanded ? (
