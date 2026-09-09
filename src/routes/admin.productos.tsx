@@ -188,10 +188,13 @@ function AdminProducts() {
       {
         brand: BrandSlug;
         name: string;
+        variantName: string;
         category: string;
         price: number;
         comision: number;
+        comisionCurrency: CurrencyCode;
         gastos: number;
+        gastosCurrency: CurrencyCode;
         stock: number;
         discount: number;
       }
@@ -809,11 +812,14 @@ function AdminProducts() {
       ...current,
       [key]: {
         brand: product.brand,
-        name: source.name,
+        name: product.name,
+        variantName: variant?.name ?? "",
         category: product.category,
         price: source.price,
         comision: source.comision ?? 0,
+        comisionCurrency: source.comisionCurrency ?? product.comisionCurrency ?? "ARS",
         gastos: source.gastos ?? 0,
+        gastosCurrency: source.gastosCurrency ?? product.gastosCurrency ?? "ARS",
         stock: source.stock,
         discount: variant?.discount ?? discounts[product.id] ?? 0,
       },
@@ -849,10 +855,13 @@ function AdminProducts() {
 
     const nextBrand = draft.brand;
     const nextName = draft.name.trim() || product.name;
+    const nextVariantName = draft.variantName.trim() || variant?.name || "";
     const nextCategory = draft.category.trim() || product.category;
     const nextPrice = Number(draft.price) || product.price;
     const nextComision = Math.max(0, Number(draft.comision) || 0);
+    const nextComisionCurrency = draft.comisionCurrency;
     const nextGastos = Math.max(0, Number(draft.gastos) || 0);
+    const nextGastosCurrency = draft.gastosCurrency;
     const nextStock = Number(draft.stock) || product.stock;
     const nextDiscount = Math.max(0, Math.min(100, Number(draft.discount) || 0));
 
@@ -862,14 +871,17 @@ function AdminProducts() {
         if (variant) {
           return {
             ...item,
+            name: nextName,
             variants: item.variants?.map((itemVariant) =>
               itemVariant.id === variant.id
                 ? {
                     ...itemVariant,
-                    name: nextName,
+                    name: nextVariantName,
                     price: nextPrice,
                     comision: nextComision,
+                    comisionCurrency: nextComisionCurrency,
                     gastos: nextGastos,
+                    gastosCurrency: nextGastosCurrency,
                     stock: nextStock,
                     discount: nextDiscount,
                   }
@@ -884,7 +896,9 @@ function AdminProducts() {
           category: nextCategory,
           price: nextPrice,
           comision: nextComision,
+          comisionCurrency: nextComisionCurrency,
           gastos: nextGastos,
+          gastosCurrency: nextGastosCurrency,
           stock: nextStock,
         };
       }),
@@ -894,14 +908,17 @@ function AdminProducts() {
     if (productIndex !== -1) {
       const existing = (productsData as Product[])[productIndex] as Product;
       if (variant) {
+        existing.name = nextName;
         existing.variants = existing.variants?.map((itemVariant) =>
           itemVariant.id === variant.id
             ? {
                 ...itemVariant,
-                name: nextName,
+                name: nextVariantName,
                 price: nextPrice,
                 comision: nextComision,
+                comisionCurrency: nextComisionCurrency,
                 gastos: nextGastos,
+                gastosCurrency: nextGastosCurrency,
                 stock: nextStock,
                 discount: nextDiscount,
               }
@@ -913,7 +930,9 @@ function AdminProducts() {
         existing.category = nextCategory;
         existing.price = nextPrice;
         existing.comision = nextComision;
+        existing.comisionCurrency = nextComisionCurrency;
         existing.gastos = nextGastos;
+        existing.gastosCurrency = nextGastosCurrency;
         existing.stock = nextStock;
       }
       saveProducts(productsData as Product[]);
@@ -1789,9 +1808,12 @@ function AdminProducts() {
                 category: product.category,
                 price: product.price,
                 comision: product.comision ?? 0,
+                comisionCurrency: product.comisionCurrency ?? "ARS",
                 gastos: product.gastos ?? 0,
+                gastosCurrency: product.gastosCurrency ?? "ARS",
                 stock: product.stock,
                 discount,
+                variantName: variant?.name ?? "",
               };
               const activeQuickBrand = quickDraft.brand ?? product.brand;
 
@@ -1801,8 +1823,9 @@ function AdminProducts() {
                 >
                   {isQuickEditing ? (
                     <>
-                      <TableCell className="align-middle">
-                        <div className="flex min-w-0 items-center gap-2 text-left">
+                      <TableCell className="min-w-64 align-middle">
+                        <div className="flex min-w-60 flex-col gap-2 text-left">
+                          <div className="flex items-center gap-2">
                           <Checkbox
                             checked={selectedProductIds.includes(
                               getProductSelectionKey(product, variant),
@@ -1823,11 +1846,32 @@ function AdminProducts() {
                                 [quickEditKey]: { ...quickDraft, name: event.target.value },
                               }))
                             }
-                            className="w-full min-w-0"
+                            className="w-full min-w-52"
                           />
+                          </div>
+                          {variant ? (
+                            <div className="flex items-center gap-2">
+                              <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
+                                Variante
+                              </span>
+                              <Input
+                                value={quickDraft.variantName}
+                                onChange={(event) =>
+                                  setQuickEditForm((current) => ({
+                                    ...current,
+                                    [quickEditKey]: {
+                                      ...quickDraft,
+                                      variantName: event.target.value,
+                                    },
+                                  }))
+                                }
+                                className="w-full min-w-44"
+                              />
+                            </div>
+                          ) : null}
                         </div>
                       </TableCell>
-                      <TableCell className="align-middle">
+                      <TableCell className="min-w-48 align-middle">
                         <Select
                           value={activeQuickBrand}
                           onValueChange={(value) => {
@@ -1844,7 +1888,7 @@ function AdminProducts() {
                             }));
                           }}
                         >
-                          <SelectTrigger className="w-full min-w-0">
+                          <SelectTrigger className="w-full min-w-44">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1856,7 +1900,7 @@ function AdminProducts() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="align-middle">
+                      <TableCell className="min-w-32 align-middle">
                         <Input
                           type="number"
                           min={0}
@@ -1867,41 +1911,88 @@ function AdminProducts() {
                               [quickEditKey]: { ...quickDraft, stock: Number(event.target.value) },
                             }))
                           }
-                          className="w-full min-w-0 text-center"
+                          className="w-full min-w-28 text-center"
                         />
                       </TableCell>
-                      <TableCell className="align-middle">
-                        <Input
-                          type="number"
-                          min={0}
-                          value={quickDraft.comision}
-                          onChange={(event) =>
-                            setQuickEditForm((current) => ({
-                              ...current,
-                              [quickEditKey]: {
-                                ...quickDraft,
-                                comision: Number(event.target.value),
-                              },
-                            }))
-                          }
-                          className="w-full min-w-0 text-center"
-                        />
+                      <TableCell className="min-w-36 align-middle">
+                        <div className="flex flex-col gap-2">
+                          <Select
+                            value={quickDraft.comisionCurrency}
+                            onValueChange={(value) =>
+                              setQuickEditForm((current) => ({
+                                ...current,
+                                [quickEditKey]: {
+                                  ...quickDraft,
+                                  comisionCurrency: value as CurrencyCode,
+                                },
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-full min-w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ARS">$ (ARS)</SelectItem>
+                              <SelectItem value="USD">USD</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={quickDraft.comision}
+                            onChange={(event) =>
+                              setQuickEditForm((current) => ({
+                                ...current,
+                                [quickEditKey]: {
+                                  ...quickDraft,
+                                  comision: Number(event.target.value),
+                                },
+                              }))
+                            }
+                            className="w-full min-w-32 text-center"
+                          />
+                        </div>
                       </TableCell>
-                      <TableCell className="align-middle">
-                        <Input
-                          type="number"
-                          min={0}
-                          value={quickDraft.gastos}
-                          onChange={(event) =>
-                            setQuickEditForm((current) => ({
-                              ...current,
-                              [quickEditKey]: { ...quickDraft, gastos: Number(event.target.value) },
-                            }))
-                          }
-                          className="w-full min-w-0 text-center"
-                        />
+                      <TableCell className="min-w-36 align-middle">
+                        <div className="flex flex-col gap-2">
+                          <Select
+                            value={quickDraft.gastosCurrency}
+                            onValueChange={(value) =>
+                              setQuickEditForm((current) => ({
+                                ...current,
+                                [quickEditKey]: {
+                                  ...quickDraft,
+                                  gastosCurrency: value as CurrencyCode,
+                                },
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-full min-w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ARS">$ (ARS)</SelectItem>
+                              <SelectItem value="USD">USD</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={quickDraft.gastos}
+                            onChange={(event) =>
+                              setQuickEditForm((current) => ({
+                                ...current,
+                                [quickEditKey]: {
+                                  ...quickDraft,
+                                  gastos: Number(event.target.value),
+                                },
+                              }))
+                            }
+                            className="w-full min-w-32 text-center"
+                          />
+                        </div>
                       </TableCell>
-                      <TableCell className="align-middle">
+                      <TableCell className="min-w-32 align-middle">
                         <div className="flex h-9 items-center justify-center text-sm text-foreground">
                           {formatPrice(quickDraft.price)}
                         </div>
@@ -1921,7 +2012,7 @@ function AdminProducts() {
                               },
                             }))
                           }
-                          className="w-full min-w-0 text-center"
+                          className="w-full min-w-28 text-center"
                         />
                       </TableCell>
                       <TableCell className="align-middle">
@@ -1968,7 +2059,7 @@ function AdminProducts() {
                   ) : (
                     <>
                       <TableCell>
-                        <div className="flex min-w-0 items-center gap-2 text-left">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2 text-left">
                           <Checkbox
                             className="shrink-0"
                             checked={selectedProductIds.includes(
@@ -1984,8 +2075,13 @@ function AdminProducts() {
                           />
                           <span className="min-w-0 wrap-break-word font-medium">{product.name}</span>
                           {variant ? (
-                            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                              {variant.name}
+                            <span className="flex basis-full items-center gap-2 pl-6 text-[10px] uppercase tracking-wider">
+                              <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-primary">
+                                Variante
+                              </span>
+                              <span className="rounded-full border border-border px-1.5 py-0.5 text-muted-foreground">
+                                {variant.name}
+                              </span>
                             </span>
                           ) : null}
                           {product.hidden ? (
