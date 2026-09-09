@@ -2700,6 +2700,7 @@ function ProductEditDialog({
   const descriptionInitialRef = useRef("");
   const descriptionAppliedRef = useRef("");
   const featuresAppliedRef = useRef("");
+  const includesAppliedRef = useRef("");
   const [supplierOptions, setSupplierOptions] = useState<ProductSupplier[]>([]);
   const [newSupplierOpen, setNewSupplierOpen] = useState(false);
   const [newSupplier, setNewSupplier] = useState<ProductSupplier>({
@@ -2808,6 +2809,7 @@ function ProductEditDialog({
     descriptionInitialRef.current = description;
     descriptionAppliedRef.current = description;
     featuresAppliedRef.current = JSON.stringify(selectedVariant?.features ?? productForm.features);
+    includesAppliedRef.current = JSON.stringify(selectedVariant?.includes ?? productForm.includes);
   }, [open, selectedVariantId]);
 
   const hasChanges = useMemo(
@@ -2901,6 +2903,7 @@ function ProductEditDialog({
         includes: [...activeIncludes],
       })),
     });
+    includesAppliedRef.current = JSON.stringify(activeIncludes);
     toast.success("Incluye aplicado a todas las variantes");
   };
 
@@ -3168,6 +3171,10 @@ function ProductEditDialog({
     Boolean(activeVariant) &&
     productForm.variants.length >= 2 &&
     JSON.stringify(activeFeatures) !== featuresAppliedRef.current;
+  const canApplyIncludes =
+    Boolean(activeVariant) &&
+    productForm.variants.length >= 2 &&
+    JSON.stringify(activeIncludes) !== includesAppliedRef.current;
 
   const confirmDescription = () => {
     if (!productForm || descriptionDraft === descriptionInitialRef.current) return;
@@ -3245,7 +3252,8 @@ function ProductEditDialog({
     ? activeExpenses
     : toLocalCurrency(activeExpenses, activeExpensesCurrency);
   const activePriceValue = activeCommissionValue + activeExpensesValue;
-  const activeStorePrice = activePriceValue * (1 - activeDiscount / 100);
+  const activeDiscountValue = activePriceValue * (activeDiscount / 100);
+  const activeStorePrice = activePriceValue - activeDiscountValue;
   const activeProfit = activeStorePrice - activeExpensesValue;
   const activeUsdRequired = activeCommissionCurrency === "USD" || activeExpensesCurrency === "USD";
   const hasBulkNavigation = bulkEditCount > 1;
@@ -3559,8 +3567,6 @@ function ProductEditDialog({
                     <Input
                       id="new-discount"
                       type="number"
-                      min={0}
-                      max={100}
                       value={discountValue}
                       onFocus={(event) => event.target.select()}
                       onChange={(event) =>
@@ -3725,10 +3731,11 @@ function ProductEditDialog({
                 </div>
                 <Input
                   type="number"
-                  min={0}
                   value={isNewProduct && activeCommission === 0 ? "" : activeCommission}
                   onChange={(event) =>
-                    updateActivePricing({ comision: Number(event.target.value) || 0 })
+                    updateActivePricing({
+                      comision: event.target.value === "" ? 0 : Number(event.target.value),
+                    })
                   }
                 />
               </div>
@@ -3752,10 +3759,11 @@ function ProductEditDialog({
                 </div>
                 <Input
                   type="number"
-                  min={0}
                   value={activeExpenses === 0 ? "" : activeExpenses}
                   onChange={(event) =>
-                    updateActivePricing({ gastos: Number(event.target.value) || 0 })
+                    updateActivePricing({
+                      gastos: event.target.value === "" ? 0 : Number(event.target.value),
+                    })
                   }
                 />
               </div>
@@ -3774,11 +3782,11 @@ function ProductEditDialog({
                 <Label className="min-h-8">Descuento (%)</Label>
                 <Input
                   type="number"
-                  min={0}
-                  max={100}
                   value={activeDiscount === 0 ? "" : activeDiscount}
                   onChange={(event) =>
-                    updateActiveVariant({ discount: Number(event.target.value) || 0 })
+                    updateActiveVariant({
+                      discount: event.target.value === "" ? 0 : Number(event.target.value),
+                    })
                   }
                 />
               </div>
@@ -3806,30 +3814,32 @@ function ProductEditDialog({
             >
               <div className="flex min-w-0 flex-col gap-1">
                 <Label className="min-h-8">Stock</Label>
-                <Select
-                  value={activeStockUnlimited ? "unlimited" : "limited"}
-                  onValueChange={(value) =>
-                    updateActiveVariant({ stockUnlimited: value === "unlimited" })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="limited">Cantidad</SelectItem>
-                    <SelectItem value="unlimited">Ilimitado</SelectItem>
-                  </SelectContent>
-                </Select>
-                {!activeStockUnlimited && (
-                  <Input
-                    type="number"
-                    min={0}
-                    value={activeStock === 0 ? "" : activeStock}
-                    onChange={(event) =>
-                      updateActiveVariant({ stock: Number(event.target.value) || 0 })
+                <div className={`grid gap-2 ${activeStockUnlimited ? "grid-cols-1" : "grid-cols-2"}`}>
+                  <Select
+                    value={activeStockUnlimited ? "unlimited" : "limited"}
+                    onValueChange={(value) =>
+                      updateActiveVariant({ stockUnlimited: value === "unlimited" })
                     }
-                  />
-                )}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="limited">Cantidad</SelectItem>
+                      <SelectItem value="unlimited">Ilimitado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {!activeStockUnlimited && (
+                    <Input
+                      type="number"
+                      min={0}
+                      value={activeStock === 0 ? "" : activeStock}
+                      onChange={(event) =>
+                        updateActiveVariant({ stock: Number(event.target.value) || 0 })
+                      }
+                    />
+                  )}
+                </div>
               </div>
               <div className="flex min-w-0 flex-col gap-1">
                 <Label className="min-h-8">Tiempo de entrega</Label>
@@ -4263,6 +4273,7 @@ function ProductEditDialog({
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                   <Input
                     id="new-include"
+                    className="flex-1"
                     value={newInclude}
                     onChange={(event) => setNewInclude(event.target.value)}
                     onKeyDown={(event) => {
@@ -4273,9 +4284,20 @@ function ProductEditDialog({
                     }}
                     placeholder="Escribir qué incluye"
                   />
-                  <Button type="button" onClick={handleAddInclude} className="whitespace-nowrap">
-                    <Plus className="h-4 w-4" /> Agregar
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" onClick={handleAddInclude} className="whitespace-nowrap">
+                      <Plus className="h-4 w-4" /> Agregar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="default"
+                      onClick={applyIncludesToAllVariants}
+                      disabled={!canApplyIncludes}
+                      className="whitespace-nowrap disabled:cursor-default"
+                    >
+                      <Check className="size-3.5" /> Aplicar a todos
+                    </Button>
+                  </div>
                 </div>
                 {activeIncludes.length > 0 && (
                   <div className="mt-2 grid gap-2">
@@ -4344,30 +4366,23 @@ function ProductEditDialog({
                     ))}
                   </div>
                 )}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="default"
-                  onClick={applyIncludesToAllVariants}
-                  disabled={!activeVariant || productForm.variants.length < 2}
-                  className="mt-2 text-sm"
-                >
-                  <Check className="mr-2 size-3.5" />
-                  Aplicar a todos
-                </Button>
               </div>
-              <div className="space-y-2">
-                <Label>Descripción</Label>
-                <Textarea
-                  value={descriptionDraft}
-                  rows={3}
-                  onChange={(event) => {
-                    setDescriptionDraft(event.target.value);
-                    setDescriptionConfirmed(false);
-                  }}
-                  placeholder="Descripción de esta variante"
-                />
-                <div className="flex flex-wrap gap-2">
+              <div className="mt-5 border-t border-border/50 pt-4">
+                <div className="mb-3 text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                  Descripción
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                  <Textarea
+                    value={descriptionDraft}
+                    rows={3}
+                    className="flex-1"
+                    onChange={(event) => {
+                      setDescriptionDraft(event.target.value);
+                      setDescriptionConfirmed(false);
+                    }}
+                    placeholder="Descripción de esta variante"
+                  />
+                  <div className="flex flex-wrap gap-2 sm:w-44 sm:flex-col">
                   <Button
                     type="button"
                     size="sm"
@@ -4390,6 +4405,7 @@ function ProductEditDialog({
                     <Check className="mr-2 size-3.5" />
                     Aplicar a todos
                   </Button>
+                  </div>
                 </div>
               </div>
             </div>
