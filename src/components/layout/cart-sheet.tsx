@@ -167,24 +167,10 @@ export function CartSheet({
                                 Stock {item.stock}
                               </span>
                             </div>
-                            {(item.category || item.subcategory) && (
-                              <div className="mb-2 flex flex-wrap items-center gap-2">
-                                {item.category && (
-                                  <span className="rounded-full bg-background px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                                    {item.category}
-                                  </span>
-                                )}
-                                {item.subcategory && (
-                                  <span className="rounded-full border border-border px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                                    {item.subcategory}
-                                  </span>
-                                )}
-                              </div>
-                            )}
                             {item.variantName ? (
-                              <p className="mb-1 text-xs font-medium text-primary">
-                                Variante: {item.variantName}
-                              </p>
+                              <span className="mb-1 inline-flex rounded-full border border-border px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                                {item.variantName}
+                              </span>
                             ) : null}
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                               <div className="min-w-0">

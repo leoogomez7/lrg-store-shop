@@ -245,16 +245,28 @@ function AdminConfiguration() {
     const trimmed = newShippingMethod.trim();
     if (!trimmed) return;
 
-    const next = [
-      ...shippingMethods,
-      { id: `${Date.now()}-${trimmed}`, name: trimmed, enabled: true, codeRequired: false },
-    ];
+    const method = {
+      id: `${Date.now()}-${trimmed}`,
+      name: trimmed,
+      enabled: true,
+      codeRequired: false,
+    };
+    const next = [...shippingMethods, method];
 
     setShippingMethods(next);
     setNewShippingMethod("");
 
     if (isInitialized) {
-      persistShippingConfig(next);
+      if (applyShippingMethodsToAll) {
+        brandList.forEach((brand) => {
+          setBrandShippingConfig(brand.slug, {
+            freeShippingThreshold: brand.shipping?.freeShippingThreshold ?? 0,
+            methods: [...(brand.shipping?.methods ?? []), method],
+          });
+        });
+      } else {
+        persistShippingConfig(next);
+      }
     }
   };
 
@@ -416,22 +428,26 @@ function AdminConfiguration() {
     const trimmed = newPaymentMethod.trim();
     if (!trimmed) return;
 
-    const next = [
-      ...paymentMethods,
-      {
-        id: `${Date.now()}-${trimmed}`
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, ""),
-        name: trimmed,
-        enabled: true,
-      },
-    ];
+    const method = {
+      id: `${Date.now()}-${trimmed}`
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, ""),
+      name: trimmed,
+      enabled: true,
+    };
+    const next = [...paymentMethods, method];
 
     setPaymentMethods(next);
     setNewPaymentMethod("");
     if (isInitialized) {
-      persistPaymentMethods(next);
+      if (applyPaymentMethodsToAll) {
+        brandList.forEach((brand) => {
+          setBrandPaymentMethods(brand.slug, [...(brand.paymentMethods ?? []), method]);
+        });
+      } else {
+        persistPaymentMethods(next);
+      }
     }
   };
 

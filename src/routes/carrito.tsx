@@ -116,23 +116,11 @@ function CartPage() {
                           {getBrand(item.brand)?.shortName ?? item.brand}
                         </span>
                       </div>
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        {item.category && (
-                          <span className="rounded-full bg-surface-2 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                            {item.category}
-                          </span>
-                        )}
-                        {item.subcategory && (
-                          <span className="rounded-full border border-border px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                            {item.subcategory}
-                          </span>
-                        )}
-                      </div>
                       <h2 className="font-display font-semibold">{item.name}</h2>
                       {item.variantName && (
-                        <p className="mt-1 text-xs font-medium uppercase tracking-wide text-primary">
-                          Variante: {item.variantName}
-                        </p>
+                        <span className="mt-1 inline-flex rounded-full border border-border px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                          {item.variantName}
+                        </span>
                       )}
                       <p className="mt-1 text-sm text-muted-foreground">
                         {formatPrice(item.price)} · {item.stock} disponibles
