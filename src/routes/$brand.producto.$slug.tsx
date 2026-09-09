@@ -109,8 +109,32 @@ function ProductDetail() {
         ...(selectedVariant.gastosCurrency ? { gastosCurrency: selectedVariant.gastosCurrency } : {}),
       }
     : product;
-  const category = brand.categories.find((item) => item.slug === product.category);
-  const selectedSubcategory = category?.subcategories?.find((item) => item.slug === product.subcategory);
+  const normalizeTaxonomyValue = (value?: string) =>
+    value
+      ?.normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  const categoryValue = normalizeTaxonomyValue(product.category);
+  const subcategoryValue = normalizeTaxonomyValue(product.subcategory);
+  const category = brand.categories.find(
+    (item) =>
+      normalizeTaxonomyValue(item.slug) === categoryValue ||
+      normalizeTaxonomyValue(item.name) === categoryValue ||
+      item.subcategories?.some(
+        (subcategory) =>
+          normalizeTaxonomyValue(subcategory.slug) === categoryValue ||
+          normalizeTaxonomyValue(subcategory.name) === categoryValue,
+      ),
+  );
+  const selectedSubcategory = category?.subcategories?.find(
+    (item) =>
+      normalizeTaxonomyValue(item.slug) === subcategoryValue ||
+      normalizeTaxonomyValue(item.name) === subcategoryValue ||
+      (!subcategoryValue &&
+        (normalizeTaxonomyValue(item.slug) === categoryValue ||
+          normalizeTaxonomyValue(item.name) === categoryValue)),
+  );
   const freeShippingThreshold = brand.shipping?.freeShippingThreshold ?? 0;
 
   const deliveryUnit = selectedVariant?.deliveryUnit ?? product.deliveryUnit ?? "inmediata";
