@@ -2075,10 +2075,7 @@ function AdminProducts() {
                           />
                           <span className="min-w-0 wrap-break-word font-medium">{product.name}</span>
                           {variant ? (
-                            <span className="flex basis-full items-center gap-2 pl-6 text-[10px] uppercase tracking-wider">
-                              <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-primary">
-                                Variante
-                              </span>
+                            <span className="flex basis-full items-center pl-6 text-[10px] uppercase tracking-wider">
                               <span className="rounded-full border border-border px-1.5 py-0.5 text-muted-foreground">
                                 {variant.name}
                               </span>
@@ -2135,12 +2132,13 @@ function AdminProducts() {
                           const activeActionClass =
                             "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white";
                           return (
-                            <div className="flex flex-wrap items-center justify-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`h-7 gap-1 px-2 text-[11px] ${actions.coupon ? activeActionClass : ""}`}
-                                onClick={() => {
+                            <div className="flex flex-col items-center justify-center gap-1">
+                              <div className="flex flex-wrap items-center justify-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={`h-7 gap-1 px-2 text-[11px] ${actions.coupon ? activeActionClass : ""}`}
+                                  onClick={() => {
                                   const nextCouponState = !actions.coupon;
                                   setAppliedProductActions((current) => ({
                                     ...current,
@@ -2154,15 +2152,15 @@ function AdminProducts() {
                                         : "El cupón ya no se aplicará.",
                                     },
                                   );
-                                }}
-                              >
-                                <Tag className="size-3" /> Cupón
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`h-7 gap-1 px-2 text-[11px] ${actions.interestFree ? activeActionClass : ""}`}
-                                onClick={() => {
+                                  }}
+                                >
+                                  <Tag className="size-3" /> Cupón
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={`h-7 gap-1 px-2 text-[11px] ${actions.interestFree ? activeActionClass : ""}`}
+                                  onClick={() => {
                                   const nextInterestFreeState = !actions.interestFree;
                                   setAppliedProductActions((current) => ({
                                     ...current,
@@ -2181,15 +2179,17 @@ function AdminProducts() {
                                         : "La opción fue desactivada.",
                                     },
                                   );
-                                }}
-                              >
-                                <CreditCard className="size-3" /> Cuotas s/int
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`h-7 gap-1 px-2 text-[11px] ${actions.cardCommission ? activeActionClass : ""}`}
-                                onClick={() => {
+                                  }}
+                                >
+                                  <CreditCard className="size-3" /> Cuotas s/int
+                                </Button>
+                              </div>
+                              <div className="flex flex-wrap items-center justify-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={`h-7 gap-1 px-2 text-[11px] ${actions.cardCommission ? activeActionClass : ""}`}
+                                  onClick={() => {
                                   toggleCardCommission(product, variant);
                                   toast.success(
                                     !actions.cardCommission
@@ -2201,40 +2201,52 @@ function AdminProducts() {
                                         : "La comisión ya no se aplicará.",
                                     },
                                   );
-                                }}
-                              >
-                                <span className="text-sm font-semibold">$</span> Comisión tarjeta
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 gap-1 px-2 text-[11px]"
-                                onClick={() => handleResetDiscount(product.id)}
-                              >
-                                <RotateCcw className="size-3" /> Restablecer
-                              </Button>
+                                  }}
+                                >
+                                  <span className="text-sm font-semibold">$</span> Comisión tarjeta
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 gap-1 px-2 text-[11px]"
+                                  onClick={() => handleResetDiscount(product.id)}
+                                >
+                                  <RotateCcw className="size-3" /> Restablecer
+                                </Button>
+                              </div>
                             </div>
                           );
                         })()}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap items-center justify-center gap-1.5">
-                          <label className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
-                            <span>{product.hidden ? "No disponible" : "Disponible"}</span>
-                            <Switch
-                              checked={!product.hidden}
-                              onCheckedChange={() =>
-                                setConfirmState({
-                                  open: true,
-                                  title: `${product.hidden ? "Mostrar" : "Ocultar"} "${product.name}"?`,
-                                  description: undefined,
-                                  onConfirm: () => handleToggleHidden(product.id),
-                                })
-                              }
-                            />
-                          </label>
-
-                          <Button
+                        <div className="flex flex-col items-center justify-center gap-1.5">
+                          <div className="flex flex-wrap items-center justify-center gap-1.5">
+                            <label className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
+                              <span>{product.hidden ? "No disponible" : "Disponible"}</span>
+                              <Switch
+                                checked={!product.hidden}
+                                onCheckedChange={() =>
+                                  setConfirmState({
+                                    open: true,
+                                    title: `${product.hidden ? "Mostrar" : "Ocultar"} "${product.name}"?`,
+                                    description: undefined,
+                                    onConfirm: () => handleToggleHidden(product.id),
+                                  })
+                                }
+                              />
+                            </label>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDuplicateProduct(product)}
+                              className="h-7 gap-1 px-2 text-xs"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                              <span>Duplicar</span>
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-center gap-1.5">
+                            <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => startQuickEdit(product, variant)}
@@ -2244,7 +2256,7 @@ function AdminProducts() {
                             <span>Editar rápido</span>
                           </Button>
 
-                          <Button
+                            <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => openEditProductDialog(product, variant)}
@@ -2254,17 +2266,7 @@ function AdminProducts() {
                             <span>Editar</span>
                           </Button>
 
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDuplicateProduct(product)}
-                            className="h-7 gap-1 px-2 text-xs"
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                            <span>Duplicar</span>
-                          </Button>
-
-                          <Button
+                            <Button
                             variant="ghost"
                             size="sm"
                             onClick={() =>
@@ -2282,7 +2284,8 @@ function AdminProducts() {
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                             <span>Eliminar</span>
-                          </Button>
+                            </Button>
+                          </div>
                         </div>
                       </TableCell>
                     </>
