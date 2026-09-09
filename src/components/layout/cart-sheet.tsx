@@ -167,16 +167,18 @@ export function CartSheet({
                                 Stock {item.stock}
                               </span>
                             </div>
-                            {item.variantName ? (
-                              <span className="mb-1 inline-flex rounded-full border border-border px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                                {item.variantName}
-                              </span>
-                            ) : null}
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                               <div className="min-w-0">
-                                <p className="truncate text-base font-semibold text-foreground">
-                                  {item.name}
-                                </p>
+                                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                  <p className="truncate text-base font-semibold text-foreground">
+                                    {item.name}
+                                  </p>
+                                  {item.variantName ? (
+                                    <span className="rounded-full border border-border px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                                      {item.variantName}
+                                    </span>
+                                  ) : null}
+                                </div>
                                 <p className="text-sm text-muted-foreground">
                                   {formatPrice(item.price)} por unidad
                                 </p>

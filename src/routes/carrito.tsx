@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ShoppingBag, Trash2 } from "lucide-react";
+import { ArrowLeft, Package, ShoppingBag, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,9 @@ function CartPage() {
                 Agregá productos y volvé para finalizar tu compra.
               </p>
               <Button asChild>
-                <Link to="/">Ver catálogo</Link>
+                <Link to="/">
+                  <Package className="size-4" /> Explorar productos
+                </Link>
               </Button>
             </div>
           ) : (
@@ -118,7 +120,7 @@ function CartPage() {
                       </div>
                       <h2 className="font-display font-semibold">{item.name}</h2>
                       {item.variantName && (
-                        <span className="mt-1 inline-flex rounded-full border border-border px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        <span className="mt-1 flex w-fit rounded-full border border-border px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                           {item.variantName}
                         </span>
                       )}
