@@ -300,7 +300,7 @@ function CatalogPage() {
               type="button"
               onClick={() => setPage(0)}
               disabled={!hasPreviousPage}
-              className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:opacity-60"
             >
               Principio
             </button>
@@ -320,7 +320,7 @@ function CatalogPage() {
               type="button"
               onClick={() => setPage(totalPages - 1)}
               disabled={!hasNextPage}
-              className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:opacity-60"
             >
               Último
             </button>
@@ -352,9 +352,9 @@ function CatalogPage() {
                     setPage(0);
                   }}
                   disabled={!isValid || !isChanged}
-                  className="h-8 rounded-lg bg-[#111827] px-4 text-sm text-white hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-8 items-center justify-center gap-2 rounded-lg bg-[#3b82f6] px-4 text-sm font-medium text-white shadow-none transition-colors hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <Check className="mr-2 h-4 w-4" />
+                  <Check className="h-4 w-4" />
                   Confirmar
                 </button>
               );
