@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Package, ShoppingBag, Trash2 } from "lucide-react";
+import { ArrowLeft, Minus, Package, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { Button } from "@/components/ui/button";
@@ -106,19 +106,34 @@ function CartPage() {
                     key={item.id}
                     className="glass-panel flex flex-wrap gap-4 rounded-2xl p-4"
                   >
-                    <ProductVisual
-                      seed={item.id}
-                      label={item.name}
-                      image={item.image}
-                      className="size-24 rounded-xl"
-                    />
+                    <Link
+                      to="/$brand/producto/$slug"
+                      params={{ brand: item.brand, slug: item.slug }}
+                      aria-label={`Ver ${item.name}`}
+                      className="shrink-0 transition-opacity hover:opacity-80"
+                    >
+                      <ProductVisual
+                        seed={item.id}
+                        label={item.name}
+                        image={item.image}
+                        className="size-24 rounded-xl"
+                      />
+                    </Link>
                     <div className="min-w-50 flex-1">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-surface-2 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                           {getBrand(item.brand)?.shortName ?? item.brand}
                         </span>
                       </div>
-                      <h2 className="font-display font-semibold">{item.name}</h2>
+                      <Link
+                        to="/$brand/producto/$slug"
+                        params={{ brand: item.brand, slug: item.slug }}
+                        className="group block w-fit"
+                      >
+                        <h2 className="font-display font-semibold group-hover:text-primary">
+                          {item.name}
+                        </h2>
+                      </Link>
                       {item.variantName && (
                         <span className="mt-1 flex w-fit rounded-full border border-border px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                           {item.variantName}
@@ -128,22 +143,27 @@ function CartPage() {
                         {formatPrice(item.price)} · {item.stock} disponibles
                       </p>
 
-                      <div className="mt-3 flex items-center gap-1.5">
+                      <div className="mt-4 flex w-fit items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-2 py-1.5">
+                        <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                          Cantidad
+                        </span>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="size-8"
+                          className="size-9 rounded-lg bg-background/70"
                           onClick={() => setQuantity(item.id, item.quantity - 1)}
                           aria-label="Restar unidad"
                           disabled={item.quantity <= 1}
                         >
-                          -
+                          <Minus className="size-4" />
                         </Button>
-                        <span className="w-8 text-center text-sm">{item.quantity}</span>
+                        <span className="min-w-8 text-center text-base font-bold text-foreground">
+                          {item.quantity}
+                        </span>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="size-8"
+                          className="size-9 rounded-lg bg-background/70"
                           onClick={() => {
                             if (item.quantity >= item.stock) {
                               toast.error("No hay más stock disponible para agregar.", {
@@ -155,7 +175,7 @@ function CartPage() {
                           }}
                           aria-label="Sumar unidad"
                         >
-                          +
+                          <Plus className="size-4" />
                         </Button>
                         <Button
                           variant="ghost"
