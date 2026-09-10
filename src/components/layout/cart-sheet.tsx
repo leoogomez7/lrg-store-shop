@@ -186,7 +186,7 @@ export function CartSheet({
                                 {getBrand(item.brand)?.shortName ?? item.brand}
                               </span>
                               <span className="text-xs font-medium text-muted-foreground">
-                                Stock {item.stock}
+                                {item.stockUnlimited ? "∞ Stock ilimitado" : `Stock ${item.stock}`}
                               </span>
                             </div>
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -232,7 +232,7 @@ export function CartSheet({
                                 className="h-9 min-w-10 rounded-full"
                                 onClick={() => setQuantity(item.id, item.quantity + 1)}
                                 aria-label="Sumar unidad"
-                                disabled={item.quantity >= item.stock}
+                                disabled={!item.stockUnlimited && item.quantity >= item.stock}
                               >
                                 <Plus className="size-4" />
                               </Button>
@@ -253,7 +253,7 @@ export function CartSheet({
                                 <Trash2 className="size-4" />
                               </Button>
                             </div>
-                            {item.quantity >= item.stock && (
+                            {!item.stockUnlimited && item.quantity >= item.stock && (
                               <p className="mt-2 text-xs font-medium text-destructive">
                                 No hay más stock disponible para agregar.
                               </p>

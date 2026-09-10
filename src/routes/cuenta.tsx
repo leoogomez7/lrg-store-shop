@@ -1581,7 +1581,7 @@ function AccountPageContent({
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-3 rounded-2xl px-6 py-14 text-center">
+            <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl p-12 text-center">
               <Heart className="size-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.</p>
               <Button asChild size="lg" className="h-9 gap-2 rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb]">

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Minus, Package, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { ArrowLeft, CreditCard, Eraser, Minus, Package, Plus, ShoppingBag, X } from "lucide-react";
 import { useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { Button } from "@/components/ui/button";
@@ -104,7 +104,7 @@ function CartPage() {
                 {items.map((item) => (
                   <article
                     key={item.id}
-                    className="glass-panel flex flex-wrap gap-4 rounded-2xl p-4"
+                    className="glass-panel relative flex flex-wrap gap-4 rounded-2xl p-4"
                   >
                     <Link
                       to="/$brand/producto/$slug"
@@ -140,7 +140,8 @@ function CartPage() {
                         </span>
                       )}
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {formatPrice(item.price)} · {item.stock} disponibles
+                        {formatPrice(item.price)} ·{" "}
+                        {item.stockUnlimited ? "∞ Stock ilimitado" : `${item.stock} disponibles`}
                       </p>
 
                       <div className="mt-4 flex w-fit items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-2 py-1.5">
@@ -157,15 +158,28 @@ function CartPage() {
                         >
                           <Minus className="size-4" />
                         </Button>
-                        <span className="min-w-8 text-center text-base font-bold text-foreground">
-                          {item.quantity}
-                        </span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={item.stockUnlimited ? undefined : item.stock}
+                          value={item.quantity}
+                          onChange={(event) => {
+                            const nextQuantity = Number(event.target.value);
+                            if (!Number.isFinite(nextQuantity)) return;
+                            const limitedQuantity = item.stockUnlimited
+                              ? Math.max(1, nextQuantity)
+                              : Math.min(Math.max(1, nextQuantity), item.stock);
+                            setQuantity(item.id, limitedQuantity);
+                          }}
+                          className="h-9 w-12 rounded-lg border-0 bg-transparent text-center text-base font-bold text-foreground outline-none focus:ring-2 focus:ring-primary"
+                          aria-label={`Cantidad de ${item.name}`}
+                        />
                         <Button
                           variant="ghost"
                           size="icon"
                           className="size-9 rounded-lg bg-background/70"
                           onClick={() => {
-                            if (item.quantity >= item.stock) {
+                            if (!item.stockUnlimited && item.quantity >= item.stock) {
                               toast.error("No hay más stock disponible para agregar.", {
                                 description: `${item.name} alcanzó su límite de stock.`,
                               });
@@ -179,8 +193,8 @@ function CartPage() {
                         </Button>
                         <Button
                           variant="ghost"
-                          size="sm"
-                          className="ml-2 gap-1.5 text-muted-foreground hover:text-destructive"
+                          size="icon"
+                          className="absolute right-3 top-3 size-8 rounded-full text-white hover:border-red-500 hover:bg-red-500/10 hover:text-white"
                           onClick={() =>
                             setConfirmState({
                               open: true,
@@ -189,9 +203,10 @@ function CartPage() {
                               onConfirm: () => removeItem(item.id),
                             })
                           }
+                          aria-label={`Eliminar ${item.name}`}
+                          title="Eliminar"
                         >
-                          <Trash2 className="size-4" />
-                          <span className="hidden sm:inline">Eliminar</span>
+                          <X className="size-4" />
                         </Button>
                       </div>
                     </div>
@@ -201,7 +216,13 @@ function CartPage() {
                   </article>
                 ))}
 
-                <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={clear}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-600 hover:border-red-500 hover:bg-red-500/10 hover:text-red-600"
+                  onClick={clear}
+                >
+                  <Eraser className="size-4" />
                   Vaciar carrito
                 </Button>
               </section>
@@ -224,6 +245,7 @@ function CartPage() {
                   <div className="mt-4">
                     <Link to="/checkout">
                       <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                        <CreditCard className="size-4" />
                         Ir a checkout
                       </Button>
                     </Link>

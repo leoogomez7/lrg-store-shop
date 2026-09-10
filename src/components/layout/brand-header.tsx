@@ -422,7 +422,7 @@ function BrandHeaderContent({
                                   size="sm"
                                   className="h-6 w-6 p-0"
                                   onClick={() => {
-                                    if (item.quantity >= item.stock) {
+                                    if (!item.stockUnlimited && item.quantity >= item.stock) {
                                       toast.error("No hay más stock disponible para agregar.", {
                                         description: `${item.name} alcanzó su límite de stock.`,
                                       });
