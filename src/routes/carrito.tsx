@@ -164,7 +164,7 @@ function CartPage() {
                       />
                     </Link>
                     <div className="min-w-50 flex-1">
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-surface-2 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                           {getBrand(item.brand)?.shortName ?? item.brand}
                         </span>
@@ -189,8 +189,8 @@ function CartPage() {
                       </p>
 
                     </div>
-                    <div className="ml-auto flex w-32 shrink-0 flex-col items-end gap-2 pr-0 pt-8 sm:w-36">
-                      <p className="font-display text-right text-lg font-semibold">
+                    <div className="ml-auto flex w-32 shrink-0 flex-col items-center gap-2 pr-0 pt-8 sm:w-36">
+                      <p className="font-display text-center text-lg font-semibold">
                         {formatPrice(item.price * item.quantity)}
                       </p>
                       <div className="flex max-w-full items-center gap-0.5 rounded-full border border-border bg-background/70 p-0.5">
@@ -242,7 +242,7 @@ function CartPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-3 top-3 size-8 rounded-full text-white hover:border-red-500 hover:bg-red-500/10 hover:text-white"
+                      className="absolute right-3 top-1 size-8 rounded-full text-white hover:border-red-500 hover:bg-red-500/10 hover:text-white"
                       onClick={() =>
                         setConfirmState({
                           open: true,
