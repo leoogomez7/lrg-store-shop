@@ -145,15 +145,15 @@ function CartPage() {
                       </p>
 
                     </div>
-                    <div className="ml-auto flex flex-col items-end gap-3 pr-10">
+                    <div className="ml-auto flex min-w-0 flex-col items-end gap-3 pr-10 pt-8">
                       <p className="font-display text-lg font-semibold">
                         {formatPrice(item.price * item.quantity)}
                       </p>
-                      <div className="flex items-center gap-1 rounded-full border border-border bg-background/70 p-1">
+                      <div className="flex max-w-full items-center gap-1 rounded-full border border-border bg-background/70 p-1 max-sm:gap-0 max-sm:p-0.5">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="size-8 rounded-full"
+                          className="size-8 rounded-full max-sm:size-7"
                           onClick={() => setQuantity(item.id, item.quantity - 1)}
                           aria-label="Restar unidad"
                           disabled={item.quantity <= 1}
@@ -173,13 +173,13 @@ function CartPage() {
                               : Math.min(Math.max(1, nextQuantity), item.stock);
                             setQuantity(item.id, limitedQuantity);
                           }}
-                          className="h-8 w-10 rounded-lg border-0 bg-transparent text-center text-sm font-bold text-foreground outline-none focus:ring-2 focus:ring-primary"
+                          className="h-8 w-10 rounded-lg border-0 bg-transparent text-center text-sm font-bold text-foreground outline-none focus:ring-2 focus:ring-primary max-sm:h-7 max-sm:w-8 max-sm:text-xs"
                           aria-label={`Cantidad de ${item.name}`}
                         />
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="size-8 rounded-full"
+                          className="size-8 rounded-full max-sm:size-7"
                           onClick={() => {
                             if (!item.stockUnlimited && item.quantity >= item.stock) {
                               toast.error("No hay más stock disponible para agregar.", {

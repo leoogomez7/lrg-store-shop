@@ -209,8 +209,14 @@ function CheckoutPage() {
     // Cargar direcciones guardadas
     void getUserAddresses({ data: { userId: user.id } }).then((addresses) => {
       setSavedAddresses(addresses);
+      const primaryAddress = addresses.find((savedAddress) => savedAddress.isPrimary);
+      if (primaryAddress) {
+        setSelectedSavedAddress(primaryAddress.id ?? "");
+        setAddress(primaryAddress.value);
+        if (primaryAddress.city) setCity(primaryAddress.city);
+      }
     });
-  }, [isAuthenticated, user?.id, kindeLoading]);
+  }, [isAuthenticated, user?.email, user?.givenName, user?.id, kindeLoading]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
