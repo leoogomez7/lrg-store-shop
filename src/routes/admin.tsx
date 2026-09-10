@@ -5,6 +5,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import {
   AlertTriangle,
+  Check,
   ContactRound,
   ArrowRight,
   CircleArrowLeft,
@@ -510,7 +511,13 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 }
 
 type AdminEntryNoticeData = {
-  lowStock: Array<{ id: string; name: string; variantName?: string; stock: number }>;
+  lowStock: Array<{
+    id: string;
+    name: string;
+    variantName?: string;
+    stock: number;
+    stockUnlimited?: boolean;
+  }>;
   newOrders: Array<{ id: string; customer: string; date: string; total: number }>;
 };
 
@@ -519,14 +526,22 @@ function AdminEntryNotice() {
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const [notice, setNotice] = useState<AdminEntryNoticeData | null>(null);
 
+  const acknowledgeNotice = () => {
+    if (!notice || typeof window === "undefined") return;
+    const seenOrders = new Set(
+      JSON.parse(window.localStorage.getItem("lrg_admin_seen_order_ids") ?? "[]") as string[],
+    );
+    notice.newOrders.forEach((order) => seenOrders.add(order.id));
+    window.localStorage.setItem("lrg_admin_seen_order_ids", JSON.stringify([...seenOrders]));
+    setNotice(null);
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const noticeShownKey = "lrg_admin_entry_notice_shown";
-    if (window.sessionStorage.getItem(noticeShownKey) === "true") return;
-
-    const previousLogin = window.localStorage.getItem("lrg_admin_last_login");
-    const previousLoginTime = previousLogin ? new Date(previousLogin).getTime() : NaN;
+    const seenOrders = new Set(
+      JSON.parse(window.localStorage.getItem("lrg_admin_seen_order_ids") ?? "[]") as string[],
+    );
     const lowStock = products
       .flatMap((product) =>
         product.variants?.length
@@ -535,17 +550,19 @@ function AdminEntryNotice() {
               name: product.name,
               variantName: variant.name,
               stock: variant.stock,
+              stockUnlimited: variant.stockUnlimited ?? product.stockUnlimited,
             }))
-          : [{ id: product.id, name: product.name, stock: product.stock }],
+          : [{
+              id: product.id,
+              name: product.name,
+              stock: product.stock,
+              stockUnlimited: product.stockUnlimited,
+            }],
       )
-      .filter((product) => product.stock <= 5)
+      .filter((product) => !product.stockUnlimited && product.stock <= 5)
       .sort((first, second) => first.stock - second.stock);
     const newOrders = orders
-      .filter((order) => {
-        if (!Number.isFinite(previousLoginTime)) return true;
-        const orderTime = new Date(order.date).getTime();
-        return Number.isFinite(orderTime) && orderTime >= previousLoginTime;
-      })
+      .filter((order) => !seenOrders.has(order.id))
       .sort((first, second) => new Date(second.date).getTime() - new Date(first.date).getTime())
       .slice(0, 8)
       .map((order) => ({
@@ -555,8 +572,6 @@ function AdminEntryNotice() {
         total: order.total,
       }));
 
-    window.localStorage.setItem("lrg_admin_last_login", new Date().toISOString());
-    window.sessionStorage.setItem(noticeShownKey, "true");
     if (lowStock.length > 0 || newOrders.length > 0) {
       setNotice({ lowStock, newOrders });
     }
@@ -565,7 +580,7 @@ function AdminEntryNotice() {
   if (!notice) return null;
 
   return (
-    <Dialog open onOpenChange={(open) => !open && setNotice(null)}>
+    <Dialog open onOpenChange={(open) => !open && acknowledgeNotice()}>
       <DialogContent className="max-w-2xl overflow-hidden border-primary/40 bg-background/95 p-0 shadow-2xl shadow-primary/20">
         <div className="h-2 bg-primary" />
         <div className="p-6 sm:p-8">
@@ -585,7 +600,7 @@ function AdminEntryNotice() {
             <section className="rounded-xl border border-border/60 bg-surface/50 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold">Stock bajo o agotado</h3>
-                <Badge variant="destructive">{notice.lowStock.length}</Badge>
+                <Badge variant="secondary">{notice.lowStock.length}</Badge>
               </div>
               {notice.lowStock.length > 0 ? (
                 <ul className="max-h-52 space-y-2 overflow-y-auto text-sm text-muted-foreground">
@@ -630,7 +645,8 @@ function AdminEntryNotice() {
           </div>
 
           <DialogFooter className="mt-6">
-            <Button type="button" onClick={() => setNotice(null)}>
+              <Button type="button" onClick={acknowledgeNotice}>
+                <Check className="size-4" />
               Entendido
             </Button>
           </DialogFooter>

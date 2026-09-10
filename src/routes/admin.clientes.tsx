@@ -89,7 +89,7 @@ function AdminClients() {
           <h1 className="mt-2 text-3xl font-semibold">Clientes</h1>
         </div>
 
-        <div className="order-2 relative min-w-0 flex-1">
+        <div className="order-2 relative min-w-0 basis-full flex-1 sm:basis-auto">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -99,7 +99,7 @@ function AdminClients() {
           />
         </div>
 
-        <div className="order-3 flex shrink-0 flex-wrap items-center gap-2">
+        <div className="order-3 flex basis-full flex-wrap items-center justify-end gap-2 sm:basis-auto sm:shrink-0">
           <Button
             className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {

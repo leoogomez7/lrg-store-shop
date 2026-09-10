@@ -351,7 +351,7 @@ function AdminSuppliers() {
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Listado</p>
           <h1 className="mt-2 text-3xl font-semibold">Proveedores</h1>
         </div>
-        <div className="order-2 relative min-w-0 flex-1">
+        <div className="order-2 relative min-w-0 basis-full flex-1 sm:basis-auto">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -360,7 +360,7 @@ function AdminSuppliers() {
             className="h-9 pl-9"
           />
         </div>
-        <div className="order-3 flex shrink-0 flex-wrap items-center gap-2">
+        <div className="order-3 flex basis-full flex-wrap items-center justify-end gap-2 sm:basis-auto sm:shrink-0">
           <Button
             onClick={() => {
               setEditingSupplierKey(null);

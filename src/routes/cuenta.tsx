@@ -804,7 +804,7 @@ function AccountPageContent({
 
           <div className="flex flex-wrap items-center gap-2">
 
-            <div className="order-2 relative min-w-0 flex-1">
+            <div className="order-2 relative min-w-0 basis-full flex-1 sm:basis-auto">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar pedido"
@@ -814,7 +814,7 @@ function AccountPageContent({
               />
             </div>
 
-            <div className="order-3 flex shrink-0 flex-wrap items-center gap-2">
+            <div className="order-3 flex basis-full flex-wrap items-center justify-end gap-2 sm:basis-auto sm:shrink-0">
               <Dialog open={showOrdersSort} onOpenChange={setShowOrdersSort}>
                 <DialogTrigger asChild>
                   <Button

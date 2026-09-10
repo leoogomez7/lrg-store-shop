@@ -179,7 +179,7 @@ function BrandHeaderContent({
       <header
         className={`${headerThemeClass} fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl`}
       >
-        <div className="mx-auto flex h-16 w-full max-w-7xl min-w-0 items-center gap-1 px-2 sm:gap-4 sm:px-6">
+        <div className="mx-auto flex h-16 w-full max-w-7xl min-w-0 items-center gap-1 overflow-hidden px-2 sm:gap-4 sm:px-6">
           <Link to="/" className="shrink-0" aria-label={brandLabel}>
             <BrandMark compact brandSlug={brandLogoSlug} />
           </Link>
@@ -192,7 +192,7 @@ function BrandHeaderContent({
             {brandLabel}
           </a>
 
-          <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-4">
+          <div className="ml-auto flex min-w-0 items-center gap-1 overflow-hidden sm:gap-4">
             <nav className="order-3 hidden items-center gap-3 md:flex">
               {links.map((l) => {
                 // anchor links for store-shop
