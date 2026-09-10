@@ -6,6 +6,7 @@ import {
   Check,
   CheckCircle2,
   CreditCard,
+  LoaderCircle,
   Lock,
   Package,
   ShoppingBag,
@@ -130,7 +131,10 @@ function CheckoutPage() {
   const [couponMessage, setCouponMessage] = useState("");
   const [validationMessage, setValidationMessage] = useState("");
   const validationRef = useRef<HTMLDivElement | null>(null);
-  const [savedAddresses, setSavedAddresses] = useState<Array<{ id?: string; label: string; value: string; city?: string }>>([]);
+  const [savedAddresses, setSavedAddresses] = useState<
+    Array<{ id?: string; label: string; value: string; city?: string; isPrimary?: boolean }>
+  >([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
   const [selectedSavedAddress, setSelectedSavedAddress] = useState("");
   const discountedSubtotal = couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal;
   const eligibleCardSubtotal = items.reduce(
@@ -206,16 +210,18 @@ function CheckoutPage() {
       }
     });
 
-    // Cargar direcciones guardadas
-    void getUserAddresses({ data: { userId: user.id } }).then((addresses) => {
-      setSavedAddresses(addresses);
-      const primaryAddress = addresses.find((savedAddress) => savedAddress.isPrimary);
-      if (primaryAddress) {
-        setSelectedSavedAddress(primaryAddress.id ?? "");
-        setAddress(primaryAddress.value);
-        if (primaryAddress.city) setCity(primaryAddress.city);
-      }
-    });
+    setAddressesLoading(true);
+    void getUserAddresses({ data: { userId: user.id } })
+      .then((addresses) => {
+        setSavedAddresses(addresses);
+        const primaryAddress = addresses.find((savedAddress) => savedAddress.isPrimary);
+        if (primaryAddress) {
+          setSelectedSavedAddress(primaryAddress.id ?? "");
+          setAddress(primaryAddress.value);
+          if (primaryAddress.city) setCity(primaryAddress.city);
+        }
+      })
+      .finally(() => setAddressesLoading(false));
   }, [isAuthenticated, user?.email, user?.givenName, user?.id, kindeLoading]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -436,30 +442,37 @@ function CheckoutPage() {
                     onChange={(e) => setDocument(e.target.value)}
                   />
                 </div>
-                {isAuthenticated && savedAddresses.length > 0 && (
+                {isAuthenticated && (
                   <div className="space-y-2 sm:col-span-2">
-                    <Label>Direcciones guardadas</Label>
-                    <div className="space-y-2">
-                      {savedAddresses.map((addr) => (
-                        <button
-                          key={addr.id}
-                          type="button"
-                          className={`w-full text-left rounded-lg border p-3 transition-colors ${
-                            selectedSavedAddress === addr.id
-                              ? "border-primary bg-primary/10"
-                              : "border-input hover:border-primary/50"
-                          }`}
-                          onClick={() => {
-                            setSelectedSavedAddress(addr.id || "");
-                            setAddress(addr.value);
-                            if (addr.city) setCity(addr.city);
-                          }}
-                        >
-                          <div className="font-medium">{addr.label}</div>
-                          <div className="text-sm text-muted-foreground">{addr.value}</div>
-                        </button>
-                      ))}
-                    </div>
+                    <Label>Dirección a enviar producto</Label>
+                    {addressesLoading ? (
+                      <div className="flex items-center gap-2 rounded-lg border border-input p-3 text-sm text-muted-foreground">
+                        <LoaderCircle className="size-4 animate-spin" />
+                        Cargando dirección...
+                      </div>
+                    ) : savedAddresses.length > 0 ? (
+                      <div className="space-y-2">
+                        {savedAddresses.map((addr) => (
+                          <button
+                            key={addr.id}
+                            type="button"
+                            className={`w-full text-left rounded-lg border p-3 transition-colors ${
+                              selectedSavedAddress === addr.id
+                                ? "border-primary bg-primary/10"
+                                : "border-input hover:border-primary/50"
+                            }`}
+                            onClick={() => {
+                              setSelectedSavedAddress(addr.id || "");
+                              setAddress(addr.value);
+                              if (addr.city) setCity(addr.city);
+                            }}
+                          >
+                            <div className="font-medium">{addr.label}</div>
+                            <div className="text-sm text-muted-foreground">{addr.value}</div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 )}
                 <div className="space-y-2 sm:col-span-2">

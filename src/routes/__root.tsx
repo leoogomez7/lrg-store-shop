@@ -15,6 +15,7 @@ import { reportClientError } from "../lib/error-reporting";
 import { hasTursoAdminConfig, hasTursoConfig } from "../lib/db";
 import { CartProvider } from "../store/cart";
 import { Toaster } from "../components/ui/sonner";
+import { LoadingState } from "@/components/common/loading-state";
 import { getKindeConfig, getKindeRedirectUri, hasKindeConfig } from "../lib/kinde";
 import {
   applyAdminSettings,
@@ -259,7 +260,7 @@ function RootComponent() {
   const appContent = (
     <QueryClientProvider client={queryClient}>
       <AuthenticatedCart>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<LoadingState />}>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
         </Suspense>
@@ -272,7 +273,7 @@ function RootComponent() {
     return (
       <QueryClientProvider client={queryClient}>
         <CartProvider>
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<LoadingState />}>
             <Outlet />
           </Suspense>
           <Toaster position="top-right" />

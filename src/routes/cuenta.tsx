@@ -36,6 +36,7 @@ import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { ProductCard } from "@/components/product/product-card";
+import { LoadingState } from "@/components/common/loading-state";
 import { webDesignConfig } from "@/config/brands/web-design.config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -158,7 +159,11 @@ function AccountAuthGuard({
     }
   }, [auth.isAuthenticated, auth.isLoading, navigate]);
 
-  if (auth.isLoading || !auth.isAuthenticated) {
+  if (auth.isLoading) {
+    return <LoadingState label="Cargando tu cuenta..." />;
+  }
+
+  if (!auth.isAuthenticated) {
     return null;
   }
 

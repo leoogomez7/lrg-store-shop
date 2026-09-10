@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   CreditCard,
   Eraser,
-  LoaderCircle,
   Minus,
   Package,
   Plus,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
+import { LoadingState } from "@/components/common/loading-state";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getBrand } from "@/config/brands";
@@ -96,9 +96,8 @@ function CartPage() {
           </div>
 
           {!hydrated ? (
-            <div className="glass-panel mt-12 flex flex-col items-center gap-4 rounded-3xl p-16 text-center">
-              <LoaderCircle className="size-10 animate-spin text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Cargando tu carrito...</p>
+            <div className="mt-12">
+              <LoadingState label="Cargando tu carrito..." />
             </div>
           ) : items.length === 0 ? (
             <div className="glass-panel mt-12 flex flex-col items-center gap-4 rounded-3xl p-16 text-center">
@@ -160,7 +159,7 @@ function CartPage() {
                       </p>
 
                     </div>
-                    <div className="ml-auto flex w-36 shrink-0 flex-col items-end gap-2 pr-8 pt-8 sm:w-40">
+                    <div className="ml-auto flex w-32 shrink-0 flex-col items-end gap-2 pr-0 pt-8 sm:w-36">
                       <p className="font-display text-right text-lg font-semibold">
                         {formatPrice(item.price * item.quantity)}
                       </p>
@@ -188,7 +187,7 @@ function CartPage() {
                               : Math.min(Math.max(1, nextQuantity), item.stock);
                             setQuantity(item.id, limitedQuantity);
                           }}
-                          className="h-7 w-8 rounded-lg border-0 bg-transparent text-center text-sm font-bold text-foreground outline-none focus:ring-2 focus:ring-primary"
+                          className="quantity-input h-7 w-8 rounded-lg border-0 bg-transparent text-center text-sm font-bold text-foreground outline-none focus:ring-2 focus:ring-primary"
                           aria-label={`Cantidad de ${item.name}`}
                         />
                         <Button

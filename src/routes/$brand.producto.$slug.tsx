@@ -510,7 +510,7 @@ function ProductDetail() {
                           : Math.min(Math.max(1, nextQuantity), activeProduct.stock),
                       );
                     }}
-                    className="h-8 w-10 rounded-lg border-0 bg-transparent text-center text-sm font-semibold text-foreground outline-none focus:ring-2 focus:ring-primary"
+                    className="quantity-input h-8 w-10 rounded-lg border-0 bg-transparent text-center text-sm font-semibold text-foreground outline-none focus:ring-2 focus:ring-primary"
                     aria-label={`Cantidad de ${activeProduct.name}`}
                   />
                   <Button
