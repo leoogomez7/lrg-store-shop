@@ -297,27 +297,32 @@ function ProductDetail() {
                   label={`${product.name} imagen ${selectedImageIndex + 1}`}
                 />
               </button>
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                {productImages.map((image, index) => (
-                  <button
-                    key={`${image}-${index}`}
-                    type="button"
-                    className={`aspect-square overflow-hidden rounded-xl border-2 bg-surface-2 transition ${
-                      selectedImageIndex === index
-                        ? "border-primary"
-                        : "border-transparent hover:border-border"
-                    }`}
-                    onClick={() => setSelectedImageIndex(index)}
-                    aria-label={`Seleccionar imagen ${index + 1}`}
-                    aria-pressed={selectedImageIndex === index}
-                  >
-                    <CroppedProductImage
-                      image={image}
-                      label={`${product.name} miniatura ${index + 1}`}
-                    />
-                  </button>
-                ))}
-              </div>
+              {hasMultipleImages && (
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  {productImages.slice(1).map((image, thumbnailIndex) => {
+                    const index = thumbnailIndex + 1;
+                    return (
+                      <button
+                        key={`${image}-${index}`}
+                        type="button"
+                        className={`aspect-square overflow-hidden rounded-xl border-2 bg-surface-2 transition ${
+                          selectedImageIndex === index
+                            ? "border-primary"
+                            : "border-transparent hover:border-border"
+                        }`}
+                        onClick={() => setSelectedImageIndex(index)}
+                        aria-label={`Seleccionar imagen ${index + 1}`}
+                        aria-pressed={selectedImageIndex === index}
+                      >
+                        <CroppedProductImage
+                          image={image}
+                          label={`${product.name} miniatura ${index + 1}`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -352,11 +357,12 @@ function ProductDetail() {
               className="relative flex max-h-full max-w-6xl items-center justify-center"
               onClick={(event) => event.stopPropagation()}
             >
-              <img
-                src={selectedImage}
-                alt={`${product.name} imagen completa ${selectedImageIndex + 1}`}
-                className="max-h-[90vh] max-w-[90vw] object-contain"
-              />
+              <div className="h-[90vh] w-[90vw] max-w-6xl">
+                <CroppedProductImage
+                  image={selectedImage}
+                  label={`${product.name} imagen ${selectedImageIndex + 1}`}
+                />
+              </div>
               <Button
                 type="button"
                 variant="secondary"

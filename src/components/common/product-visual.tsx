@@ -13,7 +13,15 @@ function hash(value: string) {
   return total;
 }
 
-export function CroppedProductImage({ image, label }: { image: string; label: string }) {
+export function CroppedProductImage({
+  image,
+  label,
+  className,
+}: {
+  image: string;
+  label: string;
+  className?: string;
+}) {
   const [processedImage, setProcessedImage] = useState<string | null>(() =>
     croppedImageCache.has(image) ? (croppedImageCache.get(image) ?? image) : null,
   );
@@ -42,11 +50,15 @@ export function CroppedProductImage({ image, label }: { image: string; label: st
 
   return isProcessing ? (
     <div
-      className="size-full animate-pulse bg-surface-2"
+      className={cn("size-full animate-pulse bg-surface-2", className)}
       aria-label={`Cargando imagen de ${label}`}
     />
   ) : (
-    <img src={processedImage ?? image} alt={label} className="size-full object-contain" />
+    <img
+      src={processedImage ?? image}
+      alt={label}
+      className={cn("size-full object-contain", className)}
+    />
   );
 }
 
