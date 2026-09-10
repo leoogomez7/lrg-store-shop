@@ -387,7 +387,7 @@ function BrandHeaderContent({
                               <div className="truncate font-medium">{item.name}</div>
                               {item.variantName ? (
                                 <div className="truncate text-xs text-muted-foreground">
-                                  Variante: {item.variantName}
+                                  {item.variantName}
                                 </div>
                               ) : null}
                             </div>
