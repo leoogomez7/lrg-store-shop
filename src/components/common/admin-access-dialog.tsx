@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { ArrowRight, LoaderCircle, ShieldCheck } from "lucide-react";
 import { verifyAdminPassword } from "@/server/admin-auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,20 +20,22 @@ export function AdminAccessDialog({
   onAuthorized: () => void;
 }) {
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setPasswordError("");
     const valid = await verifyAdminPassword({ data: { password } });
     if (!valid) {
       setPasswordError("La contraseña no es válida.");
+      setIsSubmitting(false);
       return;
     }
     setPassword("");
     onAuthorized();
-    onOpenChange(false);
   }
 
   return (
@@ -52,26 +54,26 @@ export function AdminAccessDialog({
             <span className="relative mt-2 block">
               <input
                 id="admin-access-password"
-                type={showPassword ? "text" : "password"}
+                type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="h-11 w-full rounded-md border border-border bg-background px-3 pr-11"
+                className="h-11 w-full rounded-md border border-border bg-background px-3"
                 autoComplete="current-password"
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((visible) => !visible)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-muted-foreground hover:text-foreground"
-                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
             </span>
           </label>
           {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
-          <Button type="submit" className="w-full">
-            <ArrowRight className="size-4" /> Continuar
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <LoaderCircle className="size-4 animate-spin" /> Cargando...
+              </>
+            ) : (
+              <>
+                <ArrowRight className="size-4" /> Continuar
+              </>
+            )}
           </Button>
         </form>
       </DialogContent>

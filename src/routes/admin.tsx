@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
+import { LoadingState } from "@/components/common/loading-state";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -194,6 +195,10 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     }
     setFinalPassword("");
     navigate({ to: "/admin/panel" });
+  }
+
+  if (isLoading && initialPasswordVerified) {
+    return <LoadingState label="Cargando autenticación..." />;
   }
 
   if (!hasVerifiedAdminAccess && !isAuthenticated && !initialPasswordVerified) {
