@@ -3840,7 +3840,7 @@ function ProductEditDialog({
                 </div>
               </div>
               <div className="grid min-w-0 gap-4 sm:grid-cols-3">
-                <div className="flex min-w-0 flex-col gap-1">
+                <div className={`flex min-w-0 flex-col gap-1 ${showsDeliveryDetails ? "" : "sm:col-span-3"}`}>
                   <Label className="min-h-8">Tiempo de entrega</Label>
                   <Select
                     value={activeDeliveryUnit}
