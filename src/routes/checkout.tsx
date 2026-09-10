@@ -10,7 +10,6 @@ import {
   Lock,
   Package,
   ShoppingBag,
-  Tag,
   Truck,
 } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
@@ -125,10 +124,30 @@ function CheckoutPage() {
       }
     });
   }, [brand.slug]);
-  const [couponCode, setCouponCode] = useState("");
-  const [couponApplied, setCouponApplied] = useState(false);
-  const [couponPercentage, setCouponPercentage] = useState(0);
-  const [couponMessage, setCouponMessage] = useState("");
+  const [couponCode] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").code ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [couponApplied, setCouponApplied] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return Boolean(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").applied);
+    } catch {
+      return false;
+    }
+  });
+  const [couponPercentage, setCouponPercentage] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      return Number(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").percentage) || 0;
+    } catch {
+      return 0;
+    }
+  });
   const [validationMessage, setValidationMessage] = useState("");
   const validationRef = useRef<HTMLDivElement | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<
@@ -486,50 +505,6 @@ function CheckoutPage() {
                   />
                 </div>
               </div>
-            </section>
-
-            <section className="glass-panel rounded-2xl p-6">
-              <h2 className="font-display flex items-center gap-2 font-semibold">
-                <Tag className="size-4 text-primary" /> Descuento
-              </h2>
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <Input
-                  aria-label="Código de descuento"
-                  placeholder="Código de descuento"
-                  value={couponCode}
-                  onChange={(event) => {
-                    setCouponCode(event.target.value);
-                    setCouponMessage("");
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    const matchingCoupon = (brand.discounts ?? []).find(
-                      (discount) =>
-                        discount.enabled && discount.code === couponCode.trim().toUpperCase(),
-                    );
-                    const isValid = Boolean(matchingCoupon);
-                    setCouponApplied(isValid);
-                    setCouponPercentage(matchingCoupon?.percentage ?? 0);
-                    setCouponMessage(
-                      isValid
-                        ? `Código aplicado: ${matchingCoupon?.percentage}% de descuento.`
-                        : "El código no es válido.",
-                    );
-                  }}
-                >
-                  Aplicar
-                </Button>
-              </div>
-              {couponMessage && (
-                <p
-                  className={`mt-2 text-xs ${couponApplied ? "text-green-600" : "text-destructive"}`}
-                >
-                  {couponMessage}
-                </p>
-              )}
             </section>
 
             <section className="glass-panel rounded-2xl p-6">

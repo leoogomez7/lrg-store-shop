@@ -486,11 +486,11 @@ function ProductDetail() {
               </div>
 
               <div className="flex flex-wrap items-center justify-start gap-2">
-                <div className="glass flex items-center gap-1 rounded-xl p-1">
+                <div className="flex items-center gap-0.5 rounded-full border border-border bg-background/70 p-0.5">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-8"
+                    className="size-7 rounded-full"
                     onClick={() => setQuantity((value) => Math.max(1, value - 1))}
                     aria-label="Restar unidad"
                   >
@@ -510,13 +510,13 @@ function ProductDetail() {
                           : Math.min(Math.max(1, nextQuantity), activeProduct.stock),
                       );
                     }}
-                    className="quantity-input h-8 w-10 rounded-lg border-0 bg-transparent text-center text-sm font-semibold text-foreground outline-none focus:ring-2 focus:ring-primary"
+                    className="quantity-input h-7 w-8 rounded-lg border-0 bg-transparent text-center text-sm font-bold text-foreground outline-none focus:ring-2 focus:ring-primary"
                     aria-label={`Cantidad de ${activeProduct.name}`}
                   />
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-8"
+                    className="size-7 rounded-full"
                     onClick={increaseQuantity}
                     aria-label="Sumar unidad"
                     disabled={!hasStock}

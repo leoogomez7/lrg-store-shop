@@ -7,6 +7,7 @@ import {
   Package,
   Plus,
   ShoppingBag,
+  Tag,
   X,
 } from "lucide-react";
 import { useState } from "react";
@@ -48,6 +49,35 @@ export const Route = createFileRoute("/carrito")({
 function CartPage() {
   const navigate = useNavigate();
   const { items, hydrated, subtotal, setQuantity, removeItem, clear } = useCart();
+  const couponBrand = getBrand(items[0]?.brand ?? webDesignConfig.slug) ?? webDesignConfig;
+  const [couponCode, setCouponCode] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").code ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [couponApplied, setCouponApplied] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return Boolean(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").applied);
+    } catch {
+      return false;
+    }
+  });
+  const [couponPercentage, setCouponPercentage] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      return Number(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").percentage) || 0;
+    } catch {
+      return 0;
+    }
+  });
+  const [couponMessage, setCouponMessage] = useState("");
+  const discountedSubtotal = couponApplied
+    ? subtotal * (1 - couponPercentage / 100)
+    : subtotal;
 
   const [confirmState, setConfirmState] = useState({
     open: false,
@@ -241,6 +271,66 @@ function CartPage() {
               </section>
 
               <aside className="glass-panel h-fit rounded-2xl p-6 lg:sticky lg:top-24">
+                <section className="mb-6 border-b border-border/60 pb-6">
+                  <h2 className="font-display flex items-center gap-2 font-semibold">
+                    <Tag className="size-4 text-primary" /> Descuento
+                  </h2>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                    <input
+                      aria-label="Código de descuento"
+                      placeholder="Código de descuento"
+                      value={couponCode}
+                      onChange={(event) => {
+                        setCouponCode(event.target.value);
+                        setCouponMessage("");
+                      }}
+                      className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        const matchingCoupon = (couponBrand.discounts ?? []).find(
+                          (discount) =>
+                            discount.enabled &&
+                            discount.code === couponCode.trim().toUpperCase(),
+                        );
+                        const isValid = Boolean(matchingCoupon);
+                        const percentage = matchingCoupon?.percentage ?? 0;
+                        setCouponApplied(isValid);
+                        setCouponPercentage(percentage);
+                        setCouponMessage(
+                          isValid
+                            ? `Código aplicado: ${percentage}% de descuento.`
+                            : "El código no es válido.",
+                        );
+                        if (typeof window !== "undefined") {
+                          if (isValid) {
+                            window.localStorage.setItem(
+                              "lrg_checkout_coupon",
+                              JSON.stringify({
+                                code: couponCode.trim().toUpperCase(),
+                                percentage,
+                                applied: true,
+                              }),
+                            );
+                          } else {
+                            window.localStorage.removeItem("lrg_checkout_coupon");
+                          }
+                        }
+                      }}
+                    >
+                      Aplicar
+                    </Button>
+                  </div>
+                  {couponMessage && (
+                    <p
+                      className={`mt-2 text-xs ${couponApplied ? "text-green-600" : "text-destructive"}`}
+                    >
+                      {couponMessage}
+                    </p>
+                  )}
+                </section>
                 <h2 className="font-display font-semibold">Resumen</h2>
                 <dl className="mt-5 space-y-3 text-sm">
                   <div className="flex justify-between">
@@ -251,9 +341,15 @@ function CartPage() {
                     <dt className="text-muted-foreground">Envío</dt>
                     <dd>Elegir en checkout</dd>
                   </div>
+                  {couponApplied && (
+                    <div className="flex justify-between text-green-600">
+                      <dt>Descuento ({couponPercentage}%)</dt>
+                      <dd>-{formatPrice((subtotal * couponPercentage) / 100)}</dd>
+                    </div>
+                  )}
                   <div className="flex justify-between font-semibold text-foreground">
                     <dt>Total</dt>
-                    <dd>{formatPrice(subtotal)}</dd>
+                    <dd>{formatPrice(discountedSubtotal)}</dd>
                   </div>
                   <div className="mt-4">
                     <Link to="/checkout">
