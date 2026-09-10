@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer } from "react";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
 import { toast } from "sonner";
 import type { BrandSlug } from "@/config/brands";
 import type { Product } from "@/data/products";
+import { CartContext, type CartContextValue } from "@/store/cart-context";
 import {
   loadGuestCart,
   loadUserCart,
@@ -51,9 +52,9 @@ function reducer(state: CartState, action: CartAction): CartState {
             item.id === action.item.id
               ? {
                   ...item,
-                    quantity: item.stockUnlimited
-                      ? item.quantity + action.item.quantity
-                      : Math.min(item.quantity + action.item.quantity, item.stock),
+                  quantity: item.stockUnlimited
+                    ? item.quantity + action.item.quantity
+                    : Math.min(item.quantity + action.item.quantity, item.stock),
                 }
               : item,
           ),
@@ -68,12 +69,12 @@ function reducer(state: CartState, action: CartAction): CartState {
         ...state,
         items: state.items.map((item) =>
           item.id === action.id
-          ? {
-              ...item,
-              quantity: item.stockUnlimited
-                ? Math.max(1, action.quantity)
-                : Math.max(1, Math.min(action.quantity, item.stock)),
-            }
+            ? {
+                ...item,
+                quantity: item.stockUnlimited
+                  ? Math.max(1, action.quantity)
+                  : Math.max(1, Math.min(action.quantity, item.stock)),
+              }
             : item,
         ),
       };
@@ -85,22 +86,6 @@ function reducer(state: CartState, action: CartAction): CartState {
       return state;
   }
 }
-
-type CartContextValue = {
-  items: CartItem[];
-  hydrated: boolean;
-  count: number;
-  subtotal: number;
-  addProduct: (product: Product, quantity?: number) => void;
-  removeItem: (id: string) => void;
-  setQuantity: (id: string, quantity: number) => void;
-  clear: () => void;
-  itemsByBrand: (brand: BrandSlug) => CartItem[];
-  brandSubtotal: (brand: BrandSlug) => number;
-  clearBrand: (brand: BrandSlug) => void;
-};
-
-const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({
   children,
@@ -191,7 +176,7 @@ export function CartProvider({
         },
       });
       if (canAdd < quantity) {
-        toast("Se agregó parte del pedido: se alcanzó el límite de stock", {
+        toast.warning("Se agregó parte del pedido: se alcanzó el límite de stock", {
           description: product.name,
         });
       } else {
@@ -220,17 +205,17 @@ export function CartProvider({
       },
     });
     if (toAdd < quantity) {
-      toast("Se agregó parte del pedido: se alcanzó el límite de stock", {
+      toast.warning("Se agregó parte del pedido: se alcanzó el límite de stock", {
         description: product.name,
       });
     } else {
       toast.success("Agregado al carrito", { description: product.name });
     }
-  }, []);
+  }, [state.items]);
 
   const removeItem = useCallback((id: string) => {
     dispatch({ type: "remove", id });
-    toast("Producto eliminado del carrito");
+    toast.success("Producto eliminado del carrito");
   }, []);
 
   const setQuantity = useCallback((id: string, quantity: number) => {
@@ -267,10 +252,4 @@ export function CartProvider({
   }, [state.items, state.hydrated, addProduct, removeItem, setQuantity, clear, clearBrand]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
-}
-
-export function useCart() {
-  const context = useContext(CartContext);
-  if (!context) throw new Error("useCart debe usarse dentro de CartProvider");
-  return context;
 }

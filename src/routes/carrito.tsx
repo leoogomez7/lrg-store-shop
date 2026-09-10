@@ -16,7 +16,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { formatPrice } from "@/lib/format";
-import { useCart } from "@/store/cart";
+import { useCart } from "@/store/cart-context";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/carrito")({

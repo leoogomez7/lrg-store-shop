@@ -26,7 +26,7 @@ import {
 import { logout } from "@/lib/auth";
 import { brandList, type BrandConfig } from "@/config/brands";
 import { cn } from "@/lib/utils";
-import { useCart } from "@/store/cart";
+import { useCart } from "@/store/cart-context";
 
 export function BrandHeader({
   brand,

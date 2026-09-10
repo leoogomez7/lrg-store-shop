@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProductVisual } from "@/components/common/product-visual";
 import { formatPrice } from "@/lib/format";
-import { useCart } from "@/store/cart";
+import { useCart } from "@/store/cart-context";
 import { getBrand } from "@/config/brands";
 import type { BrandConfig } from "@/config/brands";
 import { catalogQueries } from "@/services/catalog.service";

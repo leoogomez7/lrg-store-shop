@@ -109,13 +109,24 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [showFinalPassword, setShowFinalPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [finalPasswordError, setFinalPasswordError] = useState("");
+  const hasVerifiedAdminAccess = isAuthenticated && adminUnlocked;
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setAdminUnlocked(false);
+      setInitialPasswordVerified(false);
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem("lrg_admin_final_verified");
+        window.sessionStorage.removeItem("lrg_auth_role");
+      }
+      return;
+    }
+
     if (pathname === "/admin") {
       navigate({ to: "/admin/panel", replace: true });
       return;
     }
-  }, [navigate, pathname]);
+  }, [isAuthenticated, navigate, pathname]);
 
   useEffect(() => {
     if (!isAuthenticated || typeof window === "undefined") return;
@@ -185,7 +196,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     navigate({ to: "/admin/panel" });
   }
 
-  if (!adminUnlocked && !isAuthenticated && !initialPasswordVerified) {
+  if (!hasVerifiedAdminAccess && !isAuthenticated && !initialPasswordVerified) {
     return (
       <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
         <form onSubmit={unlockAdmin} className="glass-card w-full max-w-md space-y-5 p-6">
@@ -241,7 +252,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     );
   }
 
-  if (!adminUnlocked && !isAuthenticated) {
+  if (!hasVerifiedAdminAccess && !isAuthenticated) {
     return (
       <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
         <div className="glass-card w-full max-w-md space-y-5 p-6">
@@ -286,7 +297,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     );
   }
 
-  if (!adminUnlocked) {
+  if (!hasVerifiedAdminAccess) {
     return (
       <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
         <form

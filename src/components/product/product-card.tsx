@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductVisual } from "@/components/common/product-visual";
 import { formatPrice } from "@/lib/format";
-import { useCart } from "@/store/cart";
+import { useCart } from "@/store/cart-context";
 import type { Product } from "@/data/products";
 import { hydrateFavorites, subscribeToFavoriteChanges, toggleFavoriteProduct } from "@/lib/favorites";
 

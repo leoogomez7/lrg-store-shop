@@ -1,10 +1,21 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, Check, Minus, Plus, ShoppingBag, ShoppingCart, Truck } from "lucide-react";
-import { useState } from "react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Minus,
+  Plus,
+  ShoppingBag,
+  ShoppingCart,
+  Truck,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { Product } from "@/data/products";
-import { ProductVisual } from "@/components/common/product-visual";
+import { CroppedProductImage, ProductVisual } from "@/components/common/product-visual";
 import { SectionHeading } from "@/components/common/section-heading";
 import { ProductCard } from "@/components/product/product-card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getBrand } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { catalogQueries } from "@/services/catalog.service";
-import { useCart } from "@/store/cart";
+import { useCart } from "@/store/cart-context";
 import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/$brand/producto/$slug")({
@@ -77,9 +88,39 @@ function ProductDetail() {
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
     product?.variants?.[0]?.id,
   );
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const navigate = useNavigate();
 
+  const productImages = product?.images ?? [];
+  const selectedImage = productImages[selectedImageIndex] ?? productImages[0];
+  const hasMultipleImages = productImages.length > 1;
+
+  useEffect(() => {
+    if (!imageViewerOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setImageViewerOpen(false);
+      if (!hasMultipleImages) return;
+      if (event.key === "ArrowLeft") {
+        setSelectedImageIndex((index) => (index - 1 + productImages.length) % productImages.length);
+      }
+      if (event.key === "ArrowRight") {
+        setSelectedImageIndex((index) => (index + 1) % productImages.length);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [hasMultipleImages, imageViewerOpen, productImages.length]);
+
+  useEffect(() => {
+    setSelectedImageIndex(0);
+    setImageViewerOpen(false);
+  }, [product?.id]);
+
   if (!product) return null;
+
   const selectedVariant =
     product.variants?.find((variant) => variant.id === selectedVariantId) ?? product.variants?.[0];
 
@@ -243,25 +284,40 @@ function ProductDetail() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(440px,0.95fr)_minmax(420px,1.05fr)]">
         <div className="overflow-hidden rounded-3xl p-2">
-          {product.images && product.images.length > 0 ? (
+          {productImages.length > 0 ? (
             <div>
-              <img
-                src={product.images[0]}
-                alt={`${product.name} portada`}
-                className="aspect-4/3 w-full rounded-2xl object-cover"
-              />
-              {product.images.length > 1 && (
-                <div className="mt-4 grid grid-cols-3 gap-3">
-                  {product.images.slice(1).map((image, index) => (
-                    <img
-                      key={`${image}-${index}`}
-                      src={image}
-                      alt={`${product.name} imagen ${index + 2}`}
-                      className="aspect-square w-full rounded-xl object-cover"
+              <button
+                type="button"
+                className="block aspect-4/3 w-full cursor-zoom-in overflow-hidden rounded-2xl bg-surface-2"
+                onClick={() => setImageViewerOpen(true)}
+                aria-label={`Abrir imagen ${selectedImageIndex + 1} de ${productImages.length}`}
+              >
+                <CroppedProductImage
+                  image={selectedImage}
+                  label={`${product.name} imagen ${selectedImageIndex + 1}`}
+                />
+              </button>
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                {productImages.map((image, index) => (
+                  <button
+                    key={`${image}-${index}`}
+                    type="button"
+                    className={`aspect-square overflow-hidden rounded-xl border-2 bg-surface-2 transition ${
+                      selectedImageIndex === index
+                        ? "border-primary"
+                        : "border-transparent hover:border-border"
+                    }`}
+                    onClick={() => setSelectedImageIndex(index)}
+                    aria-label={`Seleccionar imagen ${index + 1}`}
+                    aria-pressed={selectedImageIndex === index}
+                  >
+                    <CroppedProductImage
+                      image={image}
+                      label={`${product.name} miniatura ${index + 1}`}
                     />
-                  ))}
-                </div>
-              )}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
             <>
@@ -283,6 +339,67 @@ function ProductDetail() {
             </>
           )}
         </div>
+
+        {imageViewerOpen && selectedImage && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 sm:p-8"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Visor de imágenes de ${product.name}`}
+            onClick={() => setImageViewerOpen(false)}
+          >
+            <div
+              className="relative flex max-h-full max-w-6xl items-center justify-center"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <img
+                src={selectedImage}
+                alt={`${product.name} imagen completa ${selectedImageIndex + 1}`}
+                className="max-h-[90vh] max-w-[90vw] object-contain"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                className="absolute -right-2 -top-2 rounded-full sm:-right-4 sm:-top-4"
+                onClick={() => setImageViewerOpen(false)}
+                aria-label="Cerrar imagen"
+              >
+                <X className="size-4" />
+              </Button>
+              {hasMultipleImages && (
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full sm:-left-16"
+                    onClick={() =>
+                      setSelectedImageIndex(
+                        (index) => (index - 1 + productImages.length) % productImages.length,
+                      )
+                    }
+                    aria-label="Imagen anterior"
+                  >
+                    <ChevronLeft className="size-5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full sm:-right-16"
+                    onClick={() =>
+                      setSelectedImageIndex((index) => (index + 1) % productImages.length)
+                    }
+                    aria-label="Imagen siguiente"
+                  >
+                    <ChevronRight className="size-5" />
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="pl-0 lg:pl-3">
           <div className="flex flex-wrap items-center gap-2">

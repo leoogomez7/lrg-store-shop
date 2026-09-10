@@ -36,6 +36,7 @@ import {
 } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
+import { cropImageDataUrl } from "@/lib/image-processing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -466,7 +467,9 @@ function AdminProducts() {
       return;
     }
 
-    const imageDataUrls = await Promise.all(imageFiles.map((file) => fileToDataUrl(file)));
+    const imageDataUrls = await Promise.all(
+      imageFiles.map(async (file) => cropImageDataUrl(await fileToDataUrl(file))),
+    );
 
     const importedProducts = imageFiles.map((file, index) => {
       const baseName = file.name
@@ -996,8 +999,10 @@ function AdminProducts() {
     | "discountedPrice_asc"
     | "discountedPrice_desc";
 
-  const handleSaveProduct = () => {
+  const handleSaveProduct = async () => {
     if (!productForm) return;
+
+    const processedImages = await Promise.all(productForm.images.map(cropImageDataUrl));
 
     let savedProductId = productForm.id;
 
@@ -1021,7 +1026,7 @@ function AdminProducts() {
               description: productForm.description,
               features: productForm.features,
               includes: productForm.includes,
-              images: productForm.images,
+              images: processedImages,
               variants: productForm.variants,
               supplier: productForm.supplier,
               deliveryUnit: productForm.deliveryUnit || "inmediata",
@@ -1057,7 +1062,7 @@ function AdminProducts() {
           description: productForm.description,
           features: productForm.features,
           includes: productForm.includes,
-          images: productForm.images,
+          images: processedImages,
           variants: productForm.variants,
           supplier: productForm.supplier,
           deliveryUnit: productForm.deliveryUnit || "inmediata",
@@ -1090,7 +1095,7 @@ function AdminProducts() {
         existing.description = productForm.description;
         existing.features = productForm.features;
         existing.includes = productForm.includes;
-        existing.images = productForm.images;
+        existing.images = processedImages;
         existing.variants = productForm.variants;
         existing.supplier = productForm.supplier;
         existing.deliveryUnit = productForm.deliveryUnit || "inmediata";
@@ -3029,7 +3034,9 @@ function ProductEditDialog({
     const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
     if (!imageFiles.length) return;
 
-    const imageDataUrls = await Promise.all(imageFiles.map((file) => fileToDataUrl(file)));
+    const imageDataUrls = await Promise.all(
+      imageFiles.map(async (file) => cropImageDataUrl(await fileToDataUrl(file))),
+    );
 
     setProductForm({
       ...productForm,

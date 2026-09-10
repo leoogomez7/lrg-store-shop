@@ -13,7 +13,7 @@ import {
   Truck,
 } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
-import { useCart } from "@/store/cart";
+import { useCart } from "@/store/cart-context";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import {
