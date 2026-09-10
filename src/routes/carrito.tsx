@@ -49,7 +49,6 @@ export const Route = createFileRoute("/carrito")({
 function CartPage() {
   const navigate = useNavigate();
   const { items, hydrated, subtotal, setQuantity, removeItem, clear } = useCart();
-  const couponBrand = getBrand(items[0]?.brand ?? webDesignConfig.slug) ?? webDesignConfig;
   const [couponCode, setCouponCode] = useState(() => {
     if (typeof window === "undefined") return "";
     try {
@@ -74,10 +73,21 @@ function CartPage() {
       return 0;
     }
   });
+  const [couponBrandSlug, setCouponBrandSlug] = useState<string | undefined>(() => {
+    if (typeof window === "undefined") return undefined;
+    try {
+      return JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").brandSlug;
+    } catch {
+      return undefined;
+    }
+  });
   const [couponMessage, setCouponMessage] = useState("");
-  const discountedSubtotal = couponApplied
-    ? subtotal * (1 - couponPercentage / 100)
-    : subtotal;
+  const discountedItemsSubtotal = couponApplied
+    ? items
+        .filter((item) => item.brand === couponBrandSlug)
+        .reduce((total, item) => total + item.price * item.quantity, 0)
+    : 0;
+  const discountedSubtotal = subtotal - (discountedItemsSubtotal * couponPercentage) / 100;
 
   const [confirmState, setConfirmState] = useState({
     open: false,
@@ -289,8 +299,22 @@ function CartPage() {
                     <Button
                       type="button"
                       variant="secondary"
+                      className={`transition-all ${
+                        couponCode.trim()
+                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90"
+                          : ""
+                      }`}
                       onClick={() => {
-                        const matchingCoupon = (couponBrand.discounts ?? []).find(
+                        const matchingBrand = items
+                          .map((item) => getBrand(item.brand))
+                          .find((store) =>
+                            store?.discounts?.some(
+                              (discount) =>
+                                discount.enabled &&
+                                discount.code === couponCode.trim().toUpperCase(),
+                            ),
+                          );
+                        const matchingCoupon = matchingBrand?.discounts?.find(
                           (discount) =>
                             discount.enabled &&
                             discount.code === couponCode.trim().toUpperCase(),
@@ -299,6 +323,7 @@ function CartPage() {
                         const percentage = matchingCoupon?.percentage ?? 0;
                         setCouponApplied(isValid);
                         setCouponPercentage(percentage);
+                        setCouponBrandSlug(matchingBrand?.slug);
                         setCouponMessage(
                           isValid
                             ? `Código aplicado: ${percentage}% de descuento.`
@@ -312,10 +337,12 @@ function CartPage() {
                                 code: couponCode.trim().toUpperCase(),
                                 percentage,
                                 applied: true,
+                                brandSlug: matchingBrand?.slug,
                               }),
                             );
                           } else {
                             window.localStorage.removeItem("lrg_checkout_coupon");
+                            setCouponBrandSlug(undefined);
                           }
                         }
                       }}
@@ -344,7 +371,7 @@ function CartPage() {
                   {couponApplied && (
                     <div className="flex justify-between text-green-600">
                       <dt>Descuento ({couponPercentage}%)</dt>
-                      <dd>-{formatPrice((subtotal * couponPercentage) / 100)}</dd>
+                      <dd>-{formatPrice((discountedItemsSubtotal * couponPercentage) / 100)}</dd>
                     </div>
                   )}
                   <div className="flex justify-between font-semibold text-foreground">

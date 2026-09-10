@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
-  Check,
   CheckCircle2,
   CreditCard,
   LoaderCircle,
@@ -59,6 +58,7 @@ function CheckoutPage() {
   const { user, isAuthenticated, isLoading: kindeLoading } = useKindeAuth();
   const [step, setStep] = useState("form");
   const [orderId, setOrderId] = useState("");
+  const [isConfirming, setIsConfirming] = useState(false);
 
   // Choose brand from first item in cart if available, otherwise default to web-design
   const firstBrandSlug = items[0]?.brand ?? "web-design";
@@ -148,6 +148,14 @@ function CheckoutPage() {
       return 0;
     }
   });
+  const [couponBrandSlug] = useState<string | undefined>(() => {
+    if (typeof window === "undefined") return undefined;
+    try {
+      return JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").brandSlug;
+    } catch {
+      return undefined;
+    }
+  });
   const [validationMessage, setValidationMessage] = useState("");
   const validationRef = useRef<HTMLDivElement | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<
@@ -155,12 +163,20 @@ function CheckoutPage() {
   >([]);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [selectedSavedAddress, setSelectedSavedAddress] = useState("");
-  const discountedSubtotal = couponApplied ? subtotal * (1 - couponPercentage / 100) : subtotal;
+  const discountedItemsSubtotal = couponApplied
+    ? items
+        .filter((item) => item.brand === couponBrandSlug)
+        .reduce((sum, item) => sum + item.price * item.quantity, 0)
+    : 0;
+  const discountedSubtotal = subtotal - (discountedItemsSubtotal * couponPercentage) / 100;
   const eligibleCardSubtotal = items.reduce(
     (total, item) =>
       total +
       (item.cardCommission && isCardMethod(paymentMethodsByBrand[item.brand] ?? "")
-        ? item.price * item.quantity
+        ? item.price * item.quantity *
+          (couponApplied && item.brand === couponBrandSlug
+            ? 1 - couponPercentage / 100
+            : 1)
         : 0),
     0,
   );
@@ -186,6 +202,27 @@ function CheckoutPage() {
         name: getBrand(slug)?.name ?? slug,
         method: paymentMethodsByBrand[slug],
       }));
+
+    useEffect(() => {
+      if (step !== "done") return;
+      window.sessionStorage.setItem("lrg_checkout_completed", "true");
+      const redirectTimer = window.setTimeout(() => {
+        navigate({ to: "/productos", replace: true });
+      }, 8000);
+      return () => window.clearTimeout(redirectTimer);
+    }, [step]);
+
+    useEffect(() => {
+      if (step !== "form" || typeof window === "undefined") return;
+      const completedCheckout = window.sessionStorage.getItem("lrg_checkout_completed") === "true";
+      if (completedCheckout && items.length === 0) {
+        navigate({ to: "/productos", replace: true });
+        return;
+      }
+      if (items.length > 0) {
+        window.sessionStorage.removeItem("lrg_checkout_completed");
+      }
+    }, [items.length, step]);
 
   useEffect(() => {
     if (validationMessage && validationRef.current) {
@@ -245,6 +282,7 @@ function CheckoutPage() {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isConfirming) return;
 
     const missingFields: string[] = [];
     if (!customerName.trim()) missingFields.push("Nombre completo");
@@ -262,6 +300,7 @@ function CheckoutPage() {
 
     setValidationMessage("");
     if (items.length === 0) return;
+    setIsConfirming(true);
     if (isAuthenticated && user?.id) {
       void updateUserProfile({
         data: {
@@ -338,6 +377,7 @@ function CheckoutPage() {
         });
         window.location.assign(preference.url);
       } catch (error) {
+        setIsConfirming(false);
         setValidationMessage(
           error instanceof Error ? error.message : "No se pudo iniciar el pago con Mercado Pago.",
         );
@@ -357,12 +397,15 @@ function CheckoutPage() {
     return (
       <div className="theme-webdesign relative min-h-screen bg-background text-foreground">
         {Header}
-        <main className="min-h-screen px-4 pt-24 sm:px-6">
-          <div className="glass-panel fixed inset-x-4 top-20 z-40 mx-auto max-w-2xl rounded-3xl p-8 text-center shadow-2xl sm:p-12">
+        <main className="flex min-h-screen items-start justify-center px-4 pb-16 pt-24 sm:px-6">
+          <div className="glass-panel w-full max-w-2xl rounded-3xl p-8 text-center shadow-2xl sm:p-12">
             <CheckCircle2 className="mx-auto size-12 text-primary" />
             <h1 className="font-display mt-6 text-3xl font-semibold">¡Gracias por tu compra!</h1>
             <p className="mt-3 text-muted-foreground">
               Tu pedido <span className="text-foreground">{orderId}</span> fue confirmado.
+            </p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              En unos segundos vas a ser redirigido al catálogo completo de la tienda.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button asChild>
@@ -372,7 +415,7 @@ function CheckoutPage() {
               </Button>
               <Button asChild variant="secondary">
                 <Link to="/cuenta/panel">
-                  <Package className="size-4" /> Ver mis pedidos
+                  <Package className="size-4" /> Ver mis compras
                 </Link>
               </Button>
             </div>
@@ -622,10 +665,16 @@ function CheckoutPage() {
                 <span>{formatPrice(subtotal)}</span>
               </div>
               {couponApplied && (
-                <div className="flex items-center justify-between text-green-600">
-                  <span>Descuento ({couponPercentage}%)</span>
-                  <span>-{formatPrice((subtotal * couponPercentage) / 100)}</span>
-                </div>
+                <>
+                  <div className="flex items-center justify-between text-green-600">
+                    <span>Código: {couponCode}</span>
+                    <span>{couponPercentage}%</span>
+                  </div>
+                  <div className="flex items-center justify-between text-green-600">
+                    <span>Descuento</span>
+                    <span>-{formatPrice((discountedItemsSubtotal * couponPercentage) / 100)}</span>
+                  </div>
+                </>
               )}
               {isCardPayment && cardFee > 0 && (
                 <div className="flex items-center justify-between text-muted-foreground">
@@ -680,8 +729,17 @@ function CheckoutPage() {
               <Button
                 type="submit"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={isConfirming || !brandSettingsReady}
               >
-                <Check className="size-4" /> Confirmar pedido
+                {isConfirming ? (
+                  <>
+                    <LoaderCircle className="size-4 animate-spin" /> Confirmando compra...
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="size-4" /> Comprar
+                  </>
+                )}
               </Button>
             </div>
           </aside>
