@@ -38,7 +38,7 @@ export function expandCatalogProducts(productList: Product[]) {
         parentId: product.id,
         variantId: variant.id,
         variantName: variant.name,
-        name: `${product.name}${variant.name ? ` · ${variant.name}` : ""}`,
+        name: product.name,
         price: variant.price,
         priceCurrency: variant.priceCurrency ?? product.priceCurrency ?? "ARS",
         comision: variant.comision ?? product.comision,
@@ -136,6 +136,11 @@ export const catalogService = {
     products.splice(0, products.length, ...loaded);
     return simulate(expandCatalogProducts(loaded), 200);
   },
+  listAllAdmin: async () => {
+    const loaded = await listAdminProducts({ data: {} });
+    products.splice(0, products.length, ...loaded);
+    return simulate(loaded, 200);
+  },
 };
 
 export const orderService = {
@@ -189,6 +194,11 @@ export const catalogQueries = {
     queryOptions({
       queryKey: ["products", "all"],
       queryFn: () => catalogService.listAll(),
+    }),
+  allAdmin: () =>
+    queryOptions({
+      queryKey: ["products", "all", "admin"],
+      queryFn: () => catalogService.listAllAdmin(),
     }),
 };
 

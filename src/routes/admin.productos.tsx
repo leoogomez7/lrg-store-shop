@@ -140,7 +140,7 @@ export const Route = createFileRoute("/admin/productos")({
 });
 
 function AdminProducts() {
-  const { data: products } = useSuspenseQuery(catalogQueries.all());
+  const { data: products } = useSuspenseQuery(catalogQueries.allAdmin());
   const [editableProducts, setEditableProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState<BrandSlug[]>([]);
@@ -659,15 +659,28 @@ function AdminProducts() {
   };
 
   const handleBulkDeleteProducts = () => {
-    const ids = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
-    (productsData as Product[])
-      .filter((product) => ids.has(product.id))
-      .forEach((product) => moveToTrash({ type: "producto", id: product.id, item: product }));
-    setEditableProducts((current) => current.filter((product) => !ids.has(product.id)));
-    for (const productId of ids) {
-      const index = (productsData as Product[]).findIndex((product) => product.id === productId);
-      if (index !== -1) (productsData as Product[]).splice(index, 1);
-    }
+    const selectedKeys = new Set(selectedProductIds);
+    const nextProducts = (productsData as Product[]).flatMap((product) => {
+      const baseKey = getProductSelectionKey(product);
+      if (selectedKeys.has(baseKey)) {
+        moveToTrash({ type: "producto", id: product.id, item: product });
+        return [];
+      }
+
+      const selectedVariantIds = new Set(
+        selectedProductIds
+          .filter((key) => key.startsWith(`${product.id}:`) && !key.endsWith(":base"))
+          .map((key) => key.slice(product.id.length + 1)),
+      );
+      if (!selectedVariantIds.size) return [product];
+
+      const remainingVariants = (product.variants ?? []).filter(
+        (variant) => !selectedVariantIds.has(variant.id),
+      );
+      return [{ ...product, variants: remainingVariants }];
+    });
+    productsData.splice(0, productsData.length, ...nextProducts);
+    setEditableProducts(nextProducts);
     saveProducts(productsData as Product[]);
     setSelectedProductIds([]);
   };
@@ -1227,7 +1240,7 @@ function AdminProducts() {
   const displayRows = useMemo(
     () =>
       visibleResults.flatMap((product) =>
-        product.variants && product.variants.length >= 2
+        product.variants && product.variants.length > 0
           ? product.variants.map((variant) => ({ product, variant }))
           : [{ product, variant: undefined }],
       ),
