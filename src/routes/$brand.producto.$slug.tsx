@@ -496,7 +496,23 @@ function ProductDetail() {
                   >
                     <Minus className="size-3.5" />
                   </Button>
-                  <span className="w-8 text-center text-sm">{quantity}</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={activeProduct.stockUnlimited ? undefined : activeProduct.stock}
+                    value={quantity}
+                    onChange={(event) => {
+                      const nextQuantity = Number(event.target.value);
+                      if (!Number.isFinite(nextQuantity)) return;
+                      setQuantity(
+                        activeProduct.stockUnlimited
+                          ? Math.max(1, nextQuantity)
+                          : Math.min(Math.max(1, nextQuantity), activeProduct.stock),
+                      );
+                    }}
+                    className="h-8 w-10 rounded-lg border-0 bg-transparent text-center text-sm font-semibold text-foreground outline-none focus:ring-2 focus:ring-primary"
+                    aria-label={`Cantidad de ${activeProduct.name}`}
+                  />
                   <Button
                     variant="ghost"
                     size="icon"

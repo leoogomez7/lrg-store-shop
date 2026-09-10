@@ -144,14 +144,16 @@ function CartPage() {
                         {item.stockUnlimited ? "∞ Stock ilimitado" : `${item.stock} disponibles`}
                       </p>
 
-                      <div className="mt-4 flex w-fit items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-2 py-1.5">
-                        <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-primary">
-                          Cantidad
-                        </span>
+                    </div>
+                    <div className="ml-auto flex flex-col items-end gap-3 pr-10">
+                      <p className="font-display text-lg font-semibold">
+                        {formatPrice(item.price * item.quantity)}
+                      </p>
+                      <div className="flex items-center gap-1 rounded-full border border-border bg-background/70 p-1">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="size-9 rounded-lg bg-background/70"
+                          className="size-8 rounded-full"
                           onClick={() => setQuantity(item.id, item.quantity - 1)}
                           aria-label="Restar unidad"
                           disabled={item.quantity <= 1}
@@ -171,13 +173,13 @@ function CartPage() {
                               : Math.min(Math.max(1, nextQuantity), item.stock);
                             setQuantity(item.id, limitedQuantity);
                           }}
-                          className="h-9 w-12 rounded-lg border-0 bg-transparent text-center text-base font-bold text-foreground outline-none focus:ring-2 focus:ring-primary"
+                          className="h-8 w-10 rounded-lg border-0 bg-transparent text-center text-sm font-bold text-foreground outline-none focus:ring-2 focus:ring-primary"
                           aria-label={`Cantidad de ${item.name}`}
                         />
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="size-9 rounded-lg bg-background/70"
+                          className="size-8 rounded-full"
                           onClick={() => {
                             if (!item.stockUnlimited && item.quantity >= item.stock) {
                               toast.error("No hay más stock disponible para agregar.", {
@@ -191,28 +193,25 @@ function CartPage() {
                         >
                           <Plus className="size-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-3 top-3 size-8 rounded-full text-white hover:border-red-500 hover:bg-red-500/10 hover:text-white"
-                          onClick={() =>
-                            setConfirmState({
-                              open: true,
-                              title: `Eliminar "${item.name}" del carrito?`,
-                              description: undefined,
-                              onConfirm: () => removeItem(item.id),
-                            })
-                          }
-                          aria-label={`Eliminar ${item.name}`}
-                          title="Eliminar"
-                        >
-                          <X className="size-4" />
-                        </Button>
                       </div>
                     </div>
-                    <p className="font-display self-center text-lg font-semibold">
-                      {formatPrice(item.price * item.quantity)}
-                    </p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-3 top-3 size-8 rounded-full text-white hover:border-red-500 hover:bg-red-500/10 hover:text-white"
+                      onClick={() =>
+                        setConfirmState({
+                          open: true,
+                          title: `Eliminar "${item.name}" del carrito?`,
+                          description: undefined,
+                          onConfirm: () => removeItem(item.id),
+                        })
+                      }
+                      aria-label={`Eliminar ${item.name}`}
+                      title="Eliminar"
+                    >
+                      <X className="size-4" />
+                    </Button>
                   </article>
                 ))}
 
