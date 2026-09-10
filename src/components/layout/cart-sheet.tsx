@@ -42,6 +42,11 @@ export function CartSheet({
     if (item.variantName) return item.variantName;
     const [productId, variantId] = item.id.split("::");
     if (!variantId) return "";
+    const catalogItem = catalog?.find(
+      (product) => product.id === item.id && product.brand === item.brand,
+    );
+    if (catalogItem?.variantName) return catalogItem.variantName;
+
     return (
       catalog
         ?.find((product) => product.id === productId && product.brand === item.brand)

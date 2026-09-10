@@ -2,7 +2,7 @@ import type { BrandSlug } from "@/config/brands";
 import { saveAdminProducts } from "@/server/persistence";
 
 export function saveProducts(products: Product[]) {
-  void saveAdminProducts({ data: { products } });
+  return saveAdminProducts({ data: { products } });
 }
 
 export type CurrencyCode = "ARS" | "USD";

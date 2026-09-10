@@ -570,7 +570,7 @@ function AdminProducts() {
     setEditDialogOpen(true);
   };
 
-  const handleDeleteProduct = (productId: string, variantId?: string) => {
+  const handleDeleteProduct = async (productId: string, variantId?: string) => {
     const product = (productsData as Product[]).find((item) => item.id === productId);
     if (product && variantId) {
       product.variants = (product.variants ?? []).filter((variant) => variant.id !== variantId);
@@ -581,7 +581,7 @@ function AdminProducts() {
             : currentProduct,
         ),
       );
-      saveProducts(productsData as Product[]);
+      await saveProducts(productsData as Product[]);
       return;
     }
     if (product) moveToTrash({ type: "producto", id: product.id, item: product });
@@ -602,7 +602,7 @@ function AdminProducts() {
     );
     if (productIndex !== -1) {
       (productsData as Product[]).splice(productIndex, 1);
-      saveProducts(productsData as Product[]);
+      await saveProducts(productsData as Product[]);
     }
   };
 
@@ -658,7 +658,7 @@ function AdminProducts() {
     );
   };
 
-  const handleBulkDeleteProducts = () => {
+  const handleBulkDeleteProducts = async () => {
     const selectedKeys = new Set(selectedProductIds);
     const nextProducts = (productsData as Product[]).flatMap((product) => {
       const baseKey = getProductSelectionKey(product);
@@ -681,7 +681,7 @@ function AdminProducts() {
     });
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
-    saveProducts(productsData as Product[]);
+    await saveProducts(productsData as Product[]);
     setSelectedProductIds([]);
   };
 
