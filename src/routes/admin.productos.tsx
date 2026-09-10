@@ -1800,7 +1800,8 @@ function AdminProducts() {
             {displayRows.map(({ product, variant }) => {
               const discount = variant?.discount ?? discounts[product.id] ?? 0;
               const displayPrice = variant?.price ?? product.price;
-              const displayStock = variant?.stock ?? product.stock;
+              const isUnlimitedStock = (variant?.stockUnlimited ?? product.stockUnlimited) ?? false;
+              const displayStock = isUnlimitedStock ? "∞" : (variant?.stock ?? product.stock);
               const displayComision = variant?.comision ?? product.comision ?? 0;
               const displayGastos = variant?.gastos ?? product.gastos ?? 0;
               const displayPriceCurrency = variant?.priceCurrency ?? product.priceCurrency ?? "ARS";
@@ -2113,11 +2114,13 @@ function AdminProducts() {
                       <TableCell>
                         <Badge
                           variant={
-                            displayStock === 0
-                              ? "destructive"
-                              : displayStock <= 4
-                                ? "warning"
-                                : "success"
+                            displayStock === "∞"
+                              ? "success"
+                              : Number(displayStock) === 0
+                                ? "destructive"
+                                : Number(displayStock) <= 4
+                                  ? "warning"
+                                  : "success"
                           }
                         >
                           {displayStock}

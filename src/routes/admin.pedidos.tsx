@@ -580,9 +580,25 @@ function AdminOrders() {
     });
   };
 
-  const saveQuickEditOrder = (order: Order) => {
+  const saveQuickEditOrder = async (order: Order) => {
     const draft = quickEditOrderForm[order.id];
     if (!draft) return;
+
+    const nextStatus = mergeOrderStatus(draft.deliveryStatus, draft.paymentStatus);
+    const wasCanceled = order.status === "cancelado";
+    const willCancel = nextStatus === "cancelado" && !wasCanceled;
+    const willRestore = nextStatus !== "cancelado" && wasCanceled;
+
+    if (willCancel) {
+      await import("@/services/catalog.service").then(({ adjustProductStockForOrder }) =>
+        adjustProductStockForOrder(order, 1),
+      );
+    }
+    if (willRestore) {
+      await import("@/services/catalog.service").then(({ adjustProductStockForOrder }) =>
+        adjustProductStockForOrder(order, -1),
+      );
+    }
 
     setEditableOrders((currentOrders) => {
       const nextOrders = currentOrders.map((currentOrder) =>
@@ -595,7 +611,7 @@ function AdminOrders() {
               shippingNumber: draft.shippingNumber || undefined,
               paymentMethod: draft.paymentMethod,
               deliveryDate: draft.deliveryDate || undefined,
-              status: mergeOrderStatus(draft.deliveryStatus, draft.paymentStatus),
+              status: nextStatus,
             }
           : currentOrder,
       );

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { Order } from "@/data/orders";
+import { adjustProductStockForOrder } from "@/services/catalog.service";
 import { completePaymentIntent, loadPaymentIntent, upsertAdminOrder } from "@/server/persistence";
 
 export const Route = createFileRoute("/api/mercadopago/webhook")({
@@ -46,6 +47,7 @@ export const Route = createFileRoute("/api/mercadopago/webhook")({
           status: "pagado",
           paymentStatus: "Pagado",
         };
+        await adjustProductStockForOrder(order, -1);
         await upsertAdminOrder({ data: { order } });
         await completePaymentIntent({
           data: { id: payment.external_reference, orderId: id },

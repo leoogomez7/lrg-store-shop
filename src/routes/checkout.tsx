@@ -269,6 +269,9 @@ function CheckoutPage() {
         .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
         .join(" | "),
       items: items.map((item) => ({
+        productId: item.id.includes("::") ? item.id.split("::")[0] : item.id,
+        variantId: item.id.includes("::") ? item.id.split("::")[1] : undefined,
+        variantName: item.variantName,
         name: item.name,
         quantity: item.quantity,
         price: item.price,

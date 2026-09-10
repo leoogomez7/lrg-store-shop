@@ -32,6 +32,9 @@ export type Order = {
   shippingNumber?: string | undefined;
   attachments?: OrderAttachment[];
   items: {
+    productId?: string;
+    variantId?: string;
+    variantName?: string;
     name: string;
     quantity: number;
     price: number;

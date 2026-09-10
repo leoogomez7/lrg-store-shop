@@ -24,7 +24,7 @@ export function ProductCard({
   const navigate = useNavigate();
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteOwner, setFavoriteOwner] = useState<string | null>(null);
-  const outOfStock = product.stock <= 0;
+  const outOfStock = !product.stockUnlimited && product.stock <= 0;
   const discountPercent = product.compareAtPrice
     ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
     : 0;
@@ -136,6 +136,11 @@ export function ProductCard({
                 {product.name}
               </Link>
             </h3>
+            {product.variantName && (
+              <span className="mt-1 inline-flex rounded-full border border-border/80 bg-background/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                {product.variantName}
+              </span>
+            )}
           </div>
         </div>
 
