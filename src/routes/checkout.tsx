@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   CreditCard,
   LoaderCircle,
-  Lock,
   Package,
   ShoppingBag,
   Truck,
@@ -59,6 +58,7 @@ function CheckoutPage() {
   const [step, setStep] = useState("form");
   const [orderId, setOrderId] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
+  const [paymentApproved, setPaymentApproved] = useState(false);
 
   // Choose brand from first item in cart if available, otherwise default to web-design
   const firstBrandSlug = items[0]?.brand ?? "web-design";
@@ -92,9 +92,7 @@ function CheckoutPage() {
   const isCardMethod = (value: string) =>
     /visa|mastercard|amex|tarjeta|d[eé]bito|cr[eé]dito/i.test(value);
   const isCardPayment = Object.values(paymentMethodsByBrand).some(isCardMethod);
-  const isMercadoPagoPayment = Object.values(paymentMethodsByBrand).some((value) =>
-    /mercado pago|mercadopago/i.test(value),
-  );
+  const isMercadoPagoPayment = isCardPayment;
 
   useEffect(() => {
     setShippingMethodsByBrand((current) =>
@@ -158,6 +156,7 @@ function CheckoutPage() {
   });
   const [validationMessage, setValidationMessage] = useState("");
   const validationRef = useRef<HTMLDivElement | null>(null);
+  const checkoutFormRef = useRef<HTMLFormElement | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<
     Array<{ id?: string; label: string; value: string; city?: string; isPrimary?: boolean }>
   >([]);
@@ -241,7 +240,7 @@ function CheckoutPage() {
       void getMercadoPagoIntentStatus({ data: { intentId } }).then((status) => {
         if (typeof status === "object" && status.status === "approved" && status.orderId) {
           setOrderId(status.orderId);
-          setStep("done");
+          setPaymentApproved(true);
           return;
         }
         attempts += 1;
@@ -300,6 +299,11 @@ function CheckoutPage() {
 
     setValidationMessage("");
     if (items.length === 0) return;
+    if (paymentApproved) {
+      clear();
+      setStep("done");
+      return;
+    }
     setIsConfirming(true);
     if (isAuthenticated && user?.id) {
       void updateUserProfile({
@@ -442,6 +446,7 @@ function CheckoutPage() {
         </div>
 
         <form
+          ref={checkoutFormRef}
           onSubmit={submit}
           noValidate
           aria-busy={!brandSettingsReady}
@@ -590,9 +595,12 @@ function CheckoutPage() {
                     <Label>{getBrand(slug)?.name}</Label>
                     <RadioGroup
                       value={paymentMethodsByBrand[slug] ?? ""}
-                      onValueChange={(value) =>
-                        setPaymentMethodsByBrand((current) => ({ ...current, [slug]: value }))
-                      }
+                      onValueChange={(value) => {
+                        setPaymentMethodsByBrand((current) => ({ ...current, [slug]: value }));
+                        if (isCardMethod(value)) {
+                          window.setTimeout(() => checkoutFormRef.current?.requestSubmit(), 0);
+                        }
+                      }}
                       className="grid gap-2 sm:grid-cols-2"
                     >
                       {getPaymentMethods(slug).map((method) => (
@@ -609,6 +617,9 @@ function CheckoutPage() {
                       <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
                         <p className="font-semibold">Datos para transferencia bancaria</p>
                         <p className="mt-1 text-muted-foreground">CBU: {bankCbu}</p>
+                        <p className="mt-2 text-muted-foreground">
+                          Enviar comprobante por WhatsApp o Correo electrónico
+                        </p>
                       </div>
                     )}
                   </div>
@@ -637,9 +648,11 @@ function CheckoutPage() {
                   </div>
                 )}
               </div>
-              <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-                <Lock className="size-3.5" /> Demostración: no se procesan pagos reales.
-              </p>
+              {paymentApproved && (
+                <div className="mt-4 rounded-xl border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-600">
+                  Pago abonado correctamente. Revisá tu pedido y presioná Comprar para confirmar.
+                </div>
+              )}
             </section>
           </div>
 
@@ -737,7 +750,8 @@ function CheckoutPage() {
                   </>
                 ) : (
                   <>
-                    <ShoppingBag className="size-4" /> Comprar
+                    <ShoppingBag className="size-4" />
+                    {paymentApproved ? "Confirmar compra" : "Comprar"}
                   </>
                 )}
               </Button>
