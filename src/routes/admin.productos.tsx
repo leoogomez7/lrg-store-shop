@@ -112,6 +112,15 @@ type AppliedProductActions = {
   cardCommission: boolean;
 };
 
+const getBrandShortName = (brand: Product["brand"] | string | undefined) => {
+  const brandKey = typeof brand === "string" ? brand : undefined;
+  const brandConfig = brandKey ? brands[brandKey as BrandSlug] : undefined;
+
+  if (brandConfig?.shortName) return brandConfig.shortName;
+  if (brandKey) return brandKey;
+  return "Sin marca";
+};
+
 export const Route = createFileRoute("/admin/productos")({
   head: () => ({
     meta: [
@@ -2100,7 +2109,7 @@ function AdminProducts() {
                           ) : null}
                         </div>
                       </TableCell>
-                      <TableCell>{brands[product.brand].shortName}</TableCell>
+                      <TableCell>{getBrandShortName(product.brand)}</TableCell>
                       <TableCell>
                         <Badge
                           variant={
