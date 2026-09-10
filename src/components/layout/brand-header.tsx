@@ -383,7 +383,14 @@ function BrandHeaderContent({
                             key={item.id}
                             className="px-4 py-3 border-b text-sm hover:bg-accent/50"
                           >
-                            <div className="font-medium truncate mb-1">{item.name}</div>
+                            <div className="mb-1 min-w-0">
+                              <div className="truncate font-medium">{item.name}</div>
+                              {item.variantName ? (
+                                <div className="truncate text-xs text-muted-foreground">
+                                  Variante: {item.variantName}
+                                </div>
+                              ) : null}
+                            </div>
                             <div className="flex items-center justify-between gap-2 mb-2">
                               <Badge variant="outline" className="text-xs shrink-0">
                                 {itemBrand?.name || item.brand}

@@ -106,9 +106,12 @@ function ProductDetail() {
           ? { stockUnlimited: selectedVariant.stockUnlimited }
           : {}),
         ...(selectedVariant.gastos !== undefined ? { gastos: selectedVariant.gastos } : {}),
-        ...(selectedVariant.gastosCurrency ? { gastosCurrency: selectedVariant.gastosCurrency } : {}),
+        ...(selectedVariant.gastosCurrency
+          ? { gastosCurrency: selectedVariant.gastosCurrency }
+          : {}),
       }
     : product;
+  const hasStock = activeProduct.stockUnlimited || activeProduct.stock > 0;
   const normalizeTaxonomyValue = (value?: string) =>
     value
       ?.normalize("NFD")
@@ -204,7 +207,11 @@ function ProductDetail() {
             <>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/$brand/productos" params={{ brand: brand.slug }} search={{ categoria: category.slug }}>
+                  <Link
+                    to="/$brand/productos"
+                    params={{ brand: brand.slug }}
+                    search={{ categoria: category.slug }}
+                  >
                     {category.name}
                   </Link>
                 </BreadcrumbLink>
@@ -216,7 +223,11 @@ function ProductDetail() {
             <>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/$brand/productos" params={{ brand: brand.slug }} search={{ categoria: category?.slug, subcategoria: selectedSubcategory.slug }}>
+                  <Link
+                    to="/$brand/productos"
+                    params={{ brand: brand.slug }}
+                    search={{ categoria: category?.slug, subcategoria: selectedSubcategory.slug }}
+                  >
                     {selectedSubcategory.name}
                   </Link>
                 </BreadcrumbLink>
@@ -343,7 +354,11 @@ function ProductDetail() {
                   </span>
                 )}
                 <span className="text-sm font-medium text-muted-foreground">
-                  {activeProduct.stock > 0 ? `${activeProduct.stock} en stock` : "Sin stock"}
+                  {activeProduct.stockUnlimited
+                    ? "∞ Stock ilimitado"
+                    : activeProduct.stock > 0
+                      ? `${activeProduct.stock} en stock`
+                      : "Sin stock"}
                 </span>
               </div>
 
@@ -365,7 +380,7 @@ function ProductDetail() {
                     className="size-8"
                     onClick={increaseQuantity}
                     aria-label="Sumar unidad"
-                    disabled={activeProduct.stock <= 0}
+                    disabled={!hasStock}
                   >
                     <Plus className="size-3.5" />
                   </Button>
@@ -377,18 +392,18 @@ function ProductDetail() {
               <Button
                 size="lg"
                 className="w-full max-w-44 gap-2"
-                disabled={activeProduct.stock <= 0}
+                disabled={!hasStock}
                 onClick={() => addProduct(activeProduct, quantity)}
               >
                 <ShoppingCart className="size-4" />
-                {activeProduct.stock > 0 ? "Agregar al carrito" : "Sin stock"}
+                {hasStock ? "Agregar al carrito" : "Sin stock"}
               </Button>
               <Button
                 size="lg"
                 variant="secondary"
                 className="w-full max-w-44 gap-2"
                 onClick={() => {
-                  if (activeProduct.stock <= 0) return;
+                  if (!hasStock) return;
                   addProduct(activeProduct, quantity);
                   navigate({ to: "/checkout" });
                 }}
@@ -399,7 +414,7 @@ function ProductDetail() {
             </div>
           </div>
 
-          <Tabs defaultValue="features" className="mt-8">
+          <Tabs defaultValue="description" className="mt-8">
             <TabsList>
               <TabsTrigger value="features">Características</TabsTrigger>
               <TabsTrigger value="description">Descripción</TabsTrigger>
