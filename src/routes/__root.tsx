@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { KindeProvider, useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import {
   Outlet,
@@ -8,13 +8,23 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { Component, Suspense, useEffect, type ErrorInfo, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
+import { AlertTriangle } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import { reportClientError } from "../lib/error-reporting";
 import { hasTursoAdminConfig, hasTursoConfig } from "../lib/db";
 import { CartProvider } from "../store/cart";
 import { Toaster } from "../components/ui/sonner";
+import { Badge } from "../components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import { formatDate } from "../lib/format";
 import { LoadingState } from "@/components/common/loading-state";
 import { getKindeConfig, getKindeRedirectUri, hasKindeConfig } from "../lib/kinde";
 import {
@@ -30,6 +40,7 @@ import {
   loadAdminSettings,
   recordSiteVisit,
 } from "../server/persistence";
+import { orderQueries } from "../services/catalog.service";
 
 function NotFoundComponent() {
   return (
@@ -197,7 +208,127 @@ function AuthenticatedCart({ children }: { children: ReactNode }) {
       isLoading={isLoading}
     >
       {children}
+      <CustomerOrderStatusNotice />
     </CartProvider>
+  );
+}
+
+type CustomerOrderStatusChange = {
+  id: string;
+  date: string;
+  deliveryStatus: string;
+  paymentStatus: string;
+  previousDeliveryStatus: string;
+  previousPaymentStatus: string;
+};
+
+function CustomerOrderStatusNotice() {
+  const { user, isAuthenticated } = useKindeAuth();
+  const { data: orders = [] } = useQuery({
+    ...orderQueries.list(),
+    enabled: Boolean(isAuthenticated && user?.email),
+  });
+  const [changes, setChanges] = useState<CustomerOrderStatusChange[]>([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !isAuthenticated || !user?.email) return;
+    if (window.sessionStorage.getItem("lrg_auth_role") === "admin") return;
+
+    const accountEmail = user.email.trim().toLowerCase();
+    const noticeShownKey = `lrg_customer_order_status_notice_shown:${accountEmail}`;
+    if (window.sessionStorage.getItem(noticeShownKey) === "true") return;
+
+    const snapshotKey = `lrg_customer_order_status_snapshot:${accountEmail}`;
+    const previousSnapshotRaw = window.localStorage.getItem(snapshotKey);
+    const previousSnapshot = previousSnapshotRaw
+      ? (JSON.parse(previousSnapshotRaw) as Record<
+          string,
+          { deliveryStatus?: string; paymentStatus?: string }
+        >)
+      : {};
+
+    const nextSnapshot = Object.fromEntries(
+      orders
+        .filter((order) => order.email.toLowerCase() === accountEmail)
+        .map((order) => [
+          order.id,
+          {
+            deliveryStatus: order.deliveryStatus ?? "Pendiente",
+            paymentStatus: order.paymentStatus ?? "Pendiente",
+          },
+        ]),
+    );
+
+    const nextChanges = orders
+      .filter((order) => order.email.toLowerCase() === accountEmail)
+      .filter((order) => {
+        const previous = previousSnapshot[order.id];
+        return (
+          previous &&
+          ((previous.deliveryStatus ?? "Pendiente") !== (order.deliveryStatus ?? "Pendiente") ||
+            (previous.paymentStatus ?? "Pendiente") !== (order.paymentStatus ?? "Pendiente"))
+        );
+      })
+      .map((order) => {
+        const previous = previousSnapshot[order.id];
+        return {
+          id: order.id,
+          date: order.date,
+          deliveryStatus: order.deliveryStatus ?? "Pendiente",
+          paymentStatus: order.paymentStatus ?? "Pendiente",
+          previousDeliveryStatus: previous?.deliveryStatus ?? "Pendiente",
+          previousPaymentStatus: previous?.paymentStatus ?? "Pendiente",
+        };
+      });
+
+    window.localStorage.setItem(snapshotKey, JSON.stringify(nextSnapshot));
+    if (nextChanges.length > 0) {
+      window.sessionStorage.setItem(noticeShownKey, "true");
+      setChanges(nextChanges);
+    }
+  }, [isAuthenticated, orders, user?.email]);
+
+  return (
+    <Dialog open={changes.length > 0} onOpenChange={(open) => !open && setChanges([])}>
+      <DialogContent className="max-w-2xl overflow-hidden border-primary/40 bg-background/95 p-0 shadow-2xl shadow-primary/20">
+        <div className="h-2 bg-primary" />
+        <div className="p-6 sm:p-8">
+          <DialogHeader>
+            <div className="mb-3 flex items-center gap-3">
+              <div className="grid size-11 place-items-center rounded-full bg-primary/15 text-primary">
+                <AlertTriangle className="size-5" />
+              </div>
+              <div>
+                <DialogTitle>Actualización de tus compras</DialogTitle>
+                <DialogDescription>
+                  Se actualizaron el envío o el pago de algunas compras.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="mt-5 space-y-3">
+            {changes.map((change) => (
+              <div key={change.id} className="rounded-xl border border-border/60 bg-surface/50 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">Pedido {change.id}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(change.date)}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">
+                      Envío: {change.previousDeliveryStatus} → {change.deliveryStatus}
+                    </Badge>
+                    <Badge variant="outline">
+                      Pago: {change.previousPaymentStatus} → {change.paymentStatus}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

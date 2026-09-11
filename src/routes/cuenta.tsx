@@ -4,10 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import {
-  AlertTriangle,
   ArrowLeft,
   ArrowUpDown,
   Check,
+  ChevronDown,
+  ChevronUp,
   Download,
   Eye,
   FileText,
@@ -17,6 +18,7 @@ import {
   LayoutDashboard,
   LogOut,
   MapPin,
+  Menu,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
@@ -42,6 +44,7 @@ import { webDesignConfig } from "@/config/brands/web-design.config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -172,19 +175,6 @@ function AccountAuthGuard({
   return <AccountPageContent auth={auth} initialTab={resolvedInitialTab} />;
 }
 
-type CustomerOrderStatusChange = {
-  id: string;
-  date: string;
-  deliveryStatus: string;
-  paymentStatus: string;
-  previousDeliveryStatus: string;
-  previousPaymentStatus: string;
-};
-
-type CustomerOrderStatusNoticeData = {
-  changes: CustomerOrderStatusChange[];
-};
-
 function AccountPageContent({
   auth,
   initialTab = "inicio",
@@ -215,6 +205,7 @@ function AccountPageContent({
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [attachmentsOrder, setAttachmentsOrder] = useState<Order | null>(null);
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
+  const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
   const [pendingReceipts, setPendingReceipts] = useState<OrderAttachment[]>([]);
   const receiptsInputRef = useRef<HTMLInputElement | null>(null);
   const visibleOrders = useMemo(() => {
@@ -236,6 +227,7 @@ function AccountPageContent({
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const savedProfileValues = useRef({ givenName: "", familyName: "", phone: "", document: "" });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
   const [addressSuggestions, setAddressSuggestions] = useState<
     Array<{
@@ -252,14 +244,16 @@ function AccountPageContent({
   const [ordersSort, setOrdersSort] = useState<OrdersSort>("date-desc");
   const [showOrdersSort, setShowOrdersSort] = useState(false);
   const [showOrdersFilters, setShowOrdersFilters] = useState(false);
+  const [ordersStoreOpen, setOrdersStoreOpen] = useState(false);
+  const [ordersDatesOpen, setOrdersDatesOpen] = useState(false);
+  const [ordersShippingOpen, setOrdersShippingOpen] = useState(false);
+  const [ordersTotalOpen, setOrdersTotalOpen] = useState(false);
   const [ordersBrandFilter, setOrdersBrandFilter] = useState("all");
   const [ordersDateFrom, setOrdersDateFrom] = useState("");
   const [ordersDateTo, setOrdersDateTo] = useState("");
   const [ordersStatusFilter, setOrdersStatusFilter] = useState("all");
   const [ordersTotalMin, setOrdersTotalMin] = useState("");
   const [ordersTotalMax, setOrdersTotalMax] = useState("");
-  const [customerOrderNotice, setCustomerOrderNotice] =
-    useState<CustomerOrderStatusNoticeData | null>(null);
   const hasProfileChanges =
     userGivenName !== savedProfileValues.current.givenName ||
     userFamilyName !== savedProfileValues.current.familyName ||
@@ -347,15 +341,32 @@ function AccountPageContent({
   const hasNextPage = ordersPage + 1 < totalOrdersPages;
   const hasPreviousPage = ordersPage > 0;
   const canEditOrdersPageSize = true;
+  const ordersFilterCount =
+    (ordersBrandFilter !== "all" ? 1 : 0) +
+    (ordersDateFrom ? 1 : 0) +
+    (ordersDateTo ? 1 : 0) +
+    (ordersStatusFilter !== "all" ? 1 : 0) +
+    (ordersTotalMin ? 1 : 0) +
+    (ordersTotalMax ? 1 : 0);
+
+  const resetOrderFilters = () => {
+    setOrdersBrandFilter("all");
+    setOrdersDateFrom("");
+    setOrdersDateTo("");
+    setOrdersStatusFilter("all");
+    setOrdersTotalMin("");
+    setOrdersTotalMax("");
+  };
 
   const exportOrdersExcel = () => {
     const rows: (string | number)[][] = [
-      ["Pedido", "Tienda", "Fecha de compra", "Estado de envío", "Total"],
+      ["Pedido", "Tienda", "Fecha de compra", "Estado de envío", "Estado de pago", "Total"],
       ...visibleOrders.map((order) => [
         order.id,
         brands[order.brand].shortName,
         order.date,
         order.deliveryStatus ?? "Pendiente",
+        order.paymentStatus ?? "Pendiente",
         order.total,
       ]),
     ];
@@ -373,6 +384,7 @@ function AccountPageContent({
       brands[order.brand].shortName,
       order.date,
       order.deliveryStatus ?? "Pendiente",
+      order.paymentStatus ?? "Pendiente",
       order.total,
     ]);
 
@@ -398,6 +410,7 @@ function AccountPageContent({
                 <th>Tienda</th>
                 <th>Fecha de compra</th>
                 <th>Estado de envío</th>
+                <th>Estado de pago</th>
                 <th>Total</th>
               </tr>
             </thead>
@@ -446,63 +459,9 @@ function AccountPageContent({
   ]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !user?.email) return;
-
-    const accountEmail = user.email.trim().toLowerCase();
-    const noticeShownKey = `lrg_customer_order_status_notice_shown:${accountEmail}`;
-    if (window.sessionStorage.getItem(noticeShownKey) === "true") return;
-
-    const snapshotKey = `lrg_customer_order_status_snapshot:${accountEmail}`;
-    const previousSnapshotRaw = window.localStorage.getItem(snapshotKey);
-    const previousSnapshot = previousSnapshotRaw
-      ? (JSON.parse(previousSnapshotRaw) as Record<
-          string,
-          { deliveryStatus?: string; paymentStatus?: string }
-        >)
-      : {};
-
-    const nextSnapshot = Object.fromEntries(
-      visibleOrders.map((order) => [
-        order.id,
-        {
-          deliveryStatus: order.deliveryStatus ?? "Pendiente",
-          paymentStatus: order.paymentStatus ?? "Pendiente",
-        },
-      ]),
-    );
-
-    const changes = visibleOrders
-      .filter((order) => {
-        const previous = previousSnapshot[order.id];
-        if (!previous) return false;
-        return (
-          (previous.deliveryStatus ?? "Pendiente") !== (order.deliveryStatus ?? "Pendiente") ||
-          (previous.paymentStatus ?? "Pendiente") !== (order.paymentStatus ?? "Pendiente")
-        );
-      })
-      .map((order) => {
-        const previous = previousSnapshot[order.id];
-        return {
-          id: order.id,
-          date: order.date,
-          deliveryStatus: order.deliveryStatus ?? "Pendiente",
-          paymentStatus: order.paymentStatus ?? "Pendiente",
-          previousDeliveryStatus: previous?.deliveryStatus ?? "Pendiente",
-          previousPaymentStatus: previous?.paymentStatus ?? "Pendiente",
-        };
-      });
-
-    window.localStorage.setItem(snapshotKey, JSON.stringify(nextSnapshot));
-
-    if (changes.length > 0) {
-      window.sessionStorage.setItem(noticeShownKey, "true");
-      setCustomerOrderNotice({ changes });
-    }
-  }, [user?.email, visibleOrders]);
-
-  useEffect(() => {
     const nextTab = resolveTabFromPath(location.pathname);
     setActiveTab(nextTab);
+    setMobileMenuOpen(false);
   }, [location.pathname]);
 
   const handleTabChange = (tab: AccountNavKey) => {
@@ -953,92 +912,166 @@ function AccountPageContent({
                   </Button>
                 </DialogTrigger>
 
-                <DialogContent className="max-w-2xl rounded-3xl border border-border/60 bg-background p-0 shadow-2xl">
-                  <DialogHeader className="px-5 pt-5">
+                <DialogContent className="max-h-[min(92vh,46rem)] max-w-md overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                  <DialogHeader className="space-y-2 text-left">
                     <DialogTitle className="text-2xl font-semibold leading-tight">
                       Filtros
                     </DialogTitle>
                   </DialogHeader>
-                  <div className="px-5 pb-5 pt-2">
-                    <div className="border-t border-border/50 pt-4">
-                      <div className="grid gap-3 md:grid-cols-5">
-                        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                          <span className="text-[11px] uppercase tracking-wide">Tienda</span>
-                          <select
-                            value={ordersBrandFilter}
-                            onChange={(event) => setOrdersBrandFilter(event.target.value)}
-                            className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
-                          >
-                            <option value="all">Todas las tiendas</option>
-                            {Object.entries(brands).map(([brandSlug, brand]) => (
-                              <option key={brandSlug} value={brandSlug}>
-                                {brand.shortName}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                  <div className="space-y-5 pt-2">
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setOrdersStoreOpen((current) => !current)}
+                        className="flex w-full items-center gap-2 text-left text-sm font-medium"
+                        aria-expanded={ordersStoreOpen}
+                      >
+                        <span>Tienda</span>
+                        {ordersBrandFilter !== "all" && <Badge variant="secondary">1</Badge>}
+                        {ordersStoreOpen ? (
+                          <ChevronUp className="ml-auto size-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="ml-auto size-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      {ordersStoreOpen && (
+                        <select
+                          value={ordersBrandFilter}
+                          onChange={(event) => setOrdersBrandFilter(event.target.value)}
+                          className="h-10 w-full rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
+                        >
+                          <option value="all">Todas las tiendas</option>
+                          {Object.entries(brands).map(([brandSlug, brand]) => (
+                            <option key={brandSlug} value={brandSlug}>
+                              {brand.shortName}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
 
-                        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                          <span className="text-[11px] uppercase tracking-wide">Desde</span>
-                          <Input
-                            type="date"
-                            value={ordersDateFrom}
-                            onChange={(event) => setOrdersDateFrom(event.target.value)}
-                            className="h-10 bg-background"
-                            aria-label="Fecha de compra desde"
-                          />
-                        </label>
-
-                        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                          <span className="text-[11px] uppercase tracking-wide">Hasta</span>
-                          <Input
-                            type="date"
-                            value={ordersDateTo}
-                            onChange={(event) => setOrdersDateTo(event.target.value)}
-                            className="h-10 bg-background"
-                            aria-label="Fecha de compra hasta"
-                          />
-                        </label>
-
-                        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                          <span className="text-[11px] uppercase tracking-wide">
-                            Estado de envío
-                          </span>
-                          <select
-                            value={ordersStatusFilter}
-                            onChange={(event) => setOrdersStatusFilter(event.target.value)}
-                            className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
-                          >
-                            <option value="all">Todos los estados</option>
-                            <option value="Pendiente">Pendiente</option>
-                            <option value="Enviado">Enviado</option>
-                          </select>
-                        </label>
-
-                        <div className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                          <span className="text-[11px] uppercase tracking-wide">Total gastado</span>
-                          <div className="flex gap-2">
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setOrdersDatesOpen((current) => !current)}
+                        className="flex w-full items-center gap-2 text-left text-sm font-medium"
+                        aria-expanded={ordersDatesOpen}
+                      >
+                        <span>Fecha de compra</span>
+                        {(ordersDateFrom || ordersDateTo) && <Badge variant="secondary">2</Badge>}
+                        {ordersDatesOpen ? (
+                          <ChevronUp className="ml-auto size-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="ml-auto size-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      {ordersDatesOpen && (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <label className="space-y-1 text-xs text-muted-foreground">
+                            <span>Desde</span>
                             <Input
-                              type="number"
-                              min={0}
-                              value={ordersTotalMin}
-                              onChange={(event) => setOrdersTotalMin(event.target.value)}
-                              placeholder="Mín."
-                              className="h-10 min-w-0 bg-background"
-                              aria-label="Total mínimo"
+                              type="date"
+                              value={ordersDateFrom}
+                              onChange={(event) => setOrdersDateFrom(event.target.value)}
+                              className="h-10 bg-background"
+                              aria-label="Fecha de compra desde"
                             />
+                          </label>
+                          <label className="space-y-1 text-xs text-muted-foreground">
+                            <span>Hasta</span>
                             <Input
-                              type="number"
-                              min={0}
-                              value={ordersTotalMax}
-                              onChange={(event) => setOrdersTotalMax(event.target.value)}
-                              placeholder="Máx."
-                              className="h-10 min-w-0 bg-background"
-                              aria-label="Total máximo"
+                              type="date"
+                              value={ordersDateTo}
+                              onChange={(event) => setOrdersDateTo(event.target.value)}
+                              className="h-10 bg-background"
+                              aria-label="Fecha de compra hasta"
                             />
-                          </div>
+                          </label>
                         </div>
-                      </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setOrdersShippingOpen((current) => !current)}
+                        className="flex w-full items-center gap-2 text-left text-sm font-medium"
+                        aria-expanded={ordersShippingOpen}
+                      >
+                        <span>Estado de envío</span>
+                        {ordersStatusFilter !== "all" && <Badge variant="secondary">1</Badge>}
+                        {ordersShippingOpen ? (
+                          <ChevronUp className="ml-auto size-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="ml-auto size-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      {ordersShippingOpen && (
+                        <select
+                          value={ordersStatusFilter}
+                          onChange={(event) => setOrdersStatusFilter(event.target.value)}
+                          className="h-10 w-full rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
+                        >
+                          <option value="all">Todos los estados</option>
+                          <option value="Pendiente">Pendiente</option>
+                          <option value="Enviado">Enviado</option>
+                        </select>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setOrdersTotalOpen((current) => !current)}
+                        className="flex w-full items-center gap-2 text-left text-sm font-medium"
+                        aria-expanded={ordersTotalOpen}
+                      >
+                        <span>Total gastado</span>
+                        {(ordersTotalMin || ordersTotalMax) && <Badge variant="secondary">1</Badge>}
+                        {ordersTotalOpen ? (
+                          <ChevronUp className="ml-auto size-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="ml-auto size-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      {ordersTotalOpen && (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            value={ordersTotalMin}
+                            onChange={(event) => setOrdersTotalMin(event.target.value)}
+                            placeholder="Desde $"
+                            className="h-10 bg-background"
+                            aria-label="Total mínimo"
+                          />
+                          <Input
+                            type="number"
+                            min={0}
+                            value={ordersTotalMax}
+                            onChange={(event) => setOrdersTotalMax(event.target.value)}
+                            placeholder="Hasta $"
+                            className="h-10 bg-background"
+                            aria-label="Total máximo"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-4">
+                      <p className="text-xs text-muted-foreground">
+                        {filteredOrders.length} compras encontradas
+                      </p>
+                      {ordersFilterCount > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={resetOrderFilters}
+                          className="ml-auto flex h-8 px-2 text-xs"
+                        >
+                          <X className="mr-1 size-3.5" /> Limpiar
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </DialogContent>
@@ -1075,9 +1108,9 @@ function AccountPageContent({
                   <TableHead>Tienda</TableHead>
                   <TableHead>Fecha de compra</TableHead>
                   <TableHead>Estado de envío</TableHead>
+                  <TableHead>Estado de pago</TableHead>
                   <TableHead className="text-center">Total</TableHead>
-                  <TableHead>Archivos adjuntos</TableHead>
-                  <TableHead>Comprobantes</TableHead>
+                  <TableHead>Documentación</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1095,32 +1128,55 @@ function AccountPageContent({
                           {order.deliveryStatus ?? "Pendiente"}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        <Badge
+                          className="capitalize"
+                          variant={
+                            order.paymentStatus === "Pagado"
+                              ? "success"
+                              : order.paymentStatus === "Cancelado"
+                                ? "destructive"
+                                : "pending"
+                          }
+                        >
+                          {order.paymentStatus ?? "Pendiente"}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
                       <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          disabled={!order.attachments?.length}
-                          onClick={() => setAttachmentsOrder(order)}
-                          className="gap-1.5 text-xs"
-                        >
-                          <Paperclip className="size-4" /> Mostrar
-                        </Button>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setReceiptsOrder(order);
-                            setPendingReceipts([]);
-                          }}
-                          className="gap-1.5 text-xs"
-                        >
-                          <FileText className="size-4" /> Adjuntar
-                        </Button>
+                        <div className="flex flex-wrap justify-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={!order.attachments?.length}
+                            onClick={() => setAttachmentsOrder(order)}
+                            className="gap-1.5 text-xs"
+                          >
+                            <Paperclip className="size-4" /> Adjuntos
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setReceiptsOrder(order);
+                              setPendingReceipts([]);
+                            }}
+                            className="gap-1.5 text-xs"
+                          >
+                            <FileText className="size-4" /> Comprobantes
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDetailsOrder(order)}
+                            className="gap-1.5 text-xs"
+                          >
+                            <Eye className="size-4" /> Mostrar
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -1257,6 +1313,103 @@ function AccountPageContent({
                   </div>
                 ))}
               </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            open={detailsOrder !== null}
+            onOpenChange={(open) => !open && setDetailsOrder(null)}
+          >
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Detalle de la compra</DialogTitle>
+                <DialogDescription>
+                  Toda la información del pedido {detailsOrder?.id}.
+                </DialogDescription>
+              </DialogHeader>
+              {detailsOrder && (
+                <div className="max-h-[65vh] space-y-5 overflow-y-auto pr-1 text-sm">
+                  <div className="grid gap-3 rounded-xl border border-border/60 bg-surface/50 p-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Pedido</p>
+                      <p className="font-medium">{detailsOrder.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Tienda</p>
+                      <p className="font-medium">{brands[detailsOrder.brand].shortName}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Fecha de compra</p>
+                      <p className="font-medium">{formatDate(detailsOrder.date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total</p>
+                      <p className="font-medium">{formatPrice(detailsOrder.total)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Estado de envío</p>
+                      <p className="font-medium">{detailsOrder.deliveryStatus ?? "Pendiente"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Estado de pago</p>
+                      <p className="font-medium">{detailsOrder.paymentStatus ?? "Pendiente"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Método de pago</p>
+                      <p className="font-medium">
+                        {detailsOrder.paymentMethod || "No especificado"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Método de envío</p>
+                      <p className="font-medium">
+                        {detailsOrder.shippingMethod || "No especificado"}
+                      </p>
+                    </div>
+                    {detailsOrder.shippingNumber && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Número de envío</p>
+                        <p className="font-medium">{detailsOrder.shippingNumber}</p>
+                      </div>
+                    )}
+                    {detailsOrder.deliveryDate && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Fecha de entrega</p>
+                        <p className="font-medium">{formatDate(detailsOrder.deliveryDate)}</p>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="mb-2 font-semibold">Productos</h3>
+                    <div className="space-y-2">
+                      {detailsOrder.items.map((item, index) => (
+                        <div
+                          key={`${item.productId ?? item.name}-${index}`}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-border/60 p-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{item.name}</p>
+                            {item.variantName && (
+                              <p className="text-xs text-muted-foreground">{item.variantName}</p>
+                            )}
+                          </div>
+                          <p className="shrink-0 text-muted-foreground">
+                            {item.quantity} × {formatPrice(item.price)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {detailsOrder.extraInfo && (
+                    <div>
+                      <h3 className="mb-2 font-semibold">Información adicional</h3>
+                      <p className="rounded-lg border border-border/60 p-3 text-muted-foreground">
+                        {detailsOrder.extraInfo}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </DialogContent>
           </Dialog>
 
@@ -2112,6 +2265,71 @@ function AccountPageContent({
         </aside>
 
         <main className="min-w-0 flex-1">
+          <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-xl lg:hidden">
+            <div className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-xs font-bold uppercase text-primary">
+                {getUserInitials()}
+              </span>
+              <span className="truncate font-medium text-foreground">
+                {userName || "Mi cuenta"}
+              </span>
+            </div>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button type="button" variant="outline" size="sm" className="gap-2">
+                  <Menu className="size-4" />
+                  Menú
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[min(86vw,20rem)] p-5">
+                <SheetHeader className="mb-6 text-left">
+                  <SheetTitle>Navegación de cuenta</SheetTitle>
+                </SheetHeader>
+                <nav className="space-y-1">
+                  {accountNavItems.map(({ key, label, icon: Icon, route, exact }) => {
+                    const isActive = exact
+                      ? location.pathname === route
+                      : location.pathname.startsWith(route);
+                    return (
+                      <button
+                        type="button"
+                        key={key}
+                        onClick={() => handleTabChange(key)}
+                        className={cn(
+                          "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
+                          isActive
+                            ? "bg-surface-2 text-foreground"
+                            : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
+                        )}
+                      >
+                        <Icon className="size-4 shrink-0" />
+                        {label}
+                      </button>
+                    );
+                  })}
+                  <a
+                    href="https://lrg-store-shop.vercel.app/productos"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+                  >
+                    <ShoppingBag className="size-4 shrink-0" />
+                    Comprar productos
+                  </a>
+                </nav>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-6 gap-2 text-red-600 hover:bg-red-500/10 hover:text-red-600"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setLogoutOpen(true);
+                  }}
+                >
+                  <LogOut className="size-4" />
+                  Cerrar sesión
+                </Button>
+              </SheetContent>
+            </Sheet>
+          </header>
           <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
             <div className="min-h-[calc(100vh-8rem)]">{renderAccountContent()}</div>
           </div>
@@ -2119,54 +2337,6 @@ function AccountPageContent({
       </div>
 
       <BrandFooter brand={webDesignConfig} section="account" />
-
-      <Dialog
-        open={customerOrderNotice !== null}
-        onOpenChange={(open) => !open && setCustomerOrderNotice(null)}
-      >
-        <DialogContent className="max-w-2xl overflow-hidden border-primary/40 bg-background/95 p-0 shadow-2xl shadow-primary/20">
-          <div className="h-2 bg-primary" />
-          <div className="p-6 sm:p-8">
-            <DialogHeader>
-              <div className="mb-3 flex items-center gap-3">
-                <div className="grid size-11 place-items-center rounded-full bg-primary/15 text-primary">
-                  <AlertTriangle className="size-5" />
-                </div>
-                <div>
-                  <DialogTitle>Actualización de tus compras</DialogTitle>
-                  <DialogDescription>
-                    Se actualizaron el envío o el pago de algunas compras.
-                  </DialogDescription>
-                </div>
-              </div>
-            </DialogHeader>
-
-            <div className="mt-5 space-y-3">
-              {customerOrderNotice?.changes.map((change) => (
-                <div
-                  key={change.id}
-                  className="rounded-xl border border-border/60 bg-surface/50 p-4"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold">Pedido {change.id}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(change.date)}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">
-                        Envío: {change.previousDeliveryStatus} → {change.deliveryStatus}
-                      </Badge>
-                      <Badge variant="outline">
-                        Pago: {change.previousPaymentStatus} → {change.paymentStatus}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <ConfirmDialog
         open={logoutOpen}

@@ -14,6 +14,7 @@ import {
   House,
   LayoutDashboard,
   LogOut,
+  Menu,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
@@ -31,6 +32,13 @@ import { LoadingState } from "@/components/common/loading-state";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -98,6 +106,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     logout: async () => undefined,
   };
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [initialPasswordVerified, setInitialPasswordVerified] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(
@@ -129,6 +138,10 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
       return;
     }
   }, [isAuthenticated, navigate, pathname]);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!isAuthenticated || typeof window === "undefined") return;
@@ -473,13 +486,25 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
         </aside>
 
         <div className="min-w-0 flex-1">
-          <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:hidden">
+          <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:hidden">
             <div className="flex items-center justify-between gap-3">
               <Link to="/" className="inline-flex items-center gap-2 shrink-0">
                 <BrandMark compact brandSlug="store-shop" />
                 <span className="text-sm font-medium text-foreground">LRG Store Shop</span>
               </Link>
-              <nav className="flex gap-1 overflow-x-auto">
+            </div>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button type="button" variant="outline" size="sm" className="gap-2">
+                  <Menu className="size-4" />
+                  Menú
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[min(86vw,20rem)] p-5">
+                <SheetHeader className="mb-6 text-left">
+                  <SheetTitle>Navegación administrativa</SheetTitle>
+                </SheetHeader>
+                <nav className="space-y-1">
                 {navigation.map((item) => {
                   const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
                   return (
@@ -494,12 +519,26 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                           : "text-muted-foreground",
                       )}
                     >
+                      <item.icon className="size-4 shrink-0" />
                       <span className="relative z-10">{item.label}</span>
                     </Link>
                   );
                 })}
-              </nav>
-            </div>
+                </nav>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-6 gap-2 text-red-600 hover:bg-red-500/10 hover:text-red-600"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setLogoutOpen(true);
+                  }}
+                >
+                  <LogOut className="size-4" />
+                  Cerrar sesión
+                </Button>
+              </SheetContent>
+            </Sheet>
           </header>
           <Outlet />
           <BrandFooter brand={webDesignConfig} section="admin" />
