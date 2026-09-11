@@ -30,6 +30,7 @@ import {
   ShoppingCart,
   Trash2,
   User,
+  X,
 } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BrandHeader } from "@/components/layout/brand-header";
