@@ -1720,9 +1720,10 @@ function AccountPageContent({
               {renderAccountContent()}
             </div>
           </div>
-          <BrandFooter brand={webDesignConfig} section="account" />
         </main>
       </div>
+
+      <BrandFooter brand={webDesignConfig} section="account" />
 
       <Dialog open={customerOrderNotice !== null} onOpenChange={(open) => !open && setCustomerOrderNotice(null)}>
         <DialogContent className="max-w-2xl overflow-hidden border-primary/40 bg-background/95 p-0 shadow-2xl shadow-primary/20">

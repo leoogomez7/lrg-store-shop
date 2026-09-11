@@ -294,7 +294,7 @@ function BrandFooterContent({
             {getStoreNavigation().map((item) => (
               <li key={item.slug}>
                 <Link
-                  to={item.slug === "store-shop" ? "/" : "/$brand"}
+                  to={item.slug === "store-shop" ? "/" : "/$brand/productos"}
                   params={item.slug === "store-shop" ? undefined : { brand: item.slug }}
                   className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
                 >
