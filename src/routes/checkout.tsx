@@ -162,6 +162,11 @@ function CheckoutPage() {
   >([]);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [selectedSavedAddress, setSelectedSavedAddress] = useState("");
+  const [addressSuggestions, setAddressSuggestions] = useState<
+    Array<{ label: string; value: string; city: string; lat?: string; lon?: string }>
+  >([]);
+  const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null);
+  const [isMapLoading, setIsMapLoading] = useState(false);
   const discountedItemsSubtotal = couponApplied
     ? items
         .filter((item) => item.brand === couponBrandSlug)
@@ -278,6 +283,62 @@ function CheckoutPage() {
       })
       .finally(() => setAddressesLoading(false));
   }, [isAuthenticated, user?.email, user?.givenName, user?.id, kindeLoading]);
+
+  useEffect(() => {
+    const query = [address.trim(), city.trim()].filter(Boolean).join(", ");
+    if (!query) {
+      setAddressSuggestions([]);
+      setMapPreviewUrl(null);
+      return;
+    }
+
+    const timer = window.setTimeout(async () => {
+      try {
+        setIsMapLoading(true);
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&q=${encodeURIComponent(query)}`,
+          { headers: { "Accept-Language": "es" } },
+        );
+        const results = (await response.json()) as Array<{
+          lat?: string;
+          lon?: string;
+          display_name?: string;
+          address?: Record<string, string>;
+        }>;
+        const suggestions = results
+          .filter((result) => result.display_name)
+          .map((result) => ({
+            label: result.display_name ?? "",
+            value: result.display_name ?? "",
+            city:
+              result.address?.city ??
+              result.address?.town ??
+              result.address?.village ??
+              result.address?.municipality ??
+              "",
+            ...(result.lat ? { lat: result.lat } : {}),
+            ...(result.lon ? { lon: result.lon } : {}),
+          }));
+
+        setAddressSuggestions(suggestions.slice(0, 3));
+        const firstResult = results[0];
+        if (firstResult?.lat && firstResult.lon) {
+          setMapPreviewUrl(
+            `https://maps.google.com/maps?q=${firstResult.lat},${firstResult.lon}&z=15&output=embed&hl=es`,
+          );
+        } else {
+          setMapPreviewUrl(null);
+        }
+      } catch {
+        setAddressSuggestions([]);
+        setMapPreviewUrl(null);
+      } finally {
+        setIsMapLoading(false);
+      }
+    }, 600);
+
+    return () => window.clearTimeout(timer);
+  }, [address, city]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -543,6 +604,58 @@ function CheckoutPage() {
                   </div>
                 )}
                 <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="address">Dirección</Label>
+                  <Input
+                    id="address"
+                    required
+                    placeholder="Calle y número"
+                    value={address}
+                    onChange={(event) => {
+                      setSelectedSavedAddress("");
+                      setAddress(event.target.value);
+                    }}
+                  />
+                  <Label htmlFor="city">Ciudad</Label>
+                  <Input
+                    id="city"
+                    placeholder="Ciudad"
+                    value={city}
+                    onChange={(event) => setCity(event.target.value)}
+                  />
+                  {isMapLoading && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <LoaderCircle className="size-4 animate-spin" /> Buscando ubicación...
+                    </div>
+                  )}
+                  {addressSuggestions.length > 0 && (
+                    <div className="space-y-1 rounded-xl border border-border/60 bg-background p-2">
+                      <p className="px-2 text-xs text-muted-foreground">Elegí una ubicación</p>
+                      {addressSuggestions.map((suggestion) => (
+                        <button
+                          key={`${suggestion.value}-${suggestion.lat ?? ""}`}
+                          type="button"
+                          className="w-full rounded-lg px-2 py-2 text-left text-sm hover:bg-surface-2"
+                          onClick={() => {
+                            setAddress(suggestion.value);
+                            if (suggestion.city) setCity(suggestion.city);
+                            setAddressSuggestions([]);
+                          }}
+                        >
+                          {suggestion.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {mapPreviewUrl && (
+                    <iframe
+                      title="Mapa de la dirección"
+                      src={mapPreviewUrl}
+                      className="h-56 w-full rounded-xl border border-border/60"
+                      loading="lazy"
+                    />
+                  )}
+                </div>
+                <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="notes">Notas del pedido (opcional)</Label>
                   <Textarea
                     id="notes"
@@ -579,6 +692,11 @@ function CheckoutPage() {
                           {method.name}
                         </label>
                       ))}
+                      {getShippingMethods(slug).length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          No hay métodos de envío disponibles para esta tienda.
+                        </p>
+                      )}
                     </RadioGroup>
                   </div>
                 ))}
@@ -612,6 +730,11 @@ function CheckoutPage() {
                           {method.name}
                         </label>
                       ))}
+                      {getPaymentMethods(slug).length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          No hay métodos de pago disponibles para esta tienda.
+                        </p>
+                      )}
                     </RadioGroup>
                     {/transferencia/i.test(paymentMethodsByBrand[slug] ?? "") && bankCbu && slug === firstBrandSlug && (
                       <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">

@@ -179,7 +179,7 @@ function BrandHeaderContent({
       <header
         className={`${headerThemeClass} fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl`}
       >
-        <div className="mx-auto flex h-16 w-full max-w-7xl min-w-0 items-center gap-1 overflow-hidden px-2 sm:gap-4 sm:px-6">
+        <div className="mx-auto flex h-16 w-full max-w-7xl min-w-0 items-center gap-1 overflow-visible px-2 sm:gap-4 sm:px-6">
           <Link to="/" className="shrink-0" aria-label={brandLabel}>
             <BrandMark compact brandSlug={brandLogoSlug} />
           </Link>
@@ -192,7 +192,7 @@ function BrandHeaderContent({
             {brandLabel}
           </a>
 
-          <div className="ml-auto flex min-w-0 items-center gap-1 overflow-hidden sm:gap-4">
+          <div className="ml-auto flex min-w-0 items-center gap-1 overflow-visible sm:gap-4">
             <nav className="order-3 hidden items-center gap-3 md:flex">
               {links.map((l) => {
                 // anchor links for store-shop
@@ -243,20 +243,13 @@ function BrandHeaderContent({
 
               {!userName ? (
                 <>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    className="rounded-xl text-muted-foreground hover:text-foreground"
-                  >
+                  <Button asChild variant="ghost" className="rounded-xl">
                     <Link to="/login">
                       <User className="h-4 w-4" /> Iniciar sesión
                     </Link>
                   </Button>
 
-                  <Button
-                    asChild
-                    className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
+                  <Button asChild variant="ghost" className="rounded-xl">
                     <Link to="/register">
                       <UserPlus className="h-4 w-4" /> Crear cuenta
                     </Link>
@@ -283,7 +276,7 @@ function BrandHeaderContent({
                   <Button
                     onClick={() => navigate({ to: "/login" })}
                     variant="ghost"
-                    className="rounded-xl px-2 py-2 text-muted-foreground hover:text-foreground sm:px-3 sm:py-1"
+                    className="rounded-xl px-2 py-2 sm:px-3 sm:py-1"
                     title="Iniciar sesión"
                     aria-label="Iniciar sesión"
                   >
@@ -292,7 +285,8 @@ function BrandHeaderContent({
                   </Button>
                   <Button
                     onClick={() => navigate({ to: "/register" })}
-                    className="rounded-xl bg-primary px-2 py-2 text-primary-foreground hover:bg-primary/90 sm:px-3 sm:py-1"
+                    variant="ghost"
+                    className="rounded-xl px-2 py-2 sm:px-3 sm:py-1"
                     title="Crear cuenta"
                     aria-label="Crear cuenta"
                   >
