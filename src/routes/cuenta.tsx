@@ -27,7 +27,7 @@ import {
   Plus,
   Save,
   Search,
-  Sheet,
+  Sheet as SheetIcon,
   ShoppingBag,
   ShoppingCart,
   Trash2,
@@ -1085,7 +1085,7 @@ function AccountPageContent({
                 onClick={exportOrdersExcel}
                 className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
               >
-                <Sheet className="size-4" />
+                <SheetIcon className="size-4" />
                 Exportar Excel
               </Button>
 
