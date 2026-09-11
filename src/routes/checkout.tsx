@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -54,6 +54,7 @@ export const Route = createFileRoute("/checkout")({
 function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: kindeLoading } = useKindeAuth();
   const [step, setStep] = useState("form");
   const [orderId, setOrderId] = useState("");
@@ -329,17 +330,27 @@ function CheckoutPage() {
         }>;
         const firstResult = results[0];
         const resultAddress = firstResult?.address;
+        const inputNumber = query.match(/\b\d{1,6}\b/)?.[0] ?? "";
+        const displayNameFirstPart = firstResult?.display_name?.split(",")[0]?.trim() ?? "";
+        const resultNumber =
+          resultAddress?.["house_number"] ||
+          displayNameFirstPart.match(/\b\d{1,6}\b/)?.[0] ||
+          "";
         const resolvedStreet =
-          resultAddress?.road || resultAddress?.pedestrian || resultAddress?.street || street;
-        const resolvedNumber = resultAddress?.house_number || streetNumber;
+          resultAddress?.["road"] ||
+          resultAddress?.["pedestrian"] ||
+          resultAddress?.["street"] ||
+          street;
+        const resolvedNumber = inputNumber || resultNumber || streetNumber;
         const resolvedCity =
-          resultAddress?.city ||
-          resultAddress?.town ||
-          resultAddress?.village ||
-          resultAddress?.municipality ||
+          resultAddress?.["city"] ||
+          resultAddress?.["town"] ||
+          resultAddress?.["village"] ||
+          resultAddress?.["municipality"] ||
           city;
-        const resolvedProvince = resultAddress?.state || resultAddress?.province || province;
-        const resolvedPostalCode = resultAddress?.postcode || postalCode;
+        const resolvedProvince =
+          resultAddress?.["state"] || resultAddress?.["province"] || province;
+        const resolvedPostalCode = resultAddress?.["postcode"] || postalCode;
         geocodedAddressRef.current = query;
         setStreet(resolvedStreet);
         setStreetNumber(resolvedNumber);
