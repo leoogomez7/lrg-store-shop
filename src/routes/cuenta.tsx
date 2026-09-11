@@ -1118,7 +1118,7 @@ function AccountPageContent({
                           }}
                           className="gap-1.5 text-xs"
                         >
-                          <span aria-hidden="true">🧾</span> Comprobantes
+                          <FileText className="size-4" /> Adjuntar
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -1305,7 +1305,7 @@ function AccountPageContent({
                 }}
               />
               <Button type="button" onClick={() => receiptsInputRef.current?.click()}>
-                <span aria-hidden="true">🧾</span> Adjuntar comprobantes
+                <FileText className="size-4" /> Adjuntar comprobantes
               </Button>
               <div className="space-y-2">
                 {[...(receiptsOrder?.paymentReceipts ?? []), ...pendingReceipts].length === 0 ? (
@@ -1316,7 +1316,7 @@ function AccountPageContent({
                       key={`${receipt.name}-${receipt.size}`}
                       className="flex items-center gap-3 rounded-xl border border-border/60 p-3"
                     >
-                      <span aria-hidden="true">🧾</span>
+                      <FileText className="size-4 shrink-0 text-muted-foreground" />
                       <span className="min-w-0 flex-1 truncate text-sm">{receipt.name}</span>
                       <Button
                         asChild
@@ -1353,7 +1353,7 @@ function AccountPageContent({
                     setPendingReceipts([]);
                   }}
                 >
-                  Cancelar
+                  <X className="size-4" /> Cancelar
                 </Button>
                 <Button
                   type="button"
@@ -1373,7 +1373,7 @@ function AccountPageContent({
                     setPendingReceipts([]);
                   }}
                 >
-                  Guardar comprobantes
+                  <Save className="size-4" /> Guardar
                 </Button>
               </div>
             </DialogContent>
