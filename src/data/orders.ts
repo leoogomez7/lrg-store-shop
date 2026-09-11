@@ -17,6 +17,15 @@ export type Order = {
   email: string;
   phone: string;
   document?: string;
+  isGuest?: boolean;
+  guestCustomerId?: string;
+  city?: string;
+  street?: string;
+  streetNumber?: string;
+  floor?: string;
+  apartment?: string;
+  province?: string;
+  postalCode?: string;
   extraInfo: string;
   date: string;
   total: number;

@@ -73,6 +73,12 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [document, setDocument] = useState("");
   const [city, setCity] = useState("");
+  const [street, setStreet] = useState("");
+  const [streetNumber, setStreetNumber] = useState("");
+  const [floor, setFloor] = useState("");
+  const [apartment, setApartment] = useState("");
+  const [province, setProvince] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const brandSlugs = useMemo(
@@ -158,15 +164,25 @@ function CheckoutPage() {
   const validationRef = useRef<HTMLDivElement | null>(null);
   const checkoutFormRef = useRef<HTMLFormElement | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<
-    Array<{ id?: string; label: string; value: string; city?: string; isPrimary?: boolean }>
+    Array<{
+      id?: string;
+      label: string;
+      value: string;
+      city?: string;
+      street?: string;
+      streetNumber?: string;
+      floor?: string;
+      apartment?: string;
+      province?: string;
+      postalCode?: string;
+      isPrimary?: boolean;
+    }>
   >([]);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [selectedSavedAddress, setSelectedSavedAddress] = useState("");
-  const [addressSuggestions, setAddressSuggestions] = useState<
-    Array<{ label: string; value: string; city: string; lat?: string; lon?: string }>
-  >([]);
   const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null);
   const [isMapLoading, setIsMapLoading] = useState(false);
+  const geocodedAddressRef = useRef("");
   const discountedItemsSubtotal = couponApplied
     ? items
         .filter((item) => item.brand === couponBrandSlug)
@@ -278,19 +294,27 @@ function CheckoutPage() {
         if (primaryAddress) {
           setSelectedSavedAddress(primaryAddress.id ?? "");
           setAddress(primaryAddress.value);
-          if (primaryAddress.city) setCity(primaryAddress.city);
+          setStreet(primaryAddress.street ?? "");
+          setStreetNumber(primaryAddress.streetNumber ?? "");
+          setFloor(primaryAddress.floor ?? "");
+          setApartment(primaryAddress.apartment ?? "");
+          setCity(primaryAddress.city ?? "");
+          setProvince(primaryAddress.province ?? "");
+          setPostalCode(primaryAddress.postalCode ?? "");
         }
       })
       .finally(() => setAddressesLoading(false));
   }, [isAuthenticated, user?.email, user?.givenName, user?.id, kindeLoading]);
 
   useEffect(() => {
-    const query = [address.trim(), city.trim()].filter(Boolean).join(", ");
+    const query = [street.trim(), streetNumber.trim(), city.trim(), province.trim()]
+      .filter(Boolean)
+      .join(", ");
     if (!query) {
-      setAddressSuggestions([]);
       setMapPreviewUrl(null);
       return;
     }
+    if (geocodedAddressRef.current === query) return;
 
     const timer = window.setTimeout(async () => {
       try {
@@ -305,23 +329,33 @@ function CheckoutPage() {
           display_name?: string;
           address?: Record<string, string>;
         }>;
-        const suggestions = results
-          .filter((result) => result.display_name)
-          .map((result) => ({
-            label: result.display_name ?? "",
-            value: result.display_name ?? "",
-            city:
-              result.address?.city ??
-              result.address?.town ??
-              result.address?.village ??
-              result.address?.municipality ??
-              "",
-            ...(result.lat ? { lat: result.lat } : {}),
-            ...(result.lon ? { lon: result.lon } : {}),
-          }));
-
-        setAddressSuggestions(suggestions.slice(0, 3));
         const firstResult = results[0];
+        const resultAddress = firstResult?.address;
+        const resolvedStreet =
+          resultAddress?.road || resultAddress?.pedestrian || resultAddress?.street || street;
+        const resolvedNumber = resultAddress?.house_number || streetNumber;
+        const resolvedCity =
+          resultAddress?.city ||
+          resultAddress?.town ||
+          resultAddress?.village ||
+          resultAddress?.municipality ||
+          city;
+        const resolvedProvince = resultAddress?.state || resultAddress?.province || province;
+        const resolvedPostalCode = resultAddress?.postcode || postalCode;
+        geocodedAddressRef.current = [
+          resolvedStreet,
+          resolvedNumber,
+          resolvedCity,
+          resolvedProvince,
+        ]
+          .filter(Boolean)
+          .join(", ");
+        setStreet(resolvedStreet);
+        setStreetNumber(resolvedNumber);
+        setCity(resolvedCity);
+        setProvince(resolvedProvince);
+        setPostalCode(resolvedPostalCode);
+        setAddress([resolvedStreet, resolvedNumber].filter(Boolean).join(" "));
         if (firstResult?.lat && firstResult.lon) {
           setMapPreviewUrl(
             `https://maps.google.com/maps?q=${firstResult.lat},${firstResult.lon}&z=15&output=embed&hl=es`,
@@ -330,7 +364,6 @@ function CheckoutPage() {
           setMapPreviewUrl(null);
         }
       } catch {
-        setAddressSuggestions([]);
         setMapPreviewUrl(null);
       } finally {
         setIsMapLoading(false);
@@ -338,7 +371,7 @@ function CheckoutPage() {
     }, 600);
 
     return () => window.clearTimeout(timer);
-  }, [address, city]);
+  }, [street, streetNumber, city, province]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -388,12 +421,23 @@ function CheckoutPage() {
       email,
       phone,
       document: document.trim() || undefined,
+      isGuest: !isAuthenticated,
+      guestCustomerId: !isAuthenticated ? id : undefined,
+      city,
+      street,
+      streetNumber,
+      floor,
+      apartment,
+      province,
+      postalCode,
       extraInfo: notes,
       date: new Date().toISOString().slice(0, 10),
       total,
       expenses,
       profit: total - expenses,
       status: "pendiente",
+      deliveryStatus: "Pendiente",
+      paymentStatus: "Pendiente",
       paymentMethod: Object.entries(paymentMethodsByBrand)
         .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
         .join(" | "),
@@ -435,6 +479,8 @@ function CheckoutPage() {
           discountCode: couponApplied ? couponCode.trim().toUpperCase() : undefined,
           cardFee,
           shippingMethod: combinedShippingMethod,
+          isGuest: !isAuthenticated,
+          guestCustomerId: !isAuthenticated ? id : undefined,
           items: order.items,
         };
         const preference = await createMercadoPagoPreference({
@@ -592,7 +638,13 @@ function CheckoutPage() {
                             onClick={() => {
                               setSelectedSavedAddress(addr.id || "");
                               setAddress(addr.value);
-                              if (addr.city) setCity(addr.city);
+                              setStreet(addr.street ?? "");
+                              setStreetNumber(addr.streetNumber ?? "");
+                              setFloor(addr.floor ?? "");
+                              setApartment(addr.apartment ?? "");
+                              setCity(addr.city ?? "");
+                              setProvince(addr.province ?? "");
+                              setPostalCode(addr.postalCode ?? "");
                             }}
                           >
                             <div className="font-medium">{addr.label}</div>
@@ -604,46 +656,30 @@ function CheckoutPage() {
                   </div>
                 )}
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="address">Dirección</Label>
+                  <Label htmlFor="street">Dirección</Label>
                   <Input
-                    id="address"
+                    id="street"
                     required
-                    placeholder="Calle y número"
-                    value={address}
+                    placeholder="Calle"
+                    value={street}
                     onChange={(event) => {
                       setSelectedSavedAddress("");
-                      setAddress(event.target.value);
+                      setStreet(event.target.value);
                     }}
                   />
-                  <Label htmlFor="city">Ciudad</Label>
                   <Input
-                    id="city"
-                    placeholder="Ciudad"
-                    value={city}
-                    onChange={(event) => setCity(event.target.value)}
+                    id="street-number"
+                    required
+                    placeholder="Altura"
+                    value={streetNumber}
+                    onChange={(event) => {
+                      setSelectedSavedAddress("");
+                      setStreetNumber(event.target.value);
+                    }}
                   />
                   {isMapLoading && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <LoaderCircle className="size-4 animate-spin" /> Buscando ubicación...
-                    </div>
-                  )}
-                  {addressSuggestions.length > 0 && (
-                    <div className="space-y-1 rounded-xl border border-border/60 bg-background p-2">
-                      <p className="px-2 text-xs text-muted-foreground">Elegí una ubicación</p>
-                      {addressSuggestions.map((suggestion) => (
-                        <button
-                          key={`${suggestion.value}-${suggestion.lat ?? ""}`}
-                          type="button"
-                          className="w-full rounded-lg px-2 py-2 text-left text-sm hover:bg-surface-2"
-                          onClick={() => {
-                            setAddress(suggestion.value);
-                            if (suggestion.city) setCity(suggestion.city);
-                            setAddressSuggestions([]);
-                          }}
-                        >
-                          {suggestion.label}
-                        </button>
-                      ))}
                     </div>
                   )}
                   {mapPreviewUrl && (
@@ -654,6 +690,30 @@ function CheckoutPage() {
                       loading="lazy"
                     />
                   )}
+                  <div className="grid gap-3 pt-2 sm:grid-cols-2">
+                    {[
+                      ["Calle", street, setStreet, true],
+                      ["Altura", streetNumber, setStreetNumber, true],
+                      ["Piso", floor, setFloor, false],
+                      ["Departamento", apartment, setApartment, false],
+                      ["Ciudad", city, setCity, true],
+                      ["Provincia", province, setProvince, true],
+                      ["Código Postal", postalCode, setPostalCode, true],
+                    ].map(([label, value, setter, synced]) => (
+                      <label key={String(label)} className="space-y-1 text-sm">
+                        <span>{label}</span>
+                        <Input
+                          value={String(value)}
+                          onChange={(event) => {
+                            (setter as (next: string) => void)(event.target.value);
+                            if (synced) setSelectedSavedAddress("");
+                          }}
+                          readOnly={Boolean(synced)}
+                          className={synced ? "bg-muted/40" : "bg-background"}
+                        />
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="notes">Notas del pedido (opcional)</Label>

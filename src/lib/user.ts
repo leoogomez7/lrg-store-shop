@@ -24,6 +24,12 @@ export type UserAddress = {
   label: string;
   value: string;
   city?: string;
+  street?: string;
+  streetNumber?: string;
+  floor?: string;
+  apartment?: string;
+  province?: string;
+  postalCode?: string;
   isPrimary?: boolean;
 };
 
@@ -44,6 +50,12 @@ async function ensureUserProfileColumns() {
       { name: "phone", type: "TEXT" },
       { name: "document", type: "TEXT" },
       { name: "city", type: "TEXT" },
+      { name: "street", type: "TEXT" },
+      { name: "streetNumber", type: "TEXT" },
+      { name: "floor", type: "TEXT" },
+      { name: "apartment", type: "TEXT" },
+      { name: "province", type: "TEXT" },
+      { name: "postalCode", type: "TEXT" },
       { name: "createdAt", type: "TEXT" },
       { name: "updatedAt", type: "TEXT" },
     ];
@@ -159,6 +171,12 @@ export const updateUserProfile = createServerFn({ method: "POST" })
           phone TEXT,
           document TEXT,
           city TEXT,
+          street TEXT,
+          streetNumber TEXT,
+          floor TEXT,
+          apartment TEXT,
+          province TEXT,
+          postalCode TEXT,
           createdAt TEXT,
           updatedAt TEXT
         )`,
@@ -245,7 +263,7 @@ export const getUserAddresses = createServerFn({ method: "GET" })
       await ensureUserAddressColumns();
 
       const result = await client.execute({
-        sql: "SELECT id, label, value, city, isPrimary FROM user_addresses WHERE userId = ? ORDER BY isPrimary DESC, createdAt DESC",
+        sql: "SELECT id, label, value, city, street, streetNumber, floor, apartment, province, postalCode, isPrimary FROM user_addresses WHERE userId = ? ORDER BY isPrimary DESC, createdAt DESC",
         args: [data.userId],
       });
 
@@ -254,6 +272,12 @@ export const getUserAddresses = createServerFn({ method: "GET" })
         label: String(row.label ?? ""),
         value: String(row.value ?? ""),
         city: typeof row.city === "string" ? row.city : undefined,
+        street: typeof row.street === "string" ? row.street : undefined,
+        streetNumber: typeof row.streetNumber === "string" ? row.streetNumber : undefined,
+        floor: typeof row.floor === "string" ? row.floor : undefined,
+        apartment: typeof row.apartment === "string" ? row.apartment : undefined,
+        province: typeof row.province === "string" ? row.province : undefined,
+        postalCode: typeof row.postalCode === "string" ? row.postalCode : undefined,
         isPrimary: Boolean(row.isPrimary),
       })) as UserAddress[];
     } catch (error) {
@@ -264,7 +288,7 @@ export const getUserAddresses = createServerFn({ method: "GET" })
 
 export const saveUserAddress = createServerFn({ method: "POST" })
   .validator(
-    (data: { userId: string; label: string; value: string; city?: string; isPrimary?: boolean }) =>
+    (data: UserAddress & { userId: string }) =>
       data,
   )
   .handler(async ({ data }) => {
@@ -284,6 +308,12 @@ export const saveUserAddress = createServerFn({ method: "POST" })
           phone TEXT,
           document TEXT,
           city TEXT,
+          street TEXT,
+          streetNumber TEXT,
+          floor TEXT,
+          apartment TEXT,
+          province TEXT,
+          postalCode TEXT,
           createdAt TEXT,
           updatedAt TEXT
         )`,
@@ -318,21 +348,27 @@ export const saveUserAddress = createServerFn({ method: "POST" })
       const id = crypto.randomUUID();
 
       await client.execute({
-        sql: `INSERT INTO user_addresses (id, userId, label, value, city, isPrimary, createdAt, updatedAt)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          sql: `INSERT INTO user_addresses (id, userId, label, value, city, street, streetNumber, floor, apartment, province, postalCode, isPrimary, createdAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           id,
           userId,
           label,
           value,
           data.city?.trim() ?? "",
+          data.street?.trim() ?? "",
+          data.streetNumber?.trim() ?? "",
+          data.floor?.trim() ?? "",
+          data.apartment?.trim() ?? "",
+          data.province?.trim() ?? "",
+          data.postalCode?.trim() ?? "",
           shouldBePrimary ? 1 : 0,
           now,
           now,
         ],
       });
 
-      return { id, label, value, city: data.city?.trim(), isPrimary: shouldBePrimary };
+      return { ...data, id, label, value, isPrimary: shouldBePrimary };
     } catch (error) {
       console.error("Error guardando dirección:", error);
       throw new Error("No se pudo guardar la dirección en Turso", { cause: error });
@@ -341,7 +377,7 @@ export const saveUserAddress = createServerFn({ method: "POST" })
 
 export const updateUserAddress = createServerFn({ method: "POST" })
   .validator(
-    (data: { userId: string; addressId: string; label: string; value: string; city?: string }) =>
+    (data: UserAddress & { userId: string; addressId: string }) =>
       data,
   )
   .handler(async ({ data }) => {
@@ -349,13 +385,19 @@ export const updateUserAddress = createServerFn({ method: "POST" })
 
     try {
       await client.execute({
-        sql: `UPDATE user_addresses
-              SET label = ?, value = ?, city = ?, updatedAt = ?
+          sql: `UPDATE user_addresses
+            SET label = ?, value = ?, city = ?, street = ?, streetNumber = ?, floor = ?, apartment = ?, province = ?, postalCode = ?, updatedAt = ?
               WHERE id = ? AND userId = ?`,
         args: [
           data.label.trim(),
           data.value.trim(),
           data.city ?? "",
+          data.street ?? "",
+          data.streetNumber ?? "",
+          data.floor ?? "",
+          data.apartment ?? "",
+          data.province ?? "",
+          data.postalCode ?? "",
           new Date().toISOString(),
           data.addressId,
           data.userId,

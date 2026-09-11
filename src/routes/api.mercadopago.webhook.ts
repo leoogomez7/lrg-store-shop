@@ -45,6 +45,7 @@ export const Route = createFileRoute("/api/mercadopago/webhook")({
           date: new Date().toISOString().slice(0, 10),
           extraInfo: payload.notes,
           status: "pagado",
+          deliveryStatus: "Pendiente",
           paymentStatus: "Pagado",
         };
         await adjustProductStockForOrder(order, -1);
@@ -74,5 +75,7 @@ type PaymentIntentData = {
   discountCode?: string;
   cardFee: number;
   shippingMethod: string;
+  isGuest?: boolean;
+  guestCustomerId?: string;
   items: Order["items"];
 };

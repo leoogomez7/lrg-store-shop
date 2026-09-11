@@ -52,9 +52,17 @@ function AdminClients() {
   const customers = useMemo(() => {
     const map = new Map<string, Customer>();
     for (const o of orders) {
-      const key = o.email || o.customer || o.phone || o.id;
+      const key = o.isGuest
+        ? `guest:${o.guestCustomerId ?? o.id}`
+        : o.email || o.customer || o.phone || o.id;
       if (!map.has(key)) {
-        map.set(key, { key, name: o.customer, email: o.email, orders: [] });
+        map.set(key, {
+          key,
+          name: o.customer,
+          email: o.email,
+          isGuest: Boolean(o.isGuest),
+          orders: [],
+        });
       }
       map.get(key)!.orders.push(o);
     }
@@ -326,7 +334,7 @@ function CustomerRow({
   customer,
   totalSpent,
 }: {
-  customer: { key: string; name: string; email: string; orders: Order[] };
+  customer: { key: string; name: string; email: string; isGuest: boolean; orders: Order[] };
   totalSpent: number;
 }) {
   const [open, setOpen] = useState(false);
@@ -337,7 +345,16 @@ function CustomerRow({
   return (
     <>
       <TableRow key={customer.key}>
-        <TableCell>{customer.name}</TableCell>
+        <TableCell>
+          <div className="flex items-center justify-center gap-2">
+            {customer.name}
+            {customer.isGuest && (
+              <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+                Invitado
+              </span>
+            )}
+          </div>
+        </TableCell>
         <TableCell>{customer.email}</TableCell>
         <TableCell>{customer.orders.length}</TableCell>
         <TableCell>

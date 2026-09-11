@@ -1863,6 +1863,11 @@ function AdminOrders() {
                           aria-label={`Seleccionar pedido ${order.id}`}
                         />
                         <span className="min-w-0 break-all">{order.id}</span>
+                        {order.isGuest && (
+                          <Badge variant="warning" className="shrink-0 text-[10px]">
+                            Invitado
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>{formatDate(order.date)}</TableCell>
@@ -2113,6 +2118,7 @@ function AdminOrders() {
                             <div className="flex items-center gap-2">
                               <span className="text-muted-foreground">Cliente:</span>
                               <span>{displayCustomer}</span>
+                              {order.isGuest && <Badge variant="warning">Invitado</Badge>}
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-muted-foreground">Sector:</span>

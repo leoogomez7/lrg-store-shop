@@ -113,6 +113,13 @@ type Address = {
   id?: string;
   label: string;
   value: string;
+  city?: string;
+  street?: string;
+  streetNumber?: string;
+  floor?: string;
+  apartment?: string;
+  province?: string;
+  postalCode?: string;
   isPrimary?: boolean;
 };
 
@@ -225,6 +232,13 @@ function AccountPageContent({
   const [showAddForm, setShowAddForm] = useState(false);
   const [addressLabel, setAddressLabel] = useState("");
   const [addressValue, setAddressValue] = useState("");
+  const [addressStreet, setAddressStreet] = useState("");
+  const [addressNumber, setAddressNumber] = useState("");
+  const [addressFloor, setAddressFloor] = useState("");
+  const [addressApartment, setAddressApartment] = useState("");
+  const [addressCity, setAddressCity] = useState("");
+  const [addressProvince, setAddressProvince] = useState("");
+  const [addressPostalCode, setAddressPostalCode] = useState("");
   const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null);
   const [isMapLoading, setIsMapLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -237,6 +251,10 @@ function AccountPageContent({
       label: string;
       value: string;
       display?: { street: string; city: string };
+      cityName?: string;
+      streetNumber?: string;
+      province?: string;
+      postalCode?: string;
       lat?: string;
       lon?: string;
     }>
@@ -564,6 +582,13 @@ function AccountPageContent({
           ...(addr.id !== undefined ? { id: addr.id } : {}),
           label: addr.label,
           value: addr.value,
+          city: addr.city,
+          street: addr.street,
+          streetNumber: addr.streetNumber,
+          floor: addr.floor,
+          apartment: addr.apartment,
+          province: addr.province,
+          postalCode: addr.postalCode,
           isPrimary: Boolean(addr.isPrimary),
         })) as Address[],
       );
@@ -633,6 +658,8 @@ function AccountPageContent({
               address["county"] ||
               address["state"] ||
               "";
+            const province = address["state"] || address["province"] || "";
+            const postalCode = address["postcode"] || "";
             const district =
               address["suburb"] || address["neighbourhood"] || address["city_district"] || "";
 
@@ -660,6 +687,10 @@ function AccountPageContent({
             return {
               street: street || displayName.split(",")[0]?.trim() || "",
               city: area || displayName.split(",").slice(1).join(", ").trim() || "",
+              cityName: city,
+              streetNumber: resolvedHouseNumber,
+              province,
+              postalCode,
               value: value || displayName || "Dirección",
             };
           };
@@ -670,6 +701,10 @@ function AccountPageContent({
               label: string;
               value: string;
               display?: { street: string; city: string };
+              cityName?: string;
+              streetNumber?: string;
+              province?: string;
+              postalCode?: string;
               lat?: string;
               lon?: string;
             }>
@@ -693,6 +728,10 @@ function AccountPageContent({
               label: candidate,
               value: candidate,
               display: { street: formatted.street, city: formatted.city },
+              cityName: formatted.cityName,
+              streetNumber: formatted.streetNumber,
+              province: formatted.province,
+              postalCode: formatted.postalCode,
             };
 
             if (typeof item.lat === "string" && item.lat.length > 0) {
@@ -707,6 +746,15 @@ function AccountPageContent({
           }, []);
 
           setAddressSuggestions(suggestions.slice(0, 3));
+
+          const firstLocation = suggestions[0];
+          if (firstLocation) {
+            setAddressStreet(firstLocation.display?.street ?? "");
+            setAddressNumber(firstLocation.streetNumber ?? "");
+            setAddressCity(firstLocation.cityName ?? "");
+            setAddressProvince(firstLocation.province ?? "");
+            setAddressPostalCode(firstLocation.postalCode ?? "");
+          }
 
           const location = data[0];
           if (location?.lat && location?.lon) {
@@ -1719,6 +1767,13 @@ function AccountPageContent({
                 setEditingIndex(null);
                 setAddressLabel("");
                 setAddressValue("");
+                setAddressStreet("");
+                setAddressNumber("");
+                setAddressFloor("");
+                setAddressApartment("");
+                setAddressCity("");
+                setAddressProvince("");
+                setAddressPostalCode("");
                 setAddressSuggestions([]);
               }}
             >
@@ -1783,6 +1838,30 @@ function AccountPageContent({
                 </div>
               )}
 
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                {[
+                  ["Calle", addressStreet, setAddressStreet, true],
+                  ["Altura", addressNumber, setAddressNumber, true],
+                  ["Piso", addressFloor, setAddressFloor, false],
+                  ["Departamento", addressApartment, setAddressApartment, false],
+                  ["Ciudad", addressCity, setAddressCity, true],
+                  ["Provincia", addressProvince, setAddressProvince, true],
+                  ["Código Postal", addressPostalCode, setAddressPostalCode, true],
+                ].map(([label, value, setter, synced]) => (
+                  <label key={String(label)} className="space-y-2 text-sm font-medium">
+                    <span>{label}</span>
+                    <Input
+                      value={String(value)}
+                      onChange={(event) =>
+                        (setter as (next: string) => void)(event.target.value)
+                      }
+                      readOnly={Boolean(synced)}
+                      className={synced ? "bg-muted/40" : "bg-background/40"}
+                    />
+                  </label>
+                ))}
+              </div>
+
               <div className="mt-5 flex flex-wrap gap-3">
                 <Button
                   size="sm"
@@ -1802,6 +1881,13 @@ function AccountPageContent({
                           userId: user.id,
                           label: addressLabel.trim(),
                           value: addressValue,
+                          city: addressCity,
+                          street: addressStreet,
+                          streetNumber: addressNumber,
+                          floor: addressFloor,
+                          apartment: addressApartment,
+                          province: addressProvince,
+                          postalCode: addressPostalCode,
                           isPrimary:
                             addresses.length === 0 ||
                             !addresses.some((address) => address.isPrimary),
@@ -1814,11 +1900,25 @@ function AccountPageContent({
                             id: result.id,
                             label: result.label,
                             value: result.value,
+                            city: result.city,
+                            street: addressStreet,
+                            streetNumber: addressNumber,
+                            floor: addressFloor,
+                            apartment: addressApartment,
+                            province: addressProvince,
+                            postalCode: addressPostalCode,
                             isPrimary: result.isPrimary ?? false,
                           },
                         ]);
                         setAddressLabel("");
                         setAddressValue("");
+                        setAddressStreet("");
+                        setAddressNumber("");
+                        setAddressFloor("");
+                        setAddressApartment("");
+                        setAddressCity("");
+                        setAddressProvince("");
+                        setAddressPostalCode("");
                         setMapPreviewUrl(null);
                         setAddressSuggestions([]);
                         setShowAddForm(false);
@@ -1959,6 +2059,30 @@ function AccountPageContent({
                           </div>
                         )}
 
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          {[
+                            ["Calle", addressStreet, setAddressStreet, true],
+                            ["Altura", addressNumber, setAddressNumber, true],
+                            ["Piso", addressFloor, setAddressFloor, false],
+                            ["Departamento", addressApartment, setAddressApartment, false],
+                            ["Ciudad", addressCity, setAddressCity, true],
+                            ["Provincia", addressProvince, setAddressProvince, true],
+                            ["Código Postal", addressPostalCode, setAddressPostalCode, true],
+                          ].map(([label, value, setter, synced]) => (
+                            <label key={String(label)} className="space-y-2 text-sm font-medium">
+                              <span>{label}</span>
+                              <Input
+                                value={String(value)}
+                                onChange={(event) =>
+                                  (setter as (next: string) => void)(event.target.value)
+                                }
+                                readOnly={Boolean(synced)}
+                                className={synced ? "bg-muted/40" : "bg-background/40"}
+                              />
+                            </label>
+                          ))}
+                        </div>
+
                         <div className="flex flex-wrap gap-3 pt-1">
                           <Button
                             size="sm"
@@ -1974,6 +2098,13 @@ function AccountPageContent({
                                           ...item,
                                           label: addressLabel.trim(),
                                           value: addressValue.trim(),
+                                          city: addressCity,
+                                          street: addressStreet,
+                                          streetNumber: addressNumber,
+                                          floor: addressFloor,
+                                          apartment: addressApartment,
+                                          province: addressProvince,
+                                          postalCode: addressPostalCode,
                                         }
                                       : item,
                                   ),
@@ -1991,6 +2122,13 @@ function AccountPageContent({
                                   addressId: addressToUpdate.id,
                                   label: addressLabel.trim(),
                                   value: addressValue,
+                                  city: addressCity,
+                                  street: addressStreet,
+                                  streetNumber: addressNumber,
+                                  floor: addressFloor,
+                                  apartment: addressApartment,
+                                  province: addressProvince,
+                                  postalCode: addressPostalCode,
                                 },
                               });
 
@@ -2002,6 +2140,13 @@ function AccountPageContent({
                                           ...item,
                                           label: addressLabel.trim(),
                                           value: addressValue.trim(),
+                                          city: addressCity,
+                                          street: addressStreet,
+                                          streetNumber: addressNumber,
+                                          floor: addressFloor,
+                                          apartment: addressApartment,
+                                          province: addressProvince,
+                                          postalCode: addressPostalCode,
                                         }
                                       : item,
                                   ),
@@ -2045,6 +2190,13 @@ function AccountPageContent({
                               setEditingIndex(index);
                               setAddressLabel(address.label);
                               setAddressValue(address.value);
+                              setAddressStreet(address.street ?? "");
+                              setAddressNumber(address.streetNumber ?? "");
+                              setAddressFloor(address.floor ?? "");
+                              setAddressApartment(address.apartment ?? "");
+                              setAddressCity(address.city ?? "");
+                              setAddressProvince(address.province ?? "");
+                              setAddressPostalCode(address.postalCode ?? "");
                               setShowAddForm(false);
                             }}
                           >
