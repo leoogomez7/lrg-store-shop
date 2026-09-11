@@ -185,215 +185,219 @@ function ProductosPage() {
   return (
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
       <div className="aurora-bg" />
-      <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pt-20 pb-8 sm:px-6">
-        <BrandHeader
-          brand={webDesignConfig}
-          displayBrandName="LRG Store Shop"
-          logoBrandSlug="store-shop"
-        />
+      <div className="relative">
+        <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pt-20 pb-8 sm:px-6">
+          <BrandHeader
+            brand={webDesignConfig}
+            displayBrandName="LRG Store Shop"
+            logoBrandSlug="store-shop"
+          />
 
-        <main className="flex-1 py-10">
-          <header className="max-w-3xl">
-            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
-              Catálogo completo
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">LRG Store Shop</h1>
-          </header>
+          <main className="flex-1 py-10">
+            <header className="max-w-3xl">
+              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
+                Catálogo completo
+              </p>
+              <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">LRG Store Shop</h1>
+            </header>
 
-          <div className="mt-6 flex flex-wrap items-center justify-start gap-3">
-            <div className="relative w-full basis-full sm:basis-auto sm:max-w-md sm:flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar producto"
-                value={filters.search}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, search: event.target.value }))
-                }
-                className="w-full pl-9"
-              />
+            <div className="mt-6 flex flex-wrap items-center justify-start gap-3">
+              <div className="relative w-full basis-full sm:basis-auto sm:max-w-md sm:flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar producto"
+                  value={filters.search}
+                  onChange={(event) =>
+                    setFilters((current) => ({ ...current, search: event.target.value }))
+                  }
+                  className="w-full pl-9"
+                />
+              </div>
+
+              <Dialog open={showSortOptions} onOpenChange={setShowSortOptions}>
+                <DialogTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
+                  >
+                    <span className="flex items-center gap-2">
+                      <ArrowUpDown className="size-4 text-white" aria-hidden="true" />
+                      <span>Ordenar por</span>
+                    </span>
+                  </button>
+                </DialogTrigger>
+
+                <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                  <DialogHeader className="space-y-2">
+                    <DialogTitle>Ordenar por</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-1 pt-2">
+                    {Object.entries(sortLabels).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          setFilters((current) => ({
+                            ...current,
+                            sort: value as CatalogFilters["sort"],
+                          }));
+                          setShowSortOptions(false);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
+                          filters.sort === value
+                            ? "bg-surface-2 text-foreground"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        <span>{label}</span>
+                        {filters.sort === value && <span aria-hidden="true">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={showFilters} onOpenChange={setShowFilters}>
+                <DialogTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
+                  >
+                    <Funnel className="size-4 text-white" />
+                    <span>Filtros</span>
+                  </button>
+                </DialogTrigger>
+
+                <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                  <DialogHeader className="space-y-2">
+                    <DialogTitle>Filtros</DialogTitle>
+                  </DialogHeader>
+                  <div className="pt-2">
+                    <ProductFilters
+                      categories={categories}
+                      filters={filters}
+                      priceLimit={priceLimit}
+                      resultCount={results.length}
+                      onChange={(next) => {
+                        if ("priceCurrencies" in next)
+                          setPriceCurrencies(next.priceCurrencies ?? []);
+                        setFilters((current) => ({ ...current, ...next }));
+                      }}
+                      onReset={() => {
+                        setPriceCurrencies(["ARS", "USD"]);
+                        setFilters({
+                          search: "",
+                          categories: [],
+                          brands: [],
+                          priceCurrencies: ["ARS", "USD"],
+                          minPrice: 0,
+                          maxPrice: priceLimit,
+                          inStockOnly: false,
+                          sort: "precio-asc",
+                        });
+                      }}
+                      hideSearch
+                      showBrandFilter
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
 
-            <Dialog open={showSortOptions} onOpenChange={setShowSortOptions}>
-              <DialogTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
-                >
-                  <span className="flex items-center gap-2">
-                    <ArrowUpDown className="size-4 text-white" aria-hidden="true" />
-                    <span>Ordenar por</span>
-                  </span>
-                </button>
-              </DialogTrigger>
-
-              <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
-                <DialogHeader className="space-y-2">
-                  <DialogTitle>Ordenar por</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-1 pt-2">
-                  {Object.entries(sortLabels).map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => {
-                        setFilters((current) => ({
-                          ...current,
-                          sort: value as CatalogFilters["sort"],
-                        }));
-                        setShowSortOptions(false);
-                      }}
-                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
-                        filters.sort === value
-                          ? "bg-surface-2 text-foreground"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      <span>{label}</span>
-                      {filters.sort === value && <span aria-hidden="true">✓</span>}
-                    </button>
+            <section className="mt-8">
+              {results.length === 0 ? (
+                <div className="glass-panel rounded-2xl p-12 text-center">
+                  <h2 className="font-display text-lg font-semibold">Sin resultados</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Probá ajustando los filtros o ampliando el rango de precio.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                  {paginatedResults.map((product, index) => (
+                    <ProductCard key={product.id} product={product} index={index} />
                   ))}
                 </div>
-              </DialogContent>
-            </Dialog>
+              )}
+            </section>
 
-            <Dialog open={showFilters} onOpenChange={setShowFilters}>
-              <DialogTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_18px_rgba(0,0,0,0.16)] transition-colors hover:bg-surface-2/60"
-                >
-                  <Funnel className="size-4 text-white" />
-                  <span>Filtros</span>
-                </button>
-              </DialogTrigger>
-
-              <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
-                <DialogHeader className="space-y-2">
-                  <DialogTitle>Filtros</DialogTitle>
-                </DialogHeader>
-                <div className="pt-2">
-                  <ProductFilters
-                    categories={categories}
-                    filters={filters}
-                    priceLimit={priceLimit}
-                    resultCount={results.length}
-                    onChange={(next) => {
-                      if ("priceCurrencies" in next) setPriceCurrencies(next.priceCurrencies ?? []);
-                      setFilters((current) => ({ ...current, ...next }));
-                    }}
-                    onReset={() => {
-                      setPriceCurrencies(["ARS", "USD"]);
-                      setFilters({
-                        search: "",
-                        categories: [],
-                        brands: [],
-                        priceCurrencies: ["ARS", "USD"],
-                        minPrice: 0,
-                        maxPrice: priceLimit,
-                        inStockOnly: false,
-                        sort: "precio-asc",
-                      });
-                    }}
-                    hideSearch
-                    showBrandFilter
-                  />
+            {results.length > 0 && (
+              <div className="mt-4 flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage(0)}
+                    disabled={!hasPreviousPage}
+                    className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:opacity-60"
+                  >
+                    Principio
+                  </button>
+                  <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+                    {Array.from({ length: totalPages }, (_, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                        onClick={() => setPage(index)}
+                      >
+                        {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPage(totalPages - 1)}
+                    disabled={!hasNextPage}
+                    className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:opacity-60"
+                  >
+                    Último
+                  </button>
                 </div>
-              </DialogContent>
-            </Dialog>
-          </div>
 
-          <section className="mt-8">
-            {results.length === 0 ? (
-              <div className="glass-panel rounded-2xl p-12 text-center">
-                <h2 className="font-display text-lg font-semibold">Sin resultados</h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Probá ajustando los filtros o ampliando el rango de precio.
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <div className="text-sm text-muted-foreground">Mostrar</div>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    value={pageSizeInput}
+                    placeholder="Cantidad"
+                    onChange={(e) => setPageSizeInput(e.target.value)}
+                    className="h-8 w-20 bg-background/50"
+                  />
+                  {(() => {
+                    const v = Number(pageSizeInput);
+                    const isValid = Number.isFinite(v) && v >= 1;
+                    const isChanged =
+                      pageSizeInput !== "" && String(Math.floor(v)) !== String(pageSize);
+                    return (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          if (!isValid || !isChanged) return;
+                          const final = Math.min(1000, Math.floor(v));
+                          setPageSize(final);
+                          setPageSizeInput(String(final));
+                          setPage(0);
+                        }}
+                        disabled={!isValid || !isChanged}
+                        className="h-8 px-4"
+                      >
+                        <Check className="mr-2 h-4 w-4" />
+                        Confirmar
+                      </Button>
+                    );
+                  })()}
+                </div>
+
+                <p className="text-center text-xs text-muted-foreground">
+                  {paginatedResults.length} de {results.length} productos mostrados
                 </p>
               </div>
-            ) : (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                {paginatedResults.map((product, index) => (
-                  <ProductCard key={product.id} product={product} index={index} />
-                ))}
-              </div>
             )}
-          </section>
-
-          {results.length > 0 && (
-            <div className="mt-4 flex flex-col gap-3">
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPage(0)}
-                  disabled={!hasPreviousPage}
-                  className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:opacity-60"
-                >
-                  Principio
-                </button>
-                <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-                  {Array.from({ length: totalPages }, (_, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                      onClick={() => setPage(index)}
-                    >
-                      {index + 1}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPage(totalPages - 1)}
-                  disabled={!hasNextPage}
-                  className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:opacity-60"
-                >
-                  Último
-                </button>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                <div className="text-sm text-muted-foreground">Mostrar</div>
-                <Input
-                  type="number"
-                  min={1}
-                  max={1000}
-                  value={pageSizeInput}
-                  placeholder="Cantidad"
-                  onChange={(e) => setPageSizeInput(e.target.value)}
-                  className="h-8 w-20 bg-background/50"
-                />
-                {(() => {
-                  const v = Number(pageSizeInput);
-                  const isValid = Number.isFinite(v) && v >= 1;
-                  const isChanged = pageSizeInput !== "" && String(Math.floor(v)) !== String(pageSize);
-                  return (
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        if (!isValid || !isChanged) return;
-                        const final = Math.min(1000, Math.floor(v));
-                        setPageSize(final);
-                        setPageSizeInput(String(final));
-                        setPage(0);
-                      }}
-                      disabled={!isValid || !isChanged}
-                      className="h-8 px-4"
-                    >
-                      <Check className="mr-2 h-4 w-4" />
-                      Confirmar
-                    </Button>
-                  );
-                })()}
-              </div>
-
-              <p className="text-center text-xs text-muted-foreground">
-                {paginatedResults.length} de {results.length} productos mostrados
-              </p>
-            </div>
-          )}
-        </main>
+          </main>
+        </div>
 
         <BrandFooter brand={webDesignConfig} section="store-shop" />
       </div>
