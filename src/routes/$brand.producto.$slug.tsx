@@ -214,7 +214,7 @@ function ProductDetail() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-20 sm:px-6">
+    <main className="mx-auto min-w-0 w-full max-w-7xl overflow-hidden px-4 pb-10 pt-20 sm:px-6">
       <div className="mb-4 flex items-center justify-start">
         <Link
           to="/$brand/productos"
@@ -282,7 +282,7 @@ function ProductDetail() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(440px,0.95fr)_minmax(420px,1.05fr)]">
+      <div className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="overflow-hidden rounded-3xl p-2">
           {productImages.length > 0 ? (
             <div>
@@ -407,7 +407,7 @@ function ProductDetail() {
           </div>
         )}
 
-        <div className="pl-0 lg:pl-3">
+        <div className="min-w-0 pl-0 lg:pl-3">
           <div className="flex flex-wrap items-center gap-2">
             {product.badge && <Badge>{product.badge}</Badge>}
           </div>
@@ -423,7 +423,9 @@ function ProductDetail() {
               </span>
             )}
           </div>
-          <h1 className="font-display mt-4 text-3xl font-semibold sm:text-4xl">{product.name}</h1>
+          <h1 className="font-display mt-4 break-words text-3xl font-semibold sm:text-4xl">
+            {product.name}
+          </h1>
           {(deliveryText || freeShippingText) && (
             <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
@@ -467,7 +469,7 @@ function ProductDetail() {
 
           <div className="mt-6 w-full max-w-md rounded-2xl border border-border/50 bg-surface-2 p-4">
             <div className="flex flex-wrap items-center gap-4">
-              <div className="flex min-w-37.5 flex-col items-start gap-2">
+              <div className="flex min-w-0 flex-col items-start gap-2">
                 <span className="font-display text-3xl font-semibold leading-none">
                   {formatPrice(activeProduct.price)}
                 </span>
@@ -527,10 +529,10 @@ function ProductDetail() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center justify-start gap-2">
+            <div className="mt-4 flex flex-nowrap items-center justify-start gap-1 sm:gap-2">
               <Button
                 size="lg"
-                className="w-full max-w-44 gap-2"
+                className="min-w-0 flex-1 !px-2 !text-xs sm:max-w-44 sm:gap-2 sm:!px-3 sm:!text-sm"
                 disabled={!hasStock}
                 onClick={() => addProduct(activeProduct, quantity)}
               >
@@ -540,7 +542,7 @@ function ProductDetail() {
               <Button
                 size="lg"
                 variant="secondary"
-                className="w-full max-w-44 gap-2"
+                className="min-w-0 flex-1 !px-2 !text-xs sm:max-w-44 sm:gap-2 sm:!px-3 sm:!text-sm"
                 onClick={() => {
                   if (!hasStock) return;
                   addProduct(activeProduct, quantity);
@@ -554,33 +556,45 @@ function ProductDetail() {
           </div>
 
           <Tabs defaultValue="description" className="mt-8">
-            <TabsList>
+            <TabsList className="h-auto max-w-full flex-wrap justify-start">
               <TabsTrigger value="features">Características</TabsTrigger>
               <TabsTrigger value="description">Descripción</TabsTrigger>
               <TabsTrigger value="includes">Incluye</TabsTrigger>
             </TabsList>
             <TabsContent value="features" className="pt-4">
-              <ul className="grid gap-2.5 text-sm">
-                {activeProduct.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2">
-                    <Check className="size-4 text-primary" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
+              {activeProduct.features?.length ? (
+                <ul className="grid gap-2.5 text-sm">
+                  {activeProduct.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-2">
+                      <Check className="size-4 text-primary" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="leading-relaxed text-muted-foreground">
+                  No hay características para mostrar.
+                </p>
+              )}
             </TabsContent>
             <TabsContent value="description" className="pt-4">
-              <p className="leading-relaxed text-muted-foreground">{activeProduct.description}</p>
+              <p className="leading-relaxed text-muted-foreground">
+                {activeProduct.description?.trim() || "No hay descripción para mostrar."}
+              </p>
             </TabsContent>
             <TabsContent value="includes" className="pt-4">
-              <ul className="grid gap-2.5 text-sm">
-                {(activeProduct.includes ?? []).map((include) => (
-                  <li key={include} className="flex items-center gap-2">
-                    <Check className="size-4 text-primary" />
-                    {include}
-                  </li>
-                ))}
-              </ul>
+              {activeProduct.includes?.length ? (
+                <ul className="grid gap-2.5 text-sm">
+                  {activeProduct.includes.map((include) => (
+                    <li key={include} className="flex items-center gap-2">
+                      <Check className="size-4 text-primary" />
+                      {include}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="leading-relaxed text-muted-foreground">No incluye nada.</p>
+              )}
             </TabsContent>
           </Tabs>
         </div>

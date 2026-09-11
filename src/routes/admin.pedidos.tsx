@@ -2057,7 +2057,7 @@ function AdminOrders() {
                                 className="h-8 flex-none gap-1.5 px-2 text-xs"
                                 title="Ver comprobantes de pago"
                               >
-                                <span aria-hidden="true">🧾</span>
+                                <FileText className="size-4" />
                                 <span className="hidden sm:inline">Comprobantes</span>
                               </Button>
                             </div>
