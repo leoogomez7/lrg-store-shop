@@ -307,9 +307,7 @@ function CheckoutPage() {
   }, [isAuthenticated, user?.email, user?.givenName, user?.id, kindeLoading]);
 
   useEffect(() => {
-    const query = [street.trim(), streetNumber.trim(), city.trim(), province.trim()]
-      .filter(Boolean)
-      .join(", ");
+    const query = address.trim();
     if (!query) {
       setMapPreviewUrl(null);
       return;
@@ -342,20 +340,12 @@ function CheckoutPage() {
           city;
         const resolvedProvince = resultAddress?.state || resultAddress?.province || province;
         const resolvedPostalCode = resultAddress?.postcode || postalCode;
-        geocodedAddressRef.current = [
-          resolvedStreet,
-          resolvedNumber,
-          resolvedCity,
-          resolvedProvince,
-        ]
-          .filter(Boolean)
-          .join(", ");
+        geocodedAddressRef.current = query;
         setStreet(resolvedStreet);
         setStreetNumber(resolvedNumber);
         setCity(resolvedCity);
         setProvince(resolvedProvince);
         setPostalCode(resolvedPostalCode);
-        setAddress([resolvedStreet, resolvedNumber].filter(Boolean).join(" "));
         if (firstResult?.lat && firstResult.lon) {
           setMapPreviewUrl(
             `https://maps.google.com/maps?q=${firstResult.lat},${firstResult.lon}&z=15&output=embed&hl=es`,
@@ -371,7 +361,7 @@ function CheckoutPage() {
     }, 600);
 
     return () => window.clearTimeout(timer);
-  }, [street, streetNumber, city, province]);
+  }, [address]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -656,25 +646,16 @@ function CheckoutPage() {
                   </div>
                 )}
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="street">Dirección</Label>
+                  <Label htmlFor="address">Dirección o referencia</Label>
                   <Input
-                    id="street"
+                    id="address"
                     required
-                    placeholder="Calle"
-                    value={street}
+                    placeholder="Calle y altura, cafetería, municipio, etc."
+                    value={address}
                     onChange={(event) => {
                       setSelectedSavedAddress("");
-                      setStreet(event.target.value);
-                    }}
-                  />
-                  <Input
-                    id="street-number"
-                    required
-                    placeholder="Altura"
-                    value={streetNumber}
-                    onChange={(event) => {
-                      setSelectedSavedAddress("");
-                      setStreetNumber(event.target.value);
+                      geocodedAddressRef.current = "";
+                      setAddress(event.target.value);
                     }}
                   />
                   {isMapLoading && (
