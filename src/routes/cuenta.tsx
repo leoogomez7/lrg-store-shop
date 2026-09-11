@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -73,8 +73,8 @@ import {
   deleteUserAddress,
   setPrimaryUserAddress,
 } from "@/lib/user";
-import { catalogQueries, orderQueries } from "@/services/catalog.service";
-import type { Order } from "@/data/orders";
+import { catalogQueries, orderQueries, orderService } from "@/services/catalog.service";
+import type { Order, OrderAttachment } from "@/data/orders";
 import { hydrateFavorites, subscribeToFavoriteChanges } from "@/lib/favorites";
 
 export const Route = createFileRoute("/cuenta")({
@@ -193,6 +193,7 @@ function AccountPageContent({
 }) {
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const { data: products } = useSuspenseQuery(catalogQueries.all());
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -212,9 +213,13 @@ function AccountPageContent({
   const [userDocument, setUserDocument] = useState<string>("");
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [attachmentsOrder, setAttachmentsOrder] = useState<Order | null>(null);
-  const visibleOrders = user?.email
-    ? orders.filter((order) => order.email.toLowerCase() === user.email?.toLowerCase())
-    : [];
+  const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
+  const [pendingReceipts, setPendingReceipts] = useState<OrderAttachment[]>([]);
+  const receiptsInputRef = useRef<HTMLInputElement | null>(null);
+  const visibleOrders = useMemo(() => {
+    const userEmail = user?.email?.toLowerCase();
+    return userEmail ? orders.filter((order) => order.email.toLowerCase() === userEmail) : [];
+  }, [orders, user?.email]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const favoriteProducts = products.filter((product) => favoriteIds.includes(product.id));
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -231,7 +236,15 @@ function AccountPageContent({
   const savedProfileValues = useRef({ givenName: "", familyName: "", phone: "", document: "" });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
-  const [addressSuggestions, setAddressSuggestions] = useState<Array<{ label: string; value: string; display?: { street: string; city: string }; lat?: string; lon?: string }>>([]);
+  const [addressSuggestions, setAddressSuggestions] = useState<
+    Array<{
+      label: string;
+      value: string;
+      display?: { street: string; city: string };
+      lat?: string;
+      lon?: string;
+    }>
+  >([]);
   const [ordersPage, setOrdersPage] = useState(0);
   const [ordersPageSize, setOrdersPageSize] = useState<number>(10);
   const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("10");
@@ -244,7 +257,8 @@ function AccountPageContent({
   const [ordersStatusFilter, setOrdersStatusFilter] = useState("all");
   const [ordersTotalMin, setOrdersTotalMin] = useState("");
   const [ordersTotalMax, setOrdersTotalMax] = useState("");
-  const [customerOrderNotice, setCustomerOrderNotice] = useState<CustomerOrderStatusNoticeData | null>(null);
+  const [customerOrderNotice, setCustomerOrderNotice] =
+    useState<CustomerOrderStatusNoticeData | null>(null);
   const hasProfileChanges =
     userGivenName !== savedProfileValues.current.givenName ||
     userFamilyName !== savedProfileValues.current.familyName ||
@@ -253,10 +267,22 @@ function AccountPageContent({
 
   const accountNavItems = [
     { key: "home", label: "Inicio", icon: House, route: "/", exact: true },
-    { key: "admin-panel", label: "Panel administrativo", icon: LayoutDashboard, route: "/cuenta/panel", exact: true },
+    {
+      key: "admin-panel",
+      label: "Panel administrativo",
+      icon: LayoutDashboard,
+      route: "/cuenta/panel",
+      exact: true,
+    },
     { key: "orders", label: "Compras", icon: ShoppingCart, route: "/cuenta/compras", exact: false },
     { key: "profile", label: "Perfil", icon: User, route: "/cuenta/perfil", exact: false },
-    { key: "addresses", label: "Direcciones", icon: MapPin, route: "/cuenta/direcciones", exact: false },
+    {
+      key: "addresses",
+      label: "Direcciones",
+      icon: MapPin,
+      route: "/cuenta/direcciones",
+      exact: false,
+    },
     { key: "favorites", label: "Favoritos", icon: Heart, route: "/cuenta/favoritos", exact: false },
   ] as const;
 
@@ -280,7 +306,11 @@ function AccountPageContent({
         if (ordersBrandFilter !== "all" && order.brand !== ordersBrandFilter) return false;
         if (ordersDateFrom && order.date < ordersDateFrom) return false;
         if (ordersDateTo && order.date > ordersDateTo) return false;
-        if (ordersStatusFilter !== "all" && (order.deliveryStatus ?? "Pendiente") !== ordersStatusFilter) return false;
+        if (
+          ordersStatusFilter !== "all" &&
+          (order.deliveryStatus ?? "Pendiente") !== ordersStatusFilter
+        )
+          return false;
         if (totalMin !== null && Number.isFinite(totalMin) && order.total < totalMin) return false;
         if (totalMax !== null && Number.isFinite(totalMax) && order.total > totalMax) return false;
         return true;
@@ -288,7 +318,8 @@ function AccountPageContent({
       .sort((firstOrder, secondOrder) => {
         if (ordersSort === "total-desc") return secondOrder.total - firstOrder.total;
         if (ordersSort === "total-asc") return firstOrder.total - secondOrder.total;
-        const dateDifference = new Date(firstOrder.date).getTime() - new Date(secondOrder.date).getTime();
+        const dateDifference =
+          new Date(firstOrder.date).getTime() - new Date(secondOrder.date).getTime();
         return ordersSort === "date-asc" ? dateDifference : -dateDifference;
       });
   }, [
@@ -309,7 +340,9 @@ function AccountPageContent({
     );
   }, [filteredOrders, ordersPage, ordersPageSize]);
   const totalOrdersPages =
-    ordersPageSize && ordersPageSize > 0 ? Math.max(1, Math.ceil(filteredOrders.length / ordersPageSize)) : 1;
+    ordersPageSize && ordersPageSize > 0
+      ? Math.max(1, Math.ceil(filteredOrders.length / ordersPageSize))
+      : 1;
   const hasNextPage = ordersPage + 1 < totalOrdersPages;
   const hasPreviousPage = ordersPage > 0;
   const canEditOrdersPageSize = true;
@@ -421,7 +454,10 @@ function AccountPageContent({
     const snapshotKey = `lrg_customer_order_status_snapshot:${accountEmail}`;
     const previousSnapshotRaw = window.localStorage.getItem(snapshotKey);
     const previousSnapshot = previousSnapshotRaw
-      ? (JSON.parse(previousSnapshotRaw) as Record<string, { deliveryStatus?: string; paymentStatus?: string }>)
+      ? (JSON.parse(previousSnapshotRaw) as Record<
+          string,
+          { deliveryStatus?: string; paymentStatus?: string }
+        >)
       : {};
 
     const nextSnapshot = Object.fromEntries(
@@ -521,7 +557,10 @@ function AccountPageContent({
         if (profile) {
           const profileGivenName = profile.givenName ?? "";
           const profileFamilyName = profile.familyName ?? "";
-          const profileFullName = [profileGivenName, profileFamilyName].filter(Boolean).join(" ").trim();
+          const profileFullName = [profileGivenName, profileFamilyName]
+            .filter(Boolean)
+            .join(" ")
+            .trim();
 
           setUserGivenName(profileGivenName || nextGivenName);
           setUserFamilyName(profileFamilyName || nextFamilyName);
@@ -563,7 +602,7 @@ function AccountPageContent({
           label: addr.label,
           value: addr.value,
           isPrimary: Boolean(addr.isPrimary),
-        })) as Address[]
+        })) as Address[],
       );
     });
     return unsubscribe;
@@ -611,8 +650,11 @@ function AccountPageContent({
               .replace(/\s+/g, " ")
               .trim();
 
-          const formatAddress = (item: { display_name?: string; address?: Record<string, string> }) => {
-            const address = item.address ?? {} as Record<string, string>;
+          const formatAddress = (item: {
+            display_name?: string;
+            address?: Record<string, string>;
+          }) => {
+            const address = item.address ?? ({} as Record<string, string>);
             const road =
               address["road"] ||
               address["pedestrian"] ||
@@ -635,9 +677,17 @@ function AccountPageContent({
             const extractedFromDisplay = displayName.split(",")[0]?.trim() || "";
             const fallbackStreetMatch = extractedFromDisplay.match(/^(.*?\d+\s*[A-Za-z]?)$/);
             const fallbackStreet = fallbackStreetMatch?.[1]?.trim() || extractedFromDisplay;
-            const fallbackNumber = extractedFromDisplay.match(/(\d+\s*[A-Za-z0-9-]*)$/)?.[1]?.trim() || "";
+            const fallbackNumber =
+              extractedFromDisplay.match(/(\d+\s*[A-Za-z0-9-]*)$/)?.[1]?.trim() || "";
 
-            const resolvedRoad = road || fallbackStreet.replace(new RegExp(`\\s*${fallbackNumber.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"), "").trim();
+            const resolvedRoad =
+              road ||
+              fallbackStreet
+                .replace(
+                  new RegExp(`\\s*${fallbackNumber.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+                  "",
+                )
+                .trim();
             const resolvedHouseNumber = houseNumber || fallbackNumber || "";
 
             const street = [resolvedRoad, resolvedHouseNumber].filter(Boolean).join(" ").trim();
@@ -652,7 +702,15 @@ function AccountPageContent({
           };
 
           const seen = new Set<string>();
-          const suggestions = data.reduce<Array<{ label: string; value: string; display?: { street: string; city: string }; lat?: string; lon?: string }>>((acc, item) => {
+          const suggestions = data.reduce<
+            Array<{
+              label: string;
+              value: string;
+              display?: { street: string; city: string };
+              lat?: string;
+              lon?: string;
+            }>
+          >((acc, item) => {
             const formatted = formatAddress(item);
             const candidate = formatted.value;
             const key = normalizeAddressText(candidate);
@@ -692,7 +750,9 @@ function AccountPageContent({
             const lat = Number(location.lat);
             const lon = Number(location.lon);
             if (Number.isFinite(lat) && Number.isFinite(lon)) {
-              setMapPreviewUrl(`https://maps.google.com/maps?q=${lat},${lon}&z=15&output=embed&hl=es`);
+              setMapPreviewUrl(
+                `https://maps.google.com/maps?q=${lat},${lon}&z=15&output=embed&hl=es`,
+              );
             }
           }
         } else {
@@ -733,7 +793,9 @@ function AccountPageContent({
                   <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
                     <ShoppingCart className="size-4" />
                   </span>
-                  <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Pedidos</span>
+                  <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    Pedidos
+                  </span>
                 </div>
                 <div className="mt-2">
                   <p className="text-2xl font-semibold">{visibleOrders.length}</p>
@@ -749,7 +811,9 @@ function AccountPageContent({
                   <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
                     <User className="size-4" />
                   </span>
-                  <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Perfil</span>
+                  <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    Perfil
+                  </span>
                 </div>
                 <div className="mt-2">
                   <p className="text-base font-medium">Editar información</p>
@@ -765,7 +829,9 @@ function AccountPageContent({
                   <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
                     <MapPin className="size-4" />
                   </span>
-                  <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Direcciones</span>
+                  <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    Direcciones
+                  </span>
                 </div>
                 <div className="mt-2">
                   <p className="text-2xl font-semibold">{addresses.length}</p>
@@ -781,7 +847,9 @@ function AccountPageContent({
                   <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
                     <Heart className="size-4" />
                   </span>
-                  <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Favoritos</span>
+                  <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    Favoritos
+                  </span>
                 </div>
                 <div className="mt-2">
                   <p className="text-2xl font-semibold">{favoriteProducts.length}</p>
@@ -803,7 +871,6 @@ function AccountPageContent({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-
             <div className="order-2 relative min-w-0 basis-full flex-1 sm:basis-auto">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -887,7 +954,9 @@ function AccountPageContent({
 
                 <DialogContent className="max-w-2xl rounded-3xl border border-border/60 bg-background p-0 shadow-2xl">
                   <DialogHeader className="px-5 pt-5">
-                    <DialogTitle className="text-2xl font-semibold leading-tight">Filtros</DialogTitle>
+                    <DialogTitle className="text-2xl font-semibold leading-tight">
+                      Filtros
+                    </DialogTitle>
                   </DialogHeader>
                   <div className="px-5 pb-5 pt-2">
                     <div className="border-t border-border/50 pt-4">
@@ -931,7 +1000,9 @@ function AccountPageContent({
                         </label>
 
                         <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                          <span className="text-[11px] uppercase tracking-wide">Estado de envío</span>
+                          <span className="text-[11px] uppercase tracking-wide">
+                            Estado de envío
+                          </span>
                           <select
                             value={ordersStatusFilter}
                             onChange={(event) => setOrdersStatusFilter(event.target.value)}
@@ -1005,6 +1076,7 @@ function AccountPageContent({
                   <TableHead>Estado de envío</TableHead>
                   <TableHead className="text-center">Total</TableHead>
                   <TableHead>Archivos adjuntos</TableHead>
+                  <TableHead>Comprobantes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1035,12 +1107,31 @@ function AccountPageContent({
                           <Paperclip className="size-4" /> Mostrar
                         </Button>
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setReceiptsOrder(order);
+                            setPendingReceipts([]);
+                          }}
+                          className="gap-1.5 text-xs"
+                        >
+                          <span aria-hidden="true">🧾</span> Comprobantes
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
-                      {userName ? "No se encontraron compras." : "Inicia sesión para ver tus pedidos."}
+                    <TableCell
+                      colSpan={7}
+                      className="py-12 text-center text-sm text-muted-foreground"
+                    >
+                      {userName
+                        ? "No se encontraron compras."
+                        : "Inicia sesión para ver tus pedidos."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -1140,18 +1231,150 @@ function AccountPageContent({
                   >
                     <Paperclip className="size-4 shrink-0 text-muted-foreground" />
                     <span className="min-w-0 flex-1 truncate text-sm">{attachment.name}</span>
-                    <Button asChild type="button" variant="ghost" size="sm" className="gap-1.5 text-xs">
+                    <Button
+                      asChild
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                    >
                       <a href={attachment.dataUrl} target="_blank" rel="noreferrer">
                         <Eye className="size-4" /> Ver
                       </a>
                     </Button>
-                    <Button asChild type="button" variant="ghost" size="sm" className="gap-1.5 text-xs">
+                    <Button
+                      asChild
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                    >
                       <a href={attachment.dataUrl} download={attachment.name}>
                         <Download className="size-4" /> Descargar
                       </a>
                     </Button>
                   </div>
                 ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            open={receiptsOrder !== null}
+            onOpenChange={(open) => {
+              if (!open) {
+                setReceiptsOrder(null);
+                setPendingReceipts([]);
+              }
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Comprobantes de pago</DialogTitle>
+                <DialogDescription>
+                  Adjuntá los comprobantes del pedido {receiptsOrder?.id}.
+                </DialogDescription>
+              </DialogHeader>
+              <input
+                ref={receiptsInputRef}
+                type="file"
+                multiple
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={async (event) => {
+                  const files = Array.from(event.target.files ?? []);
+                  const receipts = await Promise.all(
+                    files.map(
+                      (file) =>
+                        new Promise<OrderAttachment>((resolve, reject) => {
+                          const reader = new FileReader();
+                          reader.onload = () =>
+                            resolve({
+                              name: file.name,
+                              type: file.type,
+                              size: file.size,
+                              dataUrl: String(reader.result ?? ""),
+                            });
+                          reader.onerror = () => reject(reader.error);
+                          reader.readAsDataURL(file);
+                        }),
+                    ),
+                  );
+                  setPendingReceipts((current) => [...current, ...receipts]);
+                  event.target.value = "";
+                }}
+              />
+              <Button type="button" onClick={() => receiptsInputRef.current?.click()}>
+                <span aria-hidden="true">🧾</span> Adjuntar comprobantes
+              </Button>
+              <div className="space-y-2">
+                {[...(receiptsOrder?.paymentReceipts ?? []), ...pendingReceipts].length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No hay comprobantes adjuntos.</p>
+                ) : (
+                  [...(receiptsOrder?.paymentReceipts ?? []), ...pendingReceipts].map((receipt) => (
+                    <div
+                      key={`${receipt.name}-${receipt.size}`}
+                      className="flex items-center gap-3 rounded-xl border border-border/60 p-3"
+                    >
+                      <span aria-hidden="true">🧾</span>
+                      <span className="min-w-0 flex-1 truncate text-sm">{receipt.name}</span>
+                      <Button
+                        asChild
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                      >
+                        <a href={receipt.dataUrl} target="_blank" rel="noreferrer">
+                          <Eye className="size-4" /> Ver
+                        </a>
+                      </Button>
+                      <Button
+                        asChild
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                      >
+                        <a href={receipt.dataUrl} download={receipt.name}>
+                          <Download className="size-4" /> Descargar
+                        </a>
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="flex justify-end gap-2 border-t border-border/60 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setReceiptsOrder(null);
+                    setPendingReceipts([]);
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  disabled={!receiptsOrder || pendingReceipts.length === 0}
+                  onClick={async () => {
+                    if (!receiptsOrder || pendingReceipts.length === 0) return;
+                    const updatedOrder = {
+                      ...receiptsOrder,
+                      paymentReceipts: [
+                        ...(receiptsOrder.paymentReceipts ?? []),
+                        ...pendingReceipts,
+                      ],
+                    };
+                    await orderService.update(updatedOrder);
+                    await queryClient.invalidateQueries({ queryKey: orderQueries.list().queryKey });
+                    setReceiptsOrder(updatedOrder);
+                    setPendingReceipts([]);
+                  }}
+                >
+                  Guardar comprobantes
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -1171,7 +1394,9 @@ function AccountPageContent({
             <div className="grid max-w-5xl gap-5">
               <div className="grid gap-5 md:grid-cols-3">
                 <div className="space-y-2.5">
-                  <Label htmlFor="account-name" className="text-sm font-medium text-foreground">Nombre</Label>
+                  <Label htmlFor="account-name" className="text-sm font-medium text-foreground">
+                    Nombre
+                  </Label>
                   <Input
                     id="account-name"
                     value={userGivenName}
@@ -1181,7 +1406,12 @@ function AccountPageContent({
                   />
                 </div>
                 <div className="space-y-2.5">
-                  <Label htmlFor="account-last-name" className="text-sm font-medium text-foreground">Apellido</Label>
+                  <Label
+                    htmlFor="account-last-name"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Apellido
+                  </Label>
                   <Input
                     id="account-last-name"
                     value={userFamilyName}
@@ -1191,23 +1421,54 @@ function AccountPageContent({
                   />
                 </div>
                 <div className="space-y-2.5">
-                  <Label htmlFor="account-doc" className="text-sm font-medium text-foreground">Documento</Label>
-                  <Input id="account-doc" value={userDocument} onChange={(e) => setUserDocument(e.target.value)} placeholder="Ingresá tu documento" className="h-11 rounded-xl border-border/60 bg-background/40" />
+                  <Label htmlFor="account-doc" className="text-sm font-medium text-foreground">
+                    Documento
+                  </Label>
+                  <Input
+                    id="account-doc"
+                    value={userDocument}
+                    onChange={(e) => setUserDocument(e.target.value)}
+                    placeholder="Ingresá tu documento"
+                    className="h-11 rounded-xl border-border/60 bg-background/40"
+                  />
                 </div>
               </div>
 
               <div className="grid gap-5 md:grid-cols-3">
                 <div className="space-y-2.5">
-                  <Label htmlFor="account-email" className="text-sm font-medium text-foreground">Email</Label>
-                  <Input id="account-email" type="email" value={userEmail} disabled className="h-11 rounded-xl border-border/60 bg-muted/50 text-foreground opacity-60" />
-                  <p className="text-xs text-muted-foreground leading-relaxed">Email de acceso, no se puede modificar desde aquí.</p>
+                  <Label htmlFor="account-email" className="text-sm font-medium text-foreground">
+                    Email
+                  </Label>
+                  <Input
+                    id="account-email"
+                    type="email"
+                    value={userEmail}
+                    disabled
+                    className="h-11 rounded-xl border-border/60 bg-muted/50 text-foreground opacity-60"
+                  />
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Email de acceso, no se puede modificar desde aquí.
+                  </p>
                 </div>
                 <div className="space-y-2.5">
-                  <Label htmlFor="account-phone" className="text-sm font-medium text-foreground">Teléfono</Label>
-                  <Input id="account-phone" value={userPhone} onChange={(e) => setUserPhone(e.target.value)} placeholder="Ingresá tu teléfono" className="h-11 rounded-xl border-border/60 bg-background/40" />
+                  <Label htmlFor="account-phone" className="text-sm font-medium text-foreground">
+                    Teléfono
+                  </Label>
+                  <Input
+                    id="account-phone"
+                    value={userPhone}
+                    onChange={(e) => setUserPhone(e.target.value)}
+                    placeholder="Ingresá tu teléfono"
+                    className="h-11 rounded-xl border-border/60 bg-background/40"
+                  />
                 </div>
                 <div className="space-y-2.5">
-                  <Label htmlFor="account-primary-address" className="text-sm font-medium text-foreground">Dirección</Label>
+                  <Label
+                    htmlFor="account-primary-address"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Dirección
+                  </Label>
                   <Input
                     id="account-primary-address"
                     value={primaryAddress?.value ?? "Sin dirección principal"}
@@ -1267,7 +1528,13 @@ function AccountPageContent({
                   }
                 }}
               >
-                {isSavingProfile ? "Guardando..." : <><Save className="mr-2 size-4 text-current" /> Guardar cambios</>}
+                {isSavingProfile ? (
+                  "Guardando..."
+                ) : (
+                  <>
+                    <Save className="mr-2 size-4 text-current" /> Guardar cambios
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -1306,12 +1573,28 @@ function AccountPageContent({
             <div className="mb-6 rounded-2xl p-5">
               <div className="mt-2 grid gap-5 sm:grid-cols-2">
                 <div className="space-y-3">
-                  <Label htmlFor="new-address-label" className="text-sm font-medium">Etiqueta</Label>
-                  <Input id="new-address-label" value={addressLabel} onChange={(event) => setAddressLabel(event.target.value)} placeholder="Casa, Oficina, etc." className="h-11 rounded-xl border-border/60 bg-background/40" />
+                  <Label htmlFor="new-address-label" className="text-sm font-medium">
+                    Etiqueta
+                  </Label>
+                  <Input
+                    id="new-address-label"
+                    value={addressLabel}
+                    onChange={(event) => setAddressLabel(event.target.value)}
+                    placeholder="Casa, Oficina, etc."
+                    className="h-11 rounded-xl border-border/60 bg-background/40"
+                  />
                 </div>
                 <div className="space-y-3">
-                  <Label htmlFor="new-address-value" className="text-sm font-medium">Dirección</Label>
-                  <Input id="new-address-value" value={addressValue} onChange={(event) => setAddressValue(event.target.value)} placeholder="Calle, número, ciudad, país" className="h-11 rounded-xl border-border/60 bg-background/40" />
+                  <Label htmlFor="new-address-value" className="text-sm font-medium">
+                    Dirección
+                  </Label>
+                  <Input
+                    id="new-address-value"
+                    value={addressValue}
+                    onChange={(event) => setAddressValue(event.target.value)}
+                    placeholder="Calle, número, ciudad, país"
+                    className="h-11 rounded-xl border-border/60 bg-background/40"
+                  />
                 </div>
               </div>
               {addressValue.trim() && (
@@ -1335,7 +1618,8 @@ function AccountPageContent({
                       />
                     ) : (
                       <div className="flex h-52 items-center justify-center px-4 text-center text-sm text-muted-foreground">
-                        No encontramos una ubicación precisa para esa dirección. Revisá el texto o agregá barrio, ciudad y país.
+                        No encontramos una ubicación precisa para esa dirección. Revisá el texto o
+                        agregá barrio, ciudad y país.
                       </div>
                     )}
                   </div>
@@ -1361,7 +1645,9 @@ function AccountPageContent({
                           userId: user.id,
                           label: addressLabel.trim(),
                           value: addressValue,
-                          isPrimary: addresses.length === 0 || !addresses.some((address) => address.isPrimary),
+                          isPrimary:
+                            addresses.length === 0 ||
+                            !addresses.some((address) => address.isPrimary),
                         },
                       });
                       if (result && result.id) {
@@ -1420,7 +1706,9 @@ function AccountPageContent({
                         <div className="relative grid size-10 shrink-0 place-items-center rounded-xl bg-sky-500/10 text-sky-400 ring-1 ring-sky-400/25">
                           <MapPin className="size-4" />
                         </div>
-                        <h3 className="truncate text-sm font-semibold text-foreground">{address.label}</h3>
+                        <h3 className="truncate text-sm font-semibold text-foreground">
+                          {address.label}
+                        </h3>
                       </div>
                       {editingIndex !== index && (
                         <Button
@@ -1433,28 +1721,60 @@ function AccountPageContent({
                           }
                           onClick={async () => {
                             if (!address.id || !user?.id) return;
-                            const success = await setPrimaryUserAddress({ data: { userId: user.id, addressId: address.id } });
+                            const success = await setPrimaryUserAddress({
+                              data: { userId: user.id, addressId: address.id },
+                            });
                             if (success) {
-                              setAddresses((current) => current.map((item) => ({ ...item, isPrimary: item.id === address.id })));
+                              setAddresses((current) =>
+                                current.map((item) => ({
+                                  ...item,
+                                  isPrimary: item.id === address.id,
+                                })),
+                              );
                               toast.success("Dirección principal actualizada");
                             } else {
                               toast.error("No se pudo actualizar la dirección principal");
                             }
                           }}
                         >
-                          {address.isPrimary ? <Check className="size-4 text-current" /> : <MapPin className="size-4" />} {address.isPrimary ? "Principal" : "Marcar principal"}
+                          {address.isPrimary ? (
+                            <Check className="size-4 text-current" />
+                          ) : (
+                            <MapPin className="size-4" />
+                          )}{" "}
+                          {address.isPrimary ? "Principal" : "Marcar principal"}
                         </Button>
                       )}
                     </div>
                     {editingIndex === index ? (
                       <div className="mt-4 grid gap-4">
                         <div className="space-y-2.5">
-                          <Label htmlFor={`edit-address-label-${index}`} className="text-sm font-medium">Etiqueta</Label>
-                          <Input id={`edit-address-label-${index}`} value={addressLabel} onChange={(event) => setAddressLabel(event.target.value)} className="h-10 border-border/60" />
+                          <Label
+                            htmlFor={`edit-address-label-${index}`}
+                            className="text-sm font-medium"
+                          >
+                            Etiqueta
+                          </Label>
+                          <Input
+                            id={`edit-address-label-${index}`}
+                            value={addressLabel}
+                            onChange={(event) => setAddressLabel(event.target.value)}
+                            className="h-10 border-border/60"
+                          />
                         </div>
                         <div className="space-y-2.5">
-                          <Label htmlFor={`edit-address-value-${index}`} className="text-sm font-medium">Dirección</Label>
-                          <Input id={`edit-address-value-${index}`} value={addressValue} onChange={(event) => setAddressValue(event.target.value)} className="h-10 border-border/60" />
+                          <Label
+                            htmlFor={`edit-address-value-${index}`}
+                            className="text-sm font-medium"
+                          >
+                            Dirección
+                          </Label>
+                          <Input
+                            id={`edit-address-value-${index}`}
+                            value={addressValue}
+                            onChange={(event) => setAddressValue(event.target.value)}
+                            className="h-10 border-border/60"
+                          />
                         </div>
                         {addressValue.trim() && (
                           <div className="mt-2 overflow-hidden rounded-2xl border border-border/60 bg-background/60">
@@ -1492,7 +1812,13 @@ function AccountPageContent({
                               if (!addressToUpdate?.id || !user?.id) {
                                 setAddresses((current) =>
                                   current.map((item, itemIndex) =>
-                                    itemIndex === index ? { ...item, label: addressLabel.trim(), value: addressValue.trim() } : item,
+                                    itemIndex === index
+                                      ? {
+                                          ...item,
+                                          label: addressLabel.trim(),
+                                          value: addressValue.trim(),
+                                        }
+                                      : item,
                                   ),
                                 );
                                 setEditingIndex(null);
@@ -1514,7 +1840,13 @@ function AccountPageContent({
                               if (success) {
                                 setAddresses((current) =>
                                   current.map((item, itemIndex) =>
-                                    itemIndex === index ? { ...item, label: addressLabel.trim(), value: addressValue.trim() } : item,
+                                    itemIndex === index
+                                      ? {
+                                          ...item,
+                                          label: addressLabel.trim(),
+                                          value: addressValue.trim(),
+                                        }
+                                      : item,
                                   ),
                                 );
                                 toast.success("Dirección actualizada");
@@ -1530,7 +1862,16 @@ function AccountPageContent({
                           >
                             <Save className="mr-2 size-4 text-current" /> Guardar
                           </Button>
-                          <Button variant="destructive" size="sm" className="h-9 px-4" onClick={() => { setEditingIndex(null); setAddressLabel(""); setAddressValue(""); }}>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="h-9 px-4"
+                            onClick={() => {
+                              setEditingIndex(null);
+                              setAddressLabel("");
+                              setAddressValue("");
+                            }}
+                          >
                             ✕ Cancelar
                           </Button>
                         </div>
@@ -1539,10 +1880,28 @@ function AccountPageContent({
                       <>
                         <p className="mt-3 text-sm text-muted-foreground">{address.value}</p>
                         <div className="mt-4 flex flex-wrap gap-3">
-                          <Button variant="outline" size="sm" className="h-8 gap-1.5 px-3" onClick={() => { setEditingIndex(index); setAddressLabel(address.label); setAddressValue(address.value); setShowAddForm(false); }}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1.5 px-3"
+                            onClick={() => {
+                              setEditingIndex(index);
+                              setAddressLabel(address.label);
+                              setAddressValue(address.value);
+                              setShowAddForm(false);
+                            }}
+                          >
                             <Pencil className="size-4" /> Editar
                           </Button>
-                          <Button variant="destructive" size="sm" className="h-8 gap-1.5 px-3" onClick={() => { setDeleteIndex(index); setDeleteOpen(true); }}>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="h-8 gap-1.5 px-3"
+                            onClick={() => {
+                              setDeleteIndex(index);
+                              setDeleteOpen(true);
+                            }}
+                          >
                             <Trash2 className="size-4" /> Borrar
                           </Button>
                         </div>
@@ -1553,7 +1912,25 @@ function AccountPageContent({
               </div>
             ))}
           </div>
-          <ConfirmDialog open={deleteOpen} onOpenChange={setDeleteOpen} title="¿Borrar dirección?" description="Esta acción eliminará la dirección seleccionada." confirmLabel="Borrar" cancelLabel="Cancelar" onConfirm={async () => { if (deleteIndex === null) return; const addressToDelete = addresses[deleteIndex]; if (addressToDelete?.id) { await deleteUserAddress({ data: { addressId: addressToDelete.id } }); } setAddresses((current) => current.filter((_, itemIndex) => itemIndex !== deleteIndex)); setDeleteIndex(null); }} />
+          <ConfirmDialog
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            title="¿Borrar dirección?"
+            description="Esta acción eliminará la dirección seleccionada."
+            confirmLabel="Borrar"
+            cancelLabel="Cancelar"
+            onConfirm={async () => {
+              if (deleteIndex === null) return;
+              const addressToDelete = addresses[deleteIndex];
+              if (addressToDelete?.id) {
+                await deleteUserAddress({ data: { addressId: addressToDelete.id } });
+              }
+              setAddresses((current) =>
+                current.filter((_, itemIndex) => itemIndex !== deleteIndex),
+              );
+              setDeleteIndex(null);
+            }}
+          />
         </div>
       ) : (
         <div className="text-center text-base text-muted-foreground py-10">
@@ -1566,7 +1943,9 @@ function AccountPageContent({
       return userName ? (
         <div className="space-y-6">
           <div className="mb-2">
-            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Productos guardados</p>
+            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
+              Productos guardados
+            </p>
             <h1 className="mt-2 text-3xl font-semibold">Favoritos</h1>
           </div>
 
@@ -1579,7 +1958,9 @@ function AccountPageContent({
                   index={index}
                   onFavoriteChange={(isFavorite) => {
                     if (!isFavorite) {
-                      setFavoriteIds((current) => current.filter((productId) => productId !== product.id));
+                      setFavoriteIds((current) =>
+                        current.filter((productId) => productId !== product.id),
+                      );
                     }
                   }}
                 />
@@ -1588,8 +1969,14 @@ function AccountPageContent({
           ) : (
             <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl p-12 text-center">
               <Heart className="size-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.</p>
-              <Button asChild size="lg" className="h-9 gap-2 rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb]">
+              <p className="text-sm text-muted-foreground">
+                Todavía no guardaste favoritos. Explorá los sectores y guardá lo que te guste.
+              </p>
+              <Button
+                asChild
+                size="lg"
+                className="h-9 gap-2 rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb]"
+              >
                 <Link to="/productos" className="inline-flex items-center gap-2">
                   <Package className="size-4" /> Explorar productos
                 </Link>
@@ -1610,10 +1997,12 @@ function AccountPageContent({
   return (
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
       <div className="relative flex min-h-screen">
-        <aside className={cn(
-          "hidden shrink-0 border-r border-border/60 bg-background/50 transition-[width] duration-200 lg:block",
-          sidebarCollapsed ? "w-20" : "w-64",
-        )}>
+        <aside
+          className={cn(
+            "hidden shrink-0 border-r border-border/60 bg-background/50 transition-[width] duration-200 lg:block",
+            sidebarCollapsed ? "w-20" : "w-64",
+          )}
+        >
           <div
             className={cn(
               "sticky top-0 flex h-screen flex-col p-5",
@@ -1626,12 +2015,17 @@ function AccountPageContent({
                 sidebarCollapsed ? "justify-center" : "justify-between gap-2",
               )}
             >
-              <div className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground" title={userName ?? "Cliente"}>
+              <div
+                className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground"
+                title={userName ?? "Cliente"}
+              >
                 <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-xs font-bold uppercase text-primary">
                   {getUserInitials()}
                 </span>
                 {!sidebarCollapsed && (
-                  <span className="truncate font-medium text-foreground">{userName || "Cliente"}</span>
+                  <span className="truncate font-medium text-foreground">
+                    {userName || "Cliente"}
+                  </span>
                 )}
               </div>
               {!sidebarCollapsed && (
@@ -1661,7 +2055,9 @@ function AccountPageContent({
             )}
             <nav className="mt-3 w-full space-y-1">
               {accountNavItems.map(({ key, label, icon: Icon, route, exact }) => {
-                const isActive = exact ? location.pathname === route : location.pathname.startsWith(route);
+                const isActive = exact
+                  ? location.pathname === route
+                  : location.pathname.startsWith(route);
                 return (
                   <button
                     type="button"
@@ -1716,16 +2112,17 @@ function AccountPageContent({
 
         <main className="min-w-0 flex-1">
           <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-            <div className="min-h-[calc(100vh-8rem)]">
-              {renderAccountContent()}
-            </div>
+            <div className="min-h-[calc(100vh-8rem)]">{renderAccountContent()}</div>
           </div>
         </main>
       </div>
 
       <BrandFooter brand={webDesignConfig} section="account" />
 
-      <Dialog open={customerOrderNotice !== null} onOpenChange={(open) => !open && setCustomerOrderNotice(null)}>
+      <Dialog
+        open={customerOrderNotice !== null}
+        onOpenChange={(open) => !open && setCustomerOrderNotice(null)}
+      >
         <DialogContent className="max-w-2xl overflow-hidden border-primary/40 bg-background/95 p-0 shadow-2xl shadow-primary/20">
           <div className="h-2 bg-primary" />
           <div className="p-6 sm:p-8">
@@ -1736,22 +2133,31 @@ function AccountPageContent({
                 </div>
                 <div>
                   <DialogTitle>Actualización de tus compras</DialogTitle>
-                  <DialogDescription>Se actualizaron el envío o el pago de algunas compras.</DialogDescription>
+                  <DialogDescription>
+                    Se actualizaron el envío o el pago de algunas compras.
+                  </DialogDescription>
                 </div>
               </div>
             </DialogHeader>
 
             <div className="mt-5 space-y-3">
               {customerOrderNotice?.changes.map((change) => (
-                <div key={change.id} className="rounded-xl border border-border/60 bg-surface/50 p-4">
+                <div
+                  key={change.id}
+                  className="rounded-xl border border-border/60 bg-surface/50 p-4"
+                >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold">Pedido {change.id}</p>
                       <p className="text-xs text-muted-foreground">{formatDate(change.date)}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">Envío: {change.previousDeliveryStatus} → {change.deliveryStatus}</Badge>
-                      <Badge variant="outline">Pago: {change.previousPaymentStatus} → {change.paymentStatus}</Badge>
+                      <Badge variant="outline">
+                        Envío: {change.previousDeliveryStatus} → {change.deliveryStatus}
+                      </Badge>
+                      <Badge variant="outline">
+                        Pago: {change.previousPaymentStatus} → {change.paymentStatus}
+                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -1761,7 +2167,21 @@ function AccountPageContent({
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog open={logoutOpen} onOpenChange={setLogoutOpen} title="¿Cerrar sesión?" description="¿Estás seguro de que deseas cerrar sesión?" confirmLabel="Sí, cerrar sesión" cancelLabel="No" onConfirm={async () => { await kindeLogout(); if (typeof window !== "undefined") { window.sessionStorage.removeItem("lrg_auth_role"); } navigate({ to: "/login", replace: true }); }} />
+      <ConfirmDialog
+        open={logoutOpen}
+        onOpenChange={setLogoutOpen}
+        title="¿Cerrar sesión?"
+        description="¿Estás seguro de que deseas cerrar sesión?"
+        confirmLabel="Sí, cerrar sesión"
+        cancelLabel="No"
+        onConfirm={async () => {
+          await kindeLogout();
+          if (typeof window !== "undefined") {
+            window.sessionStorage.removeItem("lrg_auth_role");
+          }
+          navigate({ to: "/login", replace: true });
+        }}
+      />
     </div>
   );
 }

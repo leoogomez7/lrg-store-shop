@@ -494,6 +494,7 @@ function AdminOrders() {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [bulkOrderEditQueue, setBulkOrderEditQueue] = useState<string[]>([]);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
+  const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<OrderAttachment[]>([]);
   const documentsInputRef = useRef<HTMLInputElement | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -1522,7 +1523,9 @@ function AdminOrders() {
                           >
                             <Checkbox
                               checked={selected.includes(option.value)}
-                              onCheckedChange={(checked) => setSelected(option.value, checked === true)}
+                              onCheckedChange={(checked) =>
+                                setSelected(option.value, checked === true)
+                              }
                             />
                             <span className="font-medium">{option.label}</span>
                           </label>
@@ -1552,7 +1555,10 @@ function AdminOrders() {
                   {priceFilterOpen && (
                     <div className="space-y-2.5">
                       {(["ARS", "USD"] as const).map((currency) => (
-                        <label key={currency} className="flex cursor-pointer items-start gap-3 text-sm">
+                        <label
+                          key={currency}
+                          className="flex cursor-pointer items-start gap-3 text-sm"
+                        >
                           <Checkbox
                             checked={currencyFilter.includes(currency)}
                             onCheckedChange={(checked) =>
@@ -1593,7 +1599,10 @@ function AdminOrders() {
                             value={priceMax}
                             onChange={(event) =>
                               setPriceMax(
-                                Math.max(Math.min(priceLimit, Number(event.target.value) || 0), priceMin),
+                                Math.max(
+                                  Math.min(priceLimit, Number(event.target.value) || 0),
+                                  priceMin,
+                                ),
                               )
                             }
                             className="h-8 w-20 px-2 sm:w-24"
@@ -1687,7 +1696,9 @@ function AdminOrders() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <Button type="button" variant="outline" onClick={resetFilters}>Limpiar filtros</Button>
+                <Button type="button" variant="outline" onClick={resetFilters}>
+                  Limpiar filtros
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -2037,6 +2048,17 @@ function AdminOrders() {
                               >
                                 <Paperclip className="size-4" />
                                 <span className="hidden sm:inline">Documentos</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setReceiptsOrder(order)}
+                                disabled={!order.paymentReceipts?.length}
+                                className="h-8 flex-none gap-1.5 px-2 text-xs"
+                                title="Ver comprobantes de pago"
+                              >
+                                <span aria-hidden="true">🧾</span>
+                                <span className="hidden sm:inline">Comprobantes</span>
                               </Button>
                             </div>
                             <div className="flex flex-nowrap items-center justify-center gap-1.5">
@@ -2735,6 +2757,40 @@ function AdminOrders() {
             >
               <Save className="size-4" /> Guardar
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={receiptsOrder !== null}
+        onOpenChange={(open) => !open && setReceiptsOrder(null)}
+      >
+        <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>🧾 Comprobantes de pago</DialogTitle>
+            <DialogDescription>{receiptsOrder?.id}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {(receiptsOrder?.paymentReceipts ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay comprobantes adjuntos.</p>
+            ) : (
+              receiptsOrder?.paymentReceipts?.map((receipt) => (
+                <div
+                  key={`${receipt.name}-${receipt.size}`}
+                  className="flex items-center justify-between gap-3 rounded-lg border p-2 text-sm"
+                >
+                  <span className="min-w-0 truncate">{receipt.name}</span>
+                  <a
+                    href={receipt.dataUrl}
+                    download={receipt.name}
+                    className="rounded p-1 hover:bg-accent"
+                    title="Descargar comprobante"
+                  >
+                    <Download className="size-4" />
+                  </a>
+                </div>
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>

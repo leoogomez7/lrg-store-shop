@@ -31,6 +31,7 @@ export type Order = {
     "Por correo fisico" | "Por correo electronico" | "Por Whatsapp" | string | undefined;
   shippingNumber?: string | undefined;
   attachments?: OrderAttachment[];
+  paymentReceipts?: OrderAttachment[];
   items: {
     productId?: string;
     variantId?: string;

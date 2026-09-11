@@ -172,6 +172,10 @@ export const orderService = {
     await upsertAdminOrder({ data: { order } });
     return simulate(order, 240);
   },
+  update: async (order: Order) => {
+    await upsertAdminOrder({ data: { order } });
+    return simulate(order, 240);
+  },
 };
 
 export const catalogQueries = {
