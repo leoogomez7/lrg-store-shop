@@ -106,6 +106,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     logout: async () => undefined,
   };
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [initialPasswordVerified, setInitialPasswordVerified] = useState(false);
@@ -213,6 +214,18 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
   if (isLoading && initialPasswordVerified) {
     return <LoadingState label="Cargando autenticación..." />;
+  }
+
+  if (isLoggingOut) {
+    return (
+      <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+        <div className="text-center">
+          <div className="mx-auto mb-4 size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-lg font-semibold">Cerrando sesión</p>
+          <p className="mt-1 text-sm text-muted-foreground">Volviendo al inicio...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!hasVerifiedAdminAccess && !isAuthenticated && !initialPasswordVerified) {
@@ -470,14 +483,17 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   confirmLabel="Sí, cerrar sesión"
                   cancelLabel="No"
                   onConfirm={async () => {
+                    setLogoutOpen(false);
+                    setIsLoggingOut(true);
                     await logout();
-                    await kindeLogout();
                     if (typeof window !== "undefined") {
                       window.sessionStorage.removeItem("lrg_auth_role");
                       window.sessionStorage.removeItem("lrg_admin_final_verified");
                       window.sessionStorage.removeItem("lrg_admin_entry_notice_shown");
                     }
-                    navigate({ to: "/" });
+                    await kindeLogout({
+                      redirectUrl: getKindeRedirectUri("/") ?? "/",
+                    });
                   }}
                 />
               </>

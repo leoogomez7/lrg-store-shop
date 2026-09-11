@@ -67,6 +67,8 @@ import {
 } from "@/components/ui/table";
 import { brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
+import { logout } from "@/lib/auth";
+import { getKindeRedirectUri } from "@/lib/kinde";
 import {
   saveKindeUserToTurso,
   getUserProfile,
@@ -203,6 +205,7 @@ function AccountPageContent({
   const [userPhone, setUserPhone] = useState<string>("");
   const [userDocument, setUserDocument] = useState<string>("");
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [attachmentsOrder, setAttachmentsOrder] = useState<Order | null>(null);
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
@@ -2148,6 +2151,18 @@ function AccountPageContent({
     return null;
   };
 
+  if (isLoggingOut) {
+    return (
+      <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+        <div className="text-center">
+          <div className="mx-auto mb-4 size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-lg font-semibold">Cerrando sesión</p>
+          <p className="mt-1 text-sm text-muted-foreground">Volviendo al inicio...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
       <div className="relative flex min-h-screen">
@@ -2346,11 +2361,15 @@ function AccountPageContent({
         confirmLabel="Sí, cerrar sesión"
         cancelLabel="No"
         onConfirm={async () => {
-          await kindeLogout();
+          setLogoutOpen(false);
+          setIsLoggingOut(true);
+          await logout();
           if (typeof window !== "undefined") {
             window.sessionStorage.removeItem("lrg_auth_role");
           }
-          navigate({ to: "/login", replace: true });
+          await kindeLogout({
+            redirectUrl: getKindeRedirectUri("/") ?? "/",
+          });
         }}
       />
     </div>
