@@ -65,7 +65,6 @@ function CheckoutPage() {
   // Choose brand from first item in cart if available, otherwise default to web-design
   const firstBrandSlug = items[0]?.brand ?? "web-design";
   const brand = getBrand(firstBrandSlug)!;
-  const interestFreeOptions = [1];
 
   // Ensure header and footer are shown on checkout
   const Header = <BrandHeader brand={brand} headerTheme="theme-webdesign" />;
@@ -91,8 +90,7 @@ function CheckoutPage() {
   const [paymentMethodsByBrand, setPaymentMethodsByBrand] = useState<Record<string, string>>({});
   const [bankCbu, setBankCbu] = useState("");
   const [brandSettingsReady, setBrandSettingsReady] = useState(false);
-  const [creditCardOpen, setCreditCardOpen] = useState(false);
-  const [selectedInstallments, setSelectedInstallments] = useState(1);
+  const [selectedInstallments] = useState(1);
   const getShippingMethods = (slug: BrandSlug) =>
     (getBrand(slug)?.shipping?.methods ?? []).filter((method) => method.enabled);
   const getPaymentMethods = (slug: BrandSlug) =>
@@ -860,29 +858,6 @@ function CheckoutPage() {
                     )}
                   </div>
                 ))}
-                {isCardPayment && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setCreditCardOpen((current) => !current)}
-                    >
-                      {creditCardOpen ? "Ocultar cuotas" : "Configurar cuotas"}
-                    </Button>
-                    {creditCardOpen && interestFreeOptions.map((installments) => (
-                      <label key={installments} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="radio"
-                          name="installments"
-                          checked={selectedInstallments === installments}
-                          onChange={() => setSelectedInstallments(installments)}
-                        />
-                        {installments === 1 ? "1 pago" : `${installments} cuotas`}
-                      </label>
-                    ))}
-                  </div>
-                )}
               </div>
               {paymentApproved && (
                 <div className="mt-4 rounded-xl border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-600">
