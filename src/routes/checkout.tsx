@@ -96,7 +96,7 @@ function CheckoutPage() {
   const getPaymentMethods = (slug: BrandSlug) =>
     (getBrand(slug)?.paymentMethods ?? []).filter((method) => method.enabled);
   const isCardMethod = (value: string) =>
-    /visa|mastercard|amex|tarjeta|d[eé]bito|cr[eé]dito/i.test(value);
+    /tarjeta|d[eé]bito|cr[eé]dito|mercado\s*pago|\bmp\b/i.test(value.trim());
   const isCardPayment = Object.values(paymentMethodsByBrand).some(isCardMethod);
   const isMercadoPagoPayment = isCardPayment;
 
