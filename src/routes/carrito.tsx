@@ -11,7 +11,7 @@ import {
   Tag,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { LoadingState } from "@/components/common/loading-state";
 import { Button } from "@/components/ui/button";
