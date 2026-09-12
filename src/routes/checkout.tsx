@@ -88,7 +88,7 @@ function CheckoutPage() {
   );
   const [shippingMethodsByBrand, setShippingMethodsByBrand] = useState<Record<string, string>>({});
   const [paymentMethodsByBrand, setPaymentMethodsByBrand] = useState<Record<string, string>>({});
-  const [bankCbu, setBankCbu] = useState("");
+  const [bankCbus, setBankCbus] = useState<Partial<Record<BrandSlug, string>>>({});
   const [brandSettingsReady, setBrandSettingsReady] = useState(false);
   const [selectedInstallments] = useState(1);
   const getShippingMethods = (slug: BrandSlug) =>
@@ -179,9 +179,13 @@ function CheckoutPage() {
       if (!storedCbu) return;
       try {
         const cbuByBrand = JSON.parse(storedCbu) as Record<string, string>;
-        setBankCbu(cbuByBrand[brand.slug] ?? "");
+        setBankCbus(cbuByBrand);
       } catch {
-        setBankCbu(storedCbu);
+        setBankCbus({
+          arcade: storedCbu,
+          scents: storedCbu,
+          "web-design": storedCbu,
+        });
       }
     });
   }, [brand.slug, brandSlugs]);
@@ -847,10 +851,10 @@ function CheckoutPage() {
                         </p>
                       )}
                     </RadioGroup>
-                    {/transferencia/i.test(paymentMethodsByBrand[slug] ?? "") && bankCbu && slug === firstBrandSlug && (
+                    {/transferencia/i.test(paymentMethodsByBrand[slug] ?? "") && bankCbus[slug] && (
                       <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
                         <p className="font-semibold">Datos para transferencia bancaria</p>
-                        <p className="mt-1 text-muted-foreground">CBU: {bankCbu}</p>
+                        <p className="mt-1 text-muted-foreground">CBU: {bankCbus[slug]}</p>
                         <p className="mt-2 text-muted-foreground">
                           Enviar comprobante por WhatsApp o Correo electrónico
                         </p>
