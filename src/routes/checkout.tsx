@@ -211,18 +211,6 @@ function CheckoutPage() {
   const combinedShippingMethod = Object.entries(shippingMethodsByBrand)
     .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
     .join(" | ");
-  const shippingSummary = brandSlugs.length <= 1
-    ? shippingMethodsByBrand[brandSlugs[0] ?? ""]
-    : brandSlugs.map((slug) => ({
-        name: getBrand(slug)?.name ?? slug,
-        method: shippingMethodsByBrand[slug],
-      }));
-  const paymentSummary = brandSlugs.length <= 1
-    ? paymentMethodsByBrand[brandSlugs[0] ?? ""]
-    : brandSlugs.map((slug) => ({
-        name: getBrand(slug)?.name ?? slug,
-        method: paymentMethodsByBrand[slug],
-      }));
 
     useEffect(() => {
       if (step !== "done") return;
@@ -848,95 +836,96 @@ function CheckoutPage() {
 
           <aside className="glass-panel h-fit rounded-2xl p-6 lg:sticky lg:top-24">
             <h2 className="font-display font-semibold">Tu pedido</h2>
-            <div className="mt-5 space-y-3 text-sm">
-              <div className="divide-y divide-border rounded-xl border border-border bg-surface-2/40">
-                {items.map((item) => (
-                  <div key={item.id} className="space-y-1.5 px-3 py-3 first:pt-3 last:pb-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="min-w-0 font-medium text-foreground">{item.name}</p>
-                      <span className="shrink-0 font-semibold text-foreground">
-                        {formatPrice(item.price * item.quantity)}
+            <div className="mt-5 space-y-0 text-sm">
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Productos
+                </h3>
+                <div className="mt-3 divide-y divide-border/70 border-y border-border/70">
+                  {items.map((item) => (
+                    <div key={item.id} className="space-y-1.5 py-3 first:pt-0 last:pb-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="min-w-0 font-medium text-foreground">{item.name}</p>
+                        <span className="shrink-0 font-semibold text-foreground">
+                          {formatPrice(item.price * item.quantity)}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                        <span>Cantidad: {item.quantity}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{getBrand(item.brand)?.name ?? item.brand}</span>
+                        {item.variantName && (
+                          <>
+                            <span aria-hidden="true">·</span>
+                            <span>{item.variantName}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="border-b border-border/70 py-4">
+                <div className="flex items-center justify-between font-medium">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(subtotal)}</span>
+                </div>
+                {couponApplied && (
+                  <>
+                    <div className="mt-3 flex items-center justify-between text-green-600">
+                      <span>Código: {couponCode}</span>
+                      <span>{couponPercentage}%</span>
+                    </div>
+                    <div className="flex items-center justify-between text-green-600">
+                      <span>Descuento</span>
+                      <span>-{formatPrice((discountedItemsSubtotal * couponPercentage) / 100)}</span>
+                    </div>
+                  </>
+                )}
+                {isCardPayment && cardFee > 0 && (
+                  <div className="mt-3 flex items-center justify-between text-muted-foreground">
+                    <span>Comisión tarjeta (10%)</span>
+                    <span>{formatPrice(cardFee)}</span>
+                  </div>
+                )}
+              </section>
+
+              <section className="border-b border-border/70 py-4">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Envío
+                </h3>
+                <div className="mt-3 space-y-3">
+                  {brandSlugs.map((slug) => (
+                    <div key={slug} className="flex items-center justify-between gap-4">
+                      <span className="font-semibold text-foreground">{getBrand(slug)?.name}</span>
+                      <span className="text-right text-muted-foreground">
+                        {shippingMethodsByBrand[slug] || "Acordar entrega"}
                       </span>
                     </div>
-                    <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                      <span>Cantidad: {item.quantity}</span>
-                      <span aria-hidden="true">·</span>
-                      <span>{getBrand(item.brand)?.name ?? item.brand}</span>
-                      {item.variantName && (
-                        <>
-                          <span aria-hidden="true">·</span>
-                          <span>Variante: {item.variantName}</span>
-                        </>
-                      )}
+                  ))}
+                </div>
+              </section>
+
+              <section className="border-b border-border/70 py-4">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Pago
+                </h3>
+                <div className="mt-3 space-y-3">
+                  {brandSlugs.map((slug) => (
+                    <div key={slug} className="flex items-center justify-between gap-4">
+                      <span className="font-semibold text-foreground">{getBrand(slug)?.name}</span>
+                      <span className="text-right text-muted-foreground">
+                        {paymentMethodsByBrand[slug] || "A confirmar"}
+                      </span>
                     </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Subtotal</span>
-                <span>{formatPrice(subtotal)}</span>
-              </div>
-              {couponApplied && (
-                <>
-                  <div className="flex items-center justify-between text-green-600">
-                    <span>Código: {couponCode}</span>
-                    <span>{couponPercentage}%</span>
-                  </div>
-                  <div className="flex items-center justify-between text-green-600">
-                    <span>Descuento</span>
-                    <span>-{formatPrice((discountedItemsSubtotal * couponPercentage) / 100)}</span>
-                  </div>
-                </>
-              )}
-              {isCardPayment && cardFee > 0 && (
-                <div className="flex items-center justify-between text-muted-foreground">
-                  <span>Comisión tarjeta (10%)</span>
-                  <span>{formatPrice(cardFee)}</span>
+                  ))}
                 </div>
-              )}
-              {typeof shippingSummary === "string" && shippingSummary && (
-                <div className="flex items-center justify-between gap-4">
-                  <span>Envío</span>
-                  <span className="text-right">{shippingSummary}</span>
-                </div>
-              )}
-              {Array.isArray(shippingSummary) && shippingSummary.some((entry) => entry.method) && (
-                <div className="space-y-2">
-                  <span>Envío</span>
-                  {shippingSummary.map((entry) =>
-                    entry.method ? (
-                      <div key={entry.name} className="rounded-lg bg-surface-2/60 px-3 py-2">
-                        <p className="font-semibold">{entry.name}</p>
-                        <p className="text-right text-muted-foreground">{entry.method}</p>
-                      </div>
-                    ) : null,
-                  )}
-                </div>
-              )}
-              {typeof paymentSummary === "string" && paymentSummary && (
-                <div className="flex items-center justify-between gap-4">
-                  <span>Pago</span>
-                  <span className="text-right">{paymentSummary}</span>
-                </div>
-              )}
-              {Array.isArray(paymentSummary) && paymentSummary.some((entry) => entry.method) && (
-                <div className="space-y-2">
-                  <span>Pago</span>
-                  {paymentSummary.map((entry) =>
-                    entry.method ? (
-                      <div key={entry.name} className="rounded-lg bg-surface-2/60 px-3 py-2">
-                        <p className="font-semibold">{entry.name}</p>
-                        <p className="text-right text-muted-foreground">{entry.method}</p>
-                      </div>
-                    ) : null,
-                  )}
-                </div>
-              )}
-              <div className="flex items-center justify-between font-semibold text-foreground">
+              </section>
+
+              <div className="flex items-center justify-between py-4 text-base font-semibold text-foreground">
                 <span>Total</span>
-                <span>
-                  {formatPrice(total)}
-                </span>
+                <span>{formatPrice(total)}</span>
               </div>
               <Button
                 type="submit"
