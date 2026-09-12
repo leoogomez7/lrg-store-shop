@@ -16,7 +16,11 @@ export const Route = createFileRoute("/api/mercadopago/webhook")({
           return new Response(null, { status: 204 });
         }
 
-        const accessToken = import.meta.env["MERCADOPAGO_ACCESS_TOKEN"]?.trim();
+        const accessToken =
+          import.meta.env["MERCADOPAGO_ACCESS_TOKEN"]?.trim() ??
+          (typeof process !== "undefined"
+            ? process.env.MERCADOPAGO_ACCESS_TOKEN?.trim()
+            : undefined);
         if (!accessToken)
           return new Response("Payment provider is not configured", { status: 500 });
 

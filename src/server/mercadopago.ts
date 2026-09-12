@@ -30,7 +30,9 @@ export type PaymentIntentData = {
 };
 
 function getAccessToken() {
-  const token = import.meta.env.MERCADOPAGO_ACCESS_TOKEN?.trim();
+  const token =
+    import.meta.env["MERCADOPAGO_ACCESS_TOKEN"]?.trim() ??
+    (typeof process !== "undefined" ? process.env.MERCADOPAGO_ACCESS_TOKEN?.trim() : undefined);
   if (!token) throw new Error("Falta configurar MERCADOPAGO_ACCESS_TOKEN.");
   return token;
 }
