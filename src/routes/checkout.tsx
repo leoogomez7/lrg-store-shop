@@ -330,11 +330,13 @@ function CheckoutPage() {
         }>;
         const firstResult = results[0];
         const resultAddress = firstResult?.address;
-        const inputNumber = query.match(/\b\d{1,6}\b/)?.[0] ?? "";
+        const inputNumbers = query.match(/\b\d{1,6}\b/g) ?? [];
+        const inputNumber = inputNumbers.at(-1) ?? "";
         const displayNameFirstPart = firstResult?.display_name?.split(",")[0]?.trim() ?? "";
+        const displayNameNumbers = displayNameFirstPart.match(/\b\d{1,6}\b/g) ?? [];
         const resultNumber =
           resultAddress?.["house_number"] ||
-          displayNameFirstPart.match(/\b\d{1,6}\b/)?.[0] ||
+          displayNameNumbers.at(-1) ||
           "";
         const resolvedStreet =
           resultAddress?.["road"] ||
@@ -421,9 +423,9 @@ function CheckoutPage() {
       customer: customerName,
       email,
       phone,
-      document: document.trim() || undefined,
+      ...(document.trim() ? { document: document.trim() } : {}),
       isGuest: !isAuthenticated,
-      guestCustomerId: !isAuthenticated ? id : undefined,
+      ...(!isAuthenticated ? { guestCustomerId: id } : {}),
       city,
       street,
       streetNumber,
@@ -436,9 +438,9 @@ function CheckoutPage() {
       total,
       expenses,
       profit: total - expenses,
-      status: "pendiente",
-      deliveryStatus: "Pendiente",
-      paymentStatus: "Pendiente",
+      status: "pendiente" as const,
+      deliveryStatus: "Pendiente" as const,
+      paymentStatus: "Pendiente" as const,
       paymentMethod: Object.entries(paymentMethodsByBrand)
         .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
         .join(" | "),
@@ -449,15 +451,19 @@ function CheckoutPage() {
         .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
         .join(" | "),
       items: items.map((item) => ({
-        productId: item.id.includes("::") ? item.id.split("::")[0] : item.id,
-        variantId: item.id.includes("::") ? item.id.split("::")[1] : undefined,
-        variantName: item.variantName,
+        productId: item.id.includes("::") ? (item.id.split("::")[0] ?? item.id) : item.id,
+        ...(item.id.includes("::") ? { variantId: item.id.split("::")[1] } : {}),
+        ...(item.variantName ? { variantName: item.variantName } : {}),
         name: item.name,
         quantity: item.quantity,
         price: item.price,
         brand: item.brand,
-        paymentMethod: paymentMethodsByBrand[item.brand],
-        shippingMethod: shippingMethodsByBrand[item.brand],
+        ...(paymentMethodsByBrand[item.brand]
+          ? { paymentMethod: paymentMethodsByBrand[item.brand] }
+          : {}),
+        ...(shippingMethodsByBrand[item.brand]
+          ? { shippingMethod: shippingMethodsByBrand[item.brand] }
+          : {}),
       })),
     };
 
@@ -481,8 +487,15 @@ function CheckoutPage() {
           cardFee,
           shippingMethod: combinedShippingMethod,
           isGuest: !isAuthenticated,
-          guestCustomerId: !isAuthenticated ? id : undefined,
-          items: order.items,
+          ...(!isAuthenticated ? { guestCustomerId: id } : {}),
+          items: order.items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            ...(item.brand ? { brand: item.brand } : {}),
+            ...(item.paymentMethod ? { paymentMethod: item.paymentMethod } : {}),
+            ...(item.shippingMethod ? { shippingMethod: item.shippingMethod } : {}),
+          })),
         };
         const preference = await createMercadoPagoPreference({
           data: { intentId, payment, returnUrl: window.location.href },
@@ -661,7 +674,7 @@ function CheckoutPage() {
                   <Input
                     id="address"
                     required
-                    placeholder="Calle y altura, cafetería, municipio, etc."
+                    placeholder="HHHH"
                     value={address}
                     onChange={(event) => {
                       setSelectedSavedAddress("");
@@ -683,7 +696,7 @@ function CheckoutPage() {
                     />
                   )}
                   <div className="grid gap-3 pt-2 sm:grid-cols-2">
-                    {[
+                    {([
                       ["Calle", street, setStreet, true],
                       ["Altura", streetNumber, setStreetNumber, true],
                       ["Piso", floor, setFloor, false],
@@ -691,7 +704,8 @@ function CheckoutPage() {
                       ["Ciudad", city, setCity, true],
                       ["Provincia", province, setProvince, true],
                       ["Código Postal", postalCode, setPostalCode, true],
-                    ].map(([label, value, setter, synced]) => (
+                    ] as Array<[string, string, (next: string) => void, boolean]>).map(
+                      ([label, value, setter, synced]) => (
                       <label key={String(label)} className="space-y-1 text-sm">
                         <span>{label}</span>
                         <Input
@@ -704,7 +718,8 @@ function CheckoutPage() {
                           className={synced ? "bg-muted/40" : "bg-background"}
                         />
                       </label>
-                    ))}
+                      ),
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
