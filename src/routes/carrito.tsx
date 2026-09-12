@@ -16,7 +16,7 @@ import { ProductVisual } from "@/components/common/product-visual";
 import { LoadingState } from "@/components/common/loading-state";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { getBrand } from "@/config/brands";
+import { applyAdminSettings, getBrand, refreshBrandData } from "@/config/brands";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { brandList } from "@/config/brands";
@@ -30,6 +30,7 @@ import {
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/store/cart-context";
 import { toast } from "sonner";
+import { loadAdminSettings } from "@/server/persistence";
 
 export const Route = createFileRoute("/carrito")({
   head: () => ({
@@ -50,6 +51,7 @@ export const Route = createFileRoute("/carrito")({
 function CartPage() {
   const navigate = useNavigate();
   const { items, hydrated, subtotal, setQuantity, removeItem, clear } = useCart();
+  const [brandSettingsReady, setBrandSettingsReady] = useState(false);
   const [couponCode, setCouponCode] = useState(() => {
     if (typeof window === "undefined") return "";
     try {
@@ -61,7 +63,9 @@ function CartPage() {
   const [couponApplied, setCouponApplied] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
-      return Boolean(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").applied);
+      return Boolean(
+        JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").applied,
+      );
     } catch {
       return false;
     }
@@ -69,7 +73,10 @@ function CartPage() {
   const [couponPercentage, setCouponPercentage] = useState(() => {
     if (typeof window === "undefined") return 0;
     try {
-      return Number(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").percentage) || 0;
+      return (
+        Number(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").percentage) ||
+        0
+      );
     } catch {
       return 0;
     }
@@ -83,6 +90,50 @@ function CartPage() {
     }
   });
   const [couponMessage, setCouponMessage] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    void loadAdminSettings({ data: {} })
+      .then((settings) => {
+        if (!active) return;
+        applyAdminSettings(settings);
+        refreshBrandData();
+
+        const storedCoupon = JSON.parse(
+          window.localStorage.getItem("lrg_checkout_coupon") ?? "{}",
+        ) as { code?: string };
+        const code = storedCoupon.code?.trim().toUpperCase();
+        if (code) {
+          const matchingBrand = items
+            .map((item) => getBrand(item.brand))
+            .find((store) =>
+              store?.discounts?.some((discount) => discount.enabled && discount.code === code),
+            );
+          const matchingCoupon = matchingBrand?.discounts?.find(
+            (discount) => discount.enabled && discount.code === code,
+          );
+          if (matchingCoupon && matchingBrand) {
+            setCouponCode(code);
+            setCouponApplied(true);
+            setCouponPercentage(matchingCoupon.percentage);
+            setCouponBrandSlug(matchingBrand.slug);
+          } else {
+            setCouponApplied(false);
+            setCouponPercentage(0);
+            setCouponBrandSlug(undefined);
+            window.localStorage.removeItem("lrg_checkout_coupon");
+          }
+        }
+        setBrandSettingsReady(true);
+      })
+      .catch(() => {
+        if (active) setBrandSettingsReady(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [items]);
   const discountedItemsSubtotal = couponApplied
     ? items
         .filter((item) => item.brand === couponBrandSlug)
@@ -198,7 +249,6 @@ function CartPage() {
                         {formatPrice(item.price)} ·{" "}
                         {item.stockUnlimited ? "∞ Stock ilimitado" : `${item.stock} disponibles`}
                       </p>
-
                     </div>
                     <div className="ml-auto flex w-32 shrink-0 flex-col items-center gap-2 pr-0 pt-8 sm:w-36">
                       <p className="font-display text-center text-lg font-semibold">
@@ -300,6 +350,7 @@ function CartPage() {
                     <Button
                       type="button"
                       variant="secondary"
+                      disabled={!brandSettingsReady}
                       className={`h-10 shrink-0 px-4 font-semibold transition-all ${
                         couponCode.trim()
                           ? "bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90"
@@ -317,8 +368,7 @@ function CartPage() {
                           );
                         const matchingCoupon = matchingBrand?.discounts?.find(
                           (discount) =>
-                            discount.enabled &&
-                            discount.code === couponCode.trim().toUpperCase(),
+                            discount.enabled && discount.code === couponCode.trim().toUpperCase(),
                         );
                         const isValid = Boolean(matchingCoupon);
                         const percentage = matchingCoupon?.percentage ?? 0;

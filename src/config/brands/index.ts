@@ -146,9 +146,11 @@ function readStoredPaymentMethods(): Record<BrandSlug, BrandPaymentMethod[]> {
     const parsed = raw as Partial<Record<BrandSlug, BrandPaymentMethod[]>>;
 
     return {
-      arcade: Array.isArray(parsed.arcade) ? parsed.arcade : [],
-      scents: Array.isArray(parsed.scents) ? parsed.scents : [],
-      "web-design": Array.isArray(parsed["web-design"]) ? parsed["web-design"] : [],
+      arcade: Array.isArray(parsed.arcade) ? parsed.arcade : defaultPaymentMethods.arcade,
+      scents: Array.isArray(parsed.scents) ? parsed.scents : defaultPaymentMethods.scents,
+      "web-design": Array.isArray(parsed["web-design"])
+        ? parsed["web-design"]
+        : defaultPaymentMethods["web-design"],
     };
   } catch {
     return { arcade: [], scents: [], "web-design": [] };
@@ -213,13 +215,20 @@ function readStoredDiscounts(): Record<BrandSlug, BrandDiscount[]> {
   >;
   if (typeof window === "undefined") return defaults;
   try {
-    const raw = remoteSetting<Partial<Record<BrandSlug, BrandDiscount[]>>>(DISCOUNTS_STORAGE_KEY);
+    const raw = remoteSetting<BrandDiscount[] | Partial<Record<BrandSlug, BrandDiscount[]>>>(
+      DISCOUNTS_STORAGE_KEY,
+    );
     if (!raw) return defaults;
+    if (Array.isArray(raw)) {
+      return { arcade: raw, scents: raw, "web-design": raw };
+    }
     const parsed = raw;
     return {
-      arcade: Array.isArray(parsed.arcade) ? parsed.arcade : [],
-      scents: Array.isArray(parsed.scents) ? parsed.scents : [],
-      "web-design": Array.isArray(parsed["web-design"]) ? parsed["web-design"] : [],
+      arcade: Array.isArray(parsed.arcade) ? parsed.arcade : defaults.arcade,
+      scents: Array.isArray(parsed.scents) ? parsed.scents : defaults.scents,
+      "web-design": Array.isArray(parsed["web-design"])
+        ? parsed["web-design"]
+        : defaults["web-design"],
     };
   } catch {
     return defaults;
