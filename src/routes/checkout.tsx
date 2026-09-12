@@ -830,9 +830,6 @@ function CheckoutPage() {
                       value={paymentMethodsByBrand[slug] ?? ""}
                       onValueChange={(value) => {
                         setPaymentMethodsByBrand((current) => ({ ...current, [slug]: value }));
-                        if (isCardMethod(value)) {
-                          window.setTimeout(() => checkoutFormRef.current?.requestSubmit(), 0);
-                        }
                       }}
                       className="grid gap-2 sm:grid-cols-2"
                     >
