@@ -606,13 +606,13 @@ function CheckoutPage() {
                     id="email"
                     type="email"
                     required
-                    placeholder="juan@mail.com"
+                    placeholder="juan@gmail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono</Label>
+                  <Label htmlFor="phone">Celular / Teléfono</Label>
                   <Input
                     id="phone"
                     required
@@ -622,7 +622,7 @@ function CheckoutPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="document">Documento (opcional)</Label>
+                  <Label htmlFor="document">DNI / CUIT (opcional)</Label>
                   <Input
                     id="document"
                     placeholder="DNI / CUIT"
@@ -674,7 +674,7 @@ function CheckoutPage() {
                   <Input
                     id="address"
                     required
-                    placeholder="HHHH"
+                    placeholder="Calle, referencia, barrio, etc."
                     value={address}
                     onChange={(event) => {
                       setSelectedSavedAddress("");
@@ -849,20 +849,29 @@ function CheckoutPage() {
           <aside className="glass-panel h-fit rounded-2xl p-6 lg:sticky lg:top-24">
             <h2 className="font-display font-semibold">Tu pedido</h2>
             <div className="mt-5 space-y-3 text-sm">
-              {items.map((item) => {
-                const appliedInstallments = isCardPayment ? selectedInstallments : 1;
-                return appliedInstallments > 1 ? (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between text-xs text-muted-foreground"
-                  >
-                    <span>
-                      {item.name} · {appliedInstallments} cuotas sin interés
-                    </span>
-                    <span>{formatPrice((item.price * item.quantity) / appliedInstallments)}</span>
+              <div className="divide-y divide-border rounded-xl border border-border bg-surface-2/40">
+                {items.map((item) => (
+                  <div key={item.id} className="space-y-1.5 px-3 py-3 first:pt-3 last:pb-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="min-w-0 font-medium text-foreground">{item.name}</p>
+                      <span className="shrink-0 font-semibold text-foreground">
+                        {formatPrice(item.price * item.quantity)}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                      <span>Cantidad: {item.quantity}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>{getBrand(item.brand)?.name ?? item.brand}</span>
+                      {item.variantName && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span>Variante: {item.variantName}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                ) : null;
-              })}
+                ))}
+              </div>
               <div className="flex items-center justify-between">
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>
