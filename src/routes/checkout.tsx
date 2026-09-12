@@ -841,9 +841,9 @@ function CheckoutPage() {
                 <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   Productos
                 </h3>
-                <div className="mt-3 divide-y divide-border/70 border-y border-border/70">
+                <div className="mt-3 divide-y divide-border/70 border-b border-border/70">
                   {items.map((item) => (
-                    <div key={item.id} className="space-y-1.5 py-3 first:pt-0 last:pb-0">
+                    <div key={item.id} className="space-y-1.5 py-3">
                       <div className="flex items-start justify-between gap-3">
                         <p className="min-w-0 font-medium text-foreground">{item.name}</p>
                         <span className="shrink-0 font-semibold text-foreground">
