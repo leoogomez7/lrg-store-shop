@@ -33,9 +33,11 @@ import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   BrandPaymentMethod,
+  applyAdminSettings,
   type BrandDiscount,
   brandList,
   getBrand,
+  refreshBrandData,
   setBrandCategories,
   setBrandPaymentMethods,
   setBrandShippingConfig,
@@ -133,6 +135,13 @@ function AdminConfiguration() {
 
   useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
+      applyAdminSettings(settings);
+      refreshBrandData();
+      const brand = getBrand(selectedBrand);
+      setPaymentMethods(brand?.paymentMethods?.length ? brand.paymentMethods : []);
+      setShippingMethods(brand?.shipping?.methods ?? []);
+      setDiscounts(brand?.discounts ?? []);
+      setFreeShippingThreshold(brand?.shipping?.freeShippingThreshold ?? 300);
       const setting = settings.find((item) => item.settingKey === "lrg:bank-cbu");
       if (!setting) return;
       try {
