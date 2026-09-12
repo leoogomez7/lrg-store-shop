@@ -6,6 +6,7 @@ import {
   Minus,
   Package,
   Plus,
+  ReceiptText,
   ShoppingBag,
   Tag,
   X,
@@ -359,7 +360,9 @@ function CartPage() {
                   )}
                 </section>
                 <section className="pt-6">
-                  <h2 className="font-display font-semibold">Resumen</h2>
+                  <h2 className="font-display flex items-center gap-2 font-semibold">
+                    <ReceiptText className="size-4 text-primary" /> Resumen
+                  </h2>
                   <dl className="mt-5 space-y-3 text-sm">
                     <div className="flex items-center justify-between">
                       <dt className="text-muted-foreground">Subtotal</dt>
