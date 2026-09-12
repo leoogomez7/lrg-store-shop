@@ -134,7 +134,7 @@ function readStoredPaymentMethods(): Record<BrandSlug, BrandPaymentMethod[]> {
     const raw = remoteSetting<BrandPaymentMethod[] | Record<BrandSlug, BrandPaymentMethod[]>>(
       PAYMENT_METHODS_STORAGE_KEY,
     );
-    if (!raw) return { arcade: [], scents: [], "web-design": [] };
+    if (!raw) return defaultPaymentMethods;
 
     if (Array.isArray(raw)) {
       return {
@@ -153,7 +153,7 @@ function readStoredPaymentMethods(): Record<BrandSlug, BrandPaymentMethod[]> {
         : defaultPaymentMethods["web-design"],
     };
   } catch {
-    return { arcade: [], scents: [], "web-design": [] };
+    return defaultPaymentMethods;
   }
 }
 

@@ -137,11 +137,7 @@ function AdminConfiguration() {
     void loadAdminSettings({ data: {} }).then((settings) => {
       applyAdminSettings(settings);
       refreshBrandData();
-      const brand = getBrand(selectedBrand);
-      setPaymentMethods(brand?.paymentMethods?.length ? brand.paymentMethods : []);
-      setShippingMethods(brand?.shipping?.methods ?? []);
-      setDiscounts(brand?.discounts ?? []);
-      setFreeShippingThreshold(brand?.shipping?.freeShippingThreshold ?? 300);
+      loadBrandSettings(selectedBrand);
       const setting = settings.find((item) => item.settingKey === "lrg:bank-cbu");
       if (!setting) return;
       try {
@@ -731,15 +727,6 @@ function AdminConfiguration() {
       </div>
     );
   };
-
-  useEffect(() => {
-    return () => {
-      if (selectedBrand && isInitialized) {
-        persistShippingConfig(shippingMethods, freeShippingThreshold);
-        persistPaymentMethods(paymentMethods);
-      }
-    };
-  }, [selectedBrand, isInitialized, shippingMethods, paymentMethods, freeShippingThreshold]);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
