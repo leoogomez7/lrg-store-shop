@@ -867,31 +867,6 @@ function CheckoutPage() {
               </section>
 
               <section className="border-b border-border/70 py-4">
-                <div className="flex items-center justify-between font-medium">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(subtotal)}</span>
-                </div>
-                {couponApplied && (
-                  <>
-                    <div className="mt-3 flex items-center justify-between text-green-600">
-                      <span>Código: {couponCode}</span>
-                      <span>{couponPercentage}%</span>
-                    </div>
-                    <div className="flex items-center justify-between text-green-600">
-                      <span>Descuento</span>
-                      <span>-{formatPrice((discountedItemsSubtotal * couponPercentage) / 100)}</span>
-                    </div>
-                  </>
-                )}
-                {isCardPayment && cardFee > 0 && (
-                  <div className="mt-3 flex items-center justify-between text-muted-foreground">
-                    <span>Comisión tarjeta (10%)</span>
-                    <span>{formatPrice(cardFee)}</span>
-                  </div>
-                )}
-              </section>
-
-              <section className="border-b border-border/70 py-4">
                 <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   Envío
                 </h3>
@@ -921,6 +896,31 @@ function CheckoutPage() {
                     </div>
                   ))}
                 </div>
+              </section>
+
+              <section className="border-b border-border/70 py-4">
+                <div className="flex items-center justify-between font-medium">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(subtotal)}</span>
+                </div>
+                {couponApplied && (
+                  <>
+                    <div className="mt-3 flex items-center justify-between text-green-600">
+                      <span>Código: {couponCode}</span>
+                      <span>{couponPercentage}%</span>
+                    </div>
+                    <div className="flex items-center justify-between text-green-600">
+                      <span>Descuento</span>
+                      <span>-{formatPrice((discountedItemsSubtotal * couponPercentage) / 100)}</span>
+                    </div>
+                  </>
+                )}
+                {isCardPayment && cardFee > 0 && (
+                  <div className="mt-3 flex items-center justify-between text-muted-foreground">
+                    <span>Comisión tarjeta (10%)</span>
+                    <span>{formatPrice(cardFee)}</span>
+                  </div>
+                )}
               </section>
 
               <div className="flex items-center justify-between py-4 text-base font-semibold text-foreground">
