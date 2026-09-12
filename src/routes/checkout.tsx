@@ -18,6 +18,7 @@ import {
   applyAdminSettings,
   getBrand,
   refreshBrandData,
+  type BrandPaymentMethod,
   type BrandSlug,
 } from "@/config/brands";
 import { Button } from "@/components/ui/button";
@@ -117,7 +118,59 @@ function CheckoutPage() {
   useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
       applyAdminSettings(settings);
-      refreshBrandData();
+      const refreshedBrands = refreshBrandData();
+      const paymentSetting = settings.find(
+        (setting) => setting.settingKey === "lrg:paymentMethods",
+      );
+      const shippingSetting = settings.find(
+        (setting) => setting.settingKey === "lrg:shippingMethods",
+      );
+      let paymentMethodsFromDatabase: Record<string, BrandPaymentMethod[]> = {};
+      let shippingMethodsFromDatabase: Record<string, BrandPaymentMethod[]> = {};
+      try {
+        const storedPayments = paymentSetting
+          ? (JSON.parse(paymentSetting.settingValue) as
+              | BrandPaymentMethod[]
+              | Record<string, BrandPaymentMethod[]>)
+          : undefined;
+        const storedShipping = shippingSetting
+          ? (JSON.parse(shippingSetting.settingValue) as
+              | BrandPaymentMethod[]
+              | Record<string, { methods?: BrandPaymentMethod[] }>)
+          : undefined;
+        paymentMethodsFromDatabase = Array.isArray(storedPayments)
+          ? Object.fromEntries(brandSlugs.map((slug) => [slug, storedPayments]))
+          : storedPayments ?? {};
+        shippingMethodsFromDatabase = Array.isArray(storedShipping)
+          ? Object.fromEntries(brandSlugs.map((slug) => [slug, storedShipping]))
+          : Object.fromEntries(
+              Object.entries(storedShipping ?? {}).map(([slug, config]) => [slug, config.methods ?? []]),
+            );
+      } catch {
+        // Use the refreshed brand configuration when a legacy value is invalid.
+      }
+      setShippingMethodsByBrand((current) =>
+        Object.fromEntries(
+          brandSlugs.map((slug) => {
+            const methods =
+              shippingMethodsFromDatabase[slug]?.filter((method) => method.enabled) ??
+              refreshedBrands[slug]?.shipping?.methods.filter((method) => method.enabled) ??
+              [];
+            return [slug, current[slug] || (methods.length === 1 ? methods[0]?.name ?? "" : "")];
+          }),
+        ),
+      );
+      setPaymentMethodsByBrand((current) =>
+        Object.fromEntries(
+          brandSlugs.map((slug) => {
+            const methods =
+              paymentMethodsFromDatabase[slug]?.filter((method) => method.enabled) ??
+              refreshedBrands[slug]?.paymentMethods?.filter((method) => method.enabled) ??
+              [];
+            return [slug, current[slug] || (methods.length === 1 ? methods[0]?.name ?? "" : "")];
+          }),
+        ),
+      );
       setBrandSettingsReady(true);
       const storedCbu = settings.find((item) => item.settingKey === "lrg:bank-cbu")?.settingValue;
       if (!storedCbu) return;
@@ -128,7 +181,7 @@ function CheckoutPage() {
         setBankCbu(storedCbu);
       }
     });
-  }, [brand.slug]);
+  }, [brand.slug, brandSlugs]);
   const [couponCode] = useState(() => {
     if (typeof window === "undefined") return "";
     try {
