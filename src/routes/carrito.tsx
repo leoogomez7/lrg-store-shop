@@ -281,11 +281,11 @@ function CartPage() {
               </section>
 
               <aside className="glass-panel h-fit rounded-2xl p-6 lg:sticky lg:top-24">
-                <section className="mb-6 border-b border-border/60 pb-6">
+                <section className="border-b border-border/60 pb-6">
                   <h2 className="font-display flex items-center gap-2 font-semibold">
                     <Tag className="size-4 text-primary" /> Descuento
                   </h2>
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                  <div className="mt-4 flex gap-3">
                     <input
                       aria-label="Código de descuento"
                       placeholder="Código de descuento"
@@ -299,7 +299,7 @@ function CartPage() {
                     <Button
                       type="button"
                       variant="secondary"
-                      className={`transition-all ${
+                      className={`h-10 shrink-0 px-4 font-semibold transition-all ${
                         couponCode.trim()
                           ? "bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90"
                           : ""
@@ -358,35 +358,37 @@ function CartPage() {
                     </p>
                   )}
                 </section>
-                <h2 className="font-display font-semibold">Resumen</h2>
-                <dl className="mt-5 space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <dt className="text-muted-foreground">Subtotal</dt>
-                    <dd>{formatPrice(subtotal)}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-muted-foreground">Envío</dt>
-                    <dd>Elegir en checkout</dd>
-                  </div>
-                  {couponApplied && (
-                    <div className="flex justify-between text-green-600">
-                      <dt>Descuento ({couponPercentage}%)</dt>
-                      <dd>-{formatPrice((discountedItemsSubtotal * couponPercentage) / 100)}</dd>
+                <section className="pt-6">
+                  <h2 className="font-display font-semibold">Resumen</h2>
+                  <dl className="mt-5 space-y-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted-foreground">Subtotal</dt>
+                      <dd>{formatPrice(subtotal)}</dd>
                     </div>
-                  )}
-                  <div className="flex justify-between font-semibold text-foreground">
-                    <dt>Total</dt>
-                    <dd>{formatPrice(discountedSubtotal)}</dd>
-                  </div>
-                  <div className="mt-4">
-                    <Link to="/checkout">
-                      <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                        <CreditCard className="size-4" />
-                        Ir a checkout
-                      </Button>
-                    </Link>
-                  </div>
-                </dl>
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted-foreground">Envío</dt>
+                      <dd>Elegir en checkout</dd>
+                    </div>
+                    {couponApplied && (
+                      <div className="flex items-center justify-between text-green-600">
+                        <dt>Descuento ({couponPercentage}%)</dt>
+                        <dd>-{formatPrice((discountedItemsSubtotal * couponPercentage) / 100)}</dd>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between pt-1 font-semibold text-foreground">
+                      <dt>Total</dt>
+                      <dd>{formatPrice(discountedSubtotal)}</dd>
+                    </div>
+                    <div className="pt-2">
+                      <Link to="/checkout">
+                        <Button className="h-10 w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                          <CreditCard className="size-4" />
+                          Ir a checkout
+                        </Button>
+                      </Link>
+                    </div>
+                  </dl>
+                </section>
               </aside>
             </div>
           )}
