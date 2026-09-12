@@ -835,7 +835,14 @@ function CheckoutPage() {
           </div>
 
           <aside className="glass-panel h-fit rounded-2xl p-6 lg:sticky lg:top-24">
-            <h2 className="font-display font-semibold">Tu pedido</h2>
+            <div className="flex items-center justify-between border-b border-border/60 pb-4">
+              <h2 className="font-display flex items-center gap-2 font-semibold">
+                <ShoppingBag className="size-4 text-primary" /> Tu pedido
+              </h2>
+              <span className="text-xs text-muted-foreground">
+                {items.length} {items.length === 1 ? "producto" : "productos"}
+              </span>
+            </div>
             <div className="mt-5 space-y-0 text-sm">
               <section>
                 <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -899,6 +906,7 @@ function CheckoutPage() {
               </section>
 
               <section className="border-b border-border/70 py-4">
+                <h3 className="font-display mb-4 font-semibold">Resumen</h3>
                 <div className="flex items-center justify-between font-medium">
                   <span>Subtotal</span>
                   <span>{formatPrice(subtotal)}</span>
