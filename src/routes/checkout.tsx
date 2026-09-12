@@ -144,7 +144,12 @@ function CheckoutPage() {
         shippingMethodsFromDatabase = Array.isArray(storedShipping)
           ? Object.fromEntries(brandSlugs.map((slug) => [slug, storedShipping]))
           : Object.fromEntries(
-              Object.entries(storedShipping ?? {}).map(([slug, config]) => [slug, config.methods ?? []]),
+              Object.entries(storedShipping ?? {}).map(([slug, config]) => [
+                slug,
+                Array.isArray(config)
+                  ? config
+                  : (config as { methods?: BrandPaymentMethod[] }).methods ?? [],
+              ]),
             );
       } catch {
         // Use the refreshed brand configuration when a legacy value is invalid.

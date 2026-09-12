@@ -178,26 +178,22 @@ function readStoredShippingConfigs(): Record<BrandSlug, BrandShippingConfig> {
       };
     }
     const parsed = raw as Record<BrandSlug, BrandShippingConfig>;
+    const normalizeShippingConfig = (value: unknown): BrandShippingConfig => {
+      if (Array.isArray(value)) {
+        return { freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD, methods: value };
+      }
+      const config = value as Partial<BrandShippingConfig> | undefined;
+      return config &&
+        Array.isArray(config.methods) &&
+        typeof config.freeShippingThreshold === "number"
+        ? (config as BrandShippingConfig)
+        : defaultShippingConfig["web-design"];
+    };
 
     return {
-      arcade:
-        parsed.arcade &&
-        typeof parsed.arcade.freeShippingThreshold === "number" &&
-        Array.isArray(parsed.arcade.methods)
-          ? parsed.arcade
-          : defaultShippingConfig.arcade,
-      scents:
-        parsed.scents &&
-        typeof parsed.scents.freeShippingThreshold === "number" &&
-        Array.isArray(parsed.scents.methods)
-          ? parsed.scents
-          : defaultShippingConfig.scents,
-      "web-design":
-        parsed["web-design"] &&
-        typeof parsed["web-design"].freeShippingThreshold === "number" &&
-        Array.isArray(parsed["web-design"].methods)
-          ? parsed["web-design"]
-          : defaultShippingConfig["web-design"],
+      arcade: normalizeShippingConfig(parsed.arcade),
+      scents: normalizeShippingConfig(parsed.scents),
+      "web-design": normalizeShippingConfig(parsed["web-design"]),
     };
   } catch {
     return {
