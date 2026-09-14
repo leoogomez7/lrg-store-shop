@@ -79,6 +79,13 @@ type PaymentIntentData = {
   discountCode?: string;
   cardFee: number;
   shippingMethod: string;
+  paymentTotal?: number;
+  paymentItems?: {
+    name: string;
+    quantity: number;
+    price: number;
+    brand?: string;
+  }[];
   isGuest?: boolean;
   guestCustomerId?: string;
   items: Order["items"];

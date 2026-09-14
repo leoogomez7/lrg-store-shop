@@ -53,20 +53,24 @@ function readStoredCategories(): Record<BrandSlug, BrandCategory[]> {
   try {
     const raw = remoteSetting<Partial<Record<BrandSlug, BrandCategory[]>>>(CATEGORY_STORAGE_KEY);
     if (!raw) {
-      return { arcade: [], scents: [], "web-design": [] };
+      return {
+        arcade: defaultBrands.arcade.categories,
+        scents: defaultBrands.scents.categories,
+        "web-design": defaultBrands["web-design"].categories,
+      };
     }
 
     const parsed = raw as Partial<Record<BrandSlug, BrandCategory[]>>;
     return {
-      arcade: parsed.arcade ?? [],
-      scents: parsed.scents ?? [],
-      "web-design": parsed["web-design"] ?? [],
+      arcade: parsed.arcade ?? defaultBrands.arcade.categories,
+      scents: parsed.scents ?? defaultBrands.scents.categories,
+      "web-design": parsed["web-design"] ?? defaultBrands["web-design"].categories,
     };
   } catch {
     return {
-      arcade: [],
-      scents: [],
-      "web-design": [],
+      arcade: defaultBrands.arcade.categories,
+      scents: defaultBrands.scents.categories,
+      "web-design": defaultBrands["web-design"].categories,
     };
   }
 }

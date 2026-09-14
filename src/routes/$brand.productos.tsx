@@ -12,9 +12,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { sortLabels } from "@/components/product/product-filters";
-import { ProductCard } from "@/components/product/product-card";
 import { ProductFilters, type CatalogFilters } from "@/components/product/product-filters";
+import { getCategoryFilterValues, sortLabels } from "@/components/product/product-filter-utils";
+import { ProductCard } from "@/components/product/product-card";
 import { getBrand } from "@/config/brands";
 import { catalogQueries } from "@/services/catalog.service";
 import { orders } from "@/data/orders";
@@ -65,6 +65,13 @@ function CatalogPage() {
   const brand = getBrand(params.brand)!;
   const { data: products } = useSuspenseQuery(catalogQueries.byBrand(brand.slug));
   const [priceCurrencies, setPriceCurrencies] = useState<("ARS" | "USD")[]>(["ARS", "USD"]);
+  const [, setBrandDataVersion] = useState(0);
+
+  useEffect(() => {
+    const handleBrandDataUpdated = () => setBrandDataVersion((current) => current + 1);
+    window.addEventListener("lrg-brand-data-updated", handleBrandDataUpdated);
+    return () => window.removeEventListener("lrg-brand-data-updated", handleBrandDataUpdated);
+  }, []);
 
   const priceLimit = useMemo(
     () =>
@@ -103,12 +110,16 @@ function CatalogPage() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+  const selectedCategoryValues = useMemo(
+    () => getCategoryFilterValues(brand.categories, filters.categories),
+    [brand.categories, filters.categories],
+  );
 
   const results = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
     const filtered = products.filter((product) => {
       if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
-      if (filters.categories.length && !filters.categories.includes(product.category)) return false;
+      if (filters.categories.length && !selectedCategoryValues.has(product.category)) return false;
       if (
         filters.priceCurrencies?.length &&
         !filters.priceCurrencies.includes(product.priceCurrency ?? "ARS")
@@ -140,7 +151,7 @@ function CatalogPage() {
       default:
         return filtered.sort((a, b) => a.price - b.price);
     }
-  }, [products, filters]);
+  }, [products, filters, selectedCategoryValues]);
 
   const totalPages = Math.max(1, Math.ceil(results.length / pageSize));
   const hasPreviousPage = page > 0;
@@ -185,7 +196,9 @@ function CatalogPage() {
           <Input
             placeholder="Buscar producto"
             value={filters.search}
-            onChange={(e: any) => setFilters((c) => ({ ...c, search: e.target.value }))}
+            onChange={(event) =>
+              setFilters((current) => ({ ...current, search: event.target.value }))
+            }
             className="w-full pl-9"
           />
         </div>

@@ -97,7 +97,12 @@ function CheckoutPage() {
     (getBrand(slug)?.paymentMethods ?? []).filter((method) => method.enabled);
   const isCardMethod = (value: string) =>
     /tarjeta|d[eé]bito|cr[eé]dito|mercado\s*pago|\bmp\b/i.test(value.trim());
-  const isCardPayment = Object.values(paymentMethodsByBrand).some(isCardMethod);
+  const mercadoPagoBrands = new Set(
+    Object.entries(paymentMethodsByBrand)
+      .filter(([, method]) => isCardMethod(method))
+      .map(([slug]) => slug),
+  );
+  const isCardPayment = mercadoPagoBrands.size > 0;
   const isMercadoPagoPayment = isCardPayment;
 
   useEffect(() => {
@@ -262,8 +267,23 @@ function CheckoutPage() {
     0,
   );
   const cardFee = isCardPayment
-    ? eligibleCardSubtotal * (couponApplied ? 1 - couponPercentage / 100 : 1) * 0.1
+    ? eligibleCardSubtotal * 0.1
     : 0;
+  const mercadoPagoItems = items
+    .filter((item) => mercadoPagoBrands.has(item.brand))
+    .map((item) => ({
+      name: item.name,
+      quantity: item.quantity,
+      price:
+        item.price *
+        (couponApplied && item.brand === couponBrandSlug ? 1 - couponPercentage / 100 : 1),
+      brand: item.brand,
+    }));
+  const mercadoPagoSubtotal = mercadoPagoItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+  const mercadoPagoTotal = mercadoPagoSubtotal + cardFee;
   const total = discountedSubtotal + cardFee;
   const combinedPaymentMethod = Object.entries(paymentMethodsByBrand)
     .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
@@ -533,6 +553,8 @@ function CheckoutPage() {
           installments: isCardPayment ? selectedInstallments : 1,
           discountCode: couponApplied ? couponCode.trim().toUpperCase() : undefined,
           cardFee,
+          paymentTotal: mercadoPagoTotal,
+          paymentItems: mercadoPagoItems,
           shippingMethod: combinedShippingMethod,
           isGuest: !isAuthenticated,
           ...(!isAuthenticated ? { guestCustomerId: id } : {}),
@@ -680,7 +702,7 @@ function CheckoutPage() {
                 </div>
                 {isAuthenticated && (
                   <div className="space-y-2 sm:col-span-2">
-                    <Label>Dirección a enviar producto</Label>
+                    <Label>Dirección a enviar</Label>
                     {addressesLoading ? (
                       <div className="flex items-center gap-2 rounded-lg border border-input p-3 text-sm text-muted-foreground">
                         <LoaderCircle className="size-4 animate-spin" />
@@ -916,7 +938,7 @@ function CheckoutPage() {
                     <div key={slug} className="flex items-center justify-between gap-4">
                       <span className="font-semibold text-foreground">{getBrand(slug)?.name}</span>
                       <span className="text-right text-muted-foreground">
-                        {shippingMethodsByBrand[slug] || "Acordar entrega"}
+                        {shippingMethodsByBrand[slug] || "A confirmar"}
                       </span>
                     </div>
                   ))}

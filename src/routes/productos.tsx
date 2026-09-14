@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { ProductCard } from "@/components/product/product-card";
+import { ProductFilters, type CatalogFilters } from "@/components/product/product-filters";
 import {
-  ProductFilters,
+  getCategoryFilterValues,
+  mergeBrandCategories,
   sortLabels,
-  type CatalogFilters,
-} from "@/components/product/product-filters";
+} from "@/components/product/product-filter-utils";
 import {
   Dialog,
   DialogContent,
@@ -59,20 +60,15 @@ function ProductosPage() {
   const search = Route.useSearch();
   const { data: products } = useSuspenseQuery(catalogQueries.all());
   const [priceCurrencies, setPriceCurrencies] = useState<("ARS" | "USD")[]>(["ARS", "USD"]);
+  const [, setBrandDataVersion] = useState(0);
 
-  const categories = useMemo(() => {
-    const map = new Map<string, { slug: string; name: string; description: string }>();
-
-    brandList.forEach((brand) => {
-      brand.categories.forEach((category) => {
-        if (!map.has(category.slug)) {
-          map.set(category.slug, category);
-        }
-      });
-    });
-
-    return Array.from(map.values());
+  useEffect(() => {
+    const handleBrandDataUpdated = () => setBrandDataVersion((current) => current + 1);
+    window.addEventListener("lrg-brand-data-updated", handleBrandDataUpdated);
+    return () => window.removeEventListener("lrg-brand-data-updated", handleBrandDataUpdated);
   }, []);
+
+  const categories = mergeBrandCategories(brandList.flatMap((brand) => brand.categories));
 
   const priceLimit = useMemo(
     () =>
@@ -112,12 +108,16 @@ function ProductosPage() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+  const selectedCategoryValues = useMemo(
+    () => getCategoryFilterValues(categories, filters.categories),
+    [categories, filters.categories],
+  );
 
   const results = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
     const filtered = products.filter((product) => {
       if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
-      if (filters.categories.length && !filters.categories.includes(product.category)) return false;
+      if (filters.categories.length && !selectedCategoryValues.has(product.category)) return false;
       if ((filters.brands ?? []).length && !(filters.brands ?? []).includes(product.brand))
         return false;
       if (
@@ -151,7 +151,7 @@ function ProductosPage() {
       default:
         return filtered.sort((a, b) => a.price - b.price);
     }
-  }, [products, filters]);
+  }, [products, filters, selectedCategoryValues]);
 
   const totalPages = Math.max(1, Math.ceil(results.length / pageSize));
   const hasPreviousPage = page > 0;

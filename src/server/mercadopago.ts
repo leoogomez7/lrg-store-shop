@@ -17,6 +17,13 @@ export type PaymentIntentData = {
   discountCode?: string;
   cardFee: number;
   shippingMethod: string;
+  paymentTotal?: number;
+  paymentItems?: {
+    name: string;
+    quantity: number;
+    price: number;
+    brand?: string;
+  }[];
   isGuest?: boolean;
   guestCustomerId?: string;
   items: {
@@ -66,13 +73,13 @@ export const createMercadoPagoPreference = createServerFn({ method: "POST" })
       body: JSON.stringify({
         external_reference: data.intentId,
         payer: { name: data.payment.customer, email: data.payment.email },
-        items: data.payment.items.map((item) => ({
+        items: (data.payment.paymentItems ?? data.payment.items).map((item) => ({
           title: item.name,
           quantity: item.quantity,
           unit_price: item.price,
           currency_id: "ARS",
         })),
-        total_amount: data.payment.total,
+        total_amount: data.payment.paymentTotal ?? data.payment.total,
         back_urls: {
           success: urls.success,
           failure: urls.failure,

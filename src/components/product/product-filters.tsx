@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 
 import { formatPrice } from "@/lib/format";
-import { brandList, type BrandCategory } from "@/config/brands";
+import { brandList, type BrandCategory, type BrandSubcategory } from "@/config/brands";
 import type { CurrencyCode } from "@/data/products";
 
 export type SortOption =
@@ -31,15 +31,6 @@ export type CatalogFilters = {
   maxPrice: number;
   inStockOnly: boolean;
   sort: SortOption;
-};
-
-export const sortLabels: Record<SortOption, string> = {
-  "descuento-asc": "Precio: menor a mayor",
-  "descuento-desc": "Precio: mayor a menor",
-  "nombre-asc": "Nombre: A-Z",
-  "nombre-desc": "Nombre: Z-A",
-  "agregado-asc": "Producto agregado: Antiguo a nuevo",
-  "agregado-desc": "Producto agregado: Nuevo a antiguo",
 };
 
 /** Único componente de filtros para todas las marcas. */
@@ -86,6 +77,31 @@ export function ProductFilters({
         ? "USD"
         : "$";
 
+  const renderSubcategory = (subcategory: BrandSubcategory, depth: number) => {
+    const checked = filters.categories.includes(subcategory.slug);
+    return (
+      <div key={subcategory.slug} className="space-y-2">
+        <label
+          className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
+          style={{ paddingLeft: `${depth * 1.25}rem` }}
+        >
+          <Checkbox
+            checked={checked}
+            onCheckedChange={(value) =>
+              onChange({
+                categories: value
+                  ? [...filters.categories, subcategory.slug]
+                  : filters.categories.filter((slug) => slug !== subcategory.slug),
+              })
+            }
+          />
+          <span className="font-medium">{subcategory.name}</span>
+        </label>
+        {subcategory.children?.map((child) => renderSubcategory(child, depth + 1))}
+      </div>
+    );
+  };
+
   return (
     <aside className="h-fit w-full max-w-full space-y-6 lg:sticky lg:top-24">
       {!hideSearch && (
@@ -124,24 +140,22 @@ export function ProductFilters({
             {categories.map((category) => {
               const checked = filters.categories.includes(category.slug);
               return (
-                <label
-                  key={category.slug}
-                  className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
-                >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={(value) =>
-                      onChange({
-                        categories: value
-                          ? [...filters.categories, category.slug]
-                          : filters.categories.filter((slug) => slug !== category.slug),
-                      })
-                    }
-                  />
-                  <span>
-                    <span className="block leading-none font-medium">{category.name}</span>
-                  </span>
-                </label>
+                <div key={category.slug} className="space-y-2">
+                  <label className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80">
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(value) =>
+                        onChange({
+                          categories: value
+                            ? [...filters.categories, category.slug]
+                            : filters.categories.filter((slug) => slug !== category.slug),
+                        })
+                      }
+                    />
+                    <span className="font-semibold">{category.name}</span>
+                  </label>
+                  {category.subcategories?.map((subcategory) => renderSubcategory(subcategory, 1))}
+                </div>
               );
             })}
           </div>

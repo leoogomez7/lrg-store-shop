@@ -182,6 +182,7 @@ function BrandFooterContent({
     ["Panel administrativo", "/cuenta/panel", LayoutDashboard],
     ["Compras", "/cuenta/compras", ShoppingCart],
     ["Comprar productos", "/productos", ShoppingBag],
+    ["Mi carrito", "/carrito", ShoppingCart],
     ["Perfil", "/cuenta/perfil", User],
     ["Direcciones", "/cuenta/direcciones", MapPin],
     ["Favoritos", "/cuenta/favoritos", Heart],

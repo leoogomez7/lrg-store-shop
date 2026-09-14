@@ -43,6 +43,7 @@ import { LoadingState } from "@/components/common/loading-state";
 import { webDesignConfig } from "@/config/brands/web-design.config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -369,6 +371,9 @@ function AccountPageContent({
     (ordersStatusFilter !== "all" ? 1 : 0) +
     (ordersTotalMin ? 1 : 0) +
     (ordersTotalMax ? 1 : 0);
+  const ordersTotalLimit = Math.max(1, ...visibleOrders.map((order) => order.total));
+  const ordersTotalMinValue = ordersTotalMin === "" ? 0 : Number(ordersTotalMin);
+  const ordersTotalMaxValue = ordersTotalMax === "" ? ordersTotalLimit : Number(ordersTotalMax);
 
   const resetOrderFilters = () => {
     setOrdersBrandFilter("all");
@@ -685,7 +690,7 @@ function AccountPageContent({
             const value = [street, area].filter(Boolean).join(", ").trim();
 
             return {
-              street: street || displayName.split(",")[0]?.trim() || "",
+              street: resolvedRoad || displayName.split(",")[0]?.trim() || "",
               city: area || displayName.split(",").slice(1).join(", ").trim() || "",
               cityName: city,
               streetNumber: resolvedHouseNumber,
@@ -969,35 +974,49 @@ function AccountPageContent({
                       Filtros
                     </DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-5 pt-2">
+                  <div className="space-y-6 pt-2">
                     <div className="space-y-3">
                       <button
                         type="button"
                         onClick={() => setOrdersStoreOpen((current) => !current)}
-                        className="flex w-full items-center gap-2 text-left text-sm font-medium"
+                        className="flex items-center gap-2 text-sm font-medium"
                         aria-expanded={ordersStoreOpen}
+                        aria-controls="orders-store-list"
                       >
                         <span>Tienda</span>
                         {ordersBrandFilter !== "all" && <Badge variant="secondary">1</Badge>}
                         {ordersStoreOpen ? (
-                          <ChevronUp className="ml-auto size-4 text-muted-foreground" />
+                          <ChevronUp className="size-4 text-muted-foreground" />
                         ) : (
-                          <ChevronDown className="ml-auto size-4 text-muted-foreground" />
+                          <ChevronDown className="size-4 text-muted-foreground" />
                         )}
                       </button>
                       {ordersStoreOpen && (
-                        <select
-                          value={ordersBrandFilter}
-                          onChange={(event) => setOrdersBrandFilter(event.target.value)}
-                          className="h-10 w-full rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
-                        >
-                          <option value="all">Todas las tiendas</option>
+                        <div id="orders-store-list" className="space-y-2.5">
+                          <label className="flex cursor-pointer items-start gap-3 text-sm">
+                            <Checkbox
+                              checked={ordersBrandFilter === "all"}
+                              onCheckedChange={(checked) => {
+                                if (checked) setOrdersBrandFilter("all");
+                              }}
+                            />
+                            <span className="font-medium">Todas las tiendas</span>
+                          </label>
                           {Object.entries(brands).map(([brandSlug, brand]) => (
-                            <option key={brandSlug} value={brandSlug}>
-                              {brand.shortName}
-                            </option>
+                            <label
+                              key={brandSlug}
+                              className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
+                            >
+                              <Checkbox
+                                checked={ordersBrandFilter === brandSlug}
+                                onCheckedChange={(checked) => {
+                                  setOrdersBrandFilter(checked ? brandSlug : "all");
+                                }}
+                              />
+                              <span className="font-medium">{brand.shortName}</span>
+                            </label>
                           ))}
-                        </select>
+                        </div>
                       )}
                     </div>
 
@@ -1005,26 +1024,27 @@ function AccountPageContent({
                       <button
                         type="button"
                         onClick={() => setOrdersDatesOpen((current) => !current)}
-                        className="flex w-full items-center gap-2 text-left text-sm font-medium"
+                        className="flex items-center gap-2 text-sm font-medium"
                         aria-expanded={ordersDatesOpen}
+                        aria-controls="orders-date-list"
                       >
                         <span>Fecha de compra</span>
                         {(ordersDateFrom || ordersDateTo) && <Badge variant="secondary">2</Badge>}
                         {ordersDatesOpen ? (
-                          <ChevronUp className="ml-auto size-4 text-muted-foreground" />
+                          <ChevronUp className="size-4 text-muted-foreground" />
                         ) : (
-                          <ChevronDown className="ml-auto size-4 text-muted-foreground" />
+                          <ChevronDown className="size-4 text-muted-foreground" />
                         )}
                       </button>
                       {ordersDatesOpen && (
-                        <div className="grid gap-3 sm:grid-cols-2">
+                        <div id="orders-date-list" className="grid gap-3 sm:grid-cols-2">
                           <label className="space-y-1 text-xs text-muted-foreground">
                             <span>Desde</span>
                             <Input
                               type="date"
                               value={ordersDateFrom}
                               onChange={(event) => setOrdersDateFrom(event.target.value)}
-                              className="h-10 bg-background"
+                              className="h-8 bg-background"
                               aria-label="Fecha de compra desde"
                             />
                           </label>
@@ -1034,7 +1054,7 @@ function AccountPageContent({
                               type="date"
                               value={ordersDateTo}
                               onChange={(event) => setOrdersDateTo(event.target.value)}
-                              className="h-10 bg-background"
+                              className="h-8 bg-background"
                               aria-label="Fecha de compra hasta"
                             />
                           </label>
@@ -1046,27 +1066,39 @@ function AccountPageContent({
                       <button
                         type="button"
                         onClick={() => setOrdersShippingOpen((current) => !current)}
-                        className="flex w-full items-center gap-2 text-left text-sm font-medium"
+                        className="flex items-center gap-2 text-sm font-medium"
                         aria-expanded={ordersShippingOpen}
+                        aria-controls="orders-shipping-list"
                       >
                         <span>Estado de envío</span>
                         {ordersStatusFilter !== "all" && <Badge variant="secondary">1</Badge>}
                         {ordersShippingOpen ? (
-                          <ChevronUp className="ml-auto size-4 text-muted-foreground" />
+                          <ChevronUp className="size-4 text-muted-foreground" />
                         ) : (
-                          <ChevronDown className="ml-auto size-4 text-muted-foreground" />
+                          <ChevronDown className="size-4 text-muted-foreground" />
                         )}
                       </button>
                       {ordersShippingOpen && (
-                        <select
-                          value={ordersStatusFilter}
-                          onChange={(event) => setOrdersStatusFilter(event.target.value)}
-                          className="h-10 w-full rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-ring"
-                        >
-                          <option value="all">Todos los estados</option>
-                          <option value="Pendiente">Pendiente</option>
-                          <option value="Enviado">Enviado</option>
-                        </select>
+                        <div id="orders-shipping-list" className="space-y-2.5">
+                          {[
+                            ["all", "Todos los estados"],
+                            ["Pendiente", "Pendiente"],
+                            ["Enviado", "Enviado"],
+                          ].map(([value, label]) => (
+                            <label
+                              key={value}
+                              className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
+                            >
+                              <Checkbox
+                                checked={ordersStatusFilter === value}
+                                onCheckedChange={(checked) => {
+                                  setOrdersStatusFilter(checked ? value : "all");
+                                }}
+                              />
+                              <span className="font-medium">{label}</span>
+                            </label>
+                          ))}
+                        </div>
                       )}
                     </div>
 
@@ -1074,36 +1106,78 @@ function AccountPageContent({
                       <button
                         type="button"
                         onClick={() => setOrdersTotalOpen((current) => !current)}
-                        className="flex w-full items-center gap-2 text-left text-sm font-medium"
+                        className="flex items-center gap-2 text-sm font-medium"
                         aria-expanded={ordersTotalOpen}
+                        aria-controls="orders-total-list"
                       >
                         <span>Total gastado</span>
-                        {(ordersTotalMin || ordersTotalMax) && <Badge variant="secondary">1</Badge>}
+                        {(ordersTotalMin || ordersTotalMax) && (
+                          <Badge variant="secondary">
+                            {(ordersTotalMin ? 1 : 0) + (ordersTotalMax ? 1 : 0)}
+                          </Badge>
+                        )}
                         {ordersTotalOpen ? (
-                          <ChevronUp className="ml-auto size-4 text-muted-foreground" />
+                          <ChevronUp className="size-4 text-muted-foreground" />
                         ) : (
-                          <ChevronDown className="ml-auto size-4 text-muted-foreground" />
+                          <ChevronDown className="size-4 text-muted-foreground" />
                         )}
                       </button>
                       {ordersTotalOpen && (
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <Input
-                            type="number"
+                        <div id="orders-total-list" className="space-y-3">
+                          <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-foreground/90">
+                            <label className="flex shrink-0 items-center gap-2">
+                              <span>Desde $</span>
+                              <Input
+                                type="number"
+                                min={0}
+                                max={ordersTotalLimit}
+                                value={ordersTotalMin}
+                                onChange={(event) => {
+                                  const value = Number(event.target.value);
+                                  if (!Number.isFinite(value)) return;
+                                  setOrdersTotalMin(
+                                    String(Math.min(Math.max(0, value), ordersTotalMaxValue)),
+                                  );
+                                }}
+                                className="h-8 w-20 px-2 sm:w-24"
+                                aria-label="Total gastado mínimo"
+                              />
+                            </label>
+                            <label className="flex shrink-0 items-center justify-end gap-2">
+                              <span>Hasta $</span>
+                              <Input
+                                type="number"
+                                min={0}
+                                max={ordersTotalLimit}
+                                value={ordersTotalMax}
+                                onChange={(event) => {
+                                  const value = Number(event.target.value);
+                                  if (!Number.isFinite(value)) return;
+                                  setOrdersTotalMax(
+                                    String(
+                                      Math.max(
+                                        Math.min(ordersTotalLimit, value),
+                                        ordersTotalMinValue,
+                                      ),
+                                    ),
+                                  );
+                                }}
+                                className="h-8 w-20 px-2 sm:w-24"
+                                aria-label="Total gastado máximo"
+                              />
+                            </label>
+                          </div>
+                          <Slider
                             min={0}
-                            value={ordersTotalMin}
-                            onChange={(event) => setOrdersTotalMin(event.target.value)}
-                            placeholder="Desde $"
-                            className="h-10 bg-background"
-                            aria-label="Total mínimo"
-                          />
-                          <Input
-                            type="number"
-                            min={0}
-                            value={ordersTotalMax}
-                            onChange={(event) => setOrdersTotalMax(event.target.value)}
-                            placeholder="Hasta $"
-                            className="h-10 bg-background"
-                            aria-label="Total máximo"
+                            max={ordersTotalLimit}
+                            step={Math.max(1, Math.round(ordersTotalLimit / 100))}
+                            value={[ordersTotalMinValue, ordersTotalMaxValue]}
+                            onValueChange={(value) => {
+                              const nextMin = value[0] ?? 0;
+                              const nextMax = value[1] ?? ordersTotalLimit;
+                              setOrdersTotalMin(nextMin > 0 ? String(nextMin) : "");
+                              setOrdersTotalMax(nextMax < ordersTotalLimit ? String(nextMax) : "");
+                            }}
                           />
                         </div>
                       )}
@@ -1852,9 +1926,7 @@ function AccountPageContent({
                     <span>{label}</span>
                     <Input
                       value={String(value)}
-                      onChange={(event) =>
-                        (setter as (next: string) => void)(event.target.value)
-                      }
+                      onChange={(event) => (setter as (next: string) => void)(event.target.value)}
                       readOnly={Boolean(synced)}
                       className={synced ? "bg-muted/40" : "bg-background/40"}
                     />
@@ -2409,6 +2481,17 @@ function AccountPageContent({
                 <ShoppingBag className="relative z-10 size-4 shrink-0" />
                 {!sidebarCollapsed && <span className="relative z-10">Comprar productos</span>}
               </a>
+              <Link
+                to="/carrito"
+                title={sidebarCollapsed ? "Mi carrito" : undefined}
+                className={cn(
+                  "group relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-left text-sm text-muted-foreground transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
+                  sidebarCollapsed && "justify-center px-2",
+                )}
+              >
+                <ShoppingCart className="relative z-10 size-4 shrink-0" />
+                {!sidebarCollapsed && <span className="relative z-10">Mi carrito</span>}
+              </Link>
             </nav>
 
             <div className={cn("mt-auto flex gap-2", sidebarCollapsed && "justify-center")}>
@@ -2481,6 +2564,14 @@ function AccountPageContent({
                     <ShoppingBag className="size-4 shrink-0" />
                     Comprar productos
                   </a>
+                  <Link
+                    to="/carrito"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+                  >
+                    <ShoppingCart className="size-4 shrink-0" />
+                    Mi carrito
+                  </Link>
                 </nav>
                 <Button
                   variant="ghost"

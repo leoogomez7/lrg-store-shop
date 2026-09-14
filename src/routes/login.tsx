@@ -7,7 +7,15 @@ import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { AdminAccessDialog } from "@/components/common/admin-access-dialog";
 import { getKindeRedirectUri } from "@/lib/kinde";
-import { CircleArrowLeft, House, ShieldCheck, User, UsersRound, Zap } from "lucide-react";
+import {
+  CircleArrowLeft,
+  House,
+  LoaderCircle,
+  ShieldCheck,
+  User,
+  UsersRound,
+  Zap,
+} from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   validateSearch: z.object({ role: z.enum(["client", "admin"]).optional() }),
@@ -33,6 +41,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
   const [role, setRole] = useState<"client" | "admin" | null>(requestedRole ?? null);
   const [adminAccessOpen, setAdminAccessOpen] = useState(false);
   const [adminAuthorized, setAdminAuthorized] = useState(false);
+  const [isStartingLogin, setIsStartingLogin] = useState(false);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -48,6 +57,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
   }, [isAuthenticated, isLoading, navigate]);
 
   const startLogin = () => {
+    setIsStartingLogin(true);
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("lrg_auth_role", role ?? "client");
     }
@@ -56,6 +66,18 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
       redirectURL: redirectURL ?? "http://localhost:5174/login",
     });
   };
+
+  if (isStartingLogin || isLoading || isAuthenticated) {
+    return (
+      <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+        <div className="text-center">
+          <LoaderCircle className="mx-auto mb-4 size-10 animate-spin text-primary" />
+          <p className="text-lg font-semibold">Iniciando sesión...</p>
+          <p className="mt-1 text-sm text-muted-foreground">Preparando tu panel...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleLogin = () => {
     if (role === "admin" && !adminAuthorized) {
