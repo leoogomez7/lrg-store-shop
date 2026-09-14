@@ -1248,7 +1248,13 @@ function AccountPageContent({
                       <TableCell>
                         <Badge
                           className="capitalize"
-                          variant={order.deliveryStatus === "Enviado" ? "success" : "outline"}
+                          variant={
+                            order.deliveryStatus === "Enviado"
+                              ? "success"
+                              : order.deliveryStatus === "Pendiente"
+                                ? "pending"
+                                : "outline"
+                          }
                         >
                           {order.deliveryStatus ?? "Pendiente"}
                         </Badge>
