@@ -181,11 +181,11 @@ function BrandFooterContent({
   const accountMenu = [
     ["Panel administrativo", "/cuenta/panel", LayoutDashboard],
     ["Compras", "/cuenta/compras", ShoppingCart],
-    ["Comprar productos", "/productos", ShoppingBag],
-    ["Mi carrito", "/carrito", ShoppingCart],
     ["Perfil", "/cuenta/perfil", User],
     ["Direcciones", "/cuenta/direcciones", MapPin],
     ["Favoritos", "/cuenta/favoritos", Heart],
+    ["Comprar productos", "/productos", ShoppingBag],
+    ["Mi carrito", "/carrito", ShoppingCart],
   ];
   const adminMenu = [
     ["Panel administrativo", "/admin/panel", LayoutDashboard],

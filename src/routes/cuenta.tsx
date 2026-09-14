@@ -1246,32 +1246,46 @@ function AccountPageContent({
                       <TableCell>{brands[order.brand].shortName}</TableCell>
                       <TableCell>{formatDate(order.date)}</TableCell>
                       <TableCell>
-                        <Badge
-                          className="capitalize"
-                          variant={
-                            order.deliveryStatus === "Enviado"
-                              ? "success"
-                              : order.deliveryStatus === "Pendiente"
-                                ? "pending"
-                                : "outline"
-                          }
-                        >
-                          {order.deliveryStatus ?? "Pendiente"}
-                        </Badge>
+                        {(() => {
+                          const deliveryStatus = (order.deliveryStatus ?? "Pendiente").trim();
+                          const normalizedDeliveryStatus = deliveryStatus.toLowerCase();
+
+                          return (
+                            <Badge
+                              className="capitalize"
+                              variant={
+                                normalizedDeliveryStatus === "enviado"
+                                  ? "success"
+                                  : normalizedDeliveryStatus === "pendiente"
+                                    ? "pending"
+                                    : "outline"
+                              }
+                            >
+                              {deliveryStatus}
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          className="capitalize"
-                          variant={
-                            order.paymentStatus === "Pagado"
-                              ? "success"
-                              : order.paymentStatus === "Cancelado"
-                                ? "destructive"
-                                : "pending"
-                          }
-                        >
-                          {order.paymentStatus ?? "Pendiente"}
-                        </Badge>
+                        {(() => {
+                          const paymentStatus = (order.paymentStatus ?? "Pendiente").trim();
+                          const normalizedPaymentStatus = paymentStatus.toLowerCase();
+
+                          return (
+                            <Badge
+                              className="capitalize"
+                              variant={
+                                normalizedPaymentStatus === "pagado"
+                                  ? "success"
+                                  : normalizedPaymentStatus === "cancelado"
+                                    ? "destructive"
+                                    : "pending"
+                              }
+                            >
+                              {paymentStatus}
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
                       <TableCell>
