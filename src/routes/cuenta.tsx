@@ -246,6 +246,7 @@ function AccountPageContent({
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
   const [pendingReceipts, setPendingReceipts] = useState<OrderAttachment[]>([]);
+  const [previewReceipt, setPreviewReceipt] = useState<OrderAttachment | null>(null);
   const receiptsInputRef = useRef<HTMLInputElement | null>(null);
   const visibleOrders = useMemo(() => {
     const userEmail = user?.email?.toLowerCase();
@@ -1852,32 +1853,62 @@ function AccountPageContent({
                   [...(receiptsOrder?.paymentReceipts ?? []), ...pendingReceipts].map((receipt) => (
                     <div
                       key={`${receipt.name}-${receipt.size}`}
-                      className="flex items-center gap-3 rounded-xl border border-border/60 p-3"
+                      className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 p-3"
                     >
                       <FileText className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1 truncate text-sm">{receipt.name}</span>
-                      <Button
-                        asChild
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1.5 text-xs"
-                      >
-                        <a href={receipt.dataUrl} target="_blank" rel="noreferrer">
+                      <span className="min-w-0 flex-1 break-words text-sm">{receipt.name}</span>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1.5 px-2 text-xs"
+                          onClick={() => setPreviewReceipt(receipt)}
+                        >
                           <Eye className="size-4" /> Ver
-                        </a>
-                      </Button>
-                      <Button
-                        asChild
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1.5 text-xs"
-                      >
-                        <a href={receipt.dataUrl} download={receipt.name}>
-                          <Download className="size-4" /> Descargar
-                        </a>
-                      </Button>
+                        </Button>
+                        <Button
+                          asChild
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1.5 px-2 text-xs"
+                        >
+                          <a href={receipt.dataUrl} download={receipt.name}>
+                            <Download className="size-4" /> Descargar
+                          </a>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1.5 px-2 text-xs text-destructive hover:text-destructive"
+                          onClick={() => {
+                            if (pendingReceipts.some((pending) => pending === receipt)) {
+                              setPendingReceipts((current) => current.filter((pending) => pending !== receipt));
+                            } else if (receiptsOrder) {
+                              const updatedOrder = {
+                                ...receiptsOrder,
+                                paymentReceipts: (receiptsOrder.paymentReceipts ?? []).filter(
+                                  (saved) => saved !== receipt,
+                                ),
+                              };
+                              void orderService
+                                .update(updatedOrder)
+                                .then(async () => {
+                                  await queryClient.invalidateQueries({
+                                    queryKey: orderQueries.list().queryKey,
+                                  });
+                                  setReceiptsOrder(updatedOrder);
+                                  toast.success("Comprobante eliminado");
+                                })
+                                .catch(() => toast.error("No se pudo eliminar el comprobante"));
+                            }
+                          }}
+                        >
+                          <Trash2 className="size-4" /> Eliminar
+                        </Button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -1909,6 +1940,7 @@ function AccountPageContent({
                     await queryClient.invalidateQueries({ queryKey: orderQueries.list().queryKey });
                     setReceiptsOrder(updatedOrder);
                     setPendingReceipts([]);
+                    toast.success("Comprobantes guardados correctamente");
                   }}
                 >
                   <Save className="size-4" /> Guardar
@@ -2091,6 +2123,30 @@ function AccountPageContent({
             <div>
               <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Entregas</p>
               <h1 className="mt-2 text-3xl font-semibold">Direcciones</h1>
+
+          <Dialog
+            open={previewReceipt !== null}
+            onOpenChange={(open) => !open && setPreviewReceipt(null)}
+          >
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle className="break-words">{previewReceipt?.name}</DialogTitle>
+              </DialogHeader>
+              {previewReceipt?.type === "application/pdf" ? (
+                <iframe
+                  title={previewReceipt.name}
+                  src={previewReceipt.dataUrl}
+                  className="h-[70vh] w-full rounded-lg border border-border/60"
+                />
+              ) : previewReceipt ? (
+                <img
+                  src={previewReceipt.dataUrl}
+                  alt={previewReceipt.name}
+                  className="max-h-[70vh] w-full rounded-lg object-contain"
+                />
+              ) : null}
+            </DialogContent>
+          </Dialog>
             </div>
             <Button
               size="sm"
