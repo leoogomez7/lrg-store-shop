@@ -110,6 +110,32 @@ export function mergeBrandCategories(categories: BrandCategory[]): BrandCategory
   return Array.from(merged.values());
 }
 
+export function filterCategoriesByProducts(
+  categories: BrandCategory[],
+  products: Product[],
+): BrandCategory[] {
+  const productValues = new Set(
+    products.flatMap((product) => [product.category, product.subcategory].filter(Boolean)),
+  );
+  const matches = (slug: string) =>
+    productValues.has(slug) || productValues.has(slug.replace(/^root-/, ""));
+
+  const filterSubcategories = (items: BrandSubcategory[]): BrandSubcategory[] =>
+    items.flatMap((item) => {
+      const children = filterSubcategories(item.children ?? []);
+      return matches(item.slug) || children.length
+        ? [{ ...item, ...(children.length ? { children } : {}) }]
+        : [];
+    });
+
+  return categories.flatMap((category) => {
+    const subcategories = filterSubcategories(category.subcategories ?? []);
+    return matches(category.slug) || subcategories.length
+      ? [{ ...category, ...(subcategories.length ? { subcategories } : {}) }]
+      : [];
+  });
+}
+
 export function getCategoryFilterValues(
   categories: BrandCategory[],
   selectedSlugs: string[],

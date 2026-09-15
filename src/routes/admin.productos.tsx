@@ -174,7 +174,6 @@ function AdminProducts() {
   const [bulkEditPosition, setBulkEditPosition] = useState(0);
   const [initialVariantId, setInitialVariantId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState | null>(null);
-  const productFormRef = useRef<ProductFormState | null>(null);
   const [usdRate, setUsdRate] = useState<number>(() => {
     return 0;
   });
@@ -221,10 +220,6 @@ function AdminProducts() {
   const [pageSize, setPageSize] = useState<number>(10);
   // `pageSizeInput` is the editable input value the user types before confirming
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
-
-  useEffect(() => {
-    productFormRef.current = productForm;
-  }, [productForm]);
 
   const priceLimit = useMemo(() => {
     const values = products
@@ -2819,6 +2814,7 @@ function ProductEditDialog({
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [confirmExitOpen, setConfirmExitOpen] = useState(false);
   const initialFormRef = useRef<string | null>(null);
+  const productFormRef = useRef<ProductFormState | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [variantNameDraft, setVariantNameDraft] = useState("");
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(null);
@@ -2837,6 +2833,10 @@ function ProductEditDialog({
     social: "",
     purchaseDate: "",
   });
+
+  useEffect(() => {
+    productFormRef.current = productForm;
+  }, [productForm]);
 
   useEffect(() => {
     const productSuppliers = supplierProducts

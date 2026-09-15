@@ -14,6 +14,7 @@ import {
 } from "@/components/product/product-filters";
 import {
   buildDeliveryOptions,
+  filterCategoriesByProducts,
   formatDeliveryTime,
   getCategoryFilterValues,
   matchesDeliveryOption,
@@ -84,7 +85,14 @@ function ProductosPage() {
     return () => window.removeEventListener("lrg-brand-data-updated", handleBrandDataUpdated);
   }, [settings]);
 
-  const categories = mergeBrandCategories(brandList.flatMap((brand) => brand.categories));
+  const categories = useMemo(
+    () =>
+      filterCategoriesByProducts(
+        mergeBrandCategories(brandList.flatMap((brand) => brand.categories)),
+        products,
+      ),
+    [products],
+  );
   const deliveryOptions = buildDeliveryOptions(products);
   const shippingOptions = Array.from(
     new Set(
@@ -119,10 +127,7 @@ function ProductosPage() {
     [products, priceCurrencies],
   );
 
-  const priceLimit = useMemo(
-    () => Math.max(50, catalogMaxPrice || 0),
-    [catalogMaxPrice],
-  );
+  const priceLimit = useMemo(() => Math.max(50, catalogMaxPrice || 0), [catalogMaxPrice]);
 
   const [filters, setFilters] = useState<CatalogFilters>({
     search: "",
@@ -178,18 +183,16 @@ function ProductosPage() {
         return false;
       if (
         filters.shippingMethod?.length &&
-        !(brandList.find((brand) => brand.slug === product.brand)?.shipping?.methods ?? [])
-          .some(
-            (method) => method.enabled && filters.shippingMethod?.includes(method.name),
-          )
+        !(brandList.find((brand) => brand.slug === product.brand)?.shipping?.methods ?? []).some(
+          (method) => method.enabled && filters.shippingMethod?.includes(method.name),
+        )
       )
         return false;
       if (
         filters.paymentMethod?.length &&
-        !(brandList.find((brand) => brand.slug === product.brand)?.paymentMethods ?? [])
-          .some(
-            (method) => method.enabled && filters.paymentMethod?.includes(method.name),
-          )
+        !(brandList.find((brand) => brand.slug === product.brand)?.paymentMethods ?? []).some(
+          (method) => method.enabled && filters.paymentMethod?.includes(method.name),
+        )
       )
         return false;
       if (

@@ -295,70 +295,66 @@ export function ProductFilters({
   const getDescendantSlugs = (children: BrandSubcategory[] = []): string[] =>
     children.flatMap((child) => [child.slug, ...getDescendantSlugs(child.children)]);
 
-  const getAncestorSlugs = (slug: string): string[] => {
-    const ancestors: string[] = [];
-
-    const findPath = (items: BrandCategory[] | BrandSubcategory[], parents: string[]): boolean => {
+  const findCategoryNode = (
+    slug: string,
+  ): { children: BrandSubcategory[]; ancestors: string[] } | null => {
+    const findInSubcategories = (
+      items: BrandSubcategory[],
+      ancestors: string[],
+    ): { children: BrandSubcategory[]; ancestors: string[] } | null => {
       for (const item of items) {
-        if (item.slug === slug) {
-          ancestors.push(...parents);
-          return true;
-        }
-        const children = "children" in item ? item.children : (item as BrandCategory).subcategories;
-        if (children?.length && findPath(children, [...parents, item.slug])) return true;
+        if (item.slug === slug) return { children: item.children ?? [], ancestors };
+        const result = findInSubcategories(item.children ?? [], [...ancestors, item.slug]);
+        if (result) return result;
       }
-      return false;
+      return null;
     };
 
-    findPath(categories, []);
-    return ancestors;
+    for (const category of categories) {
+      if (category.slug === slug) {
+        return { children: category.subcategories ?? [], ancestors: [] };
+      }
+      const result = findInSubcategories(category.subcategories ?? [], [category.slug]);
+      if (result) return result;
+    }
+    return null;
   };
 
   const toggleCategory = (slug: string, checked: boolean) => {
     const selected = new Set(filters.categories);
-    const findDescendants = (items: BrandCategory[] | BrandSubcategory[]): string[] | null => {
-      for (const item of items) {
-        if (item.slug === slug) {
-          const children =
-            "children" in item ? item.children : (item as BrandCategory).subcategories;
-          return getDescendantSlugs(children);
-        }
-        const children = "children" in item ? item.children : (item as BrandCategory).subcategories;
-        if (children?.length) {
-          const result = findDescendants(children);
-          if (result !== null) return result;
-        }
-      }
-      return null;
-    };
-    const descendants = findDescendants(categories) ?? [];
+    const node = findCategoryNode(slug);
+    const descendants = getDescendantSlugs(node?.children);
     const branch = [slug, ...descendants];
 
     if (checked) {
       branch.forEach((value) => selected.add(value));
     } else {
       branch.forEach((value) => selected.delete(value));
-      getAncestorSlugs(slug).forEach((value) => selected.delete(value));
+      node?.ancestors.forEach((value) => selected.delete(value));
     }
 
-    const markCompleteParents = (items: BrandCategory[] | BrandSubcategory[]): boolean => {
-      let allSelected = true;
-      for (const item of items) {
-        const children = "children" in item ? item.children : (item as BrandCategory).subcategories;
-        const itemComplete = children?.length
-          ? markCompleteParents(children)
-          : selected.has(item.slug);
-        if (children?.length && itemComplete) selected.add(item.slug);
-        if (!selected.has(item.slug)) allSelected = false;
-      }
-      return allSelected;
+    const updateParents = (items: BrandSubcategory[]) => {
+      items.forEach((item) => {
+        const children = item.children ?? [];
+        if (children.length) {
+          updateParents(children);
+          if (getDescendantSlugs(children).every((value) => selected.has(value))) {
+            selected.add(item.slug);
+          } else {
+            selected.delete(item.slug);
+          }
+        }
+      });
     };
 
     categories.forEach((category) => {
-      const childrenComplete = category.subcategories?.length
-        ? markCompleteParents(category.subcategories)
-        : selected.has(category.slug);
-      if (category.subcategories?.length && childrenComplete) selected.add(category.slug);
+      const children = category.subcategories ?? [];
+      updateParents(children);
+      if (children.length && getDescendantSlugs(children).every((value) => selected.has(value))) {
+        selected.add(category.slug);
+      } else if (children.length) {
+        selected.delete(category.slug);
+      }
     });
 
     onChange({
