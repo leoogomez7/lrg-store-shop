@@ -138,6 +138,14 @@ function ProductosPage() {
     inStockOnly: false,
     sort: "agregado-asc",
   });
+  const searchCategory = search.subcategoria ?? search.categoria;
+
+  useEffect(() => {
+    setFilters((current) => ({
+      ...current,
+      categories: searchCategory ? [searchCategory] : [],
+    }));
+  }, [searchCategory]);
 
   const [showFilters, setShowFilters] = useState(false);
   const [showSortOptions, setShowSortOptions] = useState(false);

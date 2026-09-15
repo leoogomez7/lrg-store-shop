@@ -17,7 +17,9 @@ export function formatDeliveryTime(product: Product): string {
 }
 
 export function buildDeliveryOptions(products: Product[]): string[] {
-  const immediate = products.some((product) => (product.deliveryUnit ?? "inmediata") === "inmediata");
+  const immediate = products.some(
+    (product) => (product.deliveryUnit ?? "inmediata") === "inmediata",
+  );
   const grouped = new Map<"horas" | "dias", number[]>();
 
   products.forEach((product) => {
@@ -113,17 +115,23 @@ export function getCategoryFilterValues(
   selectedSlugs: string[],
 ): Set<string> {
   const descendants = new Map<string, string[]>();
+  const aliases = (slug: string) => [slug, slug.replace(/^root-/, "")];
 
   const collect = (slug: string, children: BrandSubcategory[] = []) => {
     const values = children.flatMap((child) => [
       child.slug,
       ...(child.children ? collect(child.slug, child.children) : []),
     ]);
-    descendants.set(slug, values);
+    descendants.set(
+      slug,
+      values.flatMap((value) => aliases(value)),
+    );
     return values;
   };
 
   categories.forEach((category) => collect(category.slug, category.subcategories));
 
-  return new Set(selectedSlugs.flatMap((slug) => [slug, ...(descendants.get(slug) ?? [])]));
+  return new Set(
+    selectedSlugs.flatMap((slug) => [...aliases(slug), ...(descendants.get(slug) ?? [])]),
+  );
 }
