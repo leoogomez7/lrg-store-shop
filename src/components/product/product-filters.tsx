@@ -303,8 +303,6 @@ export function ProductFilters({
         )}
       </div>
 
-      <div className="border-t border-border/60 pt-4" />
-
       <div className="flex items-center justify-between rounded-xl border border-white/10 bg-surface-2/70 px-4 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
         <Label
           htmlFor="filter-stock"
