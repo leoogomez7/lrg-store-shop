@@ -36,6 +36,7 @@ import {
 } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
+import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
 import { cropImageDataUrl } from "@/lib/image-processing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -357,7 +358,7 @@ function AdminProducts() {
 
         const cleanedName = (candidateName ?? "")
           .replace(/^(?:producto|item|articulo|artículo|precio|price|valor|total|importe)\s+/i, "")
-          .replace(/^[\s|\-:;,.]+|[\s|\-:;,.]+$/g, "")
+          .replace(/^[\s|:;,.()-]+|[\s|:;,.()-]+$/g, "")
           .replace(/[^\p{L}\p{N}\s&()/%-]/gu, " ")
           .replace(/\s+/g, " ")
           .trim();
@@ -369,7 +370,7 @@ function AdminProducts() {
 
       if (entries.length === 0) {
         const fallbackMatch = normalized.match(
-          /([A-Za-zÁÉÍÓÚáéíóúñÑ0-9][^\n]{2,100})\s*(?:[:\-]|\s)(\d{1,3}(?:[.,]\d{1,2})?)/,
+          /([A-Za-zÁÉÍÓÚáéíóúñÑ0-9][^\n]{2,100})\s*(?:[:-]|\s)(\d{1,3}(?:[.,]\d{1,2})?)/,
         );
         if (!fallbackMatch) return [];
         const candidateName = fallbackMatch[1]
@@ -1301,7 +1302,51 @@ function AdminProducts() {
       : currencyFilter.includes("USD")
         ? "USD"
         : "$";
-  const priceFilterCount = currencyFilter.length + 1;
+  const priceFilterCount =
+    (currencyFilter.length === 1 ? 1 : 0) +
+    (priceMode !== "storePrice" ? 1 : 0) +
+    (priceMin > 0 ? 1 : 0) +
+    (priceMax < priceLimit ? 1 : 0);
+  const adminFilterChips: FilterChipItem[] = [
+    ...(query ? [{ key: "query", label: `Buscar: ${query}`, onRemove: () => setQuery("") }] : []),
+    ...categoryFilter.map((value) => ({
+      key: `category-${value}`,
+      label: value,
+      onRemove: () => setCategoryFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...brandFilter.map((value) => ({
+      key: `brand-${value}`,
+      label: brandList.find((brand) => brand.slug === value)?.name ?? value,
+      onRemove: () => setBrandFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...(currencyFilter.length === 1
+      ? [
+          {
+            key: `currency-${currencyFilter[0]}`,
+            label: currencyFilter[0] === "ARS" ? "$ (ARS)" : "USD (Dólar)",
+            onRemove: () => setCurrencyFilter(["ARS", "USD"]),
+          },
+        ]
+      : []),
+    ...(priceMode !== "storePrice"
+      ? [{ key: "price-mode", label: "Precio", onRemove: () => setPriceMode("storePrice") }]
+      : []),
+    ...(priceMin > 0
+      ? [{ key: "price-min", label: `Desde ${priceMin}`, onRemove: () => setPriceMin(0) }]
+      : []),
+    ...(priceMax < priceLimit
+      ? [{ key: "price-max", label: `Hasta ${priceMax}`, onRemove: () => setPriceMax(priceLimit) }]
+      : []),
+    ...(discountOnly
+      ? [{ key: "discount", label: "Sólo con descuento", onRemove: () => setDiscountOnly(false) }]
+      : []),
+    ...(stockOnly
+      ? [{ key: "stock", label: "Sólo con stock", onRemove: () => setStockOnly(false) }]
+      : []),
+    ...(availableOnly
+      ? [{ key: "available", label: "Sólo disponible", onRemove: () => setAvailableOnly(false) }]
+      : []),
+  ];
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
@@ -1510,7 +1555,7 @@ function AdminProducts() {
                     aria-expanded={priceFilterOpen}
                   >
                     <span>Precio</span>
-                    <Badge variant="secondary">{priceFilterCount}</Badge>
+                    {priceFilterCount > 0 && <Badge variant="secondary">{priceFilterCount}</Badge>}
                     {priceFilterOpen ? (
                       <ChevronUp className="size-4 text-muted-foreground" />
                     ) : (
@@ -1525,8 +1570,10 @@ function AdminProducts() {
                           onCheckedChange={(checked) =>
                             setCurrencyFilter((current) =>
                               checked
-                                ? [...current, "ARS"]
-                                : current.filter((value) => value !== "ARS"),
+                                ? Array.from(new Set([...current, "ARS"]))
+                                : current.length === 1
+                                  ? current
+                                  : current.filter((value) => value !== "ARS"),
                             )
                           }
                         />
@@ -1538,8 +1585,10 @@ function AdminProducts() {
                           onCheckedChange={(checked) =>
                             setCurrencyFilter((current) =>
                               checked
-                                ? [...current, "USD"]
-                                : current.filter((value) => value !== "USD"),
+                                ? Array.from(new Set([...current, "USD"]))
+                                : current.length === 1
+                                  ? current
+                                  : current.filter((value) => value !== "USD"),
                             )
                           }
                         />
@@ -1648,16 +1697,15 @@ function AdminProducts() {
                   <p className="text-xs text-muted-foreground">
                     {results.length} productos encontrados
                   </p>
-                  {activeFilterCount > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={resetFilters}
-                      className="ml-auto flex h-8 px-2 text-xs"
-                    >
-                      <X className="mr-1 size-3.5" /> Limpiar
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetFilters}
+                    disabled={activeFilterCount === 0}
+                    className="ml-auto flex h-8 px-2 text-xs"
+                  >
+                    <X className="mr-1 size-3.5" /> Limpiar
+                  </Button>
                 </div>
               </div>
             </DialogContent>
@@ -1837,6 +1885,7 @@ function AdminProducts() {
         ) : null}
       </div>
 
+      <FilterChipList chips={adminFilterChips} />
       <div className="glass-panel mt-4 rounded-2xl">
         <Table
           containerClassName="overflow-x-auto overflow-y-visible"

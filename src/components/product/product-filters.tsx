@@ -45,6 +45,37 @@ type ActiveFilterChipsProps = {
   showBrandFilter?: boolean;
 };
 
+export type FilterChipItem = {
+  key: string;
+  label: string;
+  onRemove: () => void;
+};
+
+export function FilterChipList({ chips }: { chips: FilterChipItem[] }) {
+  if (chips.length === 0) return null;
+
+  return (
+    <div className="mb-5 flex flex-wrap items-center gap-2" aria-label="Filtros activos">
+      {chips.map((chip) => (
+        <span
+          key={chip.key}
+          className="inline-flex max-w-full items-center gap-1 rounded-full border border-border/70 bg-surface-2/70 px-2.5 py-1 text-xs text-foreground"
+        >
+          <span className="truncate">{chip.label}</span>
+          <button
+            type="button"
+            onClick={chip.onRemove}
+            className="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground"
+            aria-label={`Quitar filtro ${chip.label}`}
+          >
+            <X className="size-3" />
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function ActiveFilterChips({
   categories,
   filters,
@@ -52,9 +83,9 @@ export function ActiveFilterChips({
   onChange,
   showBrandFilter = false,
 }: ActiveFilterChipsProps) {
-  const chips: Array<{ key: string; label: string; remove: () => void }> = [];
-  const addChip = (key: string, label: string, remove: () => void) =>
-    chips.push({ key, label, remove });
+  const chips: FilterChipItem[] = [];
+  const addChip = (key: string, label: string, onRemove: () => void) =>
+    chips.push({ key, label, onRemove });
 
   const findCategory = (
     items: BrandCategory[] | BrandSubcategory[],
@@ -134,27 +165,7 @@ export function ActiveFilterChips({
     );
   }
 
-  if (chips.length === 0) return null;
-  return (
-    <div className="mb-5 flex flex-wrap items-center gap-2" aria-label="Filtros activos">
-      {chips.map((chip) => (
-        <span
-          key={chip.key}
-          className="inline-flex max-w-full items-center gap-1 rounded-full border border-border/70 bg-surface-2/70 px-2.5 py-1 text-xs text-foreground"
-        >
-          <span className="truncate">{chip.label}</span>
-          <button
-            type="button"
-            onClick={chip.remove}
-            className="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground"
-            aria-label={`Quitar filtro ${chip.label}`}
-          >
-            <X className="size-3" />
-          </button>
-        </span>
-      ))}
-    </div>
-  );
+  return <FilterChipList chips={chips} />;
 }
 
 function FilterOptionsSection({

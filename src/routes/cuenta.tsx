@@ -40,6 +40,7 @@ import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { ProductCard } from "@/components/product/product-card";
+import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
 import { LoadingState } from "@/components/common/loading-state";
 import { webDesignConfig } from "@/config/brands/web-design.config";
 import { Badge } from "@/components/ui/badge";
@@ -466,6 +467,76 @@ function AccountPageContent({
     setOrdersTotalMin("");
     setOrdersTotalMax("");
   };
+
+  const orderFilterChips: FilterChipItem[] = [
+    ...ordersBrandFilter.map((value) => ({
+      key: `store-${value}`,
+      label: `LRG ${brands[value as keyof typeof brands]?.shortName ?? value}`,
+      onRemove: () => setOrdersBrandFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...(ordersDateFrom
+      ? [
+          {
+            key: "date-from",
+            label: `Desde ${ordersDateFrom}`,
+            onRemove: () => setOrdersDateFrom(""),
+          },
+        ]
+      : []),
+    ...(ordersDateTo
+      ? [{ key: "date-to", label: `Hasta ${ordersDateTo}`, onRemove: () => setOrdersDateTo("") }]
+      : []),
+    ...ordersStatusFilter.map((value) => ({
+      key: `shipping-status-${value}`,
+      label: `Envío: ${value}`,
+      onRemove: () => setOrdersStatusFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...ordersPaymentStatusFilter.map((value) => ({
+      key: `payment-status-${value}`,
+      label: `Pago: ${value}`,
+      onRemove: () =>
+        setOrdersPaymentStatusFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...ordersDocumentsFilter.map((value) => ({
+      key: `documents-${value}`,
+      label: value === "yes" ? "Con adjuntos" : "Sin adjuntos",
+      onRemove: () =>
+        setOrdersDocumentsFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...ordersReceiptsFilter.map((value) => ({
+      key: `receipts-${value}`,
+      label: value === "yes" ? "Con comprobantes" : "Sin comprobantes",
+      onRemove: () =>
+        setOrdersReceiptsFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...(ordersTotalMin
+      ? [
+          {
+            key: "total-min",
+            label: `Desde $${ordersTotalMin}`,
+            onRemove: () => setOrdersTotalMin(""),
+          },
+        ]
+      : []),
+    ...(ordersTotalMax
+      ? [
+          {
+            key: "total-max",
+            label: `Hasta $${ordersTotalMax}`,
+            onRemove: () => setOrdersTotalMax(""),
+          },
+        ]
+      : []),
+    ...(ordersTotalCurrencies.length === 1
+      ? [
+          {
+            key: `total-currency-${ordersTotalCurrencies[0]}`,
+            label: ordersTotalCurrencies[0] === "ARS" ? "$ (ARS)" : "USD (Dólar)",
+            onRemove: () => setOrdersTotalCurrencies(["ARS", "USD"]),
+          },
+        ]
+      : []),
+  ];
 
   const exportOrdersExcel = () => {
     const rows: (string | number)[][] = [
@@ -1411,7 +1482,9 @@ function AccountPageContent({
                                     setOrdersTotalCurrencies((current) =>
                                       checked
                                         ? Array.from(new Set([...current, currency]))
-                                        : current.filter((value) => value !== currency),
+                                        : current.length === 1
+                                          ? current
+                                          : current.filter((value) => value !== currency),
                                     );
                                   }}
                                 />
@@ -1518,6 +1591,7 @@ function AccountPageContent({
             </div>
           </div>
 
+          <FilterChipList chips={orderFilterChips} />
           <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
             <Table
               containerClassName="overflow-hidden"
