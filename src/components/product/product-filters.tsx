@@ -37,6 +37,126 @@ export type CatalogFilters = {
   sort: SortOption;
 };
 
+type ActiveFilterChipsProps = {
+  categories: BrandCategory[];
+  filters: CatalogFilters;
+  priceLimit: number;
+  onChange: (next: Partial<CatalogFilters>) => void;
+  showBrandFilter?: boolean;
+};
+
+export function ActiveFilterChips({
+  categories,
+  filters,
+  priceLimit,
+  onChange,
+  showBrandFilter = false,
+}: ActiveFilterChipsProps) {
+  const chips: Array<{ key: string; label: string; remove: () => void }> = [];
+  const addChip = (key: string, label: string, remove: () => void) =>
+    chips.push({ key, label, remove });
+
+  const findCategory = (
+    items: BrandCategory[] | BrandSubcategory[],
+    slug: string,
+    parents: string[] = [],
+  ): { descendants: string[]; ancestors: string[] } | null => {
+    const collectDescendants = (children: BrandSubcategory[] = []): string[] =>
+      children.flatMap((child) => [child.slug, ...collectDescendants(child.children)]);
+
+    for (const item of items) {
+      const children = "children" in item ? item.children : (item as BrandCategory).subcategories;
+      if (item.slug === slug) {
+        return { descendants: collectDescendants(children), ancestors: parents };
+      }
+      if (children?.length) {
+        const result = findCategory(children, slug, [...parents, item.slug]);
+        if (result) return result;
+      }
+    }
+    return null;
+  };
+
+  const removeCategory = (slug: string) => {
+    const match = findCategory(categories, slug);
+    const excluded = new Set([slug, ...(match?.descendants ?? []), ...(match?.ancestors ?? [])]);
+    onChange({ categories: filters.categories.filter((value) => !excluded.has(value)) });
+  };
+
+  const categoryNames = new Map<string, string>();
+  const collectCategoryNames = (items: BrandCategory[] | BrandSubcategory[]) => {
+    items.forEach((item) => {
+      categoryNames.set(item.slug, item.name);
+      const children = "children" in item ? item.children : (item as BrandCategory).subcategories;
+      if (children?.length) collectCategoryNames(children);
+    });
+  };
+  collectCategoryNames(categories);
+
+  filters.categories.forEach((slug) =>
+    addChip(`category-${slug}`, categoryNames.get(slug) ?? slug, () => removeCategory(slug)),
+  );
+  if (showBrandFilter) {
+    filters.brands?.forEach((slug) => {
+      const brand = brandList.find((item) => item.slug === slug);
+      addChip(`brand-${slug}`, brand?.name ?? slug, () =>
+        onChange({ brands: (filters.brands ?? []).filter((value) => value !== slug) }),
+      );
+    });
+  }
+  filters.deliveryTime?.forEach((value) =>
+    addChip(`delivery-${value}`, value, () =>
+      onChange({ deliveryTime: (filters.deliveryTime ?? []).filter((item) => item !== value) }),
+    ),
+  );
+  filters.shippingMethod?.forEach((value) =>
+    addChip(`shipping-${value}`, value, () =>
+      onChange({ shippingMethod: (filters.shippingMethod ?? []).filter((item) => item !== value) }),
+    ),
+  );
+  filters.paymentMethod?.forEach((value) =>
+    addChip(`payment-${value}`, value, () =>
+      onChange({ paymentMethod: (filters.paymentMethod ?? []).filter((item) => item !== value) }),
+    ),
+  );
+  if (filters.search)
+    addChip("search", `Buscar: ${filters.search}`, () => onChange({ search: "" }));
+  if (filters.inStockOnly)
+    addChip("stock", "Sólo con stock", () => onChange({ inStockOnly: false }));
+  if (filters.minPrice > 0)
+    addChip("min-price", `Desde ${filters.minPrice}`, () => onChange({ minPrice: 0 }));
+  if (filters.maxPrice < priceLimit)
+    addChip("max-price", `Hasta ${filters.maxPrice}`, () => onChange({ maxPrice: priceLimit }));
+  if (filters.priceCurrencies?.length === 1) {
+    const currency = filters.priceCurrencies[0];
+    addChip(`currency-${currency}`, currency === "ARS" ? "$ (ARS)" : "USD (Dólar)", () =>
+      onChange({ priceCurrencies: ["ARS", "USD"] }),
+    );
+  }
+
+  if (chips.length === 0) return null;
+  return (
+    <div className="mb-5 flex flex-wrap items-center gap-2" aria-label="Filtros activos">
+      {chips.map((chip) => (
+        <span
+          key={chip.key}
+          className="inline-flex max-w-full items-center gap-1 rounded-full border border-border/70 bg-surface-2/70 px-2.5 py-1 text-xs text-foreground"
+        >
+          <span className="truncate">{chip.label}</span>
+          <button
+            type="button"
+            onClick={chip.remove}
+            className="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground"
+            aria-label={`Quitar filtro ${chip.label}`}
+          >
+            <X className="size-3" />
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function FilterOptionsSection({
   id,
   title,

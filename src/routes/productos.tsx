@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { ProductCard } from "@/components/product/product-card";
-import { ProductFilters, type CatalogFilters } from "@/components/product/product-filters";
+import {
+  ActiveFilterChips,
+  ProductFilters,
+  type CatalogFilters,
+} from "@/components/product/product-filters";
 import {
   buildDeliveryOptions,
   formatDeliveryTime,
@@ -32,6 +36,7 @@ import { loadAdminSettings } from "@/server/persistence";
 
 const searchSchema = z.object({
   categoria: z.string().optional(),
+  subcategoria: z.string().optional(),
 });
 
 export const Route = createFileRoute("/productos")({
@@ -121,7 +126,11 @@ function ProductosPage() {
 
   const [filters, setFilters] = useState<CatalogFilters>({
     search: "",
-    categories: search.categoria ? [search.categoria] : [],
+    categories: search.subcategoria
+      ? [search.subcategoria]
+      : search.categoria
+        ? [search.categoria]
+        : [],
     brands: [],
     priceCurrencies,
     minPrice: 0,
@@ -363,6 +372,16 @@ function ProductosPage() {
               </Dialog>
             </div>
 
+            <ActiveFilterChips
+              categories={categories}
+              filters={filters}
+              priceLimit={priceLimit}
+              showBrandFilter
+              onChange={(next) => {
+                if ("priceCurrencies" in next) setPriceCurrencies(next.priceCurrencies ?? []);
+                setFilters((current) => ({ ...current, ...next }));
+              }}
+            />
             <section className="mt-8">
               {results.length === 0 ? (
                 <div className="glass-panel rounded-2xl p-12 text-center">

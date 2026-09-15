@@ -12,7 +12,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ProductFilters, type CatalogFilters } from "@/components/product/product-filters";
+import {
+  ActiveFilterChips,
+  ProductFilters,
+  type CatalogFilters,
+} from "@/components/product/product-filters";
 import {
   buildDeliveryOptions,
   formatDeliveryTime,
@@ -114,7 +118,11 @@ function CatalogPage() {
 
   const [filters, setFilters] = useState<CatalogFilters>({
     search: "",
-    categories: search.categoria ? [search.categoria] : [],
+    categories: search.subcategoria
+      ? [search.subcategoria]
+      : search.categoria
+        ? [search.categoria]
+        : [],
     priceCurrencies,
     minPrice: 0,
     maxPrice: priceLimit,
@@ -332,6 +340,15 @@ function CatalogPage() {
         </Dialog>
       </div>
 
+      <ActiveFilterChips
+        categories={configuredCategories}
+        filters={filters}
+        priceLimit={priceLimit}
+        onChange={(next) => {
+          if ("priceCurrencies" in next) setPriceCurrencies(next.priceCurrencies ?? []);
+          setFilters((current) => ({ ...current, ...next }));
+        }}
+      />
       <section className="mt-8">
         {results.length === 0 ? (
           <div className="glass-panel rounded-2xl p-12 text-center">
