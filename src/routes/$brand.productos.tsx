@@ -13,7 +13,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ProductFilters, type CatalogFilters } from "@/components/product/product-filters";
-import { getCategoryFilterValues, sortLabels } from "@/components/product/product-filter-utils";
+import {
+  formatDeliveryTime,
+  getCategoryFilterValues,
+  sortLabels,
+} from "@/components/product/product-filter-utils";
 import { ProductCard } from "@/components/product/product-card";
 import { getBrand } from "@/config/brands";
 import { catalogQueries } from "@/services/catalog.service";
@@ -74,6 +78,13 @@ function CatalogPage() {
   }, []);
 
   const configuredCategories = brand.categories;
+  const deliveryOptions = Array.from(new Set(products.map(formatDeliveryTime).filter(Boolean)));
+  const shippingOptions = (brand.shipping?.methods ?? [])
+    .filter((method) => method.enabled)
+    .map((method) => method.name);
+  const paymentOptions = (brand.paymentMethods ?? [])
+    .filter((method) => method.enabled)
+    .map((method) => method.name);
 
   const priceLimit = useMemo(
     () =>
@@ -120,6 +131,24 @@ function CatalogPage() {
     const filtered = products.filter((product) => {
       if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
       if (filters.categories.length && !selectedCategoryValues.has(product.category)) return false;
+      if (
+        filters.deliveryTime &&
+        filters.deliveryTime !== "all" &&
+        formatDeliveryTime(product) !== filters.deliveryTime
+      )
+        return false;
+      if (
+        filters.shippingMethod &&
+        filters.shippingMethod !== "all" &&
+        !shippingOptions.includes(filters.shippingMethod)
+      )
+        return false;
+      if (
+        filters.paymentMethod &&
+        filters.paymentMethod !== "all" &&
+        !paymentOptions.includes(filters.paymentMethod)
+      )
+        return false;
       if (
         filters.priceCurrencies?.length &&
         !filters.priceCurrencies.includes(product.priceCurrency ?? "ARS")
@@ -267,6 +296,9 @@ function CatalogPage() {
                 filters={filters}
                 priceLimit={priceLimit}
                 resultCount={results.length}
+                deliveryOptions={deliveryOptions}
+                shippingOptions={shippingOptions}
+                paymentOptions={paymentOptions}
                 onChange={(next) => {
                   if ("priceCurrencies" in next) setPriceCurrencies(next.priceCurrencies ?? []);
                   setFilters((current) => ({ ...current, ...next }));

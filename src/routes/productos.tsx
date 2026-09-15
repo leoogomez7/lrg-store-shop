@@ -9,6 +9,7 @@ import { BrandHeader } from "@/components/layout/brand-header";
 import { ProductCard } from "@/components/product/product-card";
 import { ProductFilters, type CatalogFilters } from "@/components/product/product-filters";
 import {
+  formatDeliveryTime,
   getCategoryFilterValues,
   mergeBrandCategories,
   sortLabels,
@@ -69,6 +70,25 @@ function ProductosPage() {
   }, []);
 
   const categories = mergeBrandCategories(brandList.flatMap((brand) => brand.categories));
+  const deliveryOptions = Array.from(new Set(products.map(formatDeliveryTime).filter(Boolean)));
+  const shippingOptions = Array.from(
+    new Set(
+      brandList.flatMap((brand) =>
+        (brand.shipping?.methods ?? [])
+          .filter((method) => method.enabled)
+          .map((method) => method.name),
+      ),
+    ),
+  );
+  const paymentOptions = Array.from(
+    new Set(
+      brandList.flatMap((brand) =>
+        (brand.paymentMethods ?? [])
+          .filter((method) => method.enabled)
+          .map((method) => method.name),
+      ),
+    ),
+  );
 
   const catalogMaxPrice = useMemo(
     () =>
@@ -118,6 +138,26 @@ function ProductosPage() {
       if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
       if (filters.categories.length && !selectedCategoryValues.has(product.category)) return false;
       if ((filters.brands ?? []).length && !(filters.brands ?? []).includes(product.brand))
+        return false;
+      if (
+        filters.deliveryTime &&
+        filters.deliveryTime !== "all" &&
+        formatDeliveryTime(product) !== filters.deliveryTime
+      )
+        return false;
+      if (
+        filters.shippingMethod &&
+        filters.shippingMethod !== "all" &&
+        !(brandList.find((brand) => brand.slug === product.brand)?.shipping?.methods ?? [])
+          .some((method) => method.enabled && method.name === filters.shippingMethod)
+      )
+        return false;
+      if (
+        filters.paymentMethod &&
+        filters.paymentMethod !== "all" &&
+        !(brandList.find((brand) => brand.slug === product.brand)?.paymentMethods ?? [])
+          .some((method) => method.enabled && method.name === filters.paymentMethod)
+      )
         return false;
       if (
         filters.priceCurrencies?.length &&
@@ -298,6 +338,9 @@ function ProductosPage() {
                       hideSearch
                       showBrandFilter
                       brandFilterLabel="Tiendas"
+                      deliveryOptions={deliveryOptions}
+                      shippingOptions={shippingOptions}
+                      paymentOptions={paymentOptions}
                     />
                   </div>
                 </DialogContent>

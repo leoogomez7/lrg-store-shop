@@ -26,12 +26,71 @@ export type CatalogFilters = {
   search: string;
   categories: string[];
   brands?: string[];
+  deliveryTime?: string;
+  shippingMethod?: string;
+  paymentMethod?: string;
   priceCurrencies?: CurrencyCode[];
   minPrice: number;
   maxPrice: number;
   inStockOnly: boolean;
   sort: SortOption;
 };
+
+function FilterOptionsSection({
+  id,
+  title,
+  value,
+  options,
+  onChange,
+}: {
+  id: string;
+  title: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="space-y-3">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex items-center gap-2 text-sm font-medium"
+        aria-expanded={open}
+        aria-controls={id}
+      >
+        <span>{title}</span>
+        {value !== "all" && <Badge variant="secondary">1</Badge>}
+        {open ? (
+          <ChevronUp className="size-4 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="size-4 text-muted-foreground" />
+        )}
+      </button>
+      {open && (
+        <div id={id} className="space-y-2.5">
+          {["all", ...options].map((option) => (
+            <label
+              key={option}
+              className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
+            >
+              <Checkbox
+                checked={value === option}
+                onCheckedChange={(checked) => {
+                  if (checked) onChange(option);
+                }}
+              />
+              <span className="font-medium">
+                {option === "all" ? "Todos" : option}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Único componente de filtros para todas las marcas. */
 export function ProductFilters({
@@ -45,6 +104,9 @@ export function ProductFilters({
   hideSort,
   showBrandFilter = false,
   brandFilterLabel = "Sectores",
+  deliveryOptions = [],
+  shippingOptions = [],
+  paymentOptions = [],
 }: {
   categories: BrandCategory[];
   filters: CatalogFilters;
@@ -56,12 +118,18 @@ export function ProductFilters({
   hideSort?: boolean;
   showBrandFilter?: boolean;
   brandFilterLabel?: string;
+  deliveryOptions?: string[];
+  shippingOptions?: string[];
+  paymentOptions?: string[];
 }) {
   const priceCurrencyFilterActive = filters.priceCurrencies?.length === 1;
   const activeCount =
     (filters.search ? 1 : 0) +
     filters.categories.length +
     (filters.brands?.length ?? 0) +
+    (filters.deliveryTime && filters.deliveryTime !== "all" ? 1 : 0) +
+    (filters.shippingMethod && filters.shippingMethod !== "all" ? 1 : 0) +
+    (filters.paymentMethod && filters.paymentMethod !== "all" ? 1 : 0) +
     (priceCurrencyFilterActive ? 1 : 0) +
     (filters.inStockOnly ? 1 : 0) +
     (filters.minPrice > 0 ? 1 : 0) +
@@ -107,11 +175,6 @@ export function ProductFilters({
 
   return (
     <aside className="h-fit w-full max-w-full space-y-6 lg:sticky lg:top-24">
-      <label className="flex cursor-pointer items-center gap-3 text-sm transition-opacity hover:opacity-80">
-        <Checkbox checked={activeCount === 0} onCheckedChange={() => onReset()} />
-        <span className="font-semibold">Todos</span>
-      </label>
-
       {!hideSearch && (
         <div className="space-y-2">
           <Label htmlFor="filter-search">Buscar</Label>
@@ -145,6 +208,13 @@ export function ProductFilters({
 
         {categoriesOpen && (
           <div id="categories-list" className="space-y-2.5">
+            <label className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80">
+              <Checkbox
+                checked={filters.categories.length === 0}
+                onCheckedChange={() => onChange({ categories: [] })}
+              />
+              <span className="font-semibold">Todos</span>
+            </label>
             {categories.map((category) => {
               const checked = filters.categories.includes(category.slug);
               return (
@@ -218,6 +288,36 @@ export function ProductFilters({
             </div>
           )}
         </div>
+      )}
+
+      {deliveryOptions.length > 0 && (
+        <FilterOptionsSection
+          id="delivery-time-list"
+          title="Tiempo de entrega"
+          value={filters.deliveryTime ?? "all"}
+          options={deliveryOptions}
+          onChange={(value) => onChange({ deliveryTime: value })}
+        />
+      )}
+
+      {shippingOptions.length > 0 && (
+        <FilterOptionsSection
+          id="shipping-method-list"
+          title="Método de envío"
+          value={filters.shippingMethod ?? "all"}
+          options={shippingOptions}
+          onChange={(value) => onChange({ shippingMethod: value })}
+        />
+      )}
+
+      {paymentOptions.length > 0 && (
+        <FilterOptionsSection
+          id="payment-method-list"
+          title="Método de pago"
+          value={filters.paymentMethod ?? "all"}
+          options={paymentOptions}
+          onChange={(value) => onChange({ paymentMethod: value })}
+        />
       )}
 
       <div className="space-y-3">

@@ -1,5 +1,20 @@
 import type { BrandCategory, BrandSubcategory } from "@/config/brands";
+import type { Product } from "@/data/products";
 import type { SortOption } from "./product-filters";
+
+export function formatDeliveryTime(product: Product): string {
+  const deliveryUnit = product.deliveryUnit ?? "inmediata";
+  const deliveryAmount = product.deliveryAmount ?? 0;
+
+  if (deliveryUnit === "inmediata") return "Entrega inmediata";
+  if (deliveryUnit === "horas" && deliveryAmount) {
+    return `Entrega en ${deliveryAmount} horas`;
+  }
+  if (deliveryUnit === "dias" && deliveryAmount) {
+    return `Entrega en ${deliveryAmount} días`;
+  }
+  return "Entrega inmediata";
+}
 
 export const sortLabels: Record<SortOption, string> = {
   "descuento-asc": "Precio: menor a mayor",

@@ -33,6 +33,7 @@ import {
   Trash2,
   User,
   X,
+  LoaderCircle,
 } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BrandHeader } from "@/components/layout/brand-header";
@@ -247,6 +248,7 @@ function AccountPageContent({
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
   const [pendingReceipts, setPendingReceipts] = useState<OrderAttachment[]>([]);
   const [previewReceipt, setPreviewReceipt] = useState<OrderAttachment | null>(null);
+  const [isSavingReceipts, setIsSavingReceipts] = useState(false);
   const receiptsInputRef = useRef<HTMLInputElement | null>(null);
   const visibleOrders = useMemo(() => {
     const userEmail = user?.email?.toLowerCase();
@@ -797,6 +799,10 @@ function AccountPageContent({
               label: string;
               value: string;
               display: { street: string; city: string };
+              cityName?: string;
+              streetNumber?: string;
+              province?: string;
+              postalCode?: string;
               lat?: string;
               lon?: string;
             } = {
@@ -1233,8 +1239,8 @@ function AccountPageContent({
                         <div id="orders-documents-list" className="space-y-2.5">
                           {[
                             ["all", "Todos"],
-                            ["yes", "Con documentos"],
-                            ["no", "Sin documentos"],
+                            ["yes", "Con adjuntos"],
+                            ["no", "Sin adjuntos"],
                           ].map(([value, label]) => (
                             <label
                               key={value}
@@ -1531,7 +1537,7 @@ function AccountPageContent({
                             onClick={() => setDetailsOrder(order)}
                             className="gap-1.5 text-xs"
                           >
-                            <Eye className="size-4" /> Mostrar
+                            <Eye className="size-4" /> Detalle compra
                           </Button>
                         </div>
                       </TableCell>
@@ -1926,9 +1932,10 @@ function AccountPageContent({
                 </Button>
                 <Button
                   type="button"
-                  disabled={!receiptsOrder || pendingReceipts.length === 0}
+                  disabled={!receiptsOrder || pendingReceipts.length === 0 || isSavingReceipts}
                   onClick={async () => {
                     if (!receiptsOrder || pendingReceipts.length === 0) return;
+                    setIsSavingReceipts(true);
                     const updatedOrder = {
                       ...receiptsOrder,
                       paymentReceipts: [
@@ -1936,14 +1943,28 @@ function AccountPageContent({
                         ...pendingReceipts,
                       ],
                     };
-                    await orderService.update(updatedOrder);
-                    await queryClient.invalidateQueries({ queryKey: orderQueries.list().queryKey });
-                    setReceiptsOrder(updatedOrder);
-                    setPendingReceipts([]);
-                    toast.success("Comprobantes guardados correctamente");
+                    try {
+                      await orderService.update(updatedOrder);
+                      await queryClient.invalidateQueries({ queryKey: orderQueries.list().queryKey });
+                      setReceiptsOrder(updatedOrder);
+                      setPendingReceipts([]);
+                      toast.success("Comprobantes guardados correctamente");
+                    } catch {
+                      toast.error("No se pudieron guardar los comprobantes");
+                    } finally {
+                      setIsSavingReceipts(false);
+                    }
                   }}
                 >
-                  <Save className="size-4" /> Guardar
+                  {isSavingReceipts ? (
+                    <>
+                      <LoaderCircle className="size-4 animate-spin" /> Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="size-4" /> Guardar
+                    </>
+                  )}
                 </Button>
               </div>
             </DialogContent>
@@ -2228,7 +2249,7 @@ function AccountPageContent({
               )}
 
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                {[
+                {([
                   ["Calle", addressStreet, setAddressStreet, true],
                   ["Altura", addressNumber, setAddressNumber, true],
                   ["Piso", addressFloor, setAddressFloor, false],
@@ -2236,7 +2257,7 @@ function AccountPageContent({
                   ["Ciudad", addressCity, setAddressCity, true],
                   ["Provincia", addressProvince, setAddressProvince, true],
                   ["Código Postal", addressPostalCode, setAddressPostalCode, true],
-                ].map(([label, value, setter, synced]) => (
+                ] as const).map(([label, value, setter, synced]) => (
                   <label key={String(label)} className="space-y-2 text-sm font-medium">
                     <span>{label}</span>
                     <Input
@@ -2287,7 +2308,7 @@ function AccountPageContent({
                             id: result.id,
                             label: result.label,
                             value: result.value,
-                            city: result.city,
+                            ...(result.city ? { city: result.city } : {}),
                             street: addressStreet,
                             streetNumber: addressNumber,
                             floor: addressFloor,
@@ -2447,7 +2468,7 @@ function AccountPageContent({
                         )}
 
                         <div className="grid gap-4 sm:grid-cols-2">
-                          {[
+                          {([
                             ["Calle", addressStreet, setAddressStreet, true],
                             ["Altura", addressNumber, setAddressNumber, true],
                             ["Piso", addressFloor, setAddressFloor, false],
@@ -2455,7 +2476,7 @@ function AccountPageContent({
                             ["Ciudad", addressCity, setAddressCity, true],
                             ["Provincia", addressProvince, setAddressProvince, true],
                             ["Código Postal", addressPostalCode, setAddressPostalCode, true],
-                          ].map(([label, value, setter, synced]) => (
+                          ] as const).map(([label, value, setter, synced]) => (
                             <label key={String(label)} className="space-y-2 text-sm font-medium">
                               <span>{label}</span>
                               <Input

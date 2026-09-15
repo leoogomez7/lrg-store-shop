@@ -15,6 +15,7 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { Product } from "@/data/products";
+import type { BrandSubcategory } from "@/config/brands";
 import { CroppedProductImage, ProductVisual } from "@/components/common/product-visual";
 import { SectionHeading } from "@/components/common/section-heading";
 import { ProductCard } from "@/components/product/product-card";
@@ -161,24 +162,37 @@ function ProductDetail() {
       .toLowerCase();
   const categoryValue = normalizeTaxonomyValue(product.category);
   const subcategoryValue = normalizeTaxonomyValue(product.subcategory);
+  const findSubcategoryPath = (
+    items: BrandSubcategory[] = [],
+    target: string,
+    path: BrandSubcategory[] = [],
+  ): BrandSubcategory[] | null => {
+    for (const item of items) {
+      const nextPath = [...path, item];
+      if (
+        normalizeTaxonomyValue(item.slug) === target ||
+        normalizeTaxonomyValue(item.name) === target
+      ) {
+        return nextPath;
+      }
+      const nestedPath = findSubcategoryPath(item.children, target, nextPath);
+      if (nestedPath) return nestedPath;
+    }
+    return null;
+  };
   const category = brand.categories.find(
     (item) =>
       normalizeTaxonomyValue(item.slug) === categoryValue ||
       normalizeTaxonomyValue(item.name) === categoryValue ||
-      item.subcategories?.some(
-        (subcategory) =>
-          normalizeTaxonomyValue(subcategory.slug) === categoryValue ||
-          normalizeTaxonomyValue(subcategory.name) === categoryValue,
-      ),
+      Boolean(findSubcategoryPath(item.subcategories, categoryValue)),
   );
-  const selectedSubcategory = category?.subcategories?.find(
-    (item) =>
-      normalizeTaxonomyValue(item.slug) === subcategoryValue ||
-      normalizeTaxonomyValue(item.name) === subcategoryValue ||
-      (!subcategoryValue &&
-        (normalizeTaxonomyValue(item.slug) === categoryValue ||
-          normalizeTaxonomyValue(item.name) === categoryValue)),
-  );
+  const subcategoryPath = category
+    ? findSubcategoryPath(category.subcategories, subcategoryValue || categoryValue) ?? []
+    : [];
+  const selectedSubcategory = subcategoryPath[0];
+  const configuredPaymentMethods = (brand.paymentMethods ?? [])
+    .filter((method) => method.enabled)
+    .map((method) => method.name);
   const freeShippingThreshold = brand.shipping?.freeShippingThreshold ?? 0;
 
   const deliveryUnit = selectedVariant?.deliveryUnit ?? product.deliveryUnit ?? "inmediata";
@@ -260,22 +274,22 @@ function ProductDetail() {
               <BreadcrumbSeparator />
             </>
           )}
-          {selectedSubcategory && (
-            <>
+          {subcategoryPath.map((subcategory, index) => (
+            <span key={subcategory.slug} className="contents">
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   <Link
                     to="/$brand/productos"
                     params={{ brand: brand.slug }}
-                    search={{ categoria: category?.slug, subcategoria: selectedSubcategory.slug }}
+                    search={{ categoria: category?.slug, subcategoria: subcategory.slug }}
                   >
-                    {selectedSubcategory.name}
+                    {subcategory.name}
                   </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
-            </>
-          )}
+            </span>
+          ))}
           <BreadcrumbItem>
             <BreadcrumbPage>{product.name}</BreadcrumbPage>
           </BreadcrumbItem>
@@ -436,7 +450,7 @@ function ProductDetail() {
             </div>
           )}
           <div className="mt-3 flex flex-wrap gap-2">
-            {brand.payments.map((payment) => (
+            {configuredPaymentMethods.map((payment) => (
               <span key={payment} className="text-xs text-muted-foreground">
                 {payment}
               </span>
