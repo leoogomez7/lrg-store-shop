@@ -174,6 +174,7 @@ function AdminProducts() {
   const [bulkEditPosition, setBulkEditPosition] = useState(0);
   const [initialVariantId, setInitialVariantId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState | null>(null);
+  const productFormRef = useRef<ProductFormState | null>(null);
   const [usdRate, setUsdRate] = useState<number>(() => {
     return 0;
   });
@@ -220,6 +221,10 @@ function AdminProducts() {
   const [pageSize, setPageSize] = useState<number>(10);
   // `pageSizeInput` is the editable input value the user types before confirming
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+
+  useEffect(() => {
+    productFormRef.current = productForm;
+  }, [productForm]);
 
   const priceLimit = useMemo(() => {
     const values = products
@@ -2915,25 +2920,31 @@ function ProductEditDialog({
       return;
     }
 
-    if (productForm) {
-      initialFormRef.current = JSON.stringify(productForm);
-      setSelectedVariantId(initialVariantId ?? productForm.variants[0]?.id ?? null);
+    const currentProductForm = productFormRef.current;
+    if (currentProductForm) {
+      initialFormRef.current = JSON.stringify(currentProductForm);
+      setSelectedVariantId(initialVariantId ?? currentProductForm.variants[0]?.id ?? null);
     }
   }, [open, initialVariantId, productForm?.id]);
 
   useEffect(() => {
-    if (!productForm) return;
-    const selectedVariant = productForm.variants.find(
+    const currentProductForm = productFormRef.current;
+    if (!currentProductForm) return;
+    const selectedVariant = currentProductForm.variants.find(
       (variant) => variant.id === selectedVariantId,
     );
-    const description = selectedVariant?.description ?? productForm.description;
+    const description = selectedVariant?.description ?? currentProductForm.description;
     setDescriptionDraft(description);
     setDescriptionConfirmed(true);
     descriptionInitialRef.current = description;
     descriptionAppliedRef.current = description;
-    featuresAppliedRef.current = JSON.stringify(selectedVariant?.features ?? productForm.features);
-    includesAppliedRef.current = JSON.stringify(selectedVariant?.includes ?? productForm.includes);
-  }, [open, selectedVariantId]);
+    featuresAppliedRef.current = JSON.stringify(
+      selectedVariant?.features ?? currentProductForm.features,
+    );
+    includesAppliedRef.current = JSON.stringify(
+      selectedVariant?.includes ?? currentProductForm.includes,
+    );
+  }, [open, productForm?.id, selectedVariantId]);
 
   const hasChanges = useMemo(
     () => (productForm ? JSON.stringify(productForm) !== initialFormRef.current : false),
