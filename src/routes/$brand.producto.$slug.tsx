@@ -30,14 +30,18 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getBrand } from "@/config/brands";
+import { applyAdminSettings, getBrand, refreshBrandData } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { catalogQueries } from "@/services/catalog.service";
 import { useCart } from "@/store/cart-context";
 import { useNavigate } from "@tanstack/react-router";
+import { loadAdminSettings } from "@/server/persistence";
 
 export const Route = createFileRoute("/$brand/producto/$slug")({
   loader: async ({ params, context }) => {
+    const settings = await loadAdminSettings({ data: {} });
+    applyAdminSettings(settings);
+    refreshBrandData();
     const brand = getBrand(params.brand);
     if (!brand) throw notFound();
     const product = await context.queryClient.ensureQueryData(
@@ -187,7 +191,9 @@ function ProductDetail() {
       Boolean(findSubcategoryPath(item.subcategories, categoryValue)),
   );
   const subcategoryPath = category
-    ? findSubcategoryPath(category.subcategories, subcategoryValue || categoryValue) ?? []
+    ? subcategoryValue
+      ? (findSubcategoryPath(category.subcategories, subcategoryValue) ?? [])
+      : []
     : [];
   const selectedSubcategory = subcategoryPath[0];
   const configuredPaymentMethods = (brand.paymentMethods ?? [])

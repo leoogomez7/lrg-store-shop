@@ -72,47 +72,27 @@ function readStoredCategories(): Record<BrandSlug, BrandCategory[]> {
 }
 
 function readStoredContacts(): Record<BrandSlug, BrandConfig["contact"]> {
+  const emptyContacts = {
+    arcade: { email: "", phone: "", location: "" },
+    scents: { email: "", phone: "", location: "" },
+    "web-design": { email: "", phone: "", location: "" },
+  } satisfies Record<BrandSlug, BrandConfig["contact"]>;
+
   try {
     const raw =
       remoteSetting<Partial<Record<BrandSlug, BrandConfig["contact"]>>>(CONTACT_STORAGE_KEY);
-    if (!raw) {
-      return {
-        arcade: defaultBrands.arcade.contact,
-        scents: defaultBrands.scents.contact,
-        "web-design": defaultBrands["web-design"].contact,
-      };
-    }
+    if (!raw) return emptyContacts;
 
     const parsed = raw as Partial<Record<BrandSlug, BrandConfig["contact"]>>;
     return {
-      arcade: { ...defaultBrands.arcade.contact, ...(parsed.arcade ?? {}) },
-      scents: { ...defaultBrands.scents.contact, ...(parsed.scents ?? {}) },
-      "web-design": { ...defaultBrands["web-design"].contact, ...(parsed["web-design"] ?? {}) },
+      arcade: parsed.arcade ?? emptyContacts.arcade,
+      scents: parsed.scents ?? emptyContacts.scents,
+      "web-design": parsed["web-design"] ?? emptyContacts["web-design"],
     };
   } catch {
-    return {
-      arcade: defaultBrands.arcade.contact,
-      scents: defaultBrands.scents.contact,
-      "web-design": defaultBrands["web-design"].contact,
-    };
+    return emptyContacts;
   }
 }
-
-const paymentMethodsFromBrand = (brand: BrandConfig): BrandPaymentMethod[] =>
-  brand.payments.map((name) => ({
-    id: name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, ""),
-    name,
-    enabled: true,
-  }));
-
-const defaultPaymentMethods: Record<BrandSlug, BrandPaymentMethod[]> = {
-  arcade: paymentMethodsFromBrand(arcadeConfig),
-  scents: paymentMethodsFromBrand(scentsConfig),
-  "web-design": paymentMethodsFromBrand(webDesignConfig),
-};
 
 const defaultShippingConfig: Record<BrandSlug, BrandShippingConfig> = {
   arcade: {
@@ -130,11 +110,17 @@ const defaultShippingConfig: Record<BrandSlug, BrandShippingConfig> = {
 };
 
 function readStoredPaymentMethods(): Record<BrandSlug, BrandPaymentMethod[]> {
+  const emptyPaymentMethods = {
+    arcade: [],
+    scents: [],
+    "web-design": [],
+  } satisfies Record<BrandSlug, BrandPaymentMethod[]>;
+
   try {
     const raw = remoteSetting<BrandPaymentMethod[] | Record<BrandSlug, BrandPaymentMethod[]>>(
       PAYMENT_METHODS_STORAGE_KEY,
     );
-    if (!raw) return defaultPaymentMethods;
+    if (!raw) return emptyPaymentMethods;
 
     if (Array.isArray(raw)) {
       return {
@@ -146,14 +132,14 @@ function readStoredPaymentMethods(): Record<BrandSlug, BrandPaymentMethod[]> {
     const parsed = raw as Partial<Record<BrandSlug, BrandPaymentMethod[]>>;
 
     return {
-      arcade: Array.isArray(parsed.arcade) ? parsed.arcade : defaultPaymentMethods.arcade,
-      scents: Array.isArray(parsed.scents) ? parsed.scents : defaultPaymentMethods.scents,
+      arcade: Array.isArray(parsed.arcade) ? parsed.arcade : [],
+      scents: Array.isArray(parsed.scents) ? parsed.scents : [],
       "web-design": Array.isArray(parsed["web-design"])
         ? parsed["web-design"]
-        : defaultPaymentMethods["web-design"],
+        : [],
     };
   } catch {
-    return defaultPaymentMethods;
+    return emptyPaymentMethods;
   }
 }
 
@@ -242,7 +228,7 @@ const initialBrandState = (): Record<BrandSlug, BrandConfig> => {
     arcade: {
       ...defaultBrands.arcade,
       categories: storedCategories.arcade,
-      contact: { ...defaultBrands.arcade.contact, ...storedContacts.arcade },
+      contact: storedContacts.arcade,
       payments: storedPaymentMethods.arcade
         .filter((method) => method.enabled)
         .map((method) => method.name),
@@ -253,7 +239,7 @@ const initialBrandState = (): Record<BrandSlug, BrandConfig> => {
     scents: {
       ...defaultBrands.scents,
       categories: storedCategories.scents,
-      contact: { ...defaultBrands.scents.contact, ...storedContacts.scents },
+      contact: storedContacts.scents,
       payments: storedPaymentMethods.scents
         .filter((method) => method.enabled)
         .map((method) => method.name),
@@ -264,7 +250,7 @@ const initialBrandState = (): Record<BrandSlug, BrandConfig> => {
     "web-design": {
       ...defaultBrands["web-design"],
       categories: storedCategories["web-design"],
-      contact: { ...defaultBrands["web-design"].contact, ...storedContacts["web-design"] },
+      contact: storedContacts["web-design"],
       payments: storedPaymentMethods["web-design"]
         .filter((method) => method.enabled)
         .map((method) => method.name),
@@ -286,7 +272,7 @@ export function refreshBrandData() {
     arcade: {
       ...defaultBrands.arcade,
       categories: storedCategories.arcade,
-      contact: { ...defaultBrands.arcade.contact, ...storedContacts.arcade },
+      contact: storedContacts.arcade,
       payments: storedPaymentMethods.arcade
         .filter((method) => method.enabled)
         .map((method) => method.name),
@@ -297,7 +283,7 @@ export function refreshBrandData() {
     scents: {
       ...defaultBrands.scents,
       categories: storedCategories.scents,
-      contact: { ...defaultBrands.scents.contact, ...storedContacts.scents },
+      contact: storedContacts.scents,
       payments: storedPaymentMethods.scents
         .filter((method) => method.enabled)
         .map((method) => method.name),
@@ -308,7 +294,7 @@ export function refreshBrandData() {
     "web-design": {
       ...defaultBrands["web-design"],
       categories: storedCategories["web-design"],
-      contact: { ...defaultBrands["web-design"].contact, ...storedContacts["web-design"] },
+      contact: storedContacts["web-design"],
       payments: storedPaymentMethods["web-design"]
         .filter((method) => method.enabled)
         .map((method) => method.name),
@@ -460,11 +446,13 @@ export function setStoreShopContact(contact: Partial<StoreShopContact>) {
 export function getBrandContactPresentation(slug: BrandSlug): BrandContactPresentation {
   const brand = brands[slug];
   const fallback: BrandContactPresentation = {
-    email: { text: brand.contact.email, href: `mailto:${brand.contact.email}`, logo: "" },
-    phone: { text: brand.contact.phone, href: `tel:${brand.contact.phone}`, logo: "" },
+    email: { text: brand.contact.email, href: brand.contact.email ? `mailto:${brand.contact.email}` : "", logo: "" },
+    phone: { text: brand.contact.phone, href: brand.contact.phone ? `tel:${brand.contact.phone}` : "", logo: "" },
     location: {
       text: brand.contact.location,
-      href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(brand.contact.location)}`,
+      href: brand.contact.location
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(brand.contact.location)}`
+        : "",
       logo: "",
     },
     socials: {
@@ -493,7 +481,7 @@ export function getBrandContactPresentation(slug: BrandSlug): BrandContactPresen
       },
       trustpilot: {
         text: "Trustpilot",
-        href: "https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar",
+        href: "",
         logo: "",
       },
       google: { text: "Google", href: "", logo: "" },
