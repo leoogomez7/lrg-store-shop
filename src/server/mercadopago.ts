@@ -17,6 +17,7 @@ export type PaymentIntentData = {
   discountCode?: string;
   cardFee: number;
   shippingMethod: string;
+  orderId?: string;
   paymentTotal?: number;
   paymentItems?: {
     name: string;

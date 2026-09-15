@@ -104,6 +104,9 @@ function CheckoutPage() {
   );
   const isCardPayment = mercadoPagoBrands.size > 0;
   const isMercadoPagoPayment = isCardPayment;
+  const shouldAutoMarkPaymentAsPaid = Object.values(paymentMethodsByBrand).some((method) =>
+    isCardMethod(method),
+  );
 
   useEffect(() => {
     setShippingMethodsByBrand((current) =>
@@ -323,22 +326,38 @@ function CheckoutPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const intentId = params.get("intent");
-    if (params.get("payment") !== "success" || !intentId) return;
+    if (!shouldAutoMarkPaymentAsPaid || params.get("payment") !== "success" || !intentId) return;
 
     let attempts = 0;
-    const checkPayment = () => {
-      void getMercadoPagoIntentStatus({ data: { intentId } }).then((status) => {
-        if (typeof status === "object" && status.status === "approved" && status.orderId) {
-          setOrderId(status.orderId);
-          setPaymentApproved(true);
-          return;
+    const checkPayment = async () => {
+      const status = await getMercadoPagoIntentStatus({ data: { intentId } });
+
+      if (typeof status === "object" && status.status === "approved" && status.orderId) {
+        setOrderId(status.orderId);
+        setPaymentApproved(true);
+
+        try {
+          const orders = await orderService.list();
+          const matchedOrder = orders.find((order) => order.id === status.orderId);
+          if (matchedOrder) {
+            await orderService.update({
+              ...matchedOrder,
+              status: "pagado",
+              paymentStatus: "Pagado",
+            });
+            queryClient.invalidateQueries({ queryKey: ["orders"] });
+          }
+        } catch {
+          // Ignoramos errores de actualización para no romper la confirmación del pago.
         }
-        attempts += 1;
-        if (attempts < 10) window.setTimeout(checkPayment, 1500);
-      });
+        return;
+      }
+
+      attempts += 1;
+      if (attempts < 10) window.setTimeout(checkPayment, 1500);
     };
-    checkPayment();
-  }, []);
+    void checkPayment();
+  }, [queryClient, shouldAutoMarkPaymentAsPaid]);
 
   // Cargar datos del usuario si está logueado
   useEffect(() => {

@@ -77,18 +77,16 @@ function CatalogPage() {
     () =>
       Math.max(
         50,
-        Math.ceil(
-          Math.max(
-            ...products
-              .filter(
-                (product) =>
-                  !priceCurrencies.length ||
-                  priceCurrencies.includes(product.priceCurrency ?? "ARS"),
-              )
-              .map((product) => product.price),
-            0,
-          ) / 50,
-        ) * 50,
+        Math.max(
+          0,
+          ...products
+            .filter(
+              (product) =>
+                !priceCurrencies.length ||
+                priceCurrencies.includes(product.priceCurrency ?? "ARS"),
+            )
+            .map((product) => product.price),
+        ),
       ),
     [products, priceCurrencies],
   );

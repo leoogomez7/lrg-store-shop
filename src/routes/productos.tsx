@@ -70,24 +70,23 @@ function ProductosPage() {
 
   const categories = mergeBrandCategories(brandList.flatMap((brand) => brand.categories));
 
-  const priceLimit = useMemo(
+  const catalogMaxPrice = useMemo(
     () =>
       Math.max(
-        50,
-        Math.ceil(
-          Math.max(
-            ...products
-              .filter(
-                (product) =>
-                  !priceCurrencies.length ||
-                  priceCurrencies.includes(product.priceCurrency ?? "ARS"),
-              )
-              .map((product) => product.price),
-            0,
-          ) / 50,
-        ) * 50,
+        0,
+        ...products
+          .filter(
+            (product) =>
+              !priceCurrencies.length || priceCurrencies.includes(product.priceCurrency ?? "ARS"),
+          )
+          .map((product) => product.price),
       ),
     [products, priceCurrencies],
+  );
+
+  const priceLimit = useMemo(
+    () => Math.max(50, catalogMaxPrice || 0),
+    [catalogMaxPrice],
   );
 
   const [filters, setFilters] = useState<CatalogFilters>({

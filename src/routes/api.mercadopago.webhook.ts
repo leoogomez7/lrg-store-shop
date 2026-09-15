@@ -42,7 +42,7 @@ export const Route = createFileRoute("/api/mercadopago/webhook")({
         if (!intent || intent.status === "approved") return new Response(null, { status: 204 });
 
         const payload = JSON.parse(intent.data) as Omit<PaymentIntentData, "id">;
-        const id = `LRG-${Math.floor(10000 + Math.random() * 89999)}`;
+        const id = payload.orderId ?? `LRG-${Math.floor(10000 + Math.random() * 89999)}`;
         const order: Order = {
           ...payload,
           id,

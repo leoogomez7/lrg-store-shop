@@ -178,7 +178,9 @@ function BrandFooterContent({
     window.sessionStorage.getItem("lrg_auth_role") === "admin" &&
     window.sessionStorage.getItem("lrg_admin_final_verified") === "true";
   const categories = section === "brand" ? brand.categories : [];
-  const accountMenu = [
+  type FooterMenuItem = [label: string, to: string, icon?: React.ComponentType<{ className?: string }>];
+
+  const accountMenu: FooterMenuItem[] = [
     ["Panel administrativo", "/cuenta/panel", LayoutDashboard],
     ["Compras", "/cuenta/compras", ShoppingCart],
     ["Perfil", "/cuenta/perfil", User],
@@ -187,7 +189,7 @@ function BrandFooterContent({
     ["Comprar productos", "/productos", ShoppingBag],
     ["Mi carrito", "/carrito", ShoppingCart],
   ];
-  const adminMenu = [
+  const adminMenu: FooterMenuItem[] = [
     ["Panel administrativo", "/admin/panel", LayoutDashboard],
     ["Productos", "/admin/productos", Package],
     ["Pedidos", "/admin/pedidos", ShoppingCart],
@@ -197,24 +199,31 @@ function BrandFooterContent({
     ["Configuración", "/admin/configuracion", Settings],
     ["Papelera", "/admin/papelera", Trash2],
   ];
-  const menu = isAdmin
+  const menu: FooterMenuItem[] = isAdmin
     ? adminMenu
     : section === "account"
       ? accountMenu
       : isAuthenticated
         ? accountMenu
         : [];
-  const renderLink = (label: string, to: string, Icon?: typeof LayoutDashboard) => (
-    <li key={`${label}-${to}`}>
-      <Link
-        to={to as "/"}
-        className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
-      >
-        {Icon && <Icon className="size-4" />}
-        {label}
-      </Link>
-    </li>
-  );
+  const renderLink = (
+    label: string,
+    to: string | undefined,
+    Icon?: React.ComponentType<{ className?: string }>,
+  ) => {
+    if (!to) return null;
+    return (
+      <li key={`${label}-${to}`}>
+        <Link
+          to={to as "/"}
+          className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
+        >
+          {Icon && <Icon className="size-4" />}
+          {label}
+        </Link>
+      </li>
+    );
+  };
 
   return (
     <footer className="mt-24 border-t border-border/60 bg-surface/40">
@@ -292,18 +301,30 @@ function BrandFooterContent({
         <div>
           <h3 className="text-sm font-semibold">Tiendas</h3>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
-            {getStoreNavigation().map((item) => (
-              <li key={item.slug}>
-                <Link
-                  to={item.slug === "store-shop" ? "/" : "/$brand/productos"}
-                  params={item.slug === "store-shop" ? undefined : { brand: item.slug }}
-                  className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
-                >
-                  <BrandMark compact brandSlug={item.slug} className="shrink-0" />
-                  {item.name}
-                </Link>
-              </li>
-            ))}
+            {getStoreNavigation().map((item) =>
+              item.slug === "store-shop" ? (
+                <li key={item.slug}>
+                  <Link
+                    to="/"
+                    className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
+                  >
+                    <BrandMark compact brandSlug={item.slug} className="shrink-0" />
+                    {item.name}
+                  </Link>
+                </li>
+              ) : (
+                <li key={item.slug}>
+                  <Link
+                    to="/$brand/productos"
+                    params={{ brand: item.slug }}
+                    className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
+                  >
+                    <BrandMark compact brandSlug={item.slug} className="shrink-0" />
+                    {item.name}
+                  </Link>
+                </li>
+              ),
+            )}
           </ul>
         </div>
         <div>

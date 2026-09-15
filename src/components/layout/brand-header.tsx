@@ -317,36 +317,18 @@ function BrandHeaderContent({
               </Button>
             )}
 
-            <DropdownMenu open={openBuyMenu} onOpenChange={setOpenBuyMenu}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="order-4 rounded-xl gap-2 px-2 sm:px-2"
-                  title="Comprar"
-                >
-                  <ShoppingBag className="size-4" />
-                  <span className="hidden sm:inline">Comprar</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                {buyMenuItems.map((item) => (
-                  <DropdownMenuItem
-                    key={item.slug}
-                    onSelect={() => {
-                      if (item.slug === "store-shop") {
-                        navigate({ to: "/productos" });
-                      } else {
-                        navigate({ to: "/$brand/productos", params: { brand: item.slug } });
-                      }
-                      setOpenMenu(false);
-                    }}
-                  >
-                    Comprar en {item.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="order-4 rounded-xl gap-2 px-2 sm:px-2"
+              title="Comprar"
+            >
+              <Link to="/productos" aria-label="Comprar" title="Comprar">
+                <ShoppingBag className="size-4" />
+                <span className="hidden sm:inline">Comprar</span>
+              </Link>
+            </Button>
 
             <Button asChild variant="ghost" size="sm" className="order-0 rounded-xl gap-2 px-2 sm:px-3">
               <Link to="/" aria-label="Inicio" title="Inicio">
