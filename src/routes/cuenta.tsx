@@ -106,18 +106,18 @@ function getOrderStoreSummaries(order: Order) {
     return {
       slug: storeSlug,
       name: store?.shortName ?? storeSlug,
-      displayName: isMultiStore ? `LRG ${store?.shortName ?? storeSlug}` : store?.shortName ?? storeSlug,
-      paymentMethod: paymentMethods.join(" | ") || (!isMultiStore ? order.paymentMethod : "No especificado"),
-      shippingMethod: shippingMethods.join(" | ") || (!isMultiStore ? order.shippingMethod : "No especificado"),
+      displayName: isMultiStore
+        ? `LRG ${store?.shortName ?? storeSlug}`
+        : (store?.shortName ?? storeSlug),
+      paymentMethod:
+        paymentMethods.join(" | ") || (!isMultiStore ? order.paymentMethod : "No especificado"),
+      shippingMethod:
+        shippingMethods.join(" | ") || (!isMultiStore ? order.shippingMethod : "No especificado"),
     };
   });
 }
 
-function toggleOrderFilterOption(
-  selected: string[],
-  option: string,
-  checked: boolean,
-): string[] {
+function toggleOrderFilterOption(selected: string[], option: string, checked: boolean): string[] {
   if (option === "all") return [];
   if (checked) return Array.from(new Set([...selected, option]));
   return selected.filter((value) => value !== option);
@@ -386,12 +386,12 @@ function AccountPageContent({
           return false;
         if (
           ordersDocumentsFilter.length &&
-          !ordersDocumentsFilter.includes(Boolean(order.attachments?.length) ? "yes" : "no")
+          !ordersDocumentsFilter.includes(order.attachments?.length ? "yes" : "no")
         )
           return false;
         if (
           ordersReceiptsFilter.length &&
-          !ordersReceiptsFilter.includes(Boolean(order.paymentReceipts?.length) ? "yes" : "no")
+          !ordersReceiptsFilter.includes(order.paymentReceipts?.length ? "yes" : "no")
         )
           return false;
         if (totalMin !== null && Number.isFinite(totalMin) && order.total < totalMin) return false;
@@ -446,11 +446,7 @@ function AccountPageContent({
   const ordersTotalMinValue = ordersTotalMin === "" ? 0 : Number(ordersTotalMin);
   const ordersTotalMaxValue = ordersTotalMax === "" ? ordersTotalLimit : Number(ordersTotalMax);
   const ordersTotalCurrencyLabel =
-    ordersTotalCurrencies.length === 2
-      ? "$/USD"
-      : ordersTotalCurrencies[0] === "USD"
-        ? "USD"
-        : "$";
+    ordersTotalCurrencies.length === 2 ? "$/USD" : ordersTotalCurrencies[0] === "USD" ? "USD" : "$";
   const detailsStoreSummaries = detailsOrder ? getOrderStoreSummaries(detailsOrder) : [];
 
   const resetOrderFilters = () => {
@@ -1097,7 +1093,11 @@ function AccountPageContent({
                                 checked={ordersBrandFilter.includes(brandSlug)}
                                 onCheckedChange={(checked) =>
                                   setOrdersBrandFilter(
-                                    toggleOrderFilterOption(ordersBrandFilter, brandSlug, checked === true),
+                                    toggleOrderFilterOption(
+                                      ordersBrandFilter,
+                                      brandSlug,
+                                      checked === true,
+                                    ),
                                   )
                                 }
                               />
@@ -1170,20 +1170,30 @@ function AccountPageContent({
                       </button>
                       {ordersShippingOpen && (
                         <div id="orders-shipping-list" className="space-y-2.5">
-                          {([
-                            ["all", "Todos"],
-                            ["Pendiente", "Pendiente"],
-                            ["Enviado", "Enviado"],
-                          ] as const).map(([value, label]) => (
+                          {(
+                            [
+                              ["all", "Todos"],
+                              ["Pendiente", "Pendiente"],
+                              ["Enviado", "Enviado"],
+                            ] as const
+                          ).map(([value, label]) => (
                             <label
                               key={value}
                               className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
                             >
                               <Checkbox
-                                checked={value === "all" ? ordersStatusFilter.length === 0 : ordersStatusFilter.includes(value)}
+                                checked={
+                                  value === "all"
+                                    ? ordersStatusFilter.length === 0
+                                    : ordersStatusFilter.includes(value)
+                                }
                                 onCheckedChange={(checked) =>
                                   setOrdersStatusFilter(
-                                    toggleOrderFilterOption(ordersStatusFilter, value, checked === true),
+                                    toggleOrderFilterOption(
+                                      ordersStatusFilter,
+                                      value,
+                                      checked === true,
+                                    ),
                                   )
                                 }
                               />
@@ -1214,21 +1224,31 @@ function AccountPageContent({
                       </button>
                       {ordersPaymentStatusOpen && (
                         <div id="orders-payment-status-list" className="space-y-2.5">
-                          {([
-                            ["all", "Todos"],
-                            ["Pendiente", "Pendiente"],
-                            ["Pagado", "Pagado"],
-                            ["Cancelado", "Cancelado"],
-                          ] as const).map(([value, label]) => (
+                          {(
+                            [
+                              ["all", "Todos"],
+                              ["Pendiente", "Pendiente"],
+                              ["Pagado", "Pagado"],
+                              ["Cancelado", "Cancelado"],
+                            ] as const
+                          ).map(([value, label]) => (
                             <label
                               key={value}
                               className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
                             >
                               <Checkbox
-                                checked={value === "all" ? ordersPaymentStatusFilter.length === 0 : ordersPaymentStatusFilter.includes(value)}
+                                checked={
+                                  value === "all"
+                                    ? ordersPaymentStatusFilter.length === 0
+                                    : ordersPaymentStatusFilter.includes(value)
+                                }
                                 onCheckedChange={(checked) =>
                                   setOrdersPaymentStatusFilter(
-                                    toggleOrderFilterOption(ordersPaymentStatusFilter, value, checked === true),
+                                    toggleOrderFilterOption(
+                                      ordersPaymentStatusFilter,
+                                      value,
+                                      checked === true,
+                                    ),
                                   )
                                 }
                               />
@@ -1259,20 +1279,30 @@ function AccountPageContent({
                       </button>
                       {ordersDocumentsOpen && (
                         <div id="orders-documents-list" className="space-y-2.5">
-                          {([
-                            ["all", "Todos"],
-                            ["yes", "Con adjuntos"],
-                            ["no", "Sin adjuntos"],
-                          ] as const).map(([value, label]) => (
+                          {(
+                            [
+                              ["all", "Todos"],
+                              ["yes", "Con adjuntos"],
+                              ["no", "Sin adjuntos"],
+                            ] as const
+                          ).map(([value, label]) => (
                             <label
                               key={value}
                               className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
                             >
                               <Checkbox
-                                checked={value === "all" ? ordersDocumentsFilter.length === 0 : ordersDocumentsFilter.includes(value)}
+                                checked={
+                                  value === "all"
+                                    ? ordersDocumentsFilter.length === 0
+                                    : ordersDocumentsFilter.includes(value)
+                                }
                                 onCheckedChange={(checked) =>
                                   setOrdersDocumentsFilter(
-                                    toggleOrderFilterOption(ordersDocumentsFilter, value, checked === true),
+                                    toggleOrderFilterOption(
+                                      ordersDocumentsFilter,
+                                      value,
+                                      checked === true,
+                                    ),
                                   )
                                 }
                               />
@@ -1303,20 +1333,30 @@ function AccountPageContent({
                       </button>
                       {ordersReceiptsOpen && (
                         <div id="orders-receipts-list" className="space-y-2.5">
-                          {([
-                            ["all", "Todos"],
-                            ["yes", "Con comprobantes"],
-                            ["no", "Sin comprobantes"],
-                          ] as const).map(([value, label]) => (
+                          {(
+                            [
+                              ["all", "Todos"],
+                              ["yes", "Con comprobantes"],
+                              ["no", "Sin comprobantes"],
+                            ] as const
+                          ).map(([value, label]) => (
                             <label
                               key={value}
                               className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
                             >
                               <Checkbox
-                                checked={value === "all" ? ordersReceiptsFilter.length === 0 : ordersReceiptsFilter.includes(value)}
+                                checked={
+                                  value === "all"
+                                    ? ordersReceiptsFilter.length === 0
+                                    : ordersReceiptsFilter.includes(value)
+                                }
                                 onCheckedChange={(checked) =>
                                   setOrdersReceiptsFilter(
-                                    toggleOrderFilterOption(ordersReceiptsFilter, value, checked === true),
+                                    toggleOrderFilterOption(
+                                      ordersReceiptsFilter,
+                                      value,
+                                      checked === true,
+                                    ),
                                   )
                                 }
                               />
@@ -1919,7 +1959,9 @@ function AccountPageContent({
                           className="gap-1.5 px-2 text-xs text-destructive hover:text-destructive"
                           onClick={() => {
                             if (pendingReceipts.some((pending) => pending === receipt)) {
-                              setPendingReceipts((current) => current.filter((pending) => pending !== receipt));
+                              setPendingReceipts((current) =>
+                                current.filter((pending) => pending !== receipt),
+                              );
                             } else if (receiptsOrder) {
                               const updatedOrder = {
                                 ...receiptsOrder,
@@ -1973,7 +2015,9 @@ function AccountPageContent({
                     };
                     try {
                       await orderService.update(updatedOrder);
-                      await queryClient.invalidateQueries({ queryKey: orderQueries.list().queryKey });
+                      await queryClient.invalidateQueries({
+                        queryKey: orderQueries.list().queryKey,
+                      });
                       setReceiptsOrder(updatedOrder);
                       setPendingReceipts([]);
                       toast.success("Comprobantes guardados correctamente");
@@ -2173,29 +2217,29 @@ function AccountPageContent({
               <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Entregas</p>
               <h1 className="mt-2 text-3xl font-semibold">Direcciones</h1>
 
-          <Dialog
-            open={previewReceipt !== null}
-            onOpenChange={(open) => !open && setPreviewReceipt(null)}
-          >
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle className="wrap-break-word">{previewReceipt?.name}</DialogTitle>
-              </DialogHeader>
-              {previewReceipt?.type === "application/pdf" ? (
-                <iframe
-                  title={previewReceipt.name}
-                  src={previewReceipt.dataUrl}
-                  className="h-[70vh] w-full rounded-lg border border-border/60"
-                />
-              ) : previewReceipt ? (
-                <img
-                  src={previewReceipt.dataUrl}
-                  alt={previewReceipt.name}
-                  className="max-h-[70vh] w-full rounded-lg object-contain"
-                />
-              ) : null}
-            </DialogContent>
-          </Dialog>
+              <Dialog
+                open={previewReceipt !== null}
+                onOpenChange={(open) => !open && setPreviewReceipt(null)}
+              >
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle className="wrap-break-word">{previewReceipt?.name}</DialogTitle>
+                  </DialogHeader>
+                  {previewReceipt?.type === "application/pdf" ? (
+                    <iframe
+                      title={previewReceipt.name}
+                      src={previewReceipt.dataUrl}
+                      className="h-[70vh] w-full rounded-lg border border-border/60"
+                    />
+                  ) : previewReceipt ? (
+                    <img
+                      src={previewReceipt.dataUrl}
+                      alt={previewReceipt.name}
+                      className="max-h-[70vh] w-full rounded-lg object-contain"
+                    />
+                  ) : null}
+                </DialogContent>
+              </Dialog>
             </div>
             <Button
               size="sm"
@@ -2277,15 +2321,17 @@ function AccountPageContent({
               )}
 
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                {([
-                  ["Calle", addressStreet, setAddressStreet, true],
-                  ["Altura", addressNumber, setAddressNumber, true],
-                  ["Piso", addressFloor, setAddressFloor, false],
-                  ["Departamento", addressApartment, setAddressApartment, false],
-                  ["Ciudad", addressCity, setAddressCity, true],
-                  ["Provincia", addressProvince, setAddressProvince, true],
-                  ["Código Postal", addressPostalCode, setAddressPostalCode, true],
-                ] as const).map(([label, value, setter, synced]) => (
+                {(
+                  [
+                    ["Calle", addressStreet, setAddressStreet, true],
+                    ["Altura", addressNumber, setAddressNumber, true],
+                    ["Piso", addressFloor, setAddressFloor, false],
+                    ["Departamento", addressApartment, setAddressApartment, false],
+                    ["Ciudad", addressCity, setAddressCity, true],
+                    ["Provincia", addressProvince, setAddressProvince, true],
+                    ["Código Postal", addressPostalCode, setAddressPostalCode, true],
+                  ] as const
+                ).map(([label, value, setter, synced]) => (
                   <label key={String(label)} className="space-y-2 text-sm font-medium">
                     <span>{label}</span>
                     <Input
@@ -2496,15 +2542,17 @@ function AccountPageContent({
                         )}
 
                         <div className="grid gap-4 sm:grid-cols-2">
-                          {([
-                            ["Calle", addressStreet, setAddressStreet, true],
-                            ["Altura", addressNumber, setAddressNumber, true],
-                            ["Piso", addressFloor, setAddressFloor, false],
-                            ["Departamento", addressApartment, setAddressApartment, false],
-                            ["Ciudad", addressCity, setAddressCity, true],
-                            ["Provincia", addressProvince, setAddressProvince, true],
-                            ["Código Postal", addressPostalCode, setAddressPostalCode, true],
-                          ] as const).map(([label, value, setter, synced]) => (
+                          {(
+                            [
+                              ["Calle", addressStreet, setAddressStreet, true],
+                              ["Altura", addressNumber, setAddressNumber, true],
+                              ["Piso", addressFloor, setAddressFloor, false],
+                              ["Departamento", addressApartment, setAddressApartment, false],
+                              ["Ciudad", addressCity, setAddressCity, true],
+                              ["Provincia", addressProvince, setAddressProvince, true],
+                              ["Código Postal", addressPostalCode, setAddressPostalCode, true],
+                            ] as const
+                          ).map(([label, value, setter, synced]) => (
                             <label key={String(label)} className="space-y-2 text-sm font-medium">
                               <span>{label}</span>
                               <Input

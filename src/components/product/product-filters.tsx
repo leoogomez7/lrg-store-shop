@@ -479,16 +479,15 @@ export function ProductFilters({
 
       <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-4">
         <p className="text-xs text-muted-foreground">{resultCount} productos encontrados</p>
-        {activeCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onReset}
-            className="ml-auto flex h-8 px-2 text-xs"
-          >
-            <X className="mr-1 size-3.5" /> Limpiar
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onReset}
+          disabled={activeCount === 0}
+          className="ml-auto flex h-8 px-2 text-xs"
+        >
+          <X className="mr-1 size-3.5" /> Limpiar
+        </Button>
       </div>
     </aside>
   );
