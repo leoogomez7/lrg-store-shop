@@ -106,9 +106,7 @@ function getOrderStoreSummaries(order: Order) {
     return {
       slug: storeSlug,
       name: store?.shortName ?? storeSlug,
-      displayName: isMultiStore
-        ? `LRG ${store?.shortName ?? storeSlug}`
-        : (store?.shortName ?? storeSlug),
+      displayName: `LRG ${store?.shortName ?? storeSlug}`,
       paymentMethod:
         paymentMethods.join(" | ") || (!isMultiStore ? order.paymentMethod : "No especificado"),
       shippingMethod:

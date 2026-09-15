@@ -146,10 +146,13 @@ export function ProductFilters({
   const activeCatCount = filters.categories.length;
   const activeBrandCount = filters.brands?.length ?? 0;
   const activePriceCount = (filters.minPrice > 0 ? 1 : 0) + (filters.maxPrice < priceLimit ? 1 : 0);
+  const selectedPriceCurrencies = filters.priceCurrencies?.length
+    ? filters.priceCurrencies
+    : (["ARS"] as CurrencyCode[]);
   const priceCurrencyLabel =
-    filters.priceCurrencies?.length === 2
+    selectedPriceCurrencies.length === 2
       ? "$/USD"
-      : filters.priceCurrencies?.[0] === "USD"
+      : selectedPriceCurrencies[0] === "USD"
         ? "USD"
         : "$";
 
@@ -395,13 +398,13 @@ export function ProductFilters({
               {(["ARS", "USD"] as const).map((currency) => (
                 <label key={currency} className="flex cursor-pointer items-start gap-3 text-sm">
                   <Checkbox
-                    checked={filters.priceCurrencies?.includes(currency) ?? false}
+                    checked={selectedPriceCurrencies.includes(currency)}
                     onCheckedChange={(checked) => {
-                      const selected = filters.priceCurrencies ?? [];
+                      if (!checked && selectedPriceCurrencies.length === 1) return;
                       onChange({
                         priceCurrencies: checked
-                          ? [...selected, currency]
-                          : selected.filter((value) => value !== currency),
+                          ? Array.from(new Set([...selectedPriceCurrencies, currency]))
+                          : selectedPriceCurrencies.filter((value) => value !== currency),
                       });
                     }}
                   />
