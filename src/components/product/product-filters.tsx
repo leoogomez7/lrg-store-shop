@@ -26,9 +26,9 @@ export type CatalogFilters = {
   search: string;
   categories: string[];
   brands?: string[];
-  deliveryTime?: string;
-  shippingMethod?: string;
-  paymentMethod?: string;
+  deliveryTime?: string[];
+  shippingMethod?: string[];
+  paymentMethod?: string[];
   priceCurrencies?: CurrencyCode[];
   minPrice: number;
   maxPrice: number;
@@ -45,9 +45,9 @@ function FilterOptionsSection({
 }: {
   id: string;
   title: string;
-  value: string;
+  value: string[];
   options: string[];
-  onChange: (value: string) => void;
+  onChange: (value: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -61,7 +61,7 @@ function FilterOptionsSection({
         aria-controls={id}
       >
         <span>{title}</span>
-        {value !== "all" && <Badge variant="secondary">1</Badge>}
+        {value.length > 0 && <Badge variant="secondary">{value.length}</Badge>}
         {open ? (
           <ChevronUp className="size-4 text-muted-foreground" />
         ) : (
@@ -76,14 +76,18 @@ function FilterOptionsSection({
               className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
             >
               <Checkbox
-                checked={value === option}
+                checked={option === "all" ? value.length === 0 : value.includes(option)}
                 onCheckedChange={(checked) => {
-                  if (checked) onChange(option);
+                  if (option === "all") {
+                    onChange([]);
+                    return;
+                  }
+                  onChange(
+                    checked ? [...value, option] : value.filter((selected) => selected !== option),
+                  );
                 }}
               />
-              <span className="font-medium">
-                {option === "all" ? "Todos" : option}
-              </span>
+              <span className="font-medium">{option === "all" ? "Todos" : option}</span>
             </label>
           ))}
         </div>
@@ -127,9 +131,9 @@ export function ProductFilters({
     (filters.search ? 1 : 0) +
     filters.categories.length +
     (filters.brands?.length ?? 0) +
-    (filters.deliveryTime && filters.deliveryTime !== "all" ? 1 : 0) +
-    (filters.shippingMethod && filters.shippingMethod !== "all" ? 1 : 0) +
-    (filters.paymentMethod && filters.paymentMethod !== "all" ? 1 : 0) +
+    (filters.deliveryTime?.length ?? 0) +
+    (filters.shippingMethod?.length ?? 0) +
+    (filters.paymentMethod?.length ?? 0) +
     (priceCurrencyFilterActive ? 1 : 0) +
     (filters.inStockOnly ? 1 : 0) +
     (filters.minPrice > 0 ? 1 : 0) +
@@ -213,7 +217,7 @@ export function ProductFilters({
                 checked={filters.categories.length === 0}
                 onCheckedChange={() => onChange({ categories: [] })}
               />
-              <span className="font-semibold">Todos</span>
+              <span className="font-semibold">Todas las categorías/subcategorías</span>
             </label>
             {categories.map((category) => {
               const checked = filters.categories.includes(category.slug);
@@ -301,7 +305,7 @@ export function ProductFilters({
         <FilterOptionsSection
           id="delivery-time-list"
           title="Tiempo de entrega"
-          value={filters.deliveryTime ?? "all"}
+          value={filters.deliveryTime ?? []}
           options={deliveryOptions}
           onChange={(value) => onChange({ deliveryTime: value })}
         />
@@ -311,7 +315,7 @@ export function ProductFilters({
         <FilterOptionsSection
           id="shipping-method-list"
           title="Método de envío"
-          value={filters.shippingMethod ?? "all"}
+          value={filters.shippingMethod ?? []}
           options={shippingOptions}
           onChange={(value) => onChange({ shippingMethod: value })}
         />
@@ -321,7 +325,7 @@ export function ProductFilters({
         <FilterOptionsSection
           id="payment-method-list"
           title="Método de pago"
-          value={filters.paymentMethod ?? "all"}
+          value={filters.paymentMethod ?? []}
           options={paymentOptions}
           onChange={(value) => onChange({ paymentMethod: value })}
         />

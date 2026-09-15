@@ -41,7 +41,7 @@ export const Route = createFileRoute("/productos")({
     applyAdminSettings(settings);
     refreshBrandData();
     await context.queryClient.ensureQueryData(catalogQueries.all());
-    return null;
+    return { settings };
   },
   head: () => ({
     meta: [
@@ -66,15 +66,18 @@ export const Route = createFileRoute("/productos")({
 
 function ProductosPage() {
   const search = Route.useSearch();
+  const { settings } = Route.useLoaderData();
   const { data: products } = useSuspenseQuery(catalogQueries.all());
   const [priceCurrencies, setPriceCurrencies] = useState<("ARS" | "USD")[]>(["ARS", "USD"]);
   const [, setBrandDataVersion] = useState(0);
 
   useEffect(() => {
+    applyAdminSettings(settings);
+    refreshBrandData();
     const handleBrandDataUpdated = () => setBrandDataVersion((current) => current + 1);
     window.addEventListener("lrg-brand-data-updated", handleBrandDataUpdated);
     return () => window.removeEventListener("lrg-brand-data-updated", handleBrandDataUpdated);
-  }, []);
+  }, [settings]);
 
   const categories = mergeBrandCategories(brandList.flatMap((brand) => brand.categories));
   const deliveryOptions = buildDeliveryOptions(products);
@@ -147,23 +150,24 @@ function ProductosPage() {
       if ((filters.brands ?? []).length && !(filters.brands ?? []).includes(product.brand))
         return false;
       if (
-        filters.deliveryTime &&
-        filters.deliveryTime !== "all" &&
-        !matchesDeliveryOption(product, filters.deliveryTime)
+        filters.deliveryTime?.length &&
+        !filters.deliveryTime.some((option) => matchesDeliveryOption(product, option))
       )
         return false;
       if (
-        filters.shippingMethod &&
-        filters.shippingMethod !== "all" &&
+        filters.shippingMethod?.length &&
         !(brandList.find((brand) => brand.slug === product.brand)?.shipping?.methods ?? [])
-          .some((method) => method.enabled && method.name === filters.shippingMethod)
+          .some(
+            (method) => method.enabled && filters.shippingMethod?.includes(method.name),
+          )
       )
         return false;
       if (
-        filters.paymentMethod &&
-        filters.paymentMethod !== "all" &&
+        filters.paymentMethod?.length &&
         !(brandList.find((brand) => brand.slug === product.brand)?.paymentMethods ?? [])
-          .some((method) => method.enabled && method.name === filters.paymentMethod)
+          .some(
+            (method) => method.enabled && filters.paymentMethod?.includes(method.name),
+          )
       )
         return false;
       if (

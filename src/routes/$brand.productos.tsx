@@ -40,7 +40,7 @@ export const Route = createFileRoute("/$brand/productos")({
     const brand = getBrand(params.brand);
     if (!brand) throw notFound();
     await context.queryClient.ensureQueryData(catalogQueries.byBrand(brand.slug));
-    return { brandSlug: brand.slug };
+    return { brandSlug: brand.slug, settings };
   },
   head: ({ params }) => {
     const brand = getBrand(params.brand);
@@ -72,16 +72,19 @@ export const Route = createFileRoute("/$brand/productos")({
 function CatalogPage() {
   const params = Route.useParams();
   const search = Route.useSearch();
+  const { settings } = Route.useLoaderData();
   const brand = getBrand(params.brand)!;
   const { data: products } = useSuspenseQuery(catalogQueries.byBrand(brand.slug));
   const [priceCurrencies, setPriceCurrencies] = useState<("ARS" | "USD")[]>(["ARS", "USD"]);
   const [, setBrandDataVersion] = useState(0);
 
   useEffect(() => {
+    applyAdminSettings(settings);
+    refreshBrandData();
     const handleBrandDataUpdated = () => setBrandDataVersion((current) => current + 1);
     window.addEventListener("lrg-brand-data-updated", handleBrandDataUpdated);
     return () => window.removeEventListener("lrg-brand-data-updated", handleBrandDataUpdated);
-  }, []);
+  }, [settings]);
 
   const configuredCategories = brand.categories;
   const deliveryOptions = buildDeliveryOptions(products);
@@ -101,8 +104,7 @@ function CatalogPage() {
           ...products
             .filter(
               (product) =>
-                !priceCurrencies.length ||
-                priceCurrencies.includes(product.priceCurrency ?? "ARS"),
+                !priceCurrencies.length || priceCurrencies.includes(product.priceCurrency ?? "ARS"),
             )
             .map((product) => product.price),
         ),
@@ -138,21 +140,18 @@ function CatalogPage() {
       if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
       if (filters.categories.length && !selectedCategoryValues.has(product.category)) return false;
       if (
-        filters.deliveryTime &&
-        filters.deliveryTime !== "all" &&
-        !matchesDeliveryOption(product, filters.deliveryTime)
+        filters.deliveryTime?.length &&
+        !filters.deliveryTime.some((option) => matchesDeliveryOption(product, option))
       )
         return false;
       if (
-        filters.shippingMethod &&
-        filters.shippingMethod !== "all" &&
-        !shippingOptions.includes(filters.shippingMethod)
+        filters.shippingMethod?.length &&
+        !filters.shippingMethod.some((option) => shippingOptions.includes(option))
       )
         return false;
       if (
-        filters.paymentMethod &&
-        filters.paymentMethod !== "all" &&
-        !paymentOptions.includes(filters.paymentMethod)
+        filters.paymentMethod?.length &&
+        !filters.paymentMethod.some((option) => paymentOptions.includes(option))
       )
         return false;
       if (
@@ -186,7 +185,7 @@ function CatalogPage() {
       default:
         return filtered.sort((a, b) => a.price - b.price);
     }
-  }, [products, filters, selectedCategoryValues]);
+  }, [products, filters, selectedCategoryValues, shippingOptions, paymentOptions]);
 
   const totalPages = Math.max(1, Math.ceil(results.length / pageSize));
   const hasPreviousPage = page > 0;

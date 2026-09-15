@@ -103,6 +103,7 @@ function AdminConfiguration() {
       id: category.slug,
       name: category.name,
       description: category.description ?? "",
+      subcategories: category.subcategories ?? [],
       enabled: true,
     }));
   });
