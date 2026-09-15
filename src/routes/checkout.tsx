@@ -82,10 +82,7 @@ function CheckoutPage() {
   const [postalCode, setPostalCode] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const brandSlugs = useMemo(
-    () => Array.from(new Set(items.map((item) => item.brand))),
-    [items],
-  );
+  const brandSlugs = useMemo(() => Array.from(new Set(items.map((item) => item.brand))), [items]);
   const [shippingMethodsByBrand, setShippingMethodsByBrand] = useState<Record<string, string>>({});
   const [paymentMethodsByBrand, setPaymentMethodsByBrand] = useState<Record<string, string>>({});
   const [bankCbus, setBankCbus] = useState<Partial<Record<BrandSlug, string>>>({});
@@ -110,14 +107,10 @@ function CheckoutPage() {
 
   useEffect(() => {
     setShippingMethodsByBrand((current) =>
-      Object.fromEntries(
-        brandSlugs.map((slug) => [slug, current[slug] ?? ""]),
-      ),
+      Object.fromEntries(brandSlugs.map((slug) => [slug, current[slug] ?? ""])),
     );
     setPaymentMethodsByBrand((current) =>
-      Object.fromEntries(
-        brandSlugs.map((slug) => [slug, current[slug] ?? ""]),
-      ),
+      Object.fromEntries(brandSlugs.map((slug) => [slug, current[slug] ?? ""])),
     );
   }, [brandSlugs]);
 
@@ -136,17 +129,15 @@ function CheckoutPage() {
       try {
         const storedPayments = paymentSetting
           ? (JSON.parse(paymentSetting.settingValue) as
-              | BrandPaymentMethod[]
-              | Record<string, BrandPaymentMethod[]>)
+              BrandPaymentMethod[] | Record<string, BrandPaymentMethod[]>)
           : undefined;
         const storedShipping = shippingSetting
           ? (JSON.parse(shippingSetting.settingValue) as
-              | BrandPaymentMethod[]
-              | Record<string, { methods?: BrandPaymentMethod[] }>)
+              BrandPaymentMethod[] | Record<string, { methods?: BrandPaymentMethod[] }>)
           : undefined;
         paymentMethodsFromDatabase = Array.isArray(storedPayments)
           ? Object.fromEntries(brandSlugs.map((slug) => [slug, storedPayments]))
-          : storedPayments ?? {};
+          : (storedPayments ?? {});
         shippingMethodsFromDatabase = Array.isArray(storedShipping)
           ? Object.fromEntries(brandSlugs.map((slug) => [slug, storedShipping]))
           : Object.fromEntries(
@@ -154,7 +145,7 @@ function CheckoutPage() {
                 slug,
                 Array.isArray(config)
                   ? config
-                  : (config as { methods?: BrandPaymentMethod[] }).methods ?? [],
+                  : ((config as { methods?: BrandPaymentMethod[] }).methods ?? []),
               ]),
             );
       } catch {
@@ -167,7 +158,7 @@ function CheckoutPage() {
               shippingMethodsFromDatabase[slug]?.filter((method) => method.enabled) ??
               refreshedBrands[slug]?.shipping?.methods.filter((method) => method.enabled) ??
               [];
-            return [slug, current[slug] || (methods.length === 1 ? methods[0]?.name ?? "" : "")];
+            return [slug, current[slug] || (methods.length === 1 ? (methods[0]?.name ?? "") : "")];
           }),
         ),
       );
@@ -178,7 +169,7 @@ function CheckoutPage() {
               paymentMethodsFromDatabase[slug]?.filter((method) => method.enabled) ??
               refreshedBrands[slug]?.paymentMethods?.filter((method) => method.enabled) ??
               [];
-            return [slug, current[slug] || (methods.length === 1 ? methods[0]?.name ?? "" : "")];
+            return [slug, current[slug] || (methods.length === 1 ? (methods[0]?.name ?? "") : "")];
           }),
         ),
       );
@@ -208,7 +199,9 @@ function CheckoutPage() {
   const [couponApplied, setCouponApplied] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
-      return Boolean(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").applied);
+      return Boolean(
+        JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").applied,
+      );
     } catch {
       return false;
     }
@@ -216,7 +209,10 @@ function CheckoutPage() {
   const [couponPercentage, setCouponPercentage] = useState(() => {
     if (typeof window === "undefined") return 0;
     try {
-      return Number(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").percentage) || 0;
+      return (
+        Number(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").percentage) ||
+        0
+      );
     } catch {
       return 0;
     }
@@ -262,16 +258,13 @@ function CheckoutPage() {
     (total, item) =>
       total +
       (item.cardCommission && isCardMethod(paymentMethodsByBrand[item.brand] ?? "")
-        ? item.price * item.quantity *
-          (couponApplied && item.brand === couponBrandSlug
-            ? 1 - couponPercentage / 100
-            : 1)
+        ? item.price *
+          item.quantity *
+          (couponApplied && item.brand === couponBrandSlug ? 1 - couponPercentage / 100 : 1)
         : 0),
     0,
   );
-  const cardFee = isCardPayment
-    ? eligibleCardSubtotal * 0.1
-    : 0;
+  const cardFee = isCardPayment ? eligibleCardSubtotal * 0.1 : 0;
   const mercadoPagoItems = items
     .filter((item) => mercadoPagoBrands.has(item.brand))
     .map((item) => ({
@@ -295,26 +288,34 @@ function CheckoutPage() {
     .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
     .join(" | ");
 
-    useEffect(() => {
-      if (step !== "done") return;
-      window.sessionStorage.setItem("lrg_checkout_completed", "true");
-      const redirectTimer = window.setTimeout(() => {
-        navigate({ to: "/productos", replace: true });
-      }, 8000);
-      return () => window.clearTimeout(redirectTimer);
-    }, [step]);
+  useEffect(() => {
+    if (step !== "done" || typeof window === "undefined") return;
+    window.sessionStorage.setItem("lrg_checkout_completed", "true");
+    window.history.pushState({ checkoutCompleted: true }, "", window.location.href);
+    const handleCompletedCheckoutBack = () => {
+      navigate({ to: "/", replace: true });
+    };
+    window.addEventListener("popstate", handleCompletedCheckoutBack);
+    const redirectTimer = window.setTimeout(() => {
+      navigate({ to: "/productos", replace: true });
+    }, 8000);
+    return () => {
+      window.removeEventListener("popstate", handleCompletedCheckoutBack);
+      window.clearTimeout(redirectTimer);
+    };
+  }, [navigate, step]);
 
-    useEffect(() => {
-      if (step !== "form" || typeof window === "undefined") return;
-      const completedCheckout = window.sessionStorage.getItem("lrg_checkout_completed") === "true";
-      if (completedCheckout && items.length === 0) {
-        navigate({ to: "/productos", replace: true });
-        return;
-      }
-      if (items.length > 0) {
-        window.sessionStorage.removeItem("lrg_checkout_completed");
-      }
-    }, [items.length, step]);
+  useEffect(() => {
+    if (step !== "form" || typeof window === "undefined") return;
+    const completedCheckout = window.sessionStorage.getItem("lrg_checkout_completed") === "true";
+    if (completedCheckout && items.length === 0) {
+      navigate({ to: "/productos", replace: true });
+      return;
+    }
+    if (items.length > 0) {
+      window.sessionStorage.removeItem("lrg_checkout_completed");
+    }
+  }, [items.length, step]);
 
   useEffect(() => {
     if (validationMessage && validationRef.current) {
@@ -421,10 +422,7 @@ function CheckoutPage() {
         const inputNumber = inputNumbers.at(-1) ?? "";
         const displayNameFirstPart = firstResult?.display_name?.split(",")[0]?.trim() ?? "";
         const displayNameNumbers = displayNameFirstPart.match(/\b\d{1,6}\b/g) ?? [];
-        const resultNumber =
-          resultAddress?.["house_number"] ||
-          displayNameNumbers.at(-1) ||
-          "";
+        const resultNumber = resultAddress?.["house_number"] || displayNameNumbers.at(-1) || "";
         const resolvedStreet =
           resultAddress?.["road"] ||
           resultAddress?.["pedestrian"] ||
@@ -473,8 +471,10 @@ function CheckoutPage() {
     if (!phone.trim()) missingFields.push("Teléfono");
     if (!address.trim()) missingFields.push("Dirección");
     brandSlugs.forEach((slug) => {
-      if (!shippingMethodsByBrand[slug]) missingFields.push(`Método de envío de ${getBrand(slug)?.name}`);
-      if (!paymentMethodsByBrand[slug]) missingFields.push(`Método de pago de ${getBrand(slug)?.name}`);
+      if (!shippingMethodsByBrand[slug])
+        missingFields.push(`Método de envío de ${getBrand(slug)?.name}`);
+      if (!paymentMethodsByBrand[slug])
+        missingFields.push(`Método de pago de ${getBrand(slug)?.name}`);
     });
     if (missingFields.length > 0) {
       setValidationMessage(`Faltan completar: ${missingFields.join(", ")}.`);
@@ -612,26 +612,35 @@ function CheckoutPage() {
       <div className="theme-webdesign relative min-h-screen bg-background text-foreground">
         {Header}
         <main className="flex min-h-screen items-start justify-center px-4 pb-16 pt-24 sm:px-6">
-          <div className="glass-panel w-full max-w-2xl rounded-3xl p-8 text-center shadow-2xl sm:p-12">
-            <CheckCircle2 className="mx-auto size-12 text-primary" />
-            <h1 className="font-display mt-6 text-3xl font-semibold">¡Gracias por tu compra!</h1>
-            <p className="mt-3 text-muted-foreground">
-              Tu pedido <span className="text-foreground">{orderId}</span> fue confirmado.
-            </p>
-            <p className="mt-3 text-sm text-muted-foreground">
-              En unos segundos vas a ser redirigido al catálogo completo de la tienda.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Button asChild>
-                <Link to="/">
-                  <ShoppingBag className="size-4" /> Seguir comprando
-                </Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link to="/cuenta/panel">
-                  <Package className="size-4" /> Ver mis compras
-                </Link>
-              </Button>
+          <div className="fixed inset-0 z-100 flex items-center justify-center bg-background/80 px-4 backdrop-blur-md">
+            <div
+              className="glass-panel w-full max-w-2xl rounded-3xl p-8 text-center shadow-2xl sm:p-12"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="checkout-complete-title"
+            >
+              <CheckCircle2 className="mx-auto size-12 text-primary" />
+              <h1 id="checkout-complete-title" className="font-display mt-6 text-3xl font-semibold">
+                ¡Gracias por tu compra!
+              </h1>
+              <p className="mt-3 text-muted-foreground">
+                Tu pedido <span className="text-foreground">{orderId}</span> fue confirmado.
+              </p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                En unos segundos vas a ser redirigido al catálogo completo de la tienda.
+              </p>
+              <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <Button asChild>
+                  <Link to="/productos" replace>
+                    <ShoppingBag className="size-4" /> Seguir comprando
+                  </Link>
+                </Button>
+                <Button asChild variant="secondary">
+                  <Link to="/cuenta/compras" replace>
+                    <Package className="size-4" /> Ver mis compras
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </main>
@@ -785,16 +794,17 @@ function CheckoutPage() {
                     />
                   )}
                   <div className="grid gap-3 pt-2 sm:grid-cols-2">
-                    {([
-                      ["Calle", street, setStreet, true],
-                      ["Altura", streetNumber, setStreetNumber, true],
-                      ["Piso", floor, setFloor, false],
-                      ["Departamento", apartment, setApartment, false],
-                      ["Ciudad", city, setCity, true],
-                      ["Provincia", province, setProvince, true],
-                      ["Código Postal", postalCode, setPostalCode, true],
-                    ] as Array<[string, string, (next: string) => void, boolean]>).map(
-                      ([label, value, setter, synced]) => (
+                    {(
+                      [
+                        ["Calle", street, setStreet, true],
+                        ["Altura", streetNumber, setStreetNumber, true],
+                        ["Piso", floor, setFloor, false],
+                        ["Departamento", apartment, setApartment, false],
+                        ["Ciudad", city, setCity, true],
+                        ["Provincia", province, setProvince, true],
+                        ["Código Postal", postalCode, setPostalCode, true],
+                      ] as Array<[string, string, (next: string) => void, boolean]>
+                    ).map(([label, value, setter, synced]) => (
                       <label key={String(label)} className="space-y-1 text-sm">
                         <span>{label}</span>
                         <Input
@@ -807,8 +817,7 @@ function CheckoutPage() {
                           className={synced ? "bg-muted/40" : "bg-background"}
                         />
                       </label>
-                      ),
-                    )}
+                    ))}
                   </div>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
@@ -994,7 +1003,9 @@ function CheckoutPage() {
                     </div>
                     <div className="flex items-center justify-between text-green-600">
                       <span>Descuento</span>
-                      <span>-{formatPrice((discountedItemsSubtotal * couponPercentage) / 100)}</span>
+                      <span>
+                        -{formatPrice((discountedItemsSubtotal * couponPercentage) / 100)}
+                      </span>
                     </div>
                   </>
                 )}

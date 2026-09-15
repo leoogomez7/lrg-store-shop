@@ -250,7 +250,7 @@ function CartPage() {
                         {item.stockUnlimited ? "∞ Stock ilimitado" : `${item.stock} disponibles`}
                       </p>
                     </div>
-                    <div className="ml-auto flex w-32 shrink-0 flex-col items-center gap-2 pr-0 pt-8 sm:w-36">
+                    <div className="order-3 flex w-full shrink-0 items-center justify-between gap-3 pt-0 sm:order-none sm:ml-auto sm:w-36 sm:flex-col sm:items-center sm:gap-2 sm:pt-8">
                       <p className="font-display text-center text-lg font-semibold">
                         {formatPrice(item.price * item.quantity)}
                       </p>
