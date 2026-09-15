@@ -970,7 +970,7 @@ function AccountPageContent({
 
                 <DialogContent className="max-h-[min(92vh,46rem)] max-w-md overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
                   <DialogHeader className="space-y-2 text-left">
-                    <DialogTitle className="text-2xl font-semibold leading-tight">
+                    <DialogTitle className="text-lg font-semibold leading-tight">
                       Filtros
                     </DialogTitle>
                   </DialogHeader>
@@ -1126,12 +1126,12 @@ function AccountPageContent({
                         <div id="orders-total-list" className="space-y-3">
                           <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-foreground/90">
                             <label className="flex shrink-0 items-center gap-2">
-                              <span>Desde $</span>
+                              <span>Desde $/USD</span>
                               <Input
                                 type="number"
                                 min={0}
                                 max={ordersTotalLimit}
-                                value={ordersTotalMin}
+                                value={ordersTotalMin || 0}
                                 onChange={(event) => {
                                   const value = Number(event.target.value);
                                   if (!Number.isFinite(value)) return;
@@ -1144,12 +1144,12 @@ function AccountPageContent({
                               />
                             </label>
                             <label className="flex shrink-0 items-center justify-end gap-2">
-                              <span>Hasta $</span>
+                              <span>Hasta $/USD</span>
                               <Input
                                 type="number"
                                 min={0}
                                 max={ordersTotalLimit}
-                                value={ordersTotalMax}
+                                value={ordersTotalMax || ordersTotalLimit}
                                 onChange={(event) => {
                                   const value = Number(event.target.value);
                                   if (!Number.isFinite(value)) return;
@@ -1187,16 +1187,15 @@ function AccountPageContent({
                       <p className="text-xs text-muted-foreground">
                         {filteredOrders.length} compras encontradas
                       </p>
-                      {ordersFilterCount > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={resetOrderFilters}
-                          className="ml-auto flex h-8 px-2 text-xs"
-                        >
-                          <X className="mr-1 size-3.5" /> Limpiar
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={resetOrderFilters}
+                        disabled={ordersFilterCount === 0}
+                        className="ml-auto flex h-8 px-2 text-xs"
+                      >
+                        <X className="mr-1 size-3.5" /> Limpiar
+                      </Button>
                     </div>
                   </div>
                 </DialogContent>
