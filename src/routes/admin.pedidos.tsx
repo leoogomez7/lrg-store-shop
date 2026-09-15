@@ -303,6 +303,21 @@ const defaultPaymentMethods = [
   "MercadoPago",
 ];
 
+const toggleFilterSelection = (
+  selected: string[],
+  value: string,
+  checked: boolean,
+  availableValues: string[],
+) => {
+  if (value === "todos") return [];
+  const next = checked
+    ? Array.from(new Set([...selected, value]))
+    : selected.filter((item) => item !== value);
+  return availableValues.length > 0 && availableValues.every((item) => next.includes(item))
+    ? []
+    : next;
+};
+
 const getConfiguredMethodNames = (storageKey: string, fallback: string[]) => {
   try {
     const raw = localStorage.getItem(storageKey);
@@ -477,13 +492,13 @@ function AdminOrders() {
   const [shippingMethodFilter, setShippingMethodFilter] = useState<string[]>([]);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string[]>([]);
   const [brand, setBrand] = useState<BrandSlug[]>([]);
-  const [currencyFilter, setCurrencyFilter] = useState<Array<"ARS" | "USD">>([]);
+  const [currencyFilter, setCurrencyFilter] = useState<Array<"ARS" | "USD">>(["ARS", "USD"]);
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(0);
   const [quantityMin, setQuantityMin] = useState(0);
   const [quantityMax, setQuantityMax] = useState(0);
   const [query, setQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState<OrderSort | null>(null);
+  const [sortOrder, setSortOrder] = useState<OrderSort | null>("date_desc");
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number | null>(null);
@@ -936,7 +951,7 @@ function AdminOrders() {
     shippingMethodFilter.length +
     paymentMethodFilter.length +
     brand.length +
-    currencyFilter.length +
+    (currencyFilter.length === 1 ? 1 : 0) +
     (priceMin > 0 ? 1 : 0) +
     (priceMax < priceLimit ? 1 : 0) +
     (quantityMin > 0 ? 1 : 0) +
@@ -948,7 +963,7 @@ function AdminOrders() {
     setShippingMethodFilter([]);
     setPaymentMethodFilter([]);
     setBrand([]);
-    setCurrencyFilter([]);
+    setCurrencyFilter(["ARS", "USD"]);
     setPriceMin(0);
     setPriceMax(priceLimit);
     setQuantityMin(0);
@@ -974,10 +989,14 @@ function AdminOrders() {
       setOpen: setBrandFilterOpen,
       selected: brand,
       setSelected: (value, checked) =>
-        setBrand((current) =>
-          checked
-            ? [...current, value as BrandSlug]
-            : current.filter((selectedValue) => selectedValue !== value),
+        setBrand(
+          (current) =>
+            toggleFilterSelection(
+              current,
+              value,
+              checked,
+              brandsFilter.filter((item) => item !== "todos"),
+            ) as BrandSlug[],
         ),
       options: brandsFilter
         .filter((item) => item !== "todos")
@@ -989,10 +1008,12 @@ function AdminOrders() {
       setOpen: setDeliveryFilterOpen,
       selected: deliveryFilter,
       setSelected: (value, checked) =>
-        setDeliveryFilter((current) =>
-          checked
-            ? [...current, value as DeliveryStatus]
-            : current.filter((selectedValue) => selectedValue !== value),
+        setDeliveryFilter(
+          (current) =>
+            toggleFilterSelection(current, value, checked, [
+              "Pendiente",
+              "Enviado",
+            ]) as DeliveryStatus[],
         ),
       options: (["Pendiente", "Enviado"] as DeliveryStatus[]).map((item) => ({
         value: item,
@@ -1005,10 +1026,13 @@ function AdminOrders() {
       setOpen: setPaymentFilterOpen,
       selected: paymentFilter,
       setSelected: (value, checked) =>
-        setPaymentFilter((current) =>
-          checked
-            ? [...current, value as PaymentStatus]
-            : current.filter((selectedValue) => selectedValue !== value),
+        setPaymentFilter(
+          (current) =>
+            toggleFilterSelection(current, value, checked, [
+              "Pendiente",
+              "Pagado",
+              "Cancelado",
+            ]) as PaymentStatus[],
         ),
       options: (["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((item) => ({
         value: item,
@@ -1022,9 +1046,7 @@ function AdminOrders() {
       selected: shippingMethodFilter,
       setSelected: (value, checked) =>
         setShippingMethodFilter((current) =>
-          checked
-            ? [...current, value]
-            : current.filter((selectedValue) => selectedValue !== value),
+          toggleFilterSelection(current, value, checked, availableShippingMethods),
         ),
       options: availableShippingMethods.map((item) => ({ value: item, label: item })),
     },
@@ -1035,9 +1057,7 @@ function AdminOrders() {
       selected: paymentMethodFilter,
       setSelected: (value, checked) =>
         setPaymentMethodFilter((current) =>
-          checked
-            ? [...current, value]
-            : current.filter((selectedValue) => selectedValue !== value),
+          toggleFilterSelection(current, value, checked, availablePaymentMethods),
         ),
       options: availablePaymentMethods.map((item) => ({ value: item, label: item })),
     },
@@ -1416,7 +1436,7 @@ function AdminOrders() {
           />
         </div>
 
-        <div className="order-3 flex shrink-0 flex-wrap items-center gap-2">
+        <div className="order-3 flex w-full shrink-0 flex-wrap items-center justify-start gap-2 sm:w-auto">
           <Button
             variant="default"
             size="sm"
@@ -1433,7 +1453,6 @@ function AdminOrders() {
                 ref={sortButtonRef as any}
                 variant={sortMenuOpen ? "secondary" : "outline"}
                 size="sm"
-                onClick={() => setSortMenuOpen((current) => !current)}
                 className="h-9 shrink-0 gap-1.5 px-2.5"
                 aria-expanded={sortMenuOpen}
               >
@@ -1497,7 +1516,7 @@ function AdminOrders() {
               <DialogHeader className="space-y-2">
                 <DialogTitle>Filtros</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-6 pt-2 sm:grid-cols-2">
+              <div className="space-y-6 pt-2">
                 {filterSections.map(({ label, open, setOpen, selected, setSelected, options }) => (
                   <div key={label} className="space-y-3">
                     <button
@@ -1516,13 +1535,17 @@ function AdminOrders() {
                     </button>
                     {open && (
                       <div className="space-y-2.5">
-                        {options.map((option) => (
+                        {[{ value: "todos", label: "Todos" }, ...options].map((option) => (
                           <label
                             key={option.value}
                             className="flex cursor-pointer items-start gap-3 text-sm"
                           >
                             <Checkbox
-                              checked={selected.includes(option.value)}
+                              checked={
+                                option.value === "todos"
+                                  ? selected.length === 0
+                                  : selected.includes(option.value)
+                              }
                               onCheckedChange={(checked) =>
                                 setSelected(option.value, checked === true)
                               }
@@ -1543,7 +1566,7 @@ function AdminOrders() {
                     aria-expanded={priceFilterOpen}
                   >
                     <span>Precio total</span>
-                    {currencyFilter.length > 0 && (
+                    {currencyFilter.length === 1 && (
                       <Badge variant="secondary">{currencyFilter.length}</Badge>
                     )}
                     {priceFilterOpen ? (
@@ -1564,8 +1587,10 @@ function AdminOrders() {
                             onCheckedChange={(checked) =>
                               setCurrencyFilter((current) =>
                                 checked
-                                  ? [...current, currency]
-                                  : current.filter((value) => value !== currency),
+                                  ? Array.from(new Set([...current, currency]))
+                                  : current.length === 1
+                                    ? current
+                                    : current.filter((value) => value !== currency),
                               )
                             }
                           />
@@ -1695,9 +1720,18 @@ function AdminOrders() {
                   )}
                 </div>
               </div>
-              <div className="flex justify-end pt-2">
-                <Button type="button" variant="outline" onClick={resetFilters}>
-                  Limpiar filtros
+              <div className="flex items-center justify-between border-t border-border/50 pt-4">
+                <p className="text-xs text-muted-foreground">
+                  {results.length} pedidos encontrados
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={resetFilters}
+                  disabled={activeFilterCount === 0}
+                  className="h-8 px-2 text-xs"
+                >
+                  <X className="mr-1 size-3.5" /> Limpiar
                 </Button>
               </div>
             </DialogContent>
@@ -1797,7 +1831,7 @@ function AdminOrders() {
 
       <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
         <Table
-          containerClassName="overflow-x-auto overflow-y-visible"
+          containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
           className="w-full min-w-280 table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">

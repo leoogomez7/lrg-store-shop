@@ -24,6 +24,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { logout } from "@/lib/auth";
+import { getKindeRedirectUri } from "@/lib/kinde";
 import { brandList, type BrandConfig } from "@/config/brands";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/store/cart-context";
@@ -116,11 +117,11 @@ function BrandHeaderContent({
     (slug: string, closeMenu = false) =>
     (e: MouseEvent<HTMLAnchorElement>) => {
       e?.preventDefault?.();
-      const href = slug === "store-shop" ? "/" : `/${slug}`;
+      const href = slug === "store-shop" ? "/productos" : `/${slug}`;
       if (typeof window !== "undefined" && window.location.pathname === href) {
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else if (slug === "store-shop") {
-        navigate({ to: "/" });
+        navigate({ to: "/productos" });
       } else {
         navigate({ to: "/$brand", params: { brand: slug } });
       }
@@ -135,7 +136,7 @@ function BrandHeaderContent({
   const brandLabel = displayBrandName ?? brand.name;
   const brandLogoSlug = logoBrandSlug ?? brand.slug;
   const headerThemeClass = headerTheme ?? brand.theme;
-  const brandHref = displayBrandName ? "/" : `/${brand.slug}`;
+  const brandHref = displayBrandName ? "/productos" : `/${brand.slug}`;
 
   const otherBrands = brandList.filter((item) => item.slug !== effectiveSlug);
   const tiendaMenuItems = [
@@ -180,7 +181,11 @@ function BrandHeaderContent({
         className={`${headerThemeClass} fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl`}
       >
         <div className="mx-auto flex h-16 w-full max-w-7xl min-w-0 items-center gap-1 overflow-visible px-2 sm:gap-4 sm:px-6">
-          <Link to="/" className="shrink-0" aria-label={brandLabel}>
+          <Link
+            to={displayBrandName ? "/productos" : "/"}
+            className="shrink-0"
+            aria-label={brandLabel}
+          >
             <BrandMark compact brandSlug={brandLogoSlug} />
           </Link>
 
@@ -257,7 +262,10 @@ function BrandHeaderContent({
                 </>
               ) : (
                 <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
-                  <Link to={userRole === "admin" ? "/admin/panel" : "/cuenta/panel"} aria-label="Mi cuenta">
+                  <Link
+                    to={userRole === "admin" ? "/admin/panel" : "/cuenta/panel"}
+                    aria-label="Mi cuenta"
+                  >
                     <User className="size-4" aria-hidden="true" />
                     <span>Mi cuenta</span>
                   </Link>
@@ -296,7 +304,11 @@ function BrandHeaderContent({
                 </>
               ) : (
                 <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
-                  <Link to={userRole === "admin" ? "/admin/panel" : "/cuenta/panel"} aria-label="Mi cuenta" title="Mi cuenta">
+                  <Link
+                    to={userRole === "admin" ? "/admin/panel" : "/cuenta/panel"}
+                    aria-label="Mi cuenta"
+                    title="Mi cuenta"
+                  >
                     <User className="size-4" aria-hidden="true" />
                     <span className="hidden sm:inline">Mi cuenta</span>
                   </Link>
@@ -330,7 +342,12 @@ function BrandHeaderContent({
               </Link>
             </Button>
 
-            <Button asChild variant="ghost" size="sm" className="order-0 rounded-xl gap-2 px-2 sm:px-3">
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="order-0 rounded-xl gap-2 px-2 sm:px-3"
+            >
               <Link to="/" aria-label="Inicio" title="Inicio">
                 <House className="size-4" aria-hidden="true" />
                 <span className="hidden sm:inline">Inicio</span>
@@ -471,7 +488,12 @@ function BrandHeaderContent({
 
             <DropdownMenu open={openMenu} onOpenChange={setOpenMenu}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="order-1 rounded-xl gap-2 px-2 sm:px-3" title="Tiendas">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="order-1 rounded-xl gap-2 px-2 sm:px-3"
+                  title="Tiendas"
+                >
                   <Store className="size-4" aria-hidden="true" />
                   <span className="hidden sm:inline">Tiendas</span>
                 </Button>
@@ -502,7 +524,7 @@ function BrandHeaderContent({
         cancelLabel="No"
         onConfirm={async () => {
           await logout();
-          await kindeLogout();
+          await kindeLogout({ redirectUrl: getKindeRedirectUri("/") ?? "/" });
           navigate({ to: "/" });
         }}
       />

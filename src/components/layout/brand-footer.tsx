@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -177,8 +177,14 @@ function BrandFooterContent({
     typeof window !== "undefined" &&
     window.sessionStorage.getItem("lrg_auth_role") === "admin" &&
     window.sessionStorage.getItem("lrg_admin_final_verified") === "true";
-  const categories = section === "brand" ? brand.categories : [];
-  type FooterMenuItem = [label: string, to: string, icon?: React.ComponentType<{ className?: string }>];
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const categories =
+    section === "brand" && !pathname.includes("/producto/") ? brand.categories : [];
+  type FooterMenuItem = [
+    label: string,
+    to: string,
+    icon?: React.ComponentType<{ className?: string }>,
+  ];
 
   const accountMenu: FooterMenuItem[] = [
     ["Panel administrativo", "/cuenta/panel", LayoutDashboard],

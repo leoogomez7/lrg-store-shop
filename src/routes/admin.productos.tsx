@@ -79,6 +79,11 @@ import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
 
 type DeliveryUnit = "inmediata" | "horas" | "dias";
 type CurrencyCode = "ARS" | "USD";
+type CategoryLabelNode = {
+  slug: string;
+  name: string;
+  children?: CategoryLabelNode[];
+};
 type ProductFormState = {
   id: string;
   name: string;
@@ -1172,6 +1177,34 @@ function AdminProducts() {
       ).sort((a, b) => a.localeCompare(b)),
     [editableProducts],
   );
+  const categoryLabels = useMemo(() => {
+    const labels = new Map<string, string>();
+    const collect = (items: CategoryLabelNode[]) => {
+      items.forEach((item) => {
+        labels.set(item.slug, item.name);
+        if (item.children) collect(item.children);
+      });
+    };
+    brandList.forEach((brand) => {
+      brand.categories.forEach((category) => {
+        labels.set(category.slug, category.name);
+        collect(category.subcategories ?? []);
+      });
+    });
+    return labels;
+  }, []);
+  const formatCategoryLabel = (slug: string) => {
+    const configuredLabel =
+      categoryLabels.get(slug) ?? categoryLabels.get(slug.replace(/^root-/, ""));
+    if (configuredLabel) return configuredLabel;
+    return slug
+      .replace(/^\d+-/, "")
+      .replace(/^root-/, "")
+      .split("-")
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
 
   const results = useMemo(() => {
     const filtered = editableProducts.filter((product) => {
@@ -1377,7 +1410,6 @@ function AdminProducts() {
                 ref={sortButtonRef}
                 variant={sortMenuOpen ? "secondary" : "outline"}
                 size="sm"
-                onClick={() => setSortMenuOpen((current) => !current)}
                 className="h-9 shrink-0 gap-1.5 px-2.5"
                 aria-expanded={sortMenuOpen}
               >
@@ -1487,7 +1519,7 @@ function AdminProducts() {
                               })
                             }
                           />
-                          <span className="font-medium">{category}</span>
+                          <span className="font-medium">{formatCategoryLabel(category)}</span>
                         </label>
                       ))}
                     </div>
@@ -1660,7 +1692,7 @@ function AdminProducts() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
+                <div className="mx-1 flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
                   <Label htmlFor="admin-filter-discount" className="cursor-pointer text-sm">
                     Sólo con descuento
                   </Label>
@@ -1671,7 +1703,7 @@ function AdminProducts() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
+                <div className="mx-1 flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
                   <Label htmlFor="admin-filter-stock" className="cursor-pointer text-sm">
                     Sólo con stock
                   </Label>
@@ -1682,7 +1714,7 @@ function AdminProducts() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
+                <div className="mx-1 flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
                   <Label htmlFor="admin-filter-available" className="cursor-pointer text-sm">
                     Sólo disponible
                   </Label>

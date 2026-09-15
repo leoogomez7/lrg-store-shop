@@ -10,10 +10,16 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
 import { orderQueries, type Order } from "@/services/catalog.service";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
+  ArrowUpDown,
+  ChevronDown,
+  ChevronUp,
   Download,
   Eye,
   EyeOff,
@@ -23,6 +29,7 @@ import {
   Sheet,
   Save,
   X,
+  Filter,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useNavigate } from "@tanstack/react-router";
@@ -32,8 +39,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { saveOrders, orders as ordersData, type OrderAttachment } from "@/data/orders";
+import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
 
 export const Route = createFileRoute("/admin/clientes")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
@@ -47,7 +56,29 @@ function AdminClients() {
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
   const [query, setQuery] = useState("");
-  type Customer = { key: string; name: string; email: string; orders: Order[] };
+  const [sortOrder, setSortOrder] = useState<
+    "name_asc" | "name_desc" | "orders_asc" | "orders_desc" | "spent_asc" | "spent_desc"
+  >("name_asc");
+  const [storeFilter, setStoreFilter] = useState<string[]>([]);
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
+  const [currencyFilter, setCurrencyFilter] = useState<Array<"ARS" | "USD">>(["ARS", "USD"]);
+  const [ordersMin, setOrdersMin] = useState(0);
+  const [ordersMax, setOrdersMax] = useState(0);
+  const [spentMin, setSpentMin] = useState(0);
+  const [spentMax, setSpentMax] = useState(0);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [storeOpen, setStoreOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [ordersOpen, setOrdersOpen] = useState(false);
+  const [spentOpen, setSpentOpen] = useState(false);
+  type Customer = {
+    key: string;
+    name: string;
+    email: string;
+    isGuest: boolean;
+    orders: Order[];
+  };
 
   const customers = useMemo(() => {
     const map = new Map<string, Customer>();
@@ -69,16 +100,69 @@ function AdminClients() {
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [orders]);
 
+  const ordersLimit = Math.max(1, ...customers.map((customer) => customer.orders.length));
+  const spentLimit = Math.max(
+    1,
+    ...customers.map((customer) =>
+      customer.orders.reduce((sum, order) => sum + (order.total || 0), 0),
+    ),
+  );
+
+  useEffect(() => {
+    setOrdersMax(ordersLimit);
+    setSpentMax(spentLimit);
+  }, [ordersLimit, spentLimit]);
+
   const filteredCustomers = useMemo(() => {
-    if (!query) return customers;
     const q = query.toLowerCase();
-    return customers.filter((c) => {
+    const filtered = customers.filter((c) => {
       const name = (c.name ?? "").toLowerCase();
       const email = (c.email ?? "").toLowerCase();
       const key = (c.key ?? "").toLowerCase();
-      return name.includes(q) || email.includes(q) || key.includes(q);
+      const totalSpent = c.orders.reduce((sum, order) => sum + (order.total || 0), 0);
+      const hasStore =
+        !storeFilter.length || c.orders.some((order) => storeFilter.includes(order.brand));
+      const typeMatches =
+        !typeFilter.length || typeFilter.includes(c.isGuest ? "guest" : "customer");
+      return (
+        (!q || name.includes(q) || email.includes(q) || key.includes(q)) &&
+        hasStore &&
+        typeMatches &&
+        c.orders.length >= ordersMin &&
+        c.orders.length <= ordersMax &&
+        totalSpent >= spentMin &&
+        totalSpent <= spentMax
+      );
     });
-  }, [customers, query]);
+    return [...filtered].sort((a, b) => {
+      const aSpent = a.orders.reduce((sum, order) => sum + (order.total || 0), 0);
+      const bSpent = b.orders.reduce((sum, order) => sum + (order.total || 0), 0);
+      switch (sortOrder) {
+        case "name_desc":
+          return b.name.localeCompare(a.name);
+        case "orders_asc":
+          return a.orders.length - b.orders.length;
+        case "orders_desc":
+          return b.orders.length - a.orders.length;
+        case "spent_asc":
+          return aSpent - bSpent;
+        case "spent_desc":
+          return bSpent - aSpent;
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
+  }, [
+    customers,
+    query,
+    sortOrder,
+    storeFilter,
+    typeFilter,
+    ordersMin,
+    ordersMax,
+    spentMin,
+    spentMax,
+  ]);
 
   const visibleCustomers = useMemo(() => {
     if (!pageSize || pageSize <= 0) return [] as typeof customers;
@@ -88,6 +172,100 @@ function AdminClients() {
     pageSize && pageSize > 0 ? Math.max(1, Math.ceil(filteredCustomers.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
+  const activeFilterCount =
+    storeFilter.length +
+    typeFilter.length +
+    (currencyFilter.length === 1 ? 1 : 0) +
+    (ordersMin > 0 ? 1 : 0) +
+    (ordersMax < ordersLimit ? 1 : 0) +
+    (spentMin > 0 ? 1 : 0) +
+    (spentMax < spentLimit ? 1 : 0);
+  const resetFilters = () => {
+    setStoreFilter([]);
+    setTypeFilter([]);
+    setCurrencyFilter(["ARS", "USD"]);
+    setOrdersMin(0);
+    setOrdersMax(ordersLimit);
+    setSpentMin(0);
+    setSpentMax(spentLimit);
+  };
+  const toggleSelection = (
+    selected: string[],
+    value: string,
+    checked: boolean,
+    allValues: string[],
+  ) => {
+    if (value === "all") return [];
+    const next = checked
+      ? Array.from(new Set([...selected, value]))
+      : selected.filter((item) => item !== value);
+    return allValues.length > 0 && allValues.every((item) => next.includes(item)) ? [] : next;
+  };
+  const storeOptions = [
+    ["arcade", "LRG Arcade"],
+    ["scents", "LRG Scents"],
+    ["web-design", "LRG Web Design"],
+  ] as const;
+  const sortOptions = [
+    ["name_asc", "Cliente: A-Z"],
+    ["name_desc", "Cliente: Z-A"],
+    ["orders_asc", "Pedidos: menor a mayor"],
+    ["orders_desc", "Pedidos: mayor a menor"],
+    ["spent_asc", "Gastado: menor a mayor"],
+    ["spent_desc", "Gastado: mayor a menor"],
+  ] as const;
+  const filterChips: FilterChipItem[] = [
+    ...(query ? [{ key: "search", label: `Buscar: ${query}`, onRemove: () => setQuery("") }] : []),
+    ...storeFilter.map((store) => ({
+      key: `store-${store}`,
+      label: storeOptions.find(([value]) => value === store)?.[1] ?? store,
+      onRemove: () => setStoreFilter((current) => current.filter((item) => item !== store)),
+    })),
+    ...typeFilter.map((type) => ({
+      key: `type-${type}`,
+      label: type === "guest" ? "Invitados" : "Clientes",
+      onRemove: () => setTypeFilter((current) => current.filter((item) => item !== type)),
+    })),
+    ...(currencyFilter.length === 1
+      ? [
+          {
+            key: "currency",
+            label: currencyFilter[0] === "ARS" ? "$ (ARS)" : "USD (Dólar)",
+            onRemove: () => setCurrencyFilter(["ARS", "USD"]),
+          },
+        ]
+      : []),
+    ...(ordersMin > 0
+      ? [
+          {
+            key: "orders-min",
+            label: `Pedidos desde ${ordersMin}`,
+            onRemove: () => setOrdersMin(0),
+          },
+        ]
+      : []),
+    ...(ordersMax < ordersLimit
+      ? [
+          {
+            key: "orders-max",
+            label: `Pedidos hasta ${ordersMax}`,
+            onRemove: () => setOrdersMax(ordersLimit),
+          },
+        ]
+      : []),
+    ...(spentMin > 0
+      ? [{ key: "spent-min", label: `Gastado desde ${spentMin}`, onRemove: () => setSpentMin(0) }]
+      : []),
+    ...(spentMax < spentLimit
+      ? [
+          {
+            key: "spent-max",
+            label: `Gastado hasta ${spentMax}`,
+            onRemove: () => setSpentMax(spentLimit),
+          },
+        ]
+      : []),
+  ];
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
@@ -108,6 +286,302 @@ function AdminClients() {
         </div>
 
         <div className="order-3 flex basis-full flex-wrap items-center justify-end gap-2 sm:basis-auto sm:shrink-0">
+          <Dialog open={sortOpen} onOpenChange={setSortOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
+                <ArrowUpDown className="size-4" /> Ordenar por
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+              <DialogHeader>
+                <DialogTitle>Ordenar por</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-1 pt-2">
+                {sortOptions.map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setSortOrder(value);
+                      setSortOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2 ${sortOrder === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"}`}
+                  >
+                    <span>{label}</span>
+                    {sortOrder === value && <span aria-hidden="true">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
+                <Filter className="size-4" /> Filtros
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[min(92vh,48rem)] max-w-2xl overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+              <DialogHeader>
+                <DialogTitle>Filtros</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6 pt-2">
+                {[
+                  {
+                    label: "Productos comprados en tiendas",
+                    open: storeOpen,
+                    setOpen: setStoreOpen,
+                    selected: storeFilter,
+                    setSelected: setStoreFilter,
+                    options: storeOptions,
+                  },
+                  {
+                    label: "Tipo cliente",
+                    open: typeOpen,
+                    setOpen: setTypeOpen,
+                    selected: typeFilter,
+                    setSelected: setTypeFilter,
+                    options: [
+                      ["customer", "Clientes"],
+                      ["guest", "Invitados"],
+                    ] as const,
+                  },
+                ].map((section) => (
+                  <div key={section.label} className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => section.setOpen((current) => !current)}
+                      className="flex items-center gap-2 text-sm font-medium"
+                      aria-expanded={section.open}
+                    >
+                      <span>{section.label}</span>
+                      {section.selected.length > 0 && (
+                        <Badge variant="secondary">{section.selected.length}</Badge>
+                      )}
+                      {section.open ? (
+                        <ChevronUp className="size-4" />
+                      ) : (
+                        <ChevronDown className="size-4" />
+                      )}
+                    </button>
+                    {section.open && (
+                      <div className="space-y-2.5">
+                        {[...[["all", "Todos"] as const], ...section.options].map(
+                          ([value, label]) => (
+                            <label
+                              key={value}
+                              className="flex cursor-pointer items-start gap-3 text-sm"
+                            >
+                              <Checkbox
+                                checked={
+                                  value === "all"
+                                    ? section.selected.length === 0
+                                    : section.selected.includes(value)
+                                }
+                                onCheckedChange={(checked) =>
+                                  section.setSelected(
+                                    toggleSelection(
+                                      section.selected,
+                                      value,
+                                      checked === true,
+                                      section.options.map(([option]) => option),
+                                    ),
+                                  )
+                                }
+                              />
+                              <span className="font-medium">{label}</span>
+                            </label>
+                          ),
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setSpentOpen((current) => !current)}
+                    className="flex items-center gap-2 text-sm font-medium"
+                    aria-expanded={spentOpen}
+                  >
+                    <span>Total gastado</span>
+                    {spentOpen ? (
+                      <ChevronUp className="size-4" />
+                    ) : (
+                      <ChevronDown className="size-4" />
+                    )}
+                  </button>
+                  {spentOpen && (
+                    <div className="space-y-3">
+                      <div className="space-y-2.5">
+                        {(["ARS", "USD"] as const).map((currency) => (
+                          <label
+                            key={currency}
+                            className="flex cursor-pointer items-start gap-3 text-sm"
+                          >
+                            <Checkbox
+                              checked={currencyFilter.includes(currency)}
+                              onCheckedChange={(checked) =>
+                                setCurrencyFilter((current) =>
+                                  checked
+                                    ? Array.from(new Set([...current, currency]))
+                                    : current.length === 1
+                                      ? current
+                                      : current.filter((item) => item !== currency),
+                                )
+                              }
+                            />
+                            <span className="font-medium">
+                              {currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
+                        <label className="flex items-center gap-2">
+                          <span>
+                            Desde{" "}
+                            {currencyFilter.length === 2
+                              ? "$/USD"
+                              : currencyFilter[0] === "USD"
+                                ? "USD"
+                                : "$"}
+                          </span>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={spentLimit}
+                            value={spentMin}
+                            onChange={(event) =>
+                              setSpentMin(
+                                Math.min(Math.max(0, Number(event.target.value) || 0), spentMax),
+                              )
+                            }
+                            className="h-8 w-24"
+                          />
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <span>
+                            Hasta{" "}
+                            {currencyFilter.length === 2
+                              ? "$/USD"
+                              : currencyFilter[0] === "USD"
+                                ? "USD"
+                                : "$"}
+                          </span>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={spentLimit}
+                            value={spentMax}
+                            onChange={(event) =>
+                              setSpentMax(
+                                Math.max(
+                                  Math.min(spentLimit, Number(event.target.value) || 0),
+                                  spentMin,
+                                ),
+                              )
+                            }
+                            className="h-8 w-24"
+                          />
+                        </label>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={spentLimit}
+                        step={Math.max(1, Math.round(spentLimit / 100))}
+                        value={[spentMin, spentMax]}
+                        onValueChange={(value) => {
+                          setSpentMin(value[0] ?? 0);
+                          setSpentMax(value[1] ?? spentLimit);
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setOrdersOpen((current) => !current)}
+                    className="flex items-center gap-2 text-sm font-medium"
+                    aria-expanded={ordersOpen}
+                  >
+                    <span>Total de pedidos</span>
+                    {ordersOpen ? (
+                      <ChevronUp className="size-4" />
+                    ) : (
+                      <ChevronDown className="size-4" />
+                    )}
+                  </button>
+                  {ordersOpen && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
+                        <label className="flex items-center gap-2">
+                          <span>Desde</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={ordersLimit}
+                            value={ordersMin}
+                            onChange={(event) =>
+                              setOrdersMin(
+                                Math.min(Math.max(0, Number(event.target.value) || 0), ordersMax),
+                              )
+                            }
+                            className="h-8 w-24"
+                          />
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <span>Hasta</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={ordersLimit}
+                            value={ordersMax}
+                            onChange={(event) =>
+                              setOrdersMax(
+                                Math.max(
+                                  Math.min(ordersLimit, Number(event.target.value) || 0),
+                                  ordersMin,
+                                ),
+                              )
+                            }
+                            className="h-8 w-24"
+                          />
+                        </label>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={ordersLimit}
+                        step={1}
+                        value={[ordersMin, ordersMax]}
+                        onValueChange={(value) => {
+                          setOrdersMin(value[0] ?? 0);
+                          setOrdersMax(value[1] ?? ordersLimit);
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between border-t border-border/50 pt-4">
+                  <p className="text-xs text-muted-foreground">
+                    {filteredCustomers.length} clientes encontrados
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetFilters}
+                    disabled={activeFilterCount === 0}
+                    className="h-8 px-2 text-xs"
+                  >
+                    <X className="mr-1 size-3.5" /> Limpiar
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Button
             className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {
@@ -216,6 +690,7 @@ function AdminClients() {
         </div>
       </div>
 
+      <FilterChipList chips={filterChips} />
       <div className="glass-panel mt-4 w-full max-w-full rounded-2xl">
         <Table
           containerClassName="overflow-x-auto overflow-y-visible"

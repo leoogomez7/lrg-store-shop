@@ -1659,7 +1659,7 @@ function AccountPageContent({
                       </TableCell>
                       <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap justify-center gap-1">
+                        <div className="flex flex-wrap justify-center gap-1 md:flex-nowrap md:whitespace-nowrap">
                           <Button
                             type="button"
                             variant="ghost"
@@ -2327,7 +2327,7 @@ function AccountPageContent({
             </div>
             <Button
               size="sm"
-              className="h-9 gap-2 rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb]"
+              className="hidden h-9 gap-2 rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb] sm:inline-flex"
               onClick={() => {
                 setShowAddForm((current) => !current);
                 setEditingIndex(null);
@@ -2789,6 +2789,26 @@ function AccountPageContent({
               </div>
             ))}
           </div>
+          <Button
+            size="sm"
+            className="mt-1 h-9 gap-2 self-start rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb] sm:hidden"
+            onClick={() => {
+              setShowAddForm((current) => !current);
+              setEditingIndex(null);
+              setAddressLabel("");
+              setAddressValue("");
+              setAddressStreet("");
+              setAddressNumber("");
+              setAddressFloor("");
+              setAddressApartment("");
+              setAddressCity("");
+              setAddressProvince("");
+              setAddressPostalCode("");
+              setAddressSuggestions([]);
+            }}
+          >
+            <Plus className="size-4" /> Nueva dirección
+          </Button>
           <ConfirmDialog
             open={deleteOpen}
             onOpenChange={setDeleteOpen}
@@ -2827,7 +2847,7 @@ function AccountPageContent({
           </div>
 
           {favoriteProducts.length > 0 ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {favoriteProducts.map((product, index) => (
                 <ProductCard
                   key={product.id}
@@ -3029,7 +3049,7 @@ function AccountPageContent({
               </SheetTrigger>
               <SheetContent side="left" className="w-[min(86vw,20rem)] p-5">
                 <SheetHeader className="mb-6 text-left">
-                  <SheetTitle>Navegación de cuenta</SheetTitle>
+                  <SheetTitle>Mi menú</SheetTitle>
                 </SheetHeader>
                 <nav className="space-y-1">
                   {accountNavItems.map(({ key, label, icon: Icon, route, exact }) => {
@@ -3109,6 +3129,7 @@ function AccountPageContent({
           await kindeLogout({
             redirectUrl: getKindeRedirectUri("/") ?? "/",
           });
+          navigate({ to: "/", replace: true });
         }}
       />
     </div>

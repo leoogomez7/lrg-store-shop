@@ -1,4 +1,11 @@
-import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  redirect,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -32,13 +39,7 @@ import { LoadingState } from "@/components/common/loading-state";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -494,6 +495,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     await kindeLogout({
                       redirectUrl: getKindeRedirectUri("/") ?? "/",
                     });
+                    navigate({ to: "/", replace: true });
                   }}
                 />
               </>
@@ -521,25 +523,25 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   <SheetTitle>Navegación administrativa</SheetTitle>
                 </SheetHeader>
                 <nav className="space-y-1">
-                {navigation.map((item) => {
-                  const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "group relative overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:before:opacity-100",
-                        active
-                          ? "border-white/10 bg-surface-2 text-foreground font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      <item.icon className="size-4 shrink-0" />
-                      <span className="relative z-10">{item.label}</span>
-                    </Link>
-                  );
-                })}
+                  {navigation.map((item) => {
+                    const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
+                    return (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "group relative overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:before:opacity-100",
+                          active
+                            ? "border-white/10 bg-surface-2 text-foreground font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        <item.icon className="size-4 shrink-0" />
+                        <span className="relative z-10">{item.label}</span>
+                      </Link>
+                    );
+                  })}
                 </nav>
                 <Button
                   variant="ghost"
@@ -607,12 +609,14 @@ function AdminEntryNotice() {
               stock: variant.stock,
               stockUnlimited: variant.stockUnlimited ?? product.stockUnlimited,
             }))
-          : [{
-              id: product.id,
-              name: product.name,
-              stock: product.stock,
-              stockUnlimited: product.stockUnlimited,
-            }],
+          : [
+              {
+                id: product.id,
+                name: product.name,
+                stock: product.stock,
+                stockUnlimited: product.stockUnlimited,
+              },
+            ],
       )
       .filter((product) => !product.stockUnlimited && product.stock <= 5)
       .sort((first, second) => first.stock - second.stock);
@@ -687,21 +691,27 @@ function AdminEntryNotice() {
                     <li key={order.id} className="flex items-start justify-between gap-3">
                       <span>
                         <span className="block font-medium text-foreground">{order.customer}</span>
-                        <span className="text-xs">{order.id} · {formatDate(order.date)}</span>
+                        <span className="text-xs">
+                          {order.id} · {formatDate(order.date)}
+                        </span>
                       </span>
-                      <span className="whitespace-nowrap">${order.total.toLocaleString("es-AR")}</span>
+                      <span className="whitespace-nowrap">
+                        ${order.total.toLocaleString("es-AR")}
+                      </span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-muted-foreground">No hay compras nuevas desde el último ingreso.</p>
+                <p className="text-sm text-muted-foreground">
+                  No hay compras nuevas desde el último ingreso.
+                </p>
               )}
             </section>
           </div>
 
           <DialogFooter className="mt-6">
-              <Button type="button" onClick={acknowledgeNotice}>
-                <Check className="size-4" />
+            <Button type="button" onClick={acknowledgeNotice}>
+              <Check className="size-4" />
               Entendido
             </Button>
           </DialogFooter>

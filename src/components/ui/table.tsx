@@ -77,7 +77,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
         {scrollbarState.visible && (
           <div
             ref={scrollbarRef}
-            className="fixed bottom-2 z-50 overflow-x-auto rounded-full border border-border/70 bg-background/95 shadow-lg backdrop-blur"
+            className="fixed bottom-0 z-50 overflow-x-auto rounded-full border border-border/70 bg-background/95 shadow-lg backdrop-blur"
             style={{ left: scrollbarState.left, width: scrollbarState.width }}
             onScroll={(event) => {
               const container = containerRef.current;
