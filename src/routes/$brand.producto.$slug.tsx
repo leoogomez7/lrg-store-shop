@@ -54,6 +54,10 @@ export const Route = createFileRoute("/$brand/producto/$slug")({
       short: product.short,
       brandName: brand.name,
       favicon: brand.favicon,
+      configuredCategories: brand.categories,
+      configuredPaymentMethods: (brand.paymentMethods ?? [])
+        .filter((method) => method.enabled)
+        .map((method) => method.name),
     };
   },
   head: ({ loaderData }) => {
@@ -85,6 +89,7 @@ export const Route = createFileRoute("/$brand/producto/$slug")({
 
 function ProductDetail() {
   const params = Route.useParams();
+  const loaderData = Route.useLoaderData();
   const brand = getBrand(params.brand)!;
   const { data: product } = useSuspenseQuery(catalogQueries.detail(brand.slug, params.slug));
   const { data: related } = useSuspenseQuery(catalogQueries.related(brand.slug, params.slug));
@@ -184,7 +189,7 @@ function ProductDetail() {
     }
     return null;
   };
-  const category = brand.categories.find(
+  const category = loaderData.configuredCategories.find(
     (item) =>
       normalizeTaxonomyValue(item.slug) === categoryValue ||
       normalizeTaxonomyValue(item.name) === categoryValue ||
@@ -196,9 +201,7 @@ function ProductDetail() {
       : []
     : [];
   const selectedSubcategory = subcategoryPath[0];
-  const configuredPaymentMethods = (brand.paymentMethods ?? [])
-    .filter((method) => method.enabled)
-    .map((method) => method.name);
+  const configuredPaymentMethods = loaderData.configuredPaymentMethods;
   const freeShippingThreshold = brand.shipping?.freeShippingThreshold ?? 0;
 
   const deliveryUnit = selectedVariant?.deliveryUnit ?? product.deliveryUnit ?? "inmediata";
