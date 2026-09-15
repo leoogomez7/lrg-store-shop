@@ -73,6 +73,8 @@ function CatalogPage() {
     return () => window.removeEventListener("lrg-brand-data-updated", handleBrandDataUpdated);
   }, []);
 
+  const configuredCategories = brand.categories;
+
   const priceLimit = useMemo(
     () =>
       Math.max(
@@ -109,8 +111,8 @@ function CatalogPage() {
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
   const selectedCategoryValues = useMemo(
-    () => getCategoryFilterValues(brand.categories, filters.categories),
-    [brand.categories, filters.categories],
+    () => getCategoryFilterValues(configuredCategories, filters.categories),
+    [configuredCategories, filters.categories],
   );
 
   const results = useMemo(() => {
@@ -261,7 +263,7 @@ function CatalogPage() {
             </DialogHeader>
             <div className="pt-2">
               <ProductFilters
-                categories={brand.categories}
+                categories={configuredCategories}
                 filters={filters}
                 priceLimit={priceLimit}
                 resultCount={results.length}

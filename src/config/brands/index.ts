@@ -50,28 +50,24 @@ const defaultBrands: Record<BrandSlug, BrandConfig> = {
 };
 
 function readStoredCategories(): Record<BrandSlug, BrandCategory[]> {
+  const emptyCategories = {
+    arcade: [],
+    scents: [],
+    "web-design": [],
+  } satisfies Record<BrandSlug, BrandCategory[]>;
+
   try {
     const raw = remoteSetting<Partial<Record<BrandSlug, BrandCategory[]>>>(CATEGORY_STORAGE_KEY);
-    if (!raw) {
-      return {
-        arcade: defaultBrands.arcade.categories,
-        scents: defaultBrands.scents.categories,
-        "web-design": defaultBrands["web-design"].categories,
-      };
-    }
+    if (!raw) return emptyCategories;
 
     const parsed = raw as Partial<Record<BrandSlug, BrandCategory[]>>;
     return {
-      arcade: parsed.arcade ?? defaultBrands.arcade.categories,
-      scents: parsed.scents ?? defaultBrands.scents.categories,
-      "web-design": parsed["web-design"] ?? defaultBrands["web-design"].categories,
+      arcade: parsed.arcade ?? [],
+      scents: parsed.scents ?? [],
+      "web-design": parsed["web-design"] ?? [],
     };
   } catch {
-    return {
-      arcade: defaultBrands.arcade.categories,
-      scents: defaultBrands.scents.categories,
-      "web-design": defaultBrands["web-design"].categories,
-    };
+    return emptyCategories;
   }
 }
 

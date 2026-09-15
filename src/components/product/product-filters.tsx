@@ -44,6 +44,7 @@ export function ProductFilters({
   hideSearch,
   hideSort,
   showBrandFilter = false,
+  brandFilterLabel = "Sectores",
 }: {
   categories: BrandCategory[];
   filters: CatalogFilters;
@@ -54,12 +55,14 @@ export function ProductFilters({
   hideSearch?: boolean;
   hideSort?: boolean;
   showBrandFilter?: boolean;
+  brandFilterLabel?: string;
 }) {
+  const priceCurrencyFilterActive = filters.priceCurrencies?.length === 1;
   const activeCount =
     (filters.search ? 1 : 0) +
     filters.categories.length +
     (filters.brands?.length ?? 0) +
-    (filters.priceCurrencies?.length ?? 0) +
+    (priceCurrencyFilterActive ? 1 : 0) +
     (filters.inStockOnly ? 1 : 0) +
     (filters.minPrice > 0 ? 1 : 0) +
     (filters.maxPrice < priceLimit ? 1 : 0);
@@ -104,6 +107,11 @@ export function ProductFilters({
 
   return (
     <aside className="h-fit w-full max-w-full space-y-6 lg:sticky lg:top-24">
+      <label className="flex cursor-pointer items-center gap-3 text-sm transition-opacity hover:opacity-80">
+        <Checkbox checked={activeCount === 0} onCheckedChange={() => onReset()} />
+        <span className="font-semibold">Todos</span>
+      </label>
+
       {!hideSearch && (
         <div className="space-y-2">
           <Label htmlFor="filter-search">Buscar</Label>
@@ -172,7 +180,7 @@ export function ProductFilters({
               aria-expanded={brandsOpen}
               aria-controls="brands-list"
             >
-              <span>Sectores</span>
+              <span>{brandFilterLabel}</span>
               {activeBrandCount > 0 && <Badge variant="secondary">{activeBrandCount}</Badge>}
               {brandsOpen ? (
                 <ChevronUp className="size-4 text-muted-foreground" />

@@ -297,6 +297,7 @@ function ProductosPage() {
                       }}
                       hideSearch
                       showBrandFilter
+                      brandFilterLabel="Tiendas"
                     />
                   </div>
                 </DialogContent>

@@ -270,11 +270,21 @@ function AccountPageContent({
   const [ordersStoreOpen, setOrdersStoreOpen] = useState(false);
   const [ordersDatesOpen, setOrdersDatesOpen] = useState(false);
   const [ordersShippingOpen, setOrdersShippingOpen] = useState(false);
+  const [ordersPaymentStatusOpen, setOrdersPaymentStatusOpen] = useState(false);
+  const [ordersDocumentsOpen, setOrdersDocumentsOpen] = useState(false);
+  const [ordersReceiptsOpen, setOrdersReceiptsOpen] = useState(false);
   const [ordersTotalOpen, setOrdersTotalOpen] = useState(false);
   const [ordersBrandFilter, setOrdersBrandFilter] = useState("all");
   const [ordersDateFrom, setOrdersDateFrom] = useState("");
   const [ordersDateTo, setOrdersDateTo] = useState("");
   const [ordersStatusFilter, setOrdersStatusFilter] = useState("all");
+  const [ordersPaymentStatusFilter, setOrdersPaymentStatusFilter] = useState("all");
+  const [ordersDocumentsFilter, setOrdersDocumentsFilter] = useState("all");
+  const [ordersReceiptsFilter, setOrdersReceiptsFilter] = useState("all");
+  const [ordersTotalCurrencies, setOrdersTotalCurrencies] = useState<Array<"ARS" | "USD">>([
+    "ARS",
+    "USD",
+  ]);
   const [ordersTotalMin, setOrdersTotalMin] = useState("");
   const [ordersTotalMax, setOrdersTotalMax] = useState("");
   const hasProfileChanges =
@@ -329,6 +339,21 @@ function AccountPageContent({
           (order.deliveryStatus ?? "Pendiente") !== ordersStatusFilter
         )
           return false;
+        if (
+          ordersPaymentStatusFilter !== "all" &&
+          (order.paymentStatus ?? "Pendiente") !== ordersPaymentStatusFilter
+        )
+          return false;
+        if (
+          ordersDocumentsFilter !== "all" &&
+          (ordersDocumentsFilter === "yes") !== Boolean(order.attachments?.length)
+        )
+          return false;
+        if (
+          ordersReceiptsFilter !== "all" &&
+          (ordersReceiptsFilter === "yes") !== Boolean(order.paymentReceipts?.length)
+        )
+          return false;
         if (totalMin !== null && Number.isFinite(totalMin) && order.total < totalMin) return false;
         if (totalMax !== null && Number.isFinite(totalMax) && order.total > totalMax) return false;
         return true;
@@ -347,6 +372,9 @@ function AccountPageContent({
     ordersDateFrom,
     ordersDateTo,
     ordersStatusFilter,
+    ordersPaymentStatusFilter,
+    ordersDocumentsFilter,
+    ordersReceiptsFilter,
     ordersTotalMin,
     ordersTotalMax,
   ]);
@@ -369,17 +397,30 @@ function AccountPageContent({
     (ordersDateFrom ? 1 : 0) +
     (ordersDateTo ? 1 : 0) +
     (ordersStatusFilter !== "all" ? 1 : 0) +
+    (ordersPaymentStatusFilter !== "all" ? 1 : 0) +
+    (ordersDocumentsFilter !== "all" ? 1 : 0) +
+    (ordersReceiptsFilter !== "all" ? 1 : 0) +
     (ordersTotalMin ? 1 : 0) +
     (ordersTotalMax ? 1 : 0);
   const ordersTotalLimit = Math.max(1, ...visibleOrders.map((order) => order.total));
   const ordersTotalMinValue = ordersTotalMin === "" ? 0 : Number(ordersTotalMin);
   const ordersTotalMaxValue = ordersTotalMax === "" ? ordersTotalLimit : Number(ordersTotalMax);
+  const ordersTotalCurrencyLabel =
+    ordersTotalCurrencies.length === 2
+      ? "$/USD"
+      : ordersTotalCurrencies[0] === "USD"
+        ? "USD"
+        : "$";
 
   const resetOrderFilters = () => {
     setOrdersBrandFilter("all");
     setOrdersDateFrom("");
     setOrdersDateTo("");
     setOrdersStatusFilter("all");
+    setOrdersPaymentStatusFilter("all");
+    setOrdersDocumentsFilter("all");
+    setOrdersReceiptsFilter("all");
+    setOrdersTotalCurrencies(["ARS", "USD"]);
     setOrdersTotalMin("");
     setOrdersTotalMax("");
   };
@@ -1013,7 +1054,7 @@ function AccountPageContent({
                                   setOrdersBrandFilter(checked ? brandSlug : "all");
                                 }}
                               />
-                              <span className="font-medium">{brand.shortName}</span>
+                              <span className="font-medium">LRG {brand.shortName}</span>
                             </label>
                           ))}
                         </div>
@@ -1092,7 +1133,128 @@ function AccountPageContent({
                               <Checkbox
                                 checked={ordersStatusFilter === value}
                                 onCheckedChange={(checked) => {
-                                  setOrdersStatusFilter(checked ? value : "all");
+                                  setOrdersStatusFilter(checked ? value ?? "all" : "all");
+                                }}
+                              />
+                              <span className="font-medium">{label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setOrdersPaymentStatusOpen((current) => !current)}
+                        className="flex items-center gap-2 text-sm font-medium"
+                        aria-expanded={ordersPaymentStatusOpen}
+                        aria-controls="orders-payment-status-list"
+                      >
+                        <span>Estado de pago</span>
+                        {ordersPaymentStatusFilter !== "all" && <Badge variant="secondary">1</Badge>}
+                        {ordersPaymentStatusOpen ? (
+                          <ChevronUp className="size-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="size-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      {ordersPaymentStatusOpen && (
+                        <div id="orders-payment-status-list" className="space-y-2.5">
+                          {[
+                            ["all", "Todos los estados"],
+                            ["Pendiente", "Pendiente"],
+                            ["Pagado", "Pagado"],
+                            ["Cancelado", "Cancelado"],
+                          ].map(([value, label]) => (
+                            <label
+                              key={value}
+                              className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
+                            >
+                              <Checkbox
+                                checked={ordersPaymentStatusFilter === value}
+                                onCheckedChange={(checked) => {
+                                  setOrdersPaymentStatusFilter(checked ? value ?? "all" : "all");
+                                }}
+                              />
+                              <span className="font-medium">{label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setOrdersDocumentsOpen((current) => !current)}
+                        className="flex items-center gap-2 text-sm font-medium"
+                        aria-expanded={ordersDocumentsOpen}
+                        aria-controls="orders-documents-list"
+                      >
+                        <span>Documentos</span>
+                        {ordersDocumentsFilter !== "all" && <Badge variant="secondary">1</Badge>}
+                        {ordersDocumentsOpen ? (
+                          <ChevronUp className="size-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="size-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      {ordersDocumentsOpen && (
+                        <div id="orders-documents-list" className="space-y-2.5">
+                          {[
+                            ["all", "Todos"],
+                            ["yes", "Con documentos"],
+                            ["no", "Sin documentos"],
+                          ].map(([value, label]) => (
+                            <label
+                              key={value}
+                              className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
+                            >
+                              <Checkbox
+                                checked={ordersDocumentsFilter === value}
+                                onCheckedChange={(checked) => {
+                                  setOrdersDocumentsFilter(checked ? value ?? "all" : "all");
+                                }}
+                              />
+                              <span className="font-medium">{label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setOrdersReceiptsOpen((current) => !current)}
+                        className="flex items-center gap-2 text-sm font-medium"
+                        aria-expanded={ordersReceiptsOpen}
+                        aria-controls="orders-receipts-list"
+                      >
+                        <span>Comprobantes</span>
+                        {ordersReceiptsFilter !== "all" && <Badge variant="secondary">1</Badge>}
+                        {ordersReceiptsOpen ? (
+                          <ChevronUp className="size-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="size-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      {ordersReceiptsOpen && (
+                        <div id="orders-receipts-list" className="space-y-2.5">
+                          {[
+                            ["all", "Todos"],
+                            ["yes", "Con comprobantes"],
+                            ["no", "Sin comprobantes"],
+                          ].map(([value, label]) => (
+                            <label
+                              key={value}
+                              className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
+                            >
+                              <Checkbox
+                                checked={ordersReceiptsFilter === value}
+                                onCheckedChange={(checked) => {
+                                  setOrdersReceiptsFilter(checked ? value ?? "all" : "all");
                                 }}
                               />
                               <span className="font-medium">{label}</span>
@@ -1124,9 +1286,31 @@ function AccountPageContent({
                       </button>
                       {ordersTotalOpen && (
                         <div id="orders-total-list" className="space-y-3">
+                          <div className="space-y-2.5">
+                            {(["ARS", "USD"] as const).map((currency) => (
+                              <label
+                                key={currency}
+                                className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
+                              >
+                                <Checkbox
+                                  checked={ordersTotalCurrencies.includes(currency)}
+                                  onCheckedChange={(checked) => {
+                                    setOrdersTotalCurrencies((current) =>
+                                      checked
+                                        ? Array.from(new Set([...current, currency]))
+                                        : current.filter((value) => value !== currency),
+                                    );
+                                  }}
+                                />
+                                <span className="font-medium">
+                                  {currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
                           <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-foreground/90">
                             <label className="flex shrink-0 items-center gap-2">
-                              <span>Desde $/USD</span>
+                              <span>Desde {ordersTotalCurrencyLabel}</span>
                               <Input
                                 type="number"
                                 min={0}
@@ -1144,7 +1328,7 @@ function AccountPageContent({
                               />
                             </label>
                             <label className="flex shrink-0 items-center justify-end gap-2">
-                              <span>Hasta $/USD</span>
+                              <span>Hasta {ordersTotalCurrencyLabel}</span>
                               <Input
                                 type="number"
                                 min={0}
