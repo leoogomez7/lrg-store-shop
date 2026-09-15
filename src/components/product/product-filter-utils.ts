@@ -16,6 +16,52 @@ export function formatDeliveryTime(product: Product): string {
   return "Entrega inmediata";
 }
 
+export function buildDeliveryOptions(products: Product[]): string[] {
+  const immediate = products.some((product) => (product.deliveryUnit ?? "inmediata") === "inmediata");
+  const grouped = new Map<"horas" | "dias", number[]>();
+
+  products.forEach((product) => {
+    const unit = product.deliveryUnit;
+    const amount = product.deliveryAmount;
+    if ((unit === "horas" || unit === "dias") && amount) {
+      grouped.set(unit, [...(grouped.get(unit) ?? []), amount]);
+    }
+  });
+
+  return [
+    ...(immediate ? ["Entrega inmediata"] : []),
+    ...(["dias", "horas"] as const).flatMap((unit) => {
+      const values = Array.from(new Set(grouped.get(unit) ?? [])).sort((a, b) => a - b);
+      if (values.length === 0) return [];
+      const unitLabel = unit === "dias" ? "días" : "horas";
+      const minimum = values[0] ?? 0;
+      const maximum = values[values.length - 1] ?? minimum;
+      return [
+        minimum === maximum
+          ? `Entrega en ${minimum} ${unitLabel}`
+          : `Entrega entre ${minimum} ${unitLabel} y ${maximum} ${unitLabel}`,
+      ];
+    }),
+  ];
+}
+
+export function matchesDeliveryOption(product: Product, option: string): boolean {
+  if (option === "Entrega inmediata") return formatDeliveryTime(product) === option;
+  const match = option.match(/Entrega entre (\d+) (días|horas) y (\d+) \2/);
+  if (match) {
+    const unit = match[2] === "días" ? "dias" : "horas";
+    const minimum = Number(match[1]);
+    const maximum = Number(match[3]);
+    return (
+      product.deliveryUnit === unit &&
+      product.deliveryAmount !== undefined &&
+      product.deliveryAmount >= minimum &&
+      product.deliveryAmount <= maximum
+    );
+  }
+  return formatDeliveryTime(product) === option;
+}
+
 export const sortLabels: Record<SortOption, string> = {
   "descuento-asc": "Precio: menor a mayor",
   "descuento-desc": "Precio: mayor a menor",

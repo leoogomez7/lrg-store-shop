@@ -262,6 +262,13 @@ export function ProductFilters({
 
           {brandsOpen && (
             <div id="brands-list" className="space-y-2.5">
+              <label className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80">
+                <Checkbox
+                  checked={(filters.brands ?? []).length === 0}
+                  onCheckedChange={() => onChange({ brands: [] })}
+                />
+                <span className="font-semibold">Todas las tiendas</span>
+              </label>
               {brandList.map((brand) => {
                 const checked = (filters.brands ?? []).includes(brand.slug);
                 return (

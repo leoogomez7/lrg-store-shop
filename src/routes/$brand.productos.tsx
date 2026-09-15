@@ -14,14 +14,17 @@ import {
 } from "@/components/ui/dialog";
 import { ProductFilters, type CatalogFilters } from "@/components/product/product-filters";
 import {
+  buildDeliveryOptions,
   formatDeliveryTime,
   getCategoryFilterValues,
+  matchesDeliveryOption,
   sortLabels,
 } from "@/components/product/product-filter-utils";
 import { ProductCard } from "@/components/product/product-card";
-import { getBrand } from "@/config/brands";
+import { applyAdminSettings, getBrand, refreshBrandData } from "@/config/brands";
 import { catalogQueries } from "@/services/catalog.service";
 import { orders } from "@/data/orders";
+import { loadAdminSettings } from "@/server/persistence";
 
 const searchSchema = z.object({
   categoria: z.string().optional(),
@@ -31,6 +34,9 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/$brand/productos")({
   validateSearch: searchSchema,
   loader: async ({ params, context }) => {
+    const settings = await loadAdminSettings({ data: {} });
+    applyAdminSettings(settings);
+    refreshBrandData();
     const brand = getBrand(params.brand);
     if (!brand) throw notFound();
     await context.queryClient.ensureQueryData(catalogQueries.byBrand(brand.slug));
@@ -78,7 +84,7 @@ function CatalogPage() {
   }, []);
 
   const configuredCategories = brand.categories;
-  const deliveryOptions = Array.from(new Set(products.map(formatDeliveryTime).filter(Boolean)));
+  const deliveryOptions = buildDeliveryOptions(products);
   const shippingOptions = (brand.shipping?.methods ?? [])
     .filter((method) => method.enabled)
     .map((method) => method.name);
@@ -134,7 +140,7 @@ function CatalogPage() {
       if (
         filters.deliveryTime &&
         filters.deliveryTime !== "all" &&
-        formatDeliveryTime(product) !== filters.deliveryTime
+        !matchesDeliveryOption(product, filters.deliveryTime)
       )
         return false;
       if (

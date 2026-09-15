@@ -9,8 +9,10 @@ import { BrandHeader } from "@/components/layout/brand-header";
 import { ProductCard } from "@/components/product/product-card";
 import { ProductFilters, type CatalogFilters } from "@/components/product/product-filters";
 import {
+  buildDeliveryOptions,
   formatDeliveryTime,
   getCategoryFilterValues,
+  matchesDeliveryOption,
   mergeBrandCategories,
   sortLabels,
 } from "@/components/product/product-filter-utils";
@@ -25,6 +27,8 @@ import { Input } from "@/components/ui/input";
 import { brandList } from "@/config/brands";
 import { webDesignConfig } from "@/config/brands/web-design.config";
 import { catalogQueries } from "@/services/catalog.service";
+import { applyAdminSettings, refreshBrandData } from "@/config/brands";
+import { loadAdminSettings } from "@/server/persistence";
 
 const searchSchema = z.object({
   categoria: z.string().optional(),
@@ -33,6 +37,9 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/productos")({
   validateSearch: searchSchema,
   loader: async ({ context }) => {
+    const settings = await loadAdminSettings({ data: {} });
+    applyAdminSettings(settings);
+    refreshBrandData();
     await context.queryClient.ensureQueryData(catalogQueries.all());
     return null;
   },
@@ -70,7 +77,7 @@ function ProductosPage() {
   }, []);
 
   const categories = mergeBrandCategories(brandList.flatMap((brand) => brand.categories));
-  const deliveryOptions = Array.from(new Set(products.map(formatDeliveryTime).filter(Boolean)));
+  const deliveryOptions = buildDeliveryOptions(products);
   const shippingOptions = Array.from(
     new Set(
       brandList.flatMap((brand) =>
@@ -142,7 +149,7 @@ function ProductosPage() {
       if (
         filters.deliveryTime &&
         filters.deliveryTime !== "all" &&
-        formatDeliveryTime(product) !== filters.deliveryTime
+        !matchesDeliveryOption(product, filters.deliveryTime)
       )
         return false;
       if (

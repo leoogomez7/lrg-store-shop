@@ -58,6 +58,7 @@ export const Route = createFileRoute("/$brand/producto/$slug")({
       configuredPaymentMethods: (brand.paymentMethods ?? [])
         .filter((method) => method.enabled)
         .map((method) => method.name),
+      configuredFreeShippingThreshold: brand.shipping?.freeShippingThreshold ?? 0,
     };
   },
   head: ({ loaderData }) => {
@@ -202,7 +203,7 @@ function ProductDetail() {
     : [];
   const selectedSubcategory = subcategoryPath[0];
   const configuredPaymentMethods = loaderData.configuredPaymentMethods;
-  const freeShippingThreshold = brand.shipping?.freeShippingThreshold ?? 0;
+  const freeShippingThreshold = loaderData.configuredFreeShippingThreshold;
 
   const deliveryUnit = selectedVariant?.deliveryUnit ?? product.deliveryUnit ?? "inmediata";
   const deliveryAmount = selectedVariant?.deliveryAmount ?? product.deliveryAmount ?? 0;
@@ -253,16 +254,16 @@ function ProductDetail() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/$brand" params={{ brand: brand.slug }}>
-                {brand.shortName}
+              <Link to="/productos">
+                Todos los productos
               </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/$brand/productos" params={{ brand: brand.slug }}>
-                Catálogo
+              <Link to="/$brand" params={{ brand: brand.slug }}>
+                {brand.shortName}
               </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
@@ -459,8 +460,9 @@ function ProductDetail() {
             </div>
           )}
           <div className="mt-3 flex flex-wrap gap-2">
-            {configuredPaymentMethods.map((payment) => (
-              <span key={payment} className="text-xs text-muted-foreground">
+            {configuredPaymentMethods.map((payment, index) => (
+              <span key={payment} className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                {index > 0 && <span aria-hidden="true">·</span>}
                 {payment}
               </span>
             ))}
