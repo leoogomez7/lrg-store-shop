@@ -85,6 +85,33 @@ import { catalogQueries, orderQueries, orderService } from "@/services/catalog.s
 import type { Order, OrderAttachment } from "@/data/orders";
 import { hydrateFavorites, subscribeToFavoriteChanges } from "@/lib/favorites";
 
+function getOrderStoreSummaries(order: Order) {
+  const storeSlugs = Array.from(
+    new Set(order.items.map((item) => item.brand).filter(Boolean)),
+  ) as string[];
+  const stores = storeSlugs.length > 0 ? storeSlugs : [order.brand];
+  const isMultiStore = stores.length > 1;
+
+  return stores.map((storeSlug) => {
+    const store = brands[storeSlug as keyof typeof brands];
+    const storeItems = order.items.filter((item) => item.brand === storeSlug);
+    const paymentMethods = Array.from(
+      new Set(storeItems.map((item) => item.paymentMethod).filter(Boolean)),
+    ) as string[];
+    const shippingMethods = Array.from(
+      new Set(storeItems.map((item) => item.shippingMethod).filter(Boolean)),
+    ) as string[];
+
+    return {
+      slug: storeSlug,
+      name: store?.shortName ?? storeSlug,
+      displayName: isMultiStore ? `LRG ${store?.shortName ?? storeSlug}` : store?.shortName ?? storeSlug,
+      paymentMethod: paymentMethods.join(" | ") || (!isMultiStore ? order.paymentMethod : "No especificado"),
+      shippingMethod: shippingMethods.join(" | ") || (!isMultiStore ? order.shippingMethod : "No especificado"),
+    };
+  });
+}
+
 export const Route = createFileRoute("/cuenta")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
   beforeLoad: ({ location }) => {
@@ -411,6 +438,7 @@ function AccountPageContent({
       : ordersTotalCurrencies[0] === "USD"
         ? "USD"
         : "$";
+  const detailsStoreSummaries = detailsOrder ? getOrderStoreSummaries(detailsOrder) : [];
 
   const resetOrderFilters = () => {
     setOrdersBrandFilter("all");
@@ -1664,7 +1692,9 @@ function AccountPageContent({
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Tienda</p>
-                      <p className="font-medium">{brands[detailsOrder.brand].shortName}</p>
+                      <p className="font-medium">
+                        {detailsStoreSummaries.map((store) => store.displayName).join(" | ")}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Fecha de compra</p>
@@ -1676,22 +1706,48 @@ function AccountPageContent({
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Estado de envío</p>
-                      <p className="font-medium">{detailsOrder.deliveryStatus ?? "Pendiente"}</p>
+                      <p className="font-medium">
+                        {detailsStoreSummaries
+                          .map(
+                            (store) =>
+                              `${store.displayName}: ${detailsOrder.deliveryStatus ?? "Pendiente"}`,
+                          )
+                          .join(" | ")}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Estado de pago</p>
-                      <p className="font-medium">{detailsOrder.paymentStatus ?? "Pendiente"}</p>
+                      <p className="font-medium">
+                        {detailsStoreSummaries
+                          .map(
+                            (store) =>
+                              `${store.displayName}: ${detailsOrder.paymentStatus ?? "Pendiente"}`,
+                          )
+                          .join(" | ")}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Método de pago</p>
                       <p className="font-medium">
-                        {detailsOrder.paymentMethod || "No especificado"}
+                        {detailsStoreSummaries
+                          .map((store) =>
+                            detailsStoreSummaries.length > 1
+                              ? `${store.displayName}: ${store.paymentMethod}`
+                              : store.paymentMethod,
+                          )
+                          .join(" | ")}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Método de envío</p>
                       <p className="font-medium">
-                        {detailsOrder.shippingMethod || "No especificado"}
+                        {detailsStoreSummaries
+                          .map((store) =>
+                            detailsStoreSummaries.length > 1
+                              ? `${store.displayName}: ${store.shippingMethod}`
+                              : store.shippingMethod,
+                          )
+                          .join(" | ")}
                       </p>
                     </div>
                     {detailsOrder.shippingNumber && (
