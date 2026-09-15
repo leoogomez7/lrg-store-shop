@@ -113,6 +113,16 @@ function getOrderStoreSummaries(order: Order) {
   });
 }
 
+function toggleOrderFilterOption(
+  selected: string[],
+  option: string,
+  checked: boolean,
+): string[] {
+  if (option === "all") return [];
+  if (checked) return Array.from(new Set([...selected, option]));
+  return selected.filter((value) => value !== option);
+}
+
 export const Route = createFileRoute("/cuenta")({
   loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
   beforeLoad: ({ location }) => {
@@ -304,13 +314,13 @@ function AccountPageContent({
   const [ordersDocumentsOpen, setOrdersDocumentsOpen] = useState(false);
   const [ordersReceiptsOpen, setOrdersReceiptsOpen] = useState(false);
   const [ordersTotalOpen, setOrdersTotalOpen] = useState(false);
-  const [ordersBrandFilter, setOrdersBrandFilter] = useState("all");
+  const [ordersBrandFilter, setOrdersBrandFilter] = useState<string[]>([]);
   const [ordersDateFrom, setOrdersDateFrom] = useState("");
   const [ordersDateTo, setOrdersDateTo] = useState("");
-  const [ordersStatusFilter, setOrdersStatusFilter] = useState("all");
-  const [ordersPaymentStatusFilter, setOrdersPaymentStatusFilter] = useState("all");
-  const [ordersDocumentsFilter, setOrdersDocumentsFilter] = useState("all");
-  const [ordersReceiptsFilter, setOrdersReceiptsFilter] = useState("all");
+  const [ordersStatusFilter, setOrdersStatusFilter] = useState<string[]>([]);
+  const [ordersPaymentStatusFilter, setOrdersPaymentStatusFilter] = useState<string[]>([]);
+  const [ordersDocumentsFilter, setOrdersDocumentsFilter] = useState<string[]>([]);
+  const [ordersReceiptsFilter, setOrdersReceiptsFilter] = useState<string[]>([]);
   const [ordersTotalCurrencies, setOrdersTotalCurrencies] = useState<Array<"ARS" | "USD">>([
     "ARS",
     "USD",
@@ -361,27 +371,27 @@ function AccountPageContent({
 
     return visibleOrders
       .filter((order) => {
-        if (ordersBrandFilter !== "all" && order.brand !== ordersBrandFilter) return false;
+        if (ordersBrandFilter.length && !ordersBrandFilter.includes(order.brand)) return false;
         if (ordersDateFrom && order.date < ordersDateFrom) return false;
         if (ordersDateTo && order.date > ordersDateTo) return false;
         if (
-          ordersStatusFilter !== "all" &&
-          (order.deliveryStatus ?? "Pendiente") !== ordersStatusFilter
+          ordersStatusFilter.length &&
+          !ordersStatusFilter.includes(order.deliveryStatus ?? "Pendiente")
         )
           return false;
         if (
-          ordersPaymentStatusFilter !== "all" &&
-          (order.paymentStatus ?? "Pendiente") !== ordersPaymentStatusFilter
+          ordersPaymentStatusFilter.length &&
+          !ordersPaymentStatusFilter.includes(order.paymentStatus ?? "Pendiente")
         )
           return false;
         if (
-          ordersDocumentsFilter !== "all" &&
-          (ordersDocumentsFilter === "yes") !== Boolean(order.attachments?.length)
+          ordersDocumentsFilter.length &&
+          !ordersDocumentsFilter.includes(Boolean(order.attachments?.length) ? "yes" : "no")
         )
           return false;
         if (
-          ordersReceiptsFilter !== "all" &&
-          (ordersReceiptsFilter === "yes") !== Boolean(order.paymentReceipts?.length)
+          ordersReceiptsFilter.length &&
+          !ordersReceiptsFilter.includes(Boolean(order.paymentReceipts?.length) ? "yes" : "no")
         )
           return false;
         if (totalMin !== null && Number.isFinite(totalMin) && order.total < totalMin) return false;
@@ -423,13 +433,13 @@ function AccountPageContent({
   const hasPreviousPage = ordersPage > 0;
   const canEditOrdersPageSize = true;
   const ordersFilterCount =
-    (ordersBrandFilter !== "all" ? 1 : 0) +
+    ordersBrandFilter.length +
     (ordersDateFrom ? 1 : 0) +
     (ordersDateTo ? 1 : 0) +
-    (ordersStatusFilter !== "all" ? 1 : 0) +
-    (ordersPaymentStatusFilter !== "all" ? 1 : 0) +
-    (ordersDocumentsFilter !== "all" ? 1 : 0) +
-    (ordersReceiptsFilter !== "all" ? 1 : 0) +
+    ordersStatusFilter.length +
+    ordersPaymentStatusFilter.length +
+    ordersDocumentsFilter.length +
+    ordersReceiptsFilter.length +
     (ordersTotalMin ? 1 : 0) +
     (ordersTotalMax ? 1 : 0);
   const ordersTotalLimit = Math.max(1, ...visibleOrders.map((order) => order.total));
@@ -444,13 +454,13 @@ function AccountPageContent({
   const detailsStoreSummaries = detailsOrder ? getOrderStoreSummaries(detailsOrder) : [];
 
   const resetOrderFilters = () => {
-    setOrdersBrandFilter("all");
+    setOrdersBrandFilter([]);
     setOrdersDateFrom("");
     setOrdersDateTo("");
-    setOrdersStatusFilter("all");
-    setOrdersPaymentStatusFilter("all");
-    setOrdersDocumentsFilter("all");
-    setOrdersReceiptsFilter("all");
+    setOrdersStatusFilter([]);
+    setOrdersPaymentStatusFilter([]);
+    setOrdersDocumentsFilter([]);
+    setOrdersReceiptsFilter([]);
     setOrdersTotalCurrencies(["ARS", "USD"]);
     setOrdersTotalMin("");
     setOrdersTotalMax("");
@@ -1060,7 +1070,9 @@ function AccountPageContent({
                         aria-controls="orders-store-list"
                       >
                         <span>Tienda</span>
-                        {ordersBrandFilter !== "all" && <Badge variant="secondary">1</Badge>}
+                        {ordersBrandFilter.length > 0 && (
+                          <Badge variant="secondary">{ordersBrandFilter.length}</Badge>
+                        )}
                         {ordersStoreOpen ? (
                           <ChevronUp className="size-4 text-muted-foreground" />
                         ) : (
@@ -1071,12 +1083,10 @@ function AccountPageContent({
                         <div id="orders-store-list" className="space-y-2.5">
                           <label className="flex cursor-pointer items-start gap-3 text-sm">
                             <Checkbox
-                              checked={ordersBrandFilter === "all"}
-                              onCheckedChange={(checked) => {
-                                if (checked) setOrdersBrandFilter("all");
-                              }}
+                              checked={ordersBrandFilter.length === 0}
+                              onCheckedChange={() => setOrdersBrandFilter([])}
                             />
-                            <span className="font-medium">Todas las tiendas</span>
+                            <span className="font-medium">Todos</span>
                           </label>
                           {Object.entries(brands).map(([brandSlug, brand]) => (
                             <label
@@ -1084,10 +1094,12 @@ function AccountPageContent({
                               className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
                             >
                               <Checkbox
-                                checked={ordersBrandFilter === brandSlug}
-                                onCheckedChange={(checked) => {
-                                  setOrdersBrandFilter(checked ? brandSlug : "all");
-                                }}
+                                checked={ordersBrandFilter.includes(brandSlug)}
+                                onCheckedChange={(checked) =>
+                                  setOrdersBrandFilter(
+                                    toggleOrderFilterOption(ordersBrandFilter, brandSlug, checked === true),
+                                  )
+                                }
                               />
                               <span className="font-medium">LRG {brand.shortName}</span>
                             </label>
@@ -1147,7 +1159,9 @@ function AccountPageContent({
                         aria-controls="orders-shipping-list"
                       >
                         <span>Estado de envío</span>
-                        {ordersStatusFilter !== "all" && <Badge variant="secondary">1</Badge>}
+                        {ordersStatusFilter.length > 0 && (
+                          <Badge variant="secondary">{ordersStatusFilter.length}</Badge>
+                        )}
                         {ordersShippingOpen ? (
                           <ChevronUp className="size-4 text-muted-foreground" />
                         ) : (
@@ -1156,20 +1170,22 @@ function AccountPageContent({
                       </button>
                       {ordersShippingOpen && (
                         <div id="orders-shipping-list" className="space-y-2.5">
-                          {[
-                            ["all", "Todos los estados"],
+                          {([
+                            ["all", "Todos"],
                             ["Pendiente", "Pendiente"],
                             ["Enviado", "Enviado"],
-                          ].map(([value, label]) => (
+                          ] as const).map(([value, label]) => (
                             <label
                               key={value}
                               className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
                             >
                               <Checkbox
-                                checked={ordersStatusFilter === value}
-                                onCheckedChange={(checked) => {
-                                  setOrdersStatusFilter(checked ? value ?? "all" : "all");
-                                }}
+                                checked={value === "all" ? ordersStatusFilter.length === 0 : ordersStatusFilter.includes(value)}
+                                onCheckedChange={(checked) =>
+                                  setOrdersStatusFilter(
+                                    toggleOrderFilterOption(ordersStatusFilter, value, checked === true),
+                                  )
+                                }
                               />
                               <span className="font-medium">{label}</span>
                             </label>
@@ -1187,7 +1203,9 @@ function AccountPageContent({
                         aria-controls="orders-payment-status-list"
                       >
                         <span>Estado de pago</span>
-                        {ordersPaymentStatusFilter !== "all" && <Badge variant="secondary">1</Badge>}
+                        {ordersPaymentStatusFilter.length > 0 && (
+                          <Badge variant="secondary">{ordersPaymentStatusFilter.length}</Badge>
+                        )}
                         {ordersPaymentStatusOpen ? (
                           <ChevronUp className="size-4 text-muted-foreground" />
                         ) : (
@@ -1196,21 +1214,23 @@ function AccountPageContent({
                       </button>
                       {ordersPaymentStatusOpen && (
                         <div id="orders-payment-status-list" className="space-y-2.5">
-                          {[
-                            ["all", "Todos los estados"],
+                          {([
+                            ["all", "Todos"],
                             ["Pendiente", "Pendiente"],
                             ["Pagado", "Pagado"],
                             ["Cancelado", "Cancelado"],
-                          ].map(([value, label]) => (
+                          ] as const).map(([value, label]) => (
                             <label
                               key={value}
                               className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
                             >
                               <Checkbox
-                                checked={ordersPaymentStatusFilter === value}
-                                onCheckedChange={(checked) => {
-                                  setOrdersPaymentStatusFilter(checked ? value ?? "all" : "all");
-                                }}
+                                checked={value === "all" ? ordersPaymentStatusFilter.length === 0 : ordersPaymentStatusFilter.includes(value)}
+                                onCheckedChange={(checked) =>
+                                  setOrdersPaymentStatusFilter(
+                                    toggleOrderFilterOption(ordersPaymentStatusFilter, value, checked === true),
+                                  )
+                                }
                               />
                               <span className="font-medium">{label}</span>
                             </label>
@@ -1228,7 +1248,9 @@ function AccountPageContent({
                         aria-controls="orders-documents-list"
                       >
                         <span>Documentos</span>
-                        {ordersDocumentsFilter !== "all" && <Badge variant="secondary">1</Badge>}
+                        {ordersDocumentsFilter.length > 0 && (
+                          <Badge variant="secondary">{ordersDocumentsFilter.length}</Badge>
+                        )}
                         {ordersDocumentsOpen ? (
                           <ChevronUp className="size-4 text-muted-foreground" />
                         ) : (
@@ -1237,20 +1259,22 @@ function AccountPageContent({
                       </button>
                       {ordersDocumentsOpen && (
                         <div id="orders-documents-list" className="space-y-2.5">
-                          {[
+                          {([
                             ["all", "Todos"],
                             ["yes", "Con adjuntos"],
                             ["no", "Sin adjuntos"],
-                          ].map(([value, label]) => (
+                          ] as const).map(([value, label]) => (
                             <label
                               key={value}
                               className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
                             >
                               <Checkbox
-                                checked={ordersDocumentsFilter === value}
-                                onCheckedChange={(checked) => {
-                                  setOrdersDocumentsFilter(checked ? value ?? "all" : "all");
-                                }}
+                                checked={value === "all" ? ordersDocumentsFilter.length === 0 : ordersDocumentsFilter.includes(value)}
+                                onCheckedChange={(checked) =>
+                                  setOrdersDocumentsFilter(
+                                    toggleOrderFilterOption(ordersDocumentsFilter, value, checked === true),
+                                  )
+                                }
                               />
                               <span className="font-medium">{label}</span>
                             </label>
@@ -1268,7 +1292,9 @@ function AccountPageContent({
                         aria-controls="orders-receipts-list"
                       >
                         <span>Comprobantes</span>
-                        {ordersReceiptsFilter !== "all" && <Badge variant="secondary">1</Badge>}
+                        {ordersReceiptsFilter.length > 0 && (
+                          <Badge variant="secondary">{ordersReceiptsFilter.length}</Badge>
+                        )}
                         {ordersReceiptsOpen ? (
                           <ChevronUp className="size-4 text-muted-foreground" />
                         ) : (
@@ -1277,20 +1303,22 @@ function AccountPageContent({
                       </button>
                       {ordersReceiptsOpen && (
                         <div id="orders-receipts-list" className="space-y-2.5">
-                          {[
+                          {([
                             ["all", "Todos"],
                             ["yes", "Con comprobantes"],
                             ["no", "Sin comprobantes"],
-                          ].map(([value, label]) => (
+                          ] as const).map(([value, label]) => (
                             <label
                               key={value}
                               className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80"
                             >
                               <Checkbox
-                                checked={ordersReceiptsFilter === value}
-                                onCheckedChange={(checked) => {
-                                  setOrdersReceiptsFilter(checked ? value ?? "all" : "all");
-                                }}
+                                checked={value === "all" ? ordersReceiptsFilter.length === 0 : ordersReceiptsFilter.includes(value)}
+                                onCheckedChange={(checked) =>
+                                  setOrdersReceiptsFilter(
+                                    toggleOrderFilterOption(ordersReceiptsFilter, value, checked === true),
+                                  )
+                                }
                               />
                               <span className="font-medium">{label}</span>
                             </label>
@@ -1862,7 +1890,7 @@ function AccountPageContent({
                       className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 p-3"
                     >
                       <FileText className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1 break-words text-sm">{receipt.name}</span>
+                      <span className="min-w-0 flex-1 wrap-break-word text-sm">{receipt.name}</span>
                       <div className="flex shrink-0 items-center gap-1">
                         <Button
                           type="button"
@@ -2151,7 +2179,7 @@ function AccountPageContent({
           >
             <DialogContent className="max-w-4xl">
               <DialogHeader>
-                <DialogTitle className="break-words">{previewReceipt?.name}</DialogTitle>
+                <DialogTitle className="wrap-break-word">{previewReceipt?.name}</DialogTitle>
               </DialogHeader>
               {previewReceipt?.type === "application/pdf" ? (
                 <iframe

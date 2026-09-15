@@ -9,7 +9,8 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 
 import { formatPrice } from "@/lib/format";
-import { brandList, type BrandCategory, type BrandSubcategory } from "@/config/brands";
+import { brandList } from "@/config/brands";
+import type { BrandCategory, BrandSubcategory } from "@/config/brands/types";
 import type { CurrencyCode } from "@/data/products";
 
 export type SortOption =
@@ -152,6 +153,58 @@ export function ProductFilters({
         ? "USD"
         : "$";
 
+  const getDescendantSlugs = (children: BrandSubcategory[] = []): string[] =>
+    children.flatMap((child) => [child.slug, ...getDescendantSlugs(child.children)]);
+
+  const getAncestorSlugs = (slug: string): string[] => {
+    const ancestors: string[] = [];
+
+    const findPath = (items: BrandCategory[] | BrandSubcategory[], parents: string[]): boolean => {
+      for (const item of items) {
+        if (item.slug === slug) {
+          ancestors.push(...parents);
+          return true;
+        }
+        const children = "children" in item ? item.children : (item as BrandCategory).subcategories;
+        if (children?.length && findPath(children, [...parents, item.slug])) return true;
+      }
+      return false;
+    };
+
+    findPath(categories, []);
+    return ancestors;
+  };
+
+  const toggleCategory = (slug: string, checked: boolean) => {
+    const selected = new Set(filters.categories);
+    const findDescendants = (items: BrandCategory[] | BrandSubcategory[]): string[] | null => {
+      for (const item of items) {
+        if (item.slug === slug) {
+          const children =
+            "children" in item ? item.children : (item as BrandCategory).subcategories;
+          return getDescendantSlugs(children);
+        }
+        const children = "children" in item ? item.children : (item as BrandCategory).subcategories;
+        if (children?.length) {
+          const result = findDescendants(children);
+          if (result !== null) return result;
+        }
+      }
+      return null;
+    };
+    const descendants = findDescendants(categories) ?? [];
+    const branch = [slug, ...descendants];
+
+    if (checked) {
+      branch.forEach((value) => selected.add(value));
+    } else {
+      branch.forEach((value) => selected.delete(value));
+      getAncestorSlugs(slug).forEach((value) => selected.delete(value));
+    }
+
+    onChange({ categories: Array.from(selected) });
+  };
+
   const renderSubcategory = (subcategory: BrandSubcategory, depth: number) => {
     const checked = filters.categories.includes(subcategory.slug);
     return (
@@ -162,13 +215,7 @@ export function ProductFilters({
         >
           <Checkbox
             checked={checked}
-            onCheckedChange={(value) =>
-              onChange({
-                categories: value
-                  ? [...filters.categories, subcategory.slug]
-                  : filters.categories.filter((slug) => slug !== subcategory.slug),
-              })
-            }
+            onCheckedChange={(value) => toggleCategory(subcategory.slug, value === true)}
           />
           <span className="font-medium">{subcategory.name}</span>
         </label>
@@ -217,7 +264,7 @@ export function ProductFilters({
                 checked={filters.categories.length === 0}
                 onCheckedChange={() => onChange({ categories: [] })}
               />
-              <span className="font-semibold">Todas las categorías/subcategorías</span>
+              <span className="font-semibold">Todos</span>
             </label>
             {categories.map((category) => {
               const checked = filters.categories.includes(category.slug);
@@ -226,13 +273,7 @@ export function ProductFilters({
                   <label className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80">
                     <Checkbox
                       checked={checked}
-                      onCheckedChange={(value) =>
-                        onChange({
-                          categories: value
-                            ? [...filters.categories, category.slug]
-                            : filters.categories.filter((slug) => slug !== category.slug),
-                        })
-                      }
+                      onCheckedChange={(value) => toggleCategory(category.slug, value === true)}
                     />
                     <span className="font-semibold">{category.name}</span>
                   </label>
@@ -271,7 +312,7 @@ export function ProductFilters({
                   checked={(filters.brands ?? []).length === 0}
                   onCheckedChange={() => onChange({ brands: [] })}
                 />
-                <span className="font-semibold">Todas las tiendas</span>
+                <span className="font-semibold">Todos</span>
               </label>
               {brandList.map((brand) => {
                 const checked = (filters.brands ?? []).includes(brand.slug);
