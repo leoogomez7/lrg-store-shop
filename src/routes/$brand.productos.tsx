@@ -138,7 +138,12 @@ function CatalogPage() {
     const query = filters.search.trim().toLowerCase();
     const filtered = products.filter((product) => {
       if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
-      if (filters.categories.length && !selectedCategoryValues.has(product.category)) return false;
+      if (
+        filters.categories.length &&
+        !selectedCategoryValues.has(product.category) &&
+        !selectedCategoryValues.has(product.subcategory ?? "")
+      )
+        return false;
       if (
         filters.deliveryTime?.length &&
         !filters.deliveryTime.some((option) => matchesDeliveryOption(product, option))

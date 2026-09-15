@@ -347,10 +347,13 @@ function AdminProducts() {
         if (!Number.isFinite(priceValue) || priceValue <= 0) continue;
 
         const beforePrice = lineValue.slice(0, lineValue.indexOf(priceMatch)).trim();
-        const afterPrice = lineValue.slice(lineValue.indexOf(priceMatch) + priceMatch.length).trim();
-        const candidateName = [beforePrice, afterPrice]
-          .filter(Boolean)
-          .find((part) => part.length >= 3 && !/^\d+$/.test(part)) ?? beforePrice;
+        const afterPrice = lineValue
+          .slice(lineValue.indexOf(priceMatch) + priceMatch.length)
+          .trim();
+        const candidateName =
+          [beforePrice, afterPrice]
+            .filter(Boolean)
+            .find((part) => part.length >= 3 && !/^\d+$/.test(part)) ?? beforePrice;
 
         const cleanedName = (candidateName ?? "")
           .replace(/^(?:producto|item|articulo|artículo|precio|price|valor|total|importe)\s+/i, "")
@@ -365,7 +368,9 @@ function AdminProducts() {
       }
 
       if (entries.length === 0) {
-        const fallbackMatch = normalized.match(/([A-Za-zÁÉÍÓÚáéíóúñÑ0-9][^\n]{2,100})\s*(?:[:\-]|\s)(\d{1,3}(?:[.,]\d{1,2})?)/);
+        const fallbackMatch = normalized.match(
+          /([A-Za-zÁÉÍÓÚáéíóúñÑ0-9][^\n]{2,100})\s*(?:[:\-]|\s)(\d{1,3}(?:[.,]\d{1,2})?)/,
+        );
         if (!fallbackMatch) return [];
         const candidateName = fallbackMatch[1]
           .replace(/(?:precio|price|valor|total|importe|ars|usd|\$|€)\s*[:=-]*/gi, "")
@@ -443,7 +448,8 @@ function AdminProducts() {
         rating: 0,
         reviews: 0,
         short: "Producto creado desde archivo de texto.",
-        description: "Producto generado automáticamente a partir del contenido del archivo cargado.",
+        description:
+          "Producto generado automáticamente a partir del contenido del archivo cargado.",
         features: [],
         images: [],
         createdAt: new Date().toISOString().slice(0, 10),
@@ -1362,9 +1368,7 @@ function AdminProducts() {
                       setSortMenuOpen(false);
                     }}
                     className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
-                      sortOrder === value
-                        ? "bg-surface-2 text-foreground"
-                        : "text-muted-foreground"
+                      sortOrder === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"
                     }`}
                   >
                     <span>{label}</span>
@@ -1413,16 +1417,29 @@ function AdminProducts() {
                   </button>
                   {categoriesOpen && (
                     <div className="space-y-2.5">
+                      <label className="flex cursor-pointer items-start gap-3 text-sm">
+                        <Checkbox
+                          checked={categoryFilter.length === 0}
+                          onCheckedChange={() => setCategoryFilter([])}
+                        />
+                        <span className="font-medium">Todos</span>
+                      </label>
                       {availableCategories.map((category) => (
-                        <label key={category} className="flex cursor-pointer items-start gap-3 text-sm">
+                        <label
+                          key={category}
+                          className="flex cursor-pointer items-start gap-3 text-sm"
+                        >
                           <Checkbox
                             checked={categoryFilter.includes(category)}
                             onCheckedChange={(checked) =>
-                              setCategoryFilter((current) =>
-                                checked
+                              setCategoryFilter((current) => {
+                                const next = checked
                                   ? [...current, category]
-                                  : current.filter((value) => value !== category),
-                              )
+                                  : current.filter((value) => value !== category);
+                                return availableCategories.every((value) => next.includes(value))
+                                  ? []
+                                  : Array.from(new Set(next));
+                              })
                             }
                           />
                           <span className="font-medium">{category}</span>
@@ -1440,7 +1457,9 @@ function AdminProducts() {
                     aria-expanded={brandsOpen}
                   >
                     <span>Tienda</span>
-                    {brandFilter.length > 0 && <Badge variant="secondary">{brandFilter.length}</Badge>}
+                    {brandFilter.length > 0 && (
+                      <Badge variant="secondary">{brandFilter.length}</Badge>
+                    )}
                     {brandsOpen ? (
                       <ChevronUp className="size-4 text-muted-foreground" />
                     ) : (
@@ -1449,16 +1468,31 @@ function AdminProducts() {
                   </button>
                   {brandsOpen && (
                     <div className="space-y-2.5">
+                      <label className="flex cursor-pointer items-start gap-3 text-sm">
+                        <Checkbox
+                          checked={brandFilter.length === 0}
+                          onCheckedChange={() => setBrandFilter([])}
+                        />
+                        <span className="font-medium">Todos</span>
+                      </label>
                       {brandList.map((brand) => (
-                        <label key={brand.slug} className="flex cursor-pointer items-start gap-3 text-sm">
+                        <label
+                          key={brand.slug}
+                          className="flex cursor-pointer items-start gap-3 text-sm"
+                        >
                           <Checkbox
                             checked={brandFilter.includes(brand.slug)}
                             onCheckedChange={(checked) =>
-                              setBrandFilter((current) =>
-                                checked
+                              setBrandFilter((current) => {
+                                const next = checked
                                   ? [...current, brand.slug]
-                                  : current.filter((value) => value !== brand.slug),
-                              )
+                                  : current.filter((value) => value !== brand.slug);
+                                return brandList.every((availableBrand) =>
+                                  next.includes(availableBrand.slug),
+                                )
+                                  ? []
+                                  : Array.from(new Set(next));
+                              })
                             }
                           />
                           <span className="font-medium">{brand.name}</span>
@@ -1490,7 +1524,9 @@ function AdminProducts() {
                           checked={currencyFilter.includes("ARS")}
                           onCheckedChange={(checked) =>
                             setCurrencyFilter((current) =>
-                              checked ? [...current, "ARS"] : current.filter((value) => value !== "ARS"),
+                              checked
+                                ? [...current, "ARS"]
+                                : current.filter((value) => value !== "ARS"),
                             )
                           }
                         />
@@ -1501,7 +1537,9 @@ function AdminProducts() {
                           checked={currencyFilter.includes("USD")}
                           onCheckedChange={(checked) =>
                             setCurrencyFilter((current) =>
-                              checked ? [...current, "USD"] : current.filter((value) => value !== "USD"),
+                              checked
+                                ? [...current, "USD"]
+                                : current.filter((value) => value !== "USD"),
                             )
                           }
                         />
@@ -1588,7 +1626,11 @@ function AdminProducts() {
                   <Label htmlFor="admin-filter-stock" className="cursor-pointer text-sm">
                     Sólo con stock
                   </Label>
-                  <Switch id="admin-filter-stock" checked={stockOnly} onCheckedChange={setStockOnly} />
+                  <Switch
+                    id="admin-filter-stock"
+                    checked={stockOnly}
+                    onCheckedChange={setStockOnly}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
@@ -1603,7 +1645,9 @@ function AdminProducts() {
                 </div>
 
                 <div className="flex items-center justify-between gap-2 pt-0">
-                  <p className="text-xs text-muted-foreground">{results.length} productos encontrados</p>
+                  <p className="text-xs text-muted-foreground">
+                    {results.length} productos encontrados
+                  </p>
                   {activeFilterCount > 0 && (
                     <Button
                       variant="ghost"
@@ -1738,7 +1782,6 @@ function AdminProducts() {
         </div>
       </div>
 
-
       <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
         <span className="text-sm font-medium">Seleccionar</span>
         <Checkbox
@@ -1818,7 +1861,7 @@ function AdminProducts() {
             {displayRows.map(({ product, variant }) => {
               const discount = variant?.discount ?? discounts[product.id] ?? 0;
               const displayPrice = variant?.price ?? product.price;
-              const isUnlimitedStock = (variant?.stockUnlimited ?? product.stockUnlimited) ?? false;
+              const isUnlimitedStock = variant?.stockUnlimited ?? product.stockUnlimited ?? false;
               const displayStock = isUnlimitedStock ? "∞" : (variant?.stock ?? product.stock);
               const displayComision = variant?.comision ?? product.comision ?? 0;
               const displayGastos = variant?.gastos ?? product.gastos ?? 0;
@@ -1858,36 +1901,34 @@ function AdminProducts() {
               const activeQuickBrand = quickDraft.brand ?? product.brand;
 
               return (
-                <TableRow
-                  key={`${product.id}-${variant?.id ?? "base"}`}
-                >
+                <TableRow key={`${product.id}-${variant?.id ?? "base"}`}>
                   {isQuickEditing ? (
                     <>
                       <TableCell className="min-w-64 align-middle">
                         <div className="flex min-w-60 flex-col gap-2 text-left">
                           <div className="flex items-center gap-2">
-                          <Checkbox
-                            checked={selectedProductIds.includes(
-                              getProductSelectionKey(product, variant),
-                            )}
-                            onCheckedChange={(checked) =>
-                              toggleProductSelection(
+                            <Checkbox
+                              checked={selectedProductIds.includes(
                                 getProductSelectionKey(product, variant),
-                                checked === true,
-                              )
-                            }
-                            aria-label={`Seleccionar ${product.name}`}
-                          />
-                          <Input
-                            value={quickDraft.name}
-                            onChange={(event) =>
-                              setQuickEditForm((current) => ({
-                                ...current,
-                                [quickEditKey]: { ...quickDraft, name: event.target.value },
-                              }))
-                            }
-                            className="w-full min-w-52"
-                          />
+                              )}
+                              onCheckedChange={(checked) =>
+                                toggleProductSelection(
+                                  getProductSelectionKey(product, variant),
+                                  checked === true,
+                                )
+                              }
+                              aria-label={`Seleccionar ${product.name}`}
+                            />
+                            <Input
+                              value={quickDraft.name}
+                              onChange={(event) =>
+                                setQuickEditForm((current) => ({
+                                  ...current,
+                                  [quickEditKey]: { ...quickDraft, name: event.target.value },
+                                }))
+                              }
+                              className="w-full min-w-52"
+                            />
                           </div>
                           {variant ? (
                             <div className="flex items-center gap-2">
@@ -2113,7 +2154,9 @@ function AdminProducts() {
                             }
                             aria-label={`Seleccionar ${product.name}`}
                           />
-                          <span className="min-w-0 wrap-break-word font-medium">{product.name}</span>
+                          <span className="min-w-0 wrap-break-word font-medium">
+                            {product.name}
+                          </span>
                           {variant ? (
                             <span className="flex basis-full items-center pl-6 text-[10px] uppercase tracking-wider">
                               <span className="rounded-full border border-border px-1.5 py-0.5 text-muted-foreground">
@@ -2169,7 +2212,8 @@ function AdminProducts() {
                           const actions = appliedProductActions[actionKey] ?? {
                             coupon: false,
                             interestFree: false,
-                            cardCommission: variant?.cardCommission ?? product.cardCommission ?? false,
+                            cardCommission:
+                              variant?.cardCommission ?? product.cardCommission ?? false,
                           };
                           const activeActionClass =
                             "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white";
@@ -2181,19 +2225,19 @@ function AdminProducts() {
                                   size="sm"
                                   className={`h-7 gap-1 px-2 text-[11px] ${actions.coupon ? activeActionClass : ""}`}
                                   onClick={() => {
-                                  const nextCouponState = !actions.coupon;
-                                  setAppliedProductActions((current) => ({
-                                    ...current,
-                                    [actionKey]: { ...actions, coupon: nextCouponState },
-                                  }));
-                                  toast.success(
-                                    nextCouponState ? "Cupón aplicado" : "Cupón desactivado",
-                                    {
-                                      description: nextCouponState
-                                        ? "El código válido se descontará del precio final en checkout."
-                                        : "El cupón ya no se aplicará.",
-                                    },
-                                  );
+                                    const nextCouponState = !actions.coupon;
+                                    setAppliedProductActions((current) => ({
+                                      ...current,
+                                      [actionKey]: { ...actions, coupon: nextCouponState },
+                                    }));
+                                    toast.success(
+                                      nextCouponState ? "Cupón aplicado" : "Cupón desactivado",
+                                      {
+                                        description: nextCouponState
+                                          ? "El código válido se descontará del precio final en checkout."
+                                          : "El cupón ya no se aplicará.",
+                                      },
+                                    );
                                   }}
                                 >
                                   <Tag className="size-3" /> Cupón
@@ -2203,24 +2247,24 @@ function AdminProducts() {
                                   size="sm"
                                   className={`h-7 gap-1 px-2 text-[11px] ${actions.interestFree ? activeActionClass : ""}`}
                                   onClick={() => {
-                                  const nextInterestFreeState = !actions.interestFree;
-                                  setAppliedProductActions((current) => ({
-                                    ...current,
-                                    [actionKey]: {
-                                      ...actions,
-                                      interestFree: nextInterestFreeState,
-                                    },
-                                  }));
-                                  toast.success(
-                                    nextInterestFreeState
-                                      ? "Cuotas sin interés aplicadas"
-                                      : "Cuotas sin interés desactivadas",
-                                    {
-                                      description: nextInterestFreeState
-                                        ? "El cliente abonará el mismo valor final."
-                                        : "La opción fue desactivada.",
-                                    },
-                                  );
+                                    const nextInterestFreeState = !actions.interestFree;
+                                    setAppliedProductActions((current) => ({
+                                      ...current,
+                                      [actionKey]: {
+                                        ...actions,
+                                        interestFree: nextInterestFreeState,
+                                      },
+                                    }));
+                                    toast.success(
+                                      nextInterestFreeState
+                                        ? "Cuotas sin interés aplicadas"
+                                        : "Cuotas sin interés desactivadas",
+                                      {
+                                        description: nextInterestFreeState
+                                          ? "El cliente abonará el mismo valor final."
+                                          : "La opción fue desactivada.",
+                                      },
+                                    );
                                   }}
                                 >
                                   <CreditCard className="size-3" /> Cuotas s/int
@@ -2232,17 +2276,17 @@ function AdminProducts() {
                                   size="sm"
                                   className={`h-7 gap-1 px-2 text-[11px] ${actions.cardCommission ? activeActionClass : ""}`}
                                   onClick={() => {
-                                  toggleCardCommission(product, variant);
-                                  toast.success(
-                                    !actions.cardCommission
-                                      ? "Comisión de tarjeta aplicada"
-                                      : "Comisión de tarjeta desactivada",
-                                    {
-                                      description: !actions.cardCommission
-                                        ? "Se sumará un 10% al pagar con débito o crédito."
-                                        : "La comisión ya no se aplicará.",
-                                    },
-                                  );
+                                    toggleCardCommission(product, variant);
+                                    toast.success(
+                                      !actions.cardCommission
+                                        ? "Comisión de tarjeta aplicada"
+                                        : "Comisión de tarjeta desactivada",
+                                      {
+                                        description: !actions.cardCommission
+                                          ? "Se sumará un 10% al pagar con débito o crédito."
+                                          : "La comisión ya no se aplicará.",
+                                      },
+                                    );
                                   }}
                                 >
                                   <span className="text-sm font-semibold">$</span> Comisión tarjeta
@@ -2289,43 +2333,43 @@ function AdminProducts() {
                           </div>
                           <div className="flex flex-nowrap items-center justify-center gap-1.5">
                             <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => startQuickEdit(product, variant)}
-                            className="h-7 gap-1 px-2 text-xs"
-                          >
-                            <Edit3 className="h-3.5 w-3.5" />
-                            <span>Editar rápido</span>
-                          </Button>
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startQuickEdit(product, variant)}
+                              className="h-7 gap-1 px-2 text-xs"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" />
+                              <span>Editar rápido</span>
+                            </Button>
 
                             <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditProductDialog(product, variant)}
-                            className="h-7 gap-1 px-2 text-xs"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            <span>Editar</span>
-                          </Button>
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditProductDialog(product, variant)}
+                              className="h-7 gap-1 px-2 text-xs"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span>Editar</span>
+                            </Button>
 
                             <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              setConfirmState({
-                                open: true,
-                                title: variant
-                                  ? `Eliminar variante "${variant.name}"?`
-                                  : `Eliminar "${product.name}"?`,
-                                description: "Esta acción no se puede deshacer.",
-                                onConfirm: () => handleDeleteProduct(product.id, variant?.id),
-                              })
-                            }
-                            aria-label={`Eliminar ${product.name}`}
-                            className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            <span>Eliminar</span>
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setConfirmState({
+                                  open: true,
+                                  title: variant
+                                    ? `Eliminar variante "${variant.name}"?`
+                                    : `Eliminar "${product.name}"?`,
+                                  description: "Esta acción no se puede deshacer.",
+                                  onConfirm: () => handleDeleteProduct(product.id, variant?.id),
+                                })
+                              }
+                              aria-label={`Eliminar ${product.name}`}
+                              className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>Eliminar</span>
                             </Button>
                           </div>
                         </div>
@@ -2895,7 +2939,10 @@ function ProductEditDialog({
         ? {
             variants: productForm.variants.map((variant) =>
               variant.id === activeVariant.id
-                ? { ...variant, includes: activeIncludes.filter((_, itemIndex) => itemIndex !== index) }
+                ? {
+                    ...variant,
+                    includes: activeIncludes.filter((_, itemIndex) => itemIndex !== index),
+                  }
                 : variant,
             ),
           }
@@ -3844,7 +3891,9 @@ function ProductEditDialog({
             <div className="mt-4 grid items-start gap-4 sm:grid-cols-2">
               <div className="flex min-w-0 flex-col gap-1">
                 <Label className="min-h-8">Stock</Label>
-                <div className={`grid gap-2 ${activeStockUnlimited ? "grid-cols-1" : "grid-cols-2"}`}>
+                <div
+                  className={`grid gap-2 ${activeStockUnlimited ? "grid-cols-1" : "grid-cols-2"}`}
+                >
                   <Select
                     value={activeStockUnlimited ? "unlimited" : "limited"}
                     onValueChange={(value) =>
@@ -3872,7 +3921,9 @@ function ProductEditDialog({
                 </div>
               </div>
               <div className="grid min-w-0 gap-4 sm:grid-cols-3">
-                <div className={`flex min-w-0 flex-col gap-1 ${showsDeliveryDetails ? "" : "sm:col-span-3"}`}>
+                <div
+                  className={`flex min-w-0 flex-col gap-1 ${showsDeliveryDetails ? "" : "sm:col-span-3"}`}
+                >
                   <Label className="min-h-8">Tiempo de entrega</Label>
                   <Select
                     value={activeDeliveryUnit}
@@ -4415,28 +4466,28 @@ function ProductEditDialog({
                     placeholder="Descripción de esta variante"
                   />
                   <div className="flex flex-wrap gap-2 sm:w-44 sm:flex-col">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="default"
-                    onClick={confirmDescription}
-                    disabled={descriptionDraft === descriptionInitialRef.current}
-                    className="text-sm"
-                  >
-                    <Check className="mr-2 size-3.5" />
-                    Confirmar
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="default"
-                    onClick={applyDescriptionToAllVariants}
-                    disabled={!canApplyDescription}
-                    className="text-sm"
-                  >
-                    <Check className="mr-2 size-3.5" />
-                    Aplicar a todos
-                  </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="default"
+                      onClick={confirmDescription}
+                      disabled={descriptionDraft === descriptionInitialRef.current}
+                      className="text-sm"
+                    >
+                      <Check className="mr-2 size-3.5" />
+                      Confirmar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="default"
+                      onClick={applyDescriptionToAllVariants}
+                      disabled={!canApplyDescription}
+                      className="text-sm"
+                    >
+                      <Check className="mr-2 size-3.5" />
+                      Aplicar a todos
+                    </Button>
                   </div>
                 </div>
               </div>

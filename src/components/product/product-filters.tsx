@@ -83,8 +83,13 @@ function FilterOptionsSection({
                     onChange([]);
                     return;
                   }
+                  const nextValue = checked
+                    ? [...value, option]
+                    : value.filter((selected) => selected !== option);
                   onChange(
-                    checked ? [...value, option] : value.filter((selected) => selected !== option),
+                    options.every((availableOption) => nextValue.includes(availableOption))
+                      ? []
+                      : Array.from(new Set(nextValue)),
                   );
                 }}
               />
@@ -205,11 +210,44 @@ export function ProductFilters({
       getAncestorSlugs(slug).forEach((value) => selected.delete(value));
     }
 
-    onChange({ categories: Array.from(selected) });
+    const markCompleteParents = (items: BrandCategory[] | BrandSubcategory[]): boolean => {
+      let allSelected = true;
+      for (const item of items) {
+        const children = "children" in item ? item.children : (item as BrandCategory).subcategories;
+        const itemComplete = children?.length
+          ? markCompleteParents(children)
+          : selected.has(item.slug);
+        if (children?.length && itemComplete) selected.add(item.slug);
+        if (!selected.has(item.slug)) allSelected = false;
+      }
+      return allSelected;
+    };
+
+    categories.forEach((category) => {
+      const childrenComplete = category.subcategories?.length
+        ? markCompleteParents(category.subcategories)
+        : selected.has(category.slug);
+      if (category.subcategories?.length && childrenComplete) selected.add(category.slug);
+    });
+
+    onChange({
+      categories: categories.every((category) => selected.has(category.slug))
+        ? []
+        : Array.from(selected),
+    });
+  };
+
+  const isCategoryChecked = (slug: string, children: BrandSubcategory[] = []): boolean => {
+    if (filters.categories.includes(slug)) return true;
+    if (!children.length) return false;
+    return children.every(
+      (child) =>
+        isCategoryChecked(child.slug, child.children) && filters.categories.includes(child.slug),
+    );
   };
 
   const renderSubcategory = (subcategory: BrandSubcategory, depth: number) => {
-    const checked = filters.categories.includes(subcategory.slug);
+    const checked = isCategoryChecked(subcategory.slug, subcategory.children);
     return (
       <div key={subcategory.slug} className="space-y-2">
         <label
@@ -270,7 +308,7 @@ export function ProductFilters({
               <span className="font-semibold">Todos</span>
             </label>
             {categories.map((category) => {
-              const checked = filters.categories.includes(category.slug);
+              const checked = isCategoryChecked(category.slug, category.subcategories);
               return (
                 <div key={category.slug} className="space-y-2">
                   <label className="flex cursor-pointer items-start gap-3 text-sm transition-opacity hover:opacity-80">
@@ -326,13 +364,19 @@ export function ProductFilters({
                   >
                     <Checkbox
                       checked={checked}
-                      onCheckedChange={(value) =>
+                      onCheckedChange={(value) => {
+                        const current = filters.brands ?? [];
+                        const next = value
+                          ? [...current, brand.slug]
+                          : current.filter((slug) => slug !== brand.slug);
                         onChange({
-                          brands: value
-                            ? [...(filters.brands ?? []), brand.slug]
-                            : (filters.brands ?? []).filter((slug) => slug !== brand.slug),
-                        })
-                      }
+                          brands: brandList.every((availableBrand) =>
+                            next.includes(availableBrand.slug),
+                          )
+                            ? []
+                            : Array.from(new Set(next)),
+                        });
+                      }}
                     />
                     <span>
                       <span className="block leading-none font-medium">{brand.name}</span>

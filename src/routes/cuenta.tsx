@@ -115,10 +115,17 @@ function getOrderStoreSummaries(order: Order) {
   });
 }
 
-function toggleOrderFilterOption(selected: string[], option: string, checked: boolean): string[] {
+function toggleOrderFilterOption(
+  selected: string[],
+  option: string,
+  checked: boolean,
+  options: string[],
+): string[] {
   if (option === "all") return [];
-  if (checked) return Array.from(new Set([...selected, option]));
-  return selected.filter((value) => value !== option);
+  const next = checked
+    ? Array.from(new Set([...selected, option]))
+    : selected.filter((value) => value !== option);
+  return options.every((availableOption) => next.includes(availableOption)) ? [] : next;
 }
 
 export const Route = createFileRoute("/cuenta")({
@@ -1095,6 +1102,7 @@ function AccountPageContent({
                                       ordersBrandFilter,
                                       brandSlug,
                                       checked === true,
+                                      Object.keys(brands),
                                     ),
                                   )
                                 }
@@ -1191,6 +1199,7 @@ function AccountPageContent({
                                       ordersStatusFilter,
                                       value,
                                       checked === true,
+                                      ["Pendiente", "Enviado"],
                                     ),
                                   )
                                 }
@@ -1246,6 +1255,7 @@ function AccountPageContent({
                                       ordersPaymentStatusFilter,
                                       value,
                                       checked === true,
+                                      ["Pendiente", "Pagado", "Cancelado"],
                                     ),
                                   )
                                 }
@@ -1300,6 +1310,7 @@ function AccountPageContent({
                                       ordersDocumentsFilter,
                                       value,
                                       checked === true,
+                                      ["yes", "no"],
                                     ),
                                   )
                                 }
@@ -1354,6 +1365,7 @@ function AccountPageContent({
                                       ordersReceiptsFilter,
                                       value,
                                       checked === true,
+                                      ["yes", "no"],
                                     ),
                                   )
                                 }
