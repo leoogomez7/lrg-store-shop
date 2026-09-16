@@ -254,8 +254,12 @@ function BrandHeaderContent({
             {brandLabel}
           </a>
 
-          <div className="ml-auto flex min-w-0 items-center gap-0 overflow-visible sm:gap-1">
-            <nav className="order-3 hidden items-center gap-3 md:flex">
+          <div
+            className={`ml-auto flex min-w-0 items-center gap-0 overflow-visible ${
+              userName ? "sm:gap-1" : "sm:gap-0"
+            }`}
+          >
+            <nav className="order-3 hidden items-center gap-0 md:flex">
               {links.map((l) => {
                 // anchor links for store-shop
                 if (l.href && typeof l.href === "string" && l.href.startsWith("#")) {
@@ -457,13 +461,13 @@ function BrandHeaderContent({
             </div>
 
             {/* Mobile auth buttons: visible on small screens */}
-            <div className="order-3 flex items-center gap-2 md:hidden">
+            <div className="order-3 flex items-center gap-0 md:hidden">
               {!userName ? (
                 <>
                   <Button
                     onClick={() => navigate({ to: "/login" })}
                     variant="ghost"
-                    className="rounded-xl px-2 py-2 sm:px-3 sm:py-1"
+                    className="rounded-xl px-1.5 py-2 sm:px-3 sm:py-1"
                     title="Iniciar sesión"
                     aria-label="Iniciar sesión"
                   >
@@ -473,7 +477,7 @@ function BrandHeaderContent({
                   <Button
                     onClick={() => navigate({ to: "/register" })}
                     variant="ghost"
-                    className="rounded-xl px-2 py-2 sm:px-3 sm:py-1"
+                    className="rounded-xl px-1.5 py-2 sm:px-3 sm:py-1"
                     title="Crear cuenta"
                     aria-label="Crear cuenta"
                   >
