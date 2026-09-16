@@ -2347,26 +2347,6 @@ function AccountPageContent({
                 </DialogContent>
               </Dialog>
             </div>
-            <Button
-              size="sm"
-              className="hidden h-9 gap-2 rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb] sm:inline-flex"
-              onClick={() => {
-                setShowAddForm((current) => !current);
-                setEditingIndex(null);
-                setAddressLabel("");
-                setAddressValue("");
-                setAddressStreet("");
-                setAddressNumber("");
-                setAddressFloor("");
-                setAddressApartment("");
-                setAddressCity("");
-                setAddressProvince("");
-                setAddressPostalCode("");
-                setAddressSuggestions([]);
-              }}
-            >
-              <Plus className="size-4" /> Nueva dirección
-            </Button>
           </div>
 
           {showAddForm && (
@@ -2813,7 +2793,7 @@ function AccountPageContent({
           </div>
           <Button
             size="sm"
-            className="mt-1 h-9 gap-2 self-start rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb] sm:hidden"
+            className="mt-1 h-9 gap-2 self-start rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb]"
             onClick={() => {
               setShowAddForm((current) => !current);
               setEditingIndex(null);
