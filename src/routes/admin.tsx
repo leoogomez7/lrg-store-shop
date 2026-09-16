@@ -99,13 +99,17 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     login,
     register,
     logout: kindeLogout,
+    user,
   } = auth ?? {
     isAuthenticated: false,
     isLoading: false,
     login: () => undefined,
     register: () => undefined,
     logout: async () => undefined,
+    user: null,
   };
+  const adminUserName = user?.givenName || user?.email || "Usuario";
+  const adminUserRole = "Administrador";
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -504,6 +508,21 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
         </aside>
 
         <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-end gap-2 border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl">
+            <Link
+              to="/carrito"
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
+            >
+              <ShoppingCart className="size-4" />
+              <span>Carrito</span>
+            </Link>
+            <div className="inline-flex items-center rounded-md bg-amber-600 px-2.5 py-1.5 text-xs font-semibold text-white">
+              <span className="truncate max-w-[110px]">{adminUserName}</span>
+              <span className="mx-1">-</span>
+              <span>{adminUserRole}</span>
+            </div>
+          </div>
+
           <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:hidden">
             <div className="flex items-center justify-between gap-3">
               <Link to="/" className="inline-flex items-center gap-2 shrink-0">
@@ -511,52 +530,66 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 <span className="text-sm font-medium text-foreground">LRG Store Shop</span>
               </Link>
             </div>
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button type="button" variant="outline" size="sm" className="gap-2">
-                  <Menu className="size-4" />
-                  Menú
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[min(86vw,20rem)] p-5">
-                <SheetHeader className="mb-6 text-left">
-                  <SheetTitle>Navegación administrativa</SheetTitle>
-                </SheetHeader>
-                <nav className="space-y-1">
-                  {navigation.map((item) => {
-                    const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
-                    return (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        aria-current={active ? "page" : undefined}
-                        className={cn(
-                          "group relative overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:before:opacity-100",
-                          active
-                            ? "border-white/10 bg-surface-2 text-foreground font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-                            : "text-muted-foreground",
-                        )}
-                      >
-                        <item.icon className="size-4 shrink-0" />
-                        <span className="relative z-10">{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </nav>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-6 gap-2 text-red-600 hover:bg-red-500/10 hover:text-red-600"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setLogoutOpen(true);
-                  }}
-                >
-                  <LogOut className="size-4" />
-                  Cerrar sesión
-                </Button>
-              </SheetContent>
-            </Sheet>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/carrito"
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-2.5 py-1.5 text-xs font-medium text-foreground"
+              >
+                <ShoppingCart className="size-4" />
+                <span>Carrito</span>
+              </Link>
+              <div className="inline-flex items-center rounded-md bg-amber-600 px-2.5 py-1.5 text-xs font-semibold text-white">
+                <span className="truncate max-w-[110px]">{adminUserName}</span>
+                <span className="mx-1">-</span>
+                <span>{adminUserRole}</span>
+              </div>
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="gap-2">
+                    <Menu className="size-4" />
+                    Menú
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[min(86vw,20rem)] p-5">
+                  <SheetHeader className="mb-6 text-left">
+                    <SheetTitle>Navegación administrativa</SheetTitle>
+                  </SheetHeader>
+                  <nav className="space-y-1">
+                    {navigation.map((item) => {
+                      const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
+                      return (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          aria-current={active ? "page" : undefined}
+                          className={cn(
+                            "group relative overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:before:opacity-100",
+                            active
+                              ? "border-white/10 bg-surface-2 text-foreground font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                              : "text-muted-foreground",
+                          )}
+                        >
+                          <item.icon className="size-4 shrink-0" />
+                          <span className="relative z-10">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </nav>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-6 gap-2 text-red-600 hover:bg-red-500/10 hover:text-red-600"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setLogoutOpen(true);
+                    }}
+                  >
+                    <LogOut className="size-4" />
+                    Cerrar sesión
+                  </Button>
+                </SheetContent>
+              </Sheet>
+            </div>
           </header>
           <Outlet />
           <BrandFooter brand={webDesignConfig} section="admin" />

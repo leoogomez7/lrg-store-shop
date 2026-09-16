@@ -273,87 +273,6 @@ function BrandHeaderContent({
               )}
             </nav>
 
-            <div className="order-5 hidden items-center sm:flex">
-              <UserBadge />
-            </div>
-
-            {/* Mobile auth buttons: visible on small screens */}
-            <div className="order-3 flex items-center gap-2 md:hidden">
-              {!userName ? (
-                <>
-                  <Button
-                    onClick={() => navigate({ to: "/login" })}
-                    variant="ghost"
-                    className="rounded-xl px-2 py-2 sm:px-3 sm:py-1"
-                    title="Iniciar sesión"
-                    aria-label="Iniciar sesión"
-                  >
-                    <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">Iniciar sesión</span>
-                  </Button>
-                  <Button
-                    onClick={() => navigate({ to: "/register" })}
-                    variant="ghost"
-                    className="rounded-xl px-2 py-2 sm:px-3 sm:py-1"
-                    title="Crear cuenta"
-                    aria-label="Crear cuenta"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Crear cuenta</span>
-                  </Button>
-                </>
-              ) : (
-                <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
-                  <Link
-                    to={userRole === "admin" ? "/admin/panel" : "/cuenta/panel"}
-                    aria-label="Mi cuenta"
-                    title="Mi cuenta"
-                  >
-                    <User className="size-4" aria-hidden="true" />
-                    <span className="hidden sm:inline">Mi cuenta</span>
-                  </Link>
-                </Button>
-              )}
-            </div>
-
-            {userName && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="order-6 rounded-xl text-red-600 hover:border-red-500 hover:bg-red-500/10 hover:text-red-600"
-                title="Cerrar sesión"
-                onClick={() => setLogoutOpen(true)}
-              >
-                <LogOut className="size-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Cerrar sesión</span>
-              </Button>
-            )}
-
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="order-4 rounded-xl gap-2 px-2 sm:px-2"
-              title="Comprar"
-            >
-              <Link to="/productos" aria-label="Comprar" title="Comprar">
-                <ShoppingBag className="size-4" />
-                <span className="hidden sm:inline">Comprar</span>
-              </Link>
-            </Button>
-
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="order-0 rounded-xl gap-2 px-2 sm:px-3"
-            >
-              <Link to="/" aria-label="Inicio" title="Inicio">
-                <House className="size-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Inicio</span>
-              </Link>
-            </Button>
-
             <DropdownMenu open={openCart} onOpenChange={setOpenCart}>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -485,6 +404,87 @@ function BrandHeaderContent({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <div className="order-6 hidden items-center sm:flex">
+              <UserBadge />
+            </div>
+
+            {/* Mobile auth buttons: visible on small screens */}
+            <div className="order-3 flex items-center gap-2 md:hidden">
+              {!userName ? (
+                <>
+                  <Button
+                    onClick={() => navigate({ to: "/login" })}
+                    variant="ghost"
+                    className="rounded-xl px-2 py-2 sm:px-3 sm:py-1"
+                    title="Iniciar sesión"
+                    aria-label="Iniciar sesión"
+                  >
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">Iniciar sesión</span>
+                  </Button>
+                  <Button
+                    onClick={() => navigate({ to: "/register" })}
+                    variant="ghost"
+                    className="rounded-xl px-2 py-2 sm:px-3 sm:py-1"
+                    title="Crear cuenta"
+                    aria-label="Crear cuenta"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Crear cuenta</span>
+                  </Button>
+                </>
+              ) : (
+                <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
+                  <Link
+                    to={userRole === "admin" ? "/admin/panel" : "/cuenta/panel"}
+                    aria-label="Mi cuenta"
+                    title="Mi cuenta"
+                  >
+                    <User className="size-4" aria-hidden="true" />
+                    <span className="hidden sm:inline">Mi cuenta</span>
+                  </Link>
+                </Button>
+              )}
+            </div>
+
+            {userName && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="order-6 rounded-xl text-red-600 hover:border-red-500 hover:bg-red-500/10 hover:text-red-600"
+                title="Cerrar sesión"
+                onClick={() => setLogoutOpen(true)}
+              >
+                <LogOut className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Cerrar sesión</span>
+              </Button>
+            )}
+
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="order-4 rounded-xl gap-2 px-2 sm:px-2"
+              title="Comprar"
+            >
+              <Link to="/productos" aria-label="Comprar" title="Comprar">
+                <ShoppingBag className="size-4" />
+                <span className="hidden sm:inline">Comprar</span>
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="order-0 rounded-xl gap-2 px-2 sm:px-3"
+            >
+              <Link to="/" aria-label="Inicio" title="Inicio">
+                <House className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Inicio</span>
+              </Link>
+            </Button>
 
             <DropdownMenu open={openMenu} onOpenChange={setOpenMenu}>
               <DropdownMenuTrigger asChild>

@@ -116,6 +116,11 @@ function getOrderStoreSummaries(order: Order) {
   });
 }
 
+function getOrderStoreLabel(order: Order) {
+  const stores = getOrderStoreSummaries(order);
+  return stores.map((store) => store.name).join(" / ");
+}
+
 function toggleOrderFilterOption(
   selected: string[],
   option: string,
@@ -543,7 +548,7 @@ function AccountPageContent({
       ["Pedido", "Tienda", "Fecha de compra", "Estado de envío", "Estado de pago", "Total"],
       ...visibleOrders.map((order) => [
         order.id,
-        brands[order.brand].shortName,
+        getOrderStoreLabel(order),
         order.date,
         order.deliveryStatus ?? "Pendiente",
         order.paymentStatus ?? "Pendiente",
@@ -561,7 +566,7 @@ function AccountPageContent({
   const exportOrdersPdf = () => {
     const rows = visibleOrders.map((order) => [
       order.id,
-      brands[order.brand].shortName,
+      getOrderStoreLabel(order),
       order.date,
       order.deliveryStatus ?? "Pendiente",
       order.paymentStatus ?? "Pendiente",
@@ -1613,7 +1618,7 @@ function AccountPageContent({
                   paginatedOrders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>{brands[order.brand].shortName}</TableCell>
+                      <TableCell>{getOrderStoreLabel(order)}</TableCell>
                       <TableCell>{formatDate(order.date)}</TableCell>
                       <TableCell>
                         {(() => {
