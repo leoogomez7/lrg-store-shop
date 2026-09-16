@@ -71,7 +71,7 @@ import {
 } from "@/components/ui/table";
 import { brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
-import { splitStreetAndNumber } from "@/lib/address";
+import { extractStreetNumberFromResult, splitStreetAndNumber } from "@/lib/address";
 import { logout } from "@/lib/auth";
 import { getKindeRedirectUri } from "@/lib/kinde";
 import {
@@ -279,6 +279,7 @@ function AccountPageContent({
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const favoriteProducts = products.filter((product) => favoriteIds.includes(product.id));
   const [addresses, setAddresses] = useState<Address[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
   const primaryAddress = addresses.find((address) => address.isPrimary) ?? addresses[0] ?? null;
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -759,6 +760,7 @@ function AccountPageContent({
     void hydrateFavorites(user.id).then(setFavoriteIds);
 
     // Cargar direcciones guardadas desde la BD
+    setAddressesLoading(true);
     void getUserAddresses({ data: { userId: user.id } }).then((addresses) => {
       setAddresses(
         addresses.map((addr) => ({
@@ -775,7 +777,7 @@ function AccountPageContent({
           isPrimary: Boolean(addr.isPrimary),
         })) as Address[],
       );
-    });
+    }).finally(() => setAddressesLoading(false));
     return unsubscribe;
   }, [user?.id]);
 
@@ -853,6 +855,7 @@ function AccountPageContent({
             const fallbackStreet = fallbackStreetMatch?.[1]?.trim() || extractedFromDisplay;
             const fallbackNumber =
               extractedFromDisplay.match(/(\d+\s*[A-Za-z0-9-]*)$/)?.[1]?.trim() || "";
+            const resultStreetNumber = extractStreetNumberFromResult(displayName, road);
 
             const resolvedRoad =
               road ||
@@ -863,7 +866,11 @@ function AccountPageContent({
                 )
                 .trim();
             const resolvedHouseNumber =
-              parsedInputAddress.streetNumber || houseNumber || fallbackNumber || "";
+              parsedInputAddress.streetNumber ||
+              houseNumber ||
+              resultStreetNumber ||
+              fallbackNumber ||
+              "";
 
             const parsedAddress = splitStreetAndNumber(
               [resolvedRoad, resolvedHouseNumber].filter(Boolean).join(" ").trim(),
@@ -2503,6 +2510,7 @@ function AccountPageContent({
                         setMapPreviewUrl(null);
                         setAddressSuggestions([]);
                         setShowAddForm(false);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
                         toast.success("Dirección guardada correctamente");
                       } else {
                         toast.error("Error al guardar la dirección");
@@ -2535,7 +2543,13 @@ function AccountPageContent({
           )}
 
           <div className="grid gap-5 lg:grid-cols-3">
-            {addresses.map((address, index) => (
+            {addressesLoading ? (
+              <div className="glass-panel col-span-full flex min-h-32 items-center justify-center gap-3 rounded-2xl border border-border/60 text-sm text-muted-foreground">
+                <LoaderCircle className="size-5 animate-spin" />
+                Cargando direcciones…
+              </div>
+            ) : (
+              addresses.map((address, index) => (
               <div
                 key={`${address.label}-${index}`}
                 className="glass-panel w-full max-w-full rounded-2xl border border-border/60 p-5"
@@ -2810,7 +2824,8 @@ function AccountPageContent({
                   </div>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
           <Button
             size="sm"

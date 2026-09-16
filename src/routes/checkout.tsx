@@ -34,7 +34,7 @@ import {
   type PaymentIntentData,
 } from "@/server/mercadopago";
 import { formatPrice } from "@/lib/format";
-import { splitStreetAndNumber } from "@/lib/address";
+import { extractStreetNumberFromResult, splitStreetAndNumber } from "@/lib/address";
 import { getUserProfile, getUserAddresses, updateUserProfile } from "@/lib/user";
 
 export const Route = createFileRoute("/checkout")({
@@ -440,7 +440,11 @@ function CheckoutPage() {
         const inputNumber = inputNumbers.at(-1) ?? "";
         const displayNameFirstPart = firstResult?.display_name?.split(",")[0]?.trim() ?? "";
         const displayNameNumbers = displayNameFirstPart.match(/\b\d{1,6}\b/g) ?? [];
-        const resultNumber = resultAddress?.["house_number"] || displayNameNumbers.at(-1) || "";
+        const resultNumber =
+          resultAddress?.["house_number"] ||
+          extractStreetNumberFromResult(firstResult?.display_name ?? "", resultAddress?.["road"]) ||
+          displayNameNumbers.at(-1) ||
+          "";
         const parsedAddress = splitStreetAndNumber(query);
         const resolvedStreet =
           parsedAddress.street ||
