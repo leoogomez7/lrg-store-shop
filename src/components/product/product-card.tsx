@@ -101,32 +101,11 @@ export function ProductCard({
             )}
           </div>
         </Link>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label={
-            isFavorite
-              ? `Quitar ${product.name} de favoritos`
-              : `Agregar ${product.name} a favoritos`
-          }
-          title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-          className="absolute right-3 top-3 z-10 rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur hover:bg-background"
-          onClick={(event) => {
-            event.stopPropagation();
-            if (!favoriteOwner) return;
-            const nextIsFavorite = toggleFavoriteProduct(favoriteOwner, product.id).includes(product.id);
-            setIsFavorite(nextIsFavorite);
-            onFavoriteChange?.(nextIsFavorite);
-          }}
-        >
-          <Heart className={isFavorite ? "fill-current text-rose-500" : ""} />
-        </Button>
       </div>
 
       <div className="flex flex-1 flex-col gap-1.5 p-3">
-        <div>
-          <div>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
             <h3 className="font-display leading-snug font-semibold">
               <Link
                 to="/$brand/producto/$slug"
@@ -142,28 +121,53 @@ export function ProductCard({
               </span>
             )}
           </div>
+          <div className="flex shrink-0 flex-col items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={
+                isFavorite
+                  ? `Quitar ${product.name} de favoritos`
+                  : `Agregar ${product.name} a favoritos`
+              }
+              title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+              className="size-8 rounded-full text-foreground hover:bg-surface-2"
+              onClick={(event) => {
+                event.stopPropagation();
+                if (!favoriteOwner) return;
+                const nextIsFavorite = toggleFavoriteProduct(favoriteOwner, product.id).includes(product.id);
+                setIsFavorite(nextIsFavorite);
+                onFavoriteChange?.(nextIsFavorite);
+              }}
+            >
+              <Heart className={isFavorite ? "size-4 fill-current text-rose-500" : "size-4"} />
+            </Button>
+            <Button
+              size="sm"
+              variant={outOfStock ? "outline" : "default"}
+              className="size-8 px-0 sm:h-9 sm:w-auto sm:px-3"
+              disabled={outOfStock}
+              aria-label={outOfStock ? `${product.name} sin stock` : `Agregar ${product.name} al carrito`}
+              title={outOfStock ? "Sin stock" : "Agregar al carrito"}
+              onClick={(event) => {
+                event.stopPropagation();
+                addProduct(product);
+              }}
+            >
+              {!outOfStock && <ShoppingCart className="size-4" aria-hidden="true" />}
+              <span className="hidden sm:inline">{outOfStock ? "Sin stock" : "Agregar"}</span>
+            </Button>
+          </div>
         </div>
 
-        <div className="mt-auto flex items-end justify-between gap-2 pt-1">
-          <div>
-            <p className="font-display text-xl font-semibold">{formatPrice(product.price)}</p>
-            {product.compareAtPrice && (
-              <p className="text-xs text-muted-foreground line-through">
-                {formatPrice(product.compareAtPrice)}
-              </p>
-            )}
-          </div>
-          <Button
-            size="sm"
-            disabled={outOfStock}
-            onClick={(event) => {
-              event.stopPropagation();
-              addProduct(product);
-            }}
-          >
-            {!outOfStock && <ShoppingCart className="size-3.5" aria-hidden="true" />}
-            {outOfStock ? "Sin stock" : "Agregar"}
-          </Button>
+        <div className="mt-auto pt-1">
+          <p className="font-display text-xl font-semibold">{formatPrice(product.price)}</p>
+          {product.compareAtPrice && (
+            <p className="text-xs text-muted-foreground line-through">
+              {formatPrice(product.compareAtPrice)}
+            </p>
+          )}
         </div>
       </div>
     </article>
