@@ -380,7 +380,9 @@ function CheckoutPage() {
 
     void getUserProfile({ data: { userId: user.id } }).then((profile) => {
       if (profile) {
-        setCustomerName(user.givenName || "");
+        const givenName = profile.givenName || user.givenName || "";
+        const familyName = profile.familyName || user.familyName || "";
+        setCustomerName([givenName, familyName].filter(Boolean).join(" ") || profile.fullName || "");
         setEmail(user.email || "");
         setPhone(profile.phone || "");
         setDocument(profile.document || "");
@@ -407,7 +409,7 @@ function CheckoutPage() {
         }
       })
       .finally(() => setAddressesLoading(false));
-  }, [isAuthenticated, user?.email, user?.givenName, user?.id, kindeLoading]);
+  }, [isAuthenticated, user?.email, user?.familyName, user?.givenName, user?.id, kindeLoading]);
 
   useEffect(() => {
     const query = address.trim();

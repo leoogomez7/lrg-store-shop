@@ -314,7 +314,7 @@ function BrandFooterContent({
                     to="/"
                     className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
                   >
-                    <BrandMark compact brandSlug={item.slug} className="shrink-0" />
+                    <BrandMark compact brandSlug={item.slug} className="h-9 w-9 shrink-0 justify-center" />
                     {item.name}
                   </Link>
                 </li>
@@ -325,7 +325,7 @@ function BrandFooterContent({
                     params={{ brand: item.slug }}
                     className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
                   >
-                    <BrandMark compact brandSlug={item.slug} className="shrink-0" />
+                    <BrandMark compact brandSlug={item.slug} className="h-9 w-9 shrink-0 justify-center" />
                     {item.name}
                   </Link>
                 </li>

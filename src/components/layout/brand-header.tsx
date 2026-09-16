@@ -1,7 +1,11 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   House,
+  Heart,
+  LayoutDashboard,
   LogOut,
+  MapPin,
+  Package,
   ShoppingBag,
   ShoppingCart,
   Store,
@@ -82,6 +86,7 @@ function BrandHeaderContent({
   const [openMenu, setOpenMenu] = useState(false);
   const [openBuyMenu, setOpenBuyMenu] = useState(false);
   const [openCart, setOpenCart] = useState(false);
+  const [openUserMenu, setOpenUserMenu] = useState(false);
   const { count, items, subtotal, itemsByBrand, setQuantity, removeItem } = useCart();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
@@ -90,11 +95,13 @@ function BrandHeaderContent({
     logout: async () => undefined,
   };
   const [userName, setUserName] = useState<string | null>(null);
+  const [userFamilyName, setUserFamilyName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<"admin" | "client">("client");
 
   useEffect(() => {
     setOpenMenu(false);
     setOpenCart(false);
+    setOpenUserMenu(false);
   }, [pathname]);
   const [panel, setPanel] = useState<string | null>(null);
 
@@ -107,6 +114,7 @@ function BrandHeaderContent({
 
   useEffect(() => {
     setUserName(user ? user.givenName || user.email || null : null);
+    setUserFamilyName(user?.familyName || null);
     const storedRole =
       typeof window !== "undefined" ? window.sessionStorage.getItem("lrg_auth_role") : null;
     setUserRole(pathname.startsWith("/admin") || storedRole === "admin" ? "admin" : "client");
@@ -153,25 +161,64 @@ function BrandHeaderContent({
       })),
   ];
 
+  const isAdmin = userRole === "admin";
+  const userRoleLabel = isAdmin ? "Administrador" : "Cliente";
+  const userInitials = [userName, userFamilyName]
+    .filter((value) => value && value !== user?.email)
+    .map((value) => value!.trim().charAt(0))
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "U";
+  const userMenuItems = isAdmin
+    ? [
+        { label: "Panel administrativo", to: "/admin/panel", icon: LayoutDashboard },
+        { label: "Productos", to: "/admin/productos", icon: Package },
+        { label: "Pedidos", to: "/admin/pedidos", icon: ShoppingCart },
+        { label: "Clientes", to: "/admin/clientes", icon: User },
+        { label: "Proveedores", to: "/admin/proveedores", icon: UserPlus },
+        { label: "Tiendas disponibles", to: "/admin/marcas", icon: Store },
+        { label: "Configuración", to: "/admin/configuracion", icon: User },
+        { label: "Papelera", to: "/admin/papelera", icon: Trash2 },
+      ]
+    : [
+        { label: "Panel administrativo", to: "/cuenta/panel", icon: LayoutDashboard },
+        { label: "Compras", to: "/cuenta/compras", icon: ShoppingCart },
+        { label: "Perfil", to: "/cuenta/perfil", icon: User },
+        { label: "Direcciones", to: "/cuenta/direcciones", icon: MapPin },
+        { label: "Favoritos", to: "/cuenta/favoritos", icon: Heart },
+      ];
+
   function UserBadge() {
     if (!panel || !userName) return null;
 
-    const isAdmin = userRole === "admin";
-    const roleLabel = isAdmin ? "Administrador" : "Cliente";
-    const accountPath = isAdmin ? "/admin/panel" : "/cuenta/panel";
-
     return (
-      <Link
-        to={accountPath}
-        aria-label="Abrir Mi cuenta"
-        className={`inline-flex h-9 items-center rounded-md px-3 py-1.5 text-sm font-semibold text-white transition-opacity hover:opacity-80 ${
-          isAdmin ? "bg-amber-600" : "bg-green-600"
-        }`}
-      >
-        <span className="truncate">{userName}</span>
-        <span className="mx-1">-</span>
-        <span>{roleLabel}</span>
-      </Link>
+      <DropdownMenu open={openUserMenu} onOpenChange={setOpenUserMenu}>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Menú de ${userRoleLabel}`}
+            className={`grid size-9 shrink-0 place-items-center rounded-full text-xs font-bold uppercase text-white transition-opacity hover:opacity-85 ${
+              isAdmin ? "bg-amber-600" : "bg-green-600"
+            }`}
+          >
+            {userInitials}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-56 w-auto p-1">
+          <div className="border-b px-3 py-2">
+            <div className="truncate text-sm font-semibold">{userName}</div>
+            <div className="text-xs text-muted-foreground">{userRoleLabel}</div>
+          </div>
+          {userMenuItems.map(({ label, to, icon: Icon }) => (
+            <DropdownMenuItem key={to} asChild>
+              <Link to={to as "/"} onClick={() => setOpenUserMenu(false)} className="whitespace-nowrap">
+                <Icon className="size-4" />
+                {label}
+              </Link>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   }
 
@@ -260,17 +307,7 @@ function BrandHeaderContent({
                     </Link>
                   </Button>
                 </>
-              ) : (
-                <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
-                  <Link
-                    to={userRole === "admin" ? "/admin/panel" : "/cuenta/panel"}
-                    aria-label="Mi cuenta"
-                  >
-                    <User className="size-4" aria-hidden="true" />
-                    <span>Mi cuenta</span>
-                  </Link>
-                </Button>
-              )}
+              ) : null}
             </nav>
 
             <DropdownMenu open={openCart} onOpenChange={setOpenCart}>
@@ -405,7 +442,7 @@ function BrandHeaderContent({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <div className="order-6 hidden items-center sm:flex">
+            <div className="order-6 flex items-center">
               <UserBadge />
             </div>
 
@@ -434,18 +471,7 @@ function BrandHeaderContent({
                     <span className="hidden sm:inline">Crear cuenta</span>
                   </Button>
                 </>
-              ) : (
-                <Button asChild variant="ghost" size="sm" className="rounded-xl gap-2">
-                  <Link
-                    to={userRole === "admin" ? "/admin/panel" : "/cuenta/panel"}
-                    aria-label="Mi cuenta"
-                    title="Mi cuenta"
-                  >
-                    <User className="size-4" aria-hidden="true" />
-                    <span className="hidden sm:inline">Mi cuenta</span>
-                  </Link>
-                </Button>
-              )}
+              ) : null}
             </div>
 
             {userName && (
@@ -498,7 +524,7 @@ function BrandHeaderContent({
                   <span className="hidden sm:inline">Tiendas</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="min-w-60 w-auto p-1">
                 {tiendaMenuItems.map((item) => (
                   <DropdownMenuItem
                     key={item.slug}
@@ -506,8 +532,10 @@ function BrandHeaderContent({
                       handleBrandClick(item.slug)();
                       setOpenMenu(false);
                     }}
+                    className="whitespace-nowrap"
                   >
-                    {item.name}
+                    <BrandMark compact brandSlug={item.slug} className="shrink-0" />
+                    <span>{item.name}</span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>

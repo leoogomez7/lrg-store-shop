@@ -39,6 +39,12 @@ import { LoadingState } from "@/components/common/loading-state";
 import { BrandFooter } from "@/components/layout/brand-footer";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   Dialog,
@@ -110,6 +116,39 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   };
   const adminUserName = user?.givenName || user?.email || "Usuario";
   const adminUserRole = "Administrador";
+  const adminUserInitials = [user?.givenName, user?.familyName]
+    .filter(Boolean)
+    .map((value) => value!.trim().charAt(0))
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "U";
+  const AdminUserMenu = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="Menú de Administrador"
+          className="grid size-9 shrink-0 place-items-center rounded-full bg-amber-600 text-xs font-bold uppercase text-white transition-opacity hover:opacity-85"
+        >
+          {adminUserInitials}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-60 w-auto p-1">
+        <div className="border-b px-3 py-2">
+          <div className="truncate text-sm font-semibold">{adminUserName}</div>
+          <div className="text-xs text-muted-foreground">{adminUserRole}</div>
+        </div>
+        {navigation.slice(1).map(({ label, to, icon: Icon }) => (
+          <DropdownMenuItem key={to} asChild>
+            <Link to={to} className="whitespace-nowrap">
+              <Icon className="size-4" />
+              {label}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -508,7 +547,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
         </aside>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-end gap-2 border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl">
+          <div className="hidden items-center justify-end gap-2 border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:flex">
             <Link
               to="/carrito"
               className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
@@ -516,11 +555,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               <ShoppingCart className="size-4" />
               <span>Carrito</span>
             </Link>
-            <div className="inline-flex items-center rounded-md bg-amber-600 px-2.5 py-1.5 text-xs font-semibold text-white">
-              <span className="truncate max-w-[110px]">{adminUserName}</span>
-              <span className="mx-1">-</span>
-              <span>{adminUserRole}</span>
-            </div>
+            <AdminUserMenu />
           </div>
 
           <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:hidden">
@@ -538,11 +573,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 <ShoppingCart className="size-4" />
                 <span>Carrito</span>
               </Link>
-              <div className="inline-flex items-center rounded-md bg-amber-600 px-2.5 py-1.5 text-xs font-semibold text-white">
-                <span className="truncate max-w-[110px]">{adminUserName}</span>
-                <span className="mx-1">-</span>
-                <span>{adminUserRole}</span>
-              </div>
+              <AdminUserMenu />
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <Button type="button" variant="outline" size="sm" className="gap-2">

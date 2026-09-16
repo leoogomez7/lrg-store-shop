@@ -37,7 +37,11 @@ export function BrandMark({
         <img
           src={src}
           alt={label ?? "LRG Store Shop"}
-          className={cn("w-9 h-9 object-contain", compact ? "w-7 h-7" : "w-9 h-9")}
+          className={cn(
+            "w-9 h-9 object-contain",
+            compact ? "w-7 h-7" : "w-9 h-9",
+            brandSlug === "scents" && "scale-[1.35]",
+          )}
         />
         <span className="absolute inset-0 rounded-xl bg-foreground/0 transition-colors" />
       </span>
