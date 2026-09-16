@@ -95,7 +95,7 @@ function AdminLayout() {
     </KindeAuthGate>
   );
 }
-
+                      redirectURL: getKindeRedirectUri("/") ?? "/",
 function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
@@ -146,6 +146,13 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             </Link>
           </DropdownMenuItem>
         ))}
+        <DropdownMenuItem
+          className="whitespace-nowrap bg-red-50 font-semibold text-red-600 hover:bg-red-100 hover:text-red-700 focus:bg-red-100 focus:text-red-700"
+          onSelect={() => setLogoutOpen(true)}
+        >
+          <LogOut className="size-4" />
+          Cerrar sesión
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

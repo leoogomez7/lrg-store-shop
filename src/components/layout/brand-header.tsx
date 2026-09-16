@@ -217,6 +217,16 @@ function BrandHeaderContent({
               </Link>
             </DropdownMenuItem>
           ))}
+          <DropdownMenuItem
+            className="whitespace-nowrap bg-red-50 font-semibold text-red-600 hover:bg-red-100 hover:text-red-700 focus:bg-red-100 focus:text-red-700"
+            onSelect={() => {
+              setOpenUserMenu(false);
+              setLogoutOpen(true);
+            }}
+          >
+            <LogOut className="size-4" />
+            Cerrar sesión
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -244,7 +254,7 @@ function BrandHeaderContent({
             {brandLabel}
           </a>
 
-          <div className="ml-auto flex min-w-0 items-center gap-1 overflow-visible sm:gap-4">
+          <div className="ml-auto flex min-w-0 items-center gap-0 overflow-visible sm:gap-1">
             <nav className="order-3 hidden items-center gap-3 md:flex">
               {links.map((l) => {
                 // anchor links for store-shop
@@ -442,7 +452,7 @@ function BrandHeaderContent({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <div className="order-6 flex items-center">
+            <div className="order-6 ml-2 flex items-center sm:ml-3">
               <UserBadge />
             </div>
 
@@ -473,19 +483,6 @@ function BrandHeaderContent({
                 </>
               ) : null}
             </div>
-
-            {userName && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="order-6 rounded-xl text-red-600 hover:border-red-500 hover:bg-red-500/10 hover:text-red-600"
-                title="Cerrar sesión"
-                onClick={() => setLogoutOpen(true)}
-              >
-                <LogOut className="size-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Cerrar sesión</span>
-              </Button>
-            )}
 
             <Button
               asChild
@@ -552,7 +549,7 @@ function BrandHeaderContent({
         cancelLabel="No"
         onConfirm={async () => {
           await logout();
-          await kindeLogout({ redirectUrl: getKindeRedirectUri("/") ?? "/" });
+          await kindeLogout({ redirectURL: getKindeRedirectUri("/") ?? "/" });
           navigate({ to: "/" });
         }}
       />

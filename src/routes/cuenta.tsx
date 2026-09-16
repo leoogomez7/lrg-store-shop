@@ -3132,7 +3132,7 @@ function AccountPageContent({
             window.sessionStorage.removeItem("lrg_auth_role");
           }
           await kindeLogout({
-            redirectUrl: getKindeRedirectUri("/") ?? "/",
+            redirectURL: getKindeRedirectUri("/") ?? "/",
           });
           navigate({ to: "/", replace: true });
         }}
