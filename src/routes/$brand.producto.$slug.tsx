@@ -626,7 +626,7 @@ function ProductDetail() {
       </div>
 
       {related.length > 0 && (
-        <section className="mt-24">
+        <section className="mt-12">
           <SectionHeading eyebrow="También te puede gustar" title="Productos relacionados" />
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {related.map((item, index) => (

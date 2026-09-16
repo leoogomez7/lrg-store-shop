@@ -189,7 +189,7 @@ function AdminBrands() {
   }, []);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Sectores</p>
       <h1 className="mt-2 text-3xl font-semibold">Tiendas disponibles</h1>
 

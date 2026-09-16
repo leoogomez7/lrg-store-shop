@@ -242,7 +242,7 @@ function CatalogPage() {
   }, [page, totalPages]);
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 pb-14 pt-28 sm:px-6">
+    <main className="mx-auto w-full max-w-7xl px-4 pb-8 pt-20 sm:px-6">
       <header className="max-w-2xl">
         <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Catálogo</p>
         <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">{brand.name}</h1>

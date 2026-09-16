@@ -261,14 +261,14 @@ function ProductosPage() {
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
       <div className="aurora-bg" />
       <div className="relative">
-        <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pt-20 pb-8 sm:px-6">
+        <div className="mx-auto flex w-full max-w-7xl flex-col px-4 pt-16 pb-4 sm:px-6">
           <BrandHeader
             brand={webDesignConfig}
             displayBrandName="LRG Store Shop"
             logoBrandSlug="store-shop"
           />
 
-          <main className="flex-1 py-10">
+          <main className="py-4">
             <header className="max-w-3xl">
               <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
                 Catálogo completo

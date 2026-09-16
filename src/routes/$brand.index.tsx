@@ -47,7 +47,7 @@ function BrandHome() {
   const defaultCategory = brand.categories[0]?.slug ?? "";
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-16 sm:px-6 lg:pt-24">
+    <main className="mx-auto w-full max-w-6xl px-4 pb-10 pt-12 sm:px-6 lg:pt-16">
       <section className="overflow-hidden">
         <div className="grid gap-8 lg:grid-cols-[1.1fr_auto] lg:items-center p-8">
           <div>

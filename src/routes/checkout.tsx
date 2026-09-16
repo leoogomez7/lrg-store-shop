@@ -627,7 +627,7 @@ function CheckoutPage() {
     return (
       <div className="theme-webdesign relative min-h-screen bg-background text-foreground">
         {Header}
-        <main className="flex min-h-screen items-start justify-center px-4 pb-16 pt-24 sm:px-6">
+        <main className="flex min-h-screen items-start justify-center px-4 pb-8 pt-20 sm:px-6">
           <div className="fixed inset-0 z-100 flex items-center justify-center bg-background/80 px-4 backdrop-blur-md">
             <div
               className="glass-panel w-full max-w-2xl rounded-3xl p-8 text-center shadow-2xl sm:p-12"
@@ -667,7 +667,7 @@ function CheckoutPage() {
   return (
     <div className="theme-webdesign relative min-h-screen bg-background text-foreground">
       {Header}
-      <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-24 sm:px-6">
+      <main className="mx-auto w-full max-w-6xl px-4 pb-8 pt-20 sm:px-6">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Checkout</p>

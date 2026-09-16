@@ -293,7 +293,7 @@ function AdminDashboard() {
   );
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Métricas</p>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>

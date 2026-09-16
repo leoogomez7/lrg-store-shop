@@ -173,7 +173,7 @@ function CartPage() {
           logoBrandSlug="store-shop"
         />
 
-        <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-24 sm:px-6">
+        <main className="mx-auto w-full max-w-6xl px-4 pb-8 pt-20 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Carrito</p>

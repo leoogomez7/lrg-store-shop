@@ -571,7 +571,7 @@ function AdminSuppliers() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <div className="order-1 basis-full shrink-0">
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Listado</p>

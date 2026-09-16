@@ -232,7 +232,7 @@ function BrandFooterContent({
   };
 
   return (
-    <footer className="mt-24 border-t border-border/60 bg-surface/40">
+    <footer className="mt-10 border-t border-border/60 bg-surface/40 sm:mt-12">
       <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-5">
         {categories.length > 0 && (
           <div>
