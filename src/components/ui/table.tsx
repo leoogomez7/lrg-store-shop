@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -24,10 +25,12 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
       const rect = container.getBoundingClientRect();
       const scrollWidth = container.scrollWidth;
       const isInViewport = rect.bottom > 0 && rect.top < window.innerHeight;
+      const isAtDocumentEnd =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 24;
       const hasHorizontalOverflow = scrollWidth > container.clientWidth + 1;
 
       setScrollbarState({
-        visible: isInViewport && hasHorizontalOverflow,
+        visible: isInViewport && !isAtDocumentEnd && hasHorizontalOverflow,
         left: Math.max(0, rect.left),
         width: Math.min(window.innerWidth, Math.max(0, rect.width)),
         scrollWidth,
@@ -76,16 +79,47 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
         </div>
         {scrollbarState.visible && (
           <div
-            ref={scrollbarRef}
-            className="fixed bottom-0 z-50 overflow-x-auto rounded-full border border-border/70 bg-background/95 shadow-lg backdrop-blur"
+            className="fixed bottom-2 z-50 flex items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1 shadow-lg backdrop-blur"
             style={{ left: scrollbarState.left, width: scrollbarState.width }}
-            onScroll={(event) => {
-              const container = containerRef.current;
-              if (container) container.scrollLeft = event.currentTarget.scrollLeft;
-            }}
-            aria-label="Desplazamiento horizontal de la tabla"
+            aria-label="Controles de desplazamiento horizontal de la tabla"
           >
-            <div style={{ width: scrollbarState.scrollWidth, height: 1 }} />
+            <button
+              type="button"
+              className="grid size-7 shrink-0 place-items-center rounded-full border border-border/70 text-foreground transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => {
+                const container = containerRef.current;
+                if (!container) return;
+                container.scrollBy({ left: -container.clientWidth * 0.75, behavior: "smooth" });
+              }}
+              aria-label="Desplazar tabla hacia la izquierda"
+              title="Desplazar hacia la izquierda"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <div
+              ref={scrollbarRef}
+              className="min-w-0 flex-1 overflow-x-auto rounded-full"
+              onScroll={(event) => {
+                const container = containerRef.current;
+                if (container) container.scrollLeft = event.currentTarget.scrollLeft;
+              }}
+              aria-label="Barra de desplazamiento horizontal de la tabla"
+            >
+              <div className="h-1.25" style={{ width: scrollbarState.scrollWidth }} />
+            </div>
+            <button
+              type="button"
+              className="grid size-7 shrink-0 place-items-center rounded-full border border-border/70 text-foreground transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => {
+                const container = containerRef.current;
+                if (!container) return;
+                container.scrollBy({ left: container.clientWidth * 0.75, behavior: "smooth" });
+              }}
+              aria-label="Desplazar tabla hacia la derecha"
+              title="Desplazar hacia la derecha"
+            >
+              <ChevronRight className="size-4" />
+            </button>
           </div>
         )}
       </>
