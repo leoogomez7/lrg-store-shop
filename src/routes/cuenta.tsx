@@ -298,6 +298,7 @@ function AccountPageContent({
   const savedProfileValues = useRef({ givenName: "", familyName: "", phone: "", document: "" });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobileNavHidden, setIsMobileNavHidden] = useState(false);
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
   const [addressSuggestions, setAddressSuggestions] = useState<
     Array<{
@@ -648,6 +649,22 @@ function AccountPageContent({
     setActiveTab(nextTab);
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const updateMobileNavVisibility = () => {
+      const isAtPageEnd =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 24;
+      setIsMobileNavHidden(isAtPageEnd);
+    };
+
+    window.addEventListener("scroll", updateMobileNavVisibility, { passive: true });
+    window.addEventListener("resize", updateMobileNavVisibility);
+    updateMobileNavVisibility();
+    return () => {
+      window.removeEventListener("scroll", updateMobileNavVisibility);
+      window.removeEventListener("resize", updateMobileNavVisibility);
+    };
+  }, []);
 
   const handleTabChange = (tab: AccountNavKey) => {
     if (tab === "home") {
@@ -1060,7 +1077,7 @@ function AccountPageContent({
               />
             </div>
 
-            <div className="order-3 flex basis-full flex-wrap items-center justify-end gap-2 sm:basis-auto sm:shrink-0">
+            <div className="order-3 flex basis-full flex-wrap items-center justify-start gap-2 sm:basis-auto sm:shrink-0 sm:justify-end">
               <Dialog open={showOrdersSort} onOpenChange={setShowOrdersSort}>
                 <DialogTrigger asChild>
                   <Button
@@ -1599,7 +1616,7 @@ function AccountPageContent({
           <FilterChipList chips={orderFilterChips} />
           <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
             <Table
-              containerClassName="overflow-hidden"
+              containerClassName="touch-pan-x overflow-x-auto overflow-y-hidden"
               className="w-full text-sm [&_td]:text-center [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -3036,7 +3053,12 @@ function AccountPageContent({
         </aside>
 
         <main className="min-w-0 flex-1">
-          <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-xl lg:hidden">
+          <header
+            className={cn(
+              "sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-xl transition-transform duration-200 lg:hidden",
+              isMobileNavHidden && "-translate-y-full",
+            )}
+          >
             <div className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
               <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-xs font-bold uppercase text-primary">
                 {getUserInitials()}
