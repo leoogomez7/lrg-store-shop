@@ -34,6 +34,7 @@ import {
   type PaymentIntentData,
 } from "@/server/mercadopago";
 import { formatPrice } from "@/lib/format";
+import { splitStreetAndNumber } from "@/lib/address";
 import { getUserProfile, getUserAddresses, updateUserProfile } from "@/lib/user";
 
 export const Route = createFileRoute("/checkout")({
@@ -397,10 +398,11 @@ function CheckoutPage() {
         setSavedAddresses(addresses);
         const primaryAddress = addresses.find((savedAddress) => savedAddress.isPrimary);
         if (primaryAddress) {
+          const parsedAddress = splitStreetAndNumber(primaryAddress.value);
           setSelectedSavedAddress(primaryAddress.id ?? "");
           setAddress(primaryAddress.value);
-          setStreet(primaryAddress.street ?? "");
-          setStreetNumber(primaryAddress.streetNumber ?? "");
+          setStreet(primaryAddress.street || parsedAddress.street || "");
+          setStreetNumber(primaryAddress.streetNumber || parsedAddress.streetNumber || "");
           setFloor(primaryAddress.floor ?? "");
           setApartment(primaryAddress.apartment ?? "");
           setCity(primaryAddress.city ?? "");
@@ -439,12 +441,14 @@ function CheckoutPage() {
         const displayNameFirstPart = firstResult?.display_name?.split(",")[0]?.trim() ?? "";
         const displayNameNumbers = displayNameFirstPart.match(/\b\d{1,6}\b/g) ?? [];
         const resultNumber = resultAddress?.["house_number"] || displayNameNumbers.at(-1) || "";
+        const parsedAddress = splitStreetAndNumber(query);
         const resolvedStreet =
+          parsedAddress.street ||
           resultAddress?.["road"] ||
           resultAddress?.["pedestrian"] ||
           resultAddress?.["street"] ||
           street;
-        const resolvedNumber = inputNumber || resultNumber || streetNumber;
+        const resolvedNumber = parsedAddress.streetNumber || inputNumber || resultNumber || streetNumber;
         const resolvedCity =
           resultAddress?.["city"] ||
           resultAddress?.["town"] ||
@@ -766,8 +770,9 @@ function CheckoutPage() {
                             onClick={() => {
                               setSelectedSavedAddress(addr.id || "");
                               setAddress(addr.value);
-                              setStreet(addr.street ?? "");
-                              setStreetNumber(addr.streetNumber ?? "");
+                              const parsedAddress = splitStreetAndNumber(addr.value);
+                              setStreet(addr.street || parsedAddress.street || "");
+                              setStreetNumber(addr.streetNumber || parsedAddress.streetNumber || "");
                               setFloor(addr.floor ?? "");
                               setApartment(addr.apartment ?? "");
                               setCity(addr.city ?? "");

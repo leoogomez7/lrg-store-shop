@@ -71,6 +71,7 @@ import {
 } from "@/components/ui/table";
 import { brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
+import { splitStreetAndNumber } from "@/lib/address";
 import { logout } from "@/lib/auth";
 import { getKindeRedirectUri } from "@/lib/kinde";
 import {
@@ -861,15 +862,21 @@ function AccountPageContent({
                 .trim();
             const resolvedHouseNumber = houseNumber || fallbackNumber || "";
 
-            const street = [resolvedRoad, resolvedHouseNumber].filter(Boolean).join(" ").trim();
+            const parsedAddress = splitStreetAndNumber(
+              [resolvedRoad, resolvedHouseNumber].filter(Boolean).join(" ").trim(),
+            );
+            const street = [parsedAddress.street, parsedAddress.streetNumber]
+              .filter(Boolean)
+              .join(" ")
+              .trim();
             const area = [district, city].filter(Boolean).join(", ").trim();
             const value = [street, area].filter(Boolean).join(", ").trim();
 
             return {
-              street: resolvedRoad || displayName.split(",")[0]?.trim() || "",
+              street: parsedAddress.street || resolvedRoad || displayName.split(",")[0]?.trim() || "",
               city: area || displayName.split(",").slice(1).join(", ").trim() || "",
               cityName: city,
-              streetNumber: resolvedHouseNumber,
+              streetNumber: parsedAddress.streetNumber || resolvedHouseNumber,
               province,
               postalCode,
               value: value || displayName || "Dirección",
@@ -2824,8 +2831,22 @@ function AccountPageContent({
               if (addressToDelete?.id) {
                 await deleteUserAddress({ data: { addressId: addressToDelete.id } });
               }
-              setAddresses((current) =>
-                current.filter((_, itemIndex) => itemIndex !== deleteIndex),
+              const remainingAddresses = addresses.filter(
+                (_, itemIndex) => itemIndex !== deleteIndex,
+              );
+              const replacementPrimary = remainingAddresses[0];
+              if (addressToDelete?.isPrimary && replacementPrimary?.id && user?.id) {
+                await setPrimaryUserAddress({
+                  data: { userId: user.id, addressId: replacementPrimary.id },
+                });
+              }
+              setAddresses(
+                remainingAddresses.map((address, itemIndex) => ({
+                  ...address,
+                  isPrimary: addressToDelete?.isPrimary
+                    ? itemIndex === 0 && Boolean(replacementPrimary?.id)
+                    : Boolean(address.isPrimary),
+                })),
               );
               setDeleteIndex(null);
             }}
