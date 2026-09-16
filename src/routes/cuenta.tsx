@@ -824,6 +824,7 @@ function AccountPageContent({
             display_name?: string;
             address?: Record<string, string>;
           }) => {
+            const parsedInputAddress = splitStreetAndNumber(query);
             const address = item.address ?? ({} as Record<string, string>);
             const road =
               address["road"] ||
@@ -860,7 +861,8 @@ function AccountPageContent({
                   "",
                 )
                 .trim();
-            const resolvedHouseNumber = houseNumber || fallbackNumber || "";
+            const resolvedHouseNumber =
+              parsedInputAddress.streetNumber || houseNumber || fallbackNumber || "";
 
             const parsedAddress = splitStreetAndNumber(
               [resolvedRoad, resolvedHouseNumber].filter(Boolean).join(" ").trim(),
@@ -876,7 +878,8 @@ function AccountPageContent({
               street: parsedAddress.street || resolvedRoad || displayName.split(",")[0]?.trim() || "",
               city: area || displayName.split(",").slice(1).join(", ").trim() || "",
               cityName: city,
-              streetNumber: parsedAddress.streetNumber || resolvedHouseNumber,
+              streetNumber:
+                parsedInputAddress.streetNumber || parsedAddress.streetNumber || resolvedHouseNumber,
               province,
               postalCode,
               value: value || displayName || "Dirección",
