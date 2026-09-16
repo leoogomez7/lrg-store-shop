@@ -95,7 +95,7 @@ function AdminLayout() {
     </KindeAuthGate>
   );
 }
-                      redirectURL: getKindeRedirectUri("/") ?? "/",
+
 function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
@@ -685,7 +685,7 @@ function AdminEntryNotice() {
                 id: product.id,
                 name: product.name,
                 stock: product.stock,
-                stockUnlimited: product.stockUnlimited,
+                stockUnlimited: product.stockUnlimited ?? false,
               },
             ],
       )
