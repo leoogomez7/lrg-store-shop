@@ -293,6 +293,7 @@ function AccountPageContent({
   const [addressCity, setAddressCity] = useState("");
   const [addressProvince, setAddressProvince] = useState("");
   const [addressPostalCode, setAddressPostalCode] = useState("");
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null);
   const [isMapLoading, setIsMapLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -2443,6 +2444,7 @@ function AccountPageContent({
               <div className="mt-5 flex flex-wrap gap-3">
                 <Button
                   size="sm"
+                  disabled={isSavingAddress}
                   className="h-9 rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb]"
                   onClick={async () => {
                     if (!addressLabel.trim() || !addressValue.trim()) {
@@ -2453,6 +2455,7 @@ function AccountPageContent({
                       toast.error("Error: usuario no identificado");
                       return;
                     }
+                    setIsSavingAddress(true);
                     try {
                       const result = await saveUserAddress({
                         data: {
@@ -2507,10 +2510,13 @@ function AccountPageContent({
                     } catch (error) {
                       console.error("Error guardando dirección:", error);
                       toast.error("Error al guardar la dirección");
+                    } finally {
+                      setIsSavingAddress(false);
                     }
                   }}
                 >
-                  <Save className="mr-2 size-4 text-current" /> Guardar
+                  <Save className="mr-2 size-4 text-current" />
+                  {isSavingAddress ? "Guardando…" : "Guardar"}
                 </Button>
                 <Button
                   variant="destructive"
@@ -2666,9 +2672,11 @@ function AccountPageContent({
                         <div className="flex flex-wrap gap-3 pt-1">
                           <Button
                             size="sm"
+                            disabled={isSavingAddress}
                             className="h-9 px-4 bg-[#39a9de] text-[#111827] hover:bg-[#2f9ed3]"
                             onClick={async () => {
                               if (!addressLabel.trim() || !addressValue.trim()) return;
+                              setIsSavingAddress(true);
                               const addressToUpdate = addresses[index];
                               if (!addressToUpdate?.id || !user?.id) {
                                 setAddresses((current) =>
@@ -2693,6 +2701,7 @@ function AccountPageContent({
                                 setAddressLabel("");
                                 setAddressValue("");
                                 setMapPreviewUrl(null);
+                                setIsSavingAddress(false);
                                 return;
                               }
 
@@ -2740,9 +2749,11 @@ function AccountPageContent({
                               setAddressLabel("");
                               setAddressValue("");
                               setMapPreviewUrl(null);
+                              setIsSavingAddress(false);
                             }}
                           >
-                            <Save className="mr-2 size-4 text-current" /> Guardar
+                            <Save className="mr-2 size-4 text-current" />
+                            {isSavingAddress ? "Guardando…" : "Guardar"}
                           </Button>
                           <Button
                             variant="destructive"
