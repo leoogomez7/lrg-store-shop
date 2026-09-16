@@ -835,7 +835,12 @@ function AccountPageContent({
               address["path"] ||
               address["street"] ||
               "";
-            const houseNumber = address["house_number"] || address["house"] || "";
+            const houseNumber =
+              address["house_number"] ||
+              address["street_number"] ||
+              address["housenumber"] ||
+              address["house"] ||
+              "";
             const city =
               address["city"] ||
               address["town"] ||
@@ -866,9 +871,9 @@ function AccountPageContent({
                 )
                 .trim();
             const resolvedHouseNumber =
-              parsedInputAddress.streetNumber ||
               houseNumber ||
               resultStreetNumber ||
+              parsedInputAddress.streetNumber ||
               fallbackNumber ||
               "";
 

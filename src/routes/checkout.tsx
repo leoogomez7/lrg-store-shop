@@ -442,17 +442,25 @@ function CheckoutPage() {
         const displayNameNumbers = displayNameFirstPart.match(/\b\d{1,6}\b/g) ?? [];
         const resultNumber =
           resultAddress?.["house_number"] ||
+          resultAddress?.["street_number"] ||
+          resultAddress?.["housenumber"] ||
+          resultAddress?.["house"] ||
           extractStreetNumberFromResult(firstResult?.display_name ?? "", resultAddress?.["road"]) ||
           displayNameNumbers.at(-1) ||
           "";
         const parsedAddress = splitStreetAndNumber(query);
         const resolvedStreet =
-          parsedAddress.street ||
           resultAddress?.["road"] ||
           resultAddress?.["pedestrian"] ||
           resultAddress?.["street"] ||
+          parsedAddress.street ||
           street;
-        const resolvedNumber = parsedAddress.streetNumber || inputNumber || resultNumber || streetNumber;
+        const resolvedNumber =
+          resultNumber ||
+          streetNumber ||
+          parsedAddress.streetNumber ||
+          inputNumber ||
+          "";
         const resolvedCity =
           resultAddress?.["city"] ||
           resultAddress?.["town"] ||

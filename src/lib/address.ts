@@ -24,16 +24,26 @@ export function extractStreetNumberFromResult(value: string, street?: string): s
     .replace(/[\u0300-\u036f]/g, "")
     .split(/\s+/)
     .filter((token) => token.length > 2);
+
   const candidates = segments.flatMap((segment, index) => {
-    const match = segment.match(/\b\d{1,6}\s*[A-Za-z]?\b/);
-    if (!match) return [];
+    const matches = [...segment.matchAll(/\b\d{1,6}\s*[A-Za-z]?\b/g)];
+    if (!matches.length) return [];
+
     const normalizedSegment = segment
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
-    const score = streetTokens.filter((token) => normalizedSegment.includes(token)).length;
-    return [{ number: match[0].trim(), score, index }];
+    const score = streetTokens.length
+      ? streetTokens.filter((token) => normalizedSegment.includes(token)).length
+      : 1;
+
+    return matches.map((match) => ({ number: match[0].trim(), score, index }));
   });
+
+  if (candidates.length === 0) {
+    const directMatch = value.match(/\b\d{1,6}\s*[A-Za-z]?\b/);
+    return directMatch?.[0]?.trim() ?? "";
+  }
 
   return (
     candidates.sort((first, second) => second.score - first.score || first.index - second.index)[0]
