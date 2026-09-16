@@ -217,6 +217,17 @@ function CheckoutPage() {
       return 0;
     }
   });
+  const [couponAmount, setCouponAmount] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      return (
+        Number(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").amount) ||
+        0
+      );
+    } catch {
+      return 0;
+    }
+  });
   const [couponBrandSlug] = useState<string | undefined>(() => {
     if (typeof window === "undefined") return undefined;
     try {
@@ -253,7 +264,10 @@ function CheckoutPage() {
         .filter((item) => item.brand === couponBrandSlug)
         .reduce((sum, item) => sum + item.price * item.quantity, 0)
     : 0;
-  const discountedSubtotal = subtotal - (discountedItemsSubtotal * couponPercentage) / 100;
+  const couponDiscountAmount = couponApplied
+    ? discountedItemsSubtotal * (couponPercentage / 100) + couponAmount
+    : 0;
+  const discountedSubtotal = Math.max(0, subtotal - couponDiscountAmount);
   const eligibleCardSubtotal = items.reduce(
     (total, item) =>
       total +
@@ -999,13 +1013,18 @@ function CheckoutPage() {
                   <>
                     <div className="mt-3 flex items-center justify-between text-green-600">
                       <span>Código: {couponCode}</span>
-                      <span>{couponPercentage}%</span>
+                      <span>
+                        {[
+                          couponPercentage > 0 ? `${couponPercentage}%` : null,
+                          couponAmount > 0 ? `$${couponAmount}` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" + ") || "0"}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between text-green-600">
                       <span>Descuento</span>
-                      <span>
-                        -{formatPrice((discountedItemsSubtotal * couponPercentage) / 100)}
-                      </span>
+                      <span>-{formatPrice(couponDiscountAmount)}</span>
                     </div>
                   </>
                 )}

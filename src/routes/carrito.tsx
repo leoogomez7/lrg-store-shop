@@ -81,6 +81,17 @@ function CartPage() {
       return 0;
     }
   });
+  const [couponAmount, setCouponAmount] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      return (
+        Number(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").amount) ||
+        0
+      );
+    } catch {
+      return 0;
+    }
+  });
   const [couponBrandSlug, setCouponBrandSlug] = useState<string | undefined>(() => {
     if (typeof window === "undefined") return undefined;
     try {
@@ -115,11 +126,13 @@ function CartPage() {
           if (matchingCoupon && matchingBrand) {
             setCouponCode(code);
             setCouponApplied(true);
-            setCouponPercentage(matchingCoupon.percentage);
+            setCouponPercentage(matchingCoupon.percentage ?? 0);
+            setCouponAmount(Number(matchingCoupon.amount) || 0);
             setCouponBrandSlug(matchingBrand.slug);
           } else {
             setCouponApplied(false);
             setCouponPercentage(0);
+            setCouponAmount(0);
             setCouponBrandSlug(undefined);
             window.localStorage.removeItem("lrg_checkout_coupon");
           }
@@ -139,7 +152,10 @@ function CartPage() {
         .filter((item) => item.brand === couponBrandSlug)
         .reduce((total, item) => total + item.price * item.quantity, 0)
     : 0;
-  const discountedSubtotal = subtotal - (discountedItemsSubtotal * couponPercentage) / 100;
+  const couponDiscountAmount = couponApplied
+    ? discountedItemsSubtotal * (couponPercentage / 100) + couponAmount
+    : 0;
+  const discountedSubtotal = Math.max(0, subtotal - couponDiscountAmount);
 
   const [confirmState, setConfirmState] = useState({
     open: false,
@@ -372,12 +388,20 @@ function CartPage() {
                         );
                         const isValid = Boolean(matchingCoupon);
                         const percentage = matchingCoupon?.percentage ?? 0;
+                        const amount = Number(matchingCoupon?.amount) || 0;
                         setCouponApplied(isValid);
                         setCouponPercentage(percentage);
+                        setCouponAmount(amount);
                         setCouponBrandSlug(matchingBrand?.slug);
+                        const detail = [
+                          percentage > 0 ? `${percentage}%` : null,
+                          amount > 0 ? `$${amount}` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" + ");
                         setCouponMessage(
                           isValid
-                            ? `Código aplicado: ${percentage}% de descuento.`
+                            ? `Código aplicado: ${detail || "sin descuento"}.`
                             : "El código no es válido.",
                         );
                         if (typeof window !== "undefined") {
@@ -387,6 +411,7 @@ function CartPage() {
                               JSON.stringify({
                                 code: couponCode.trim().toUpperCase(),
                                 percentage,
+                                amount,
                                 applied: true,
                                 brandSlug: matchingBrand?.slug,
                               }),
@@ -424,8 +449,17 @@ function CartPage() {
                     </div>
                     {couponApplied && (
                       <div className="flex items-center justify-between text-green-600">
-                        <dt>Descuento ({couponPercentage}%)</dt>
-                        <dd>-{formatPrice((discountedItemsSubtotal * couponPercentage) / 100)}</dd>
+                        <dt>
+                          Descuento (
+                          {[
+                            couponPercentage > 0 ? `${couponPercentage}%` : null,
+                            couponAmount > 0 ? `$${couponAmount}` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" + ") || "0"}
+                          )
+                        </dt>
+                        <dd>-{formatPrice(couponDiscountAmount)}</dd>
                       </div>
                     )}
                     <div className="flex items-center justify-between pt-1 font-semibold text-foreground">

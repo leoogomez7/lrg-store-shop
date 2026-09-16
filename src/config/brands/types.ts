@@ -29,6 +29,7 @@ export type BrandDiscount = {
   id: string;
   code: string;
   percentage: number;
+  amount: number;
   enabled: boolean;
 };
 

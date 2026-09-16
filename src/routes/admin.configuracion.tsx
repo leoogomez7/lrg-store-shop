@@ -95,6 +95,7 @@ function AdminConfiguration() {
   const [editingSubcategoryName, setEditingSubcategoryName] = useState("");
   const [newDiscountCode, setNewDiscountCode] = useState("");
   const [newDiscountPercentage, setNewDiscountPercentage] = useState<number | string>("");
+  const [newDiscountAmount, setNewDiscountAmount] = useState<number | string>("");
   const [discounts, setDiscounts] = useState<BrandDiscount[]>([]);
   const [selectedBrand, setSelectedBrand] = useState(brandList[0]?.slug ?? "");
   const [categories, setCategories] = useState(() => {
@@ -222,16 +223,22 @@ function AdminConfiguration() {
 
   const addDiscount = () => {
     const code = newDiscountCode.trim().toUpperCase();
-    const percentage = Math.max(1, Math.min(100, Number(newDiscountPercentage) || 0));
-    if (!code || !percentage || discounts.some((discount) => discount.code === code)) return;
+    const percentage = Math.max(0, Math.min(100, Number(newDiscountPercentage) || 0));
+    const amount = Math.max(0, Number(newDiscountAmount) || 0);
+    const hasValidDiscount = percentage > 0 || amount > 0;
+    if (!code || !hasValidDiscount || discounts.some((discount) => discount.code === code)) return;
     persistDiscounts([
       ...discounts,
-      { id: `${Date.now()}-${code}`, code, percentage, enabled: true },
+      { id: `${Date.now()}-${code}`, code, percentage, amount, enabled: true },
     ]);
     setNewDiscountCode("");
     setNewDiscountPercentage("");
+    setNewDiscountAmount("");
+    const detail = [percentage > 0 ? `${percentage}%` : null, amount > 0 ? `$${amount}` : null]
+      .filter(Boolean)
+      .join(" + ");
     toast.success("Descuento agregado", {
-      description: `${code} aplica ${percentage}% en ${getBrand(selectedBrand)?.name}.`,
+      description: `${code} aplica ${detail} en ${getBrand(selectedBrand)?.name}.`,
     });
   };
 
@@ -1397,21 +1404,34 @@ function AdminConfiguration() {
                 className="h-9"
               />
             </div>
-            <div className="w-full space-y-3 sm:w-32">
+            <div className="w-full space-y-3 sm:w-28">
               <Label htmlFor="newDiscountPercentage">Porcentaje (%)</Label>
               <Input
                 id="newDiscountPercentage"
                 type="number"
-                min={1}
+                min={0}
                 max={100}
                 value={newDiscountPercentage}
                 onChange={(event) => setNewDiscountPercentage(Number(event.target.value))}
               />
             </div>
+            <div className="w-full space-y-3 sm:w-28">
+              <Label htmlFor="newDiscountAmount">Monto ($)</Label>
+              <Input
+                id="newDiscountAmount"
+                type="number"
+                min={0}
+                value={newDiscountAmount}
+                onChange={(event) => setNewDiscountAmount(Number(event.target.value))}
+              />
+            </div>
             <Button
               onClick={addDiscount}
               size="sm"
-              disabled={!newDiscountCode.trim() || newDiscountPercentage < 1}
+              disabled={
+                !newDiscountCode.trim() ||
+                (Number(newDiscountPercentage || 0) <= 0 && Number(newDiscountAmount || 0) <= 0)
+              }
               className="h-9 shrink-0 gap-2"
             >
               <Plus className="size-4" /> Agregar
@@ -1427,7 +1447,12 @@ function AdminConfiguration() {
                 <div className="flex items-center gap-3">
                   <span className="font-semibold">{discount.code}</span>
                   <span className="text-sm text-muted-foreground">
-                    {discount.percentage}% de descuento
+                    {[
+                      discount.percentage > 0 ? `${discount.percentage}%` : null,
+                      discount.amount > 0 ? `$${discount.amount}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" + ") || "Sin descuento"}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
