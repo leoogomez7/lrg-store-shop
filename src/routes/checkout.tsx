@@ -82,6 +82,7 @@ function CheckoutPage() {
   const [province, setProvince] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [address, setAddress] = useState("");
+  const [addressReferences, setAddressReferences] = useState("");
   const [notes, setNotes] = useState("");
   const brandSlugs = useMemo(() => Array.from(new Set(items.map((item) => item.brand))), [items]);
   const [shippingMethodsByBrand, setShippingMethodsByBrand] = useState<Record<string, string>>({});
@@ -425,6 +426,10 @@ function CheckoutPage() {
     if (!phone.trim()) missingFields.push("Teléfono");
     if (!street.trim()) missingFields.push("Calle");
     if (!streetNumber.trim()) missingFields.push("Altura");
+    if (!address.trim()) missingFields.push("Entre calles");
+    if (!city.trim()) missingFields.push("Ciudad");
+    if (!province.trim()) missingFields.push("Provincia");
+    if (!postalCode.trim()) missingFields.push("Código Postal");
     brandSlugs.forEach((slug) => {
       if (!shippingMethodsByBrand[slug])
         missingFields.push(`Método de envío de ${getBrand(slug)?.name}`);
@@ -459,7 +464,10 @@ function CheckoutPage() {
     }
     const id = `LRG-${Math.floor(10000 + Math.random() * 89999)}`;
     const expenses = Math.round(total * 0.65);
-    const normalizedAddress = [street, streetNumber, address].filter(Boolean).join(" ").trim();
+    const normalizedAddress = [street, streetNumber, address, addressReferences]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
     const order = {
       id,
       brand: brand.slug,
@@ -726,32 +734,64 @@ function CheckoutPage() {
                   </div>
                 )}
                 <div className="space-y-2 sm:col-span-2">
-                  <div className="grid gap-3 pt-2 sm:grid-cols-2">
-                    {(
-                      [
-                        ["Calle", street, setStreet, true],
-                        ["Altura", streetNumber, setStreetNumber, true],
-                        ["Entre calles", address, setAddress, false],
-                        ["Piso", floor, setFloor, false],
-                        ["Departamento", apartment, setApartment, false],
-                        ["Ciudad", city, setCity, true],
-                        ["Provincia", province, setProvince, true],
-                        ["Código Postal", postalCode, setPostalCode, true],
-                      ] as Array<[string, string, (next: string) => void, boolean]>
-                    ).map(([label, value, setter, synced]) => (
-                      <label key={String(label)} className="space-y-1 text-sm">
-                        <span>{label}</span>
-                        <Input
-                          value={String(value)}
-                          onChange={(event) => {
-                            (setter as (next: string) => void)(event.target.value);
-                            if (synced) setSelectedSavedAddress("");
-                          }}
-                          readOnly={Boolean(synced)}
-                          className={synced ? "bg-muted/40" : "bg-background"}
-                        />
-                      </label>
-                    ))}
+                  <div className="grid gap-3 pt-2">
+                    <div className="grid gap-3 xl:grid-cols-[minmax(0,2.8fr)_minmax(90px,0.9fr)_minmax(0,1.8fr)_minmax(90px,0.7fr)_minmax(90px,0.7fr)]">
+                      {(
+                        [
+                          ["Calle", street, setStreet, false],
+                          ["Altura", streetNumber, setStreetNumber, false],
+                          ["Entre calles", address, setAddress, false],
+                          ["Piso", floor, setFloor, false],
+                          ["Departamento", apartment, setApartment, false],
+                        ] as Array<[string, string, (next: string) => void, boolean]>
+                      ).map(([label, value, setter, synced]) => (
+                        <label key={String(label)} className="space-y-1 text-sm">
+                          <span>{label}</span>
+                          <Input
+                            value={String(value)}
+                            onChange={(event) => {
+                              (setter as (next: string) => void)(event.target.value);
+                              if (synced) setSelectedSavedAddress("");
+                            }}
+                            readOnly={Boolean(synced)}
+                            className={synced ? "h-10 bg-muted/40" : "h-10 bg-background"}
+                          />
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="grid gap-3 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1.5fr)_minmax(90px,0.8fr)]">
+                      {(
+                        [
+                          ["Ciudad", city, setCity, false],
+                          ["Provincia", province, setProvince, false],
+                          ["Código Postal", postalCode, setPostalCode, false],
+                        ] as Array<[string, string, (next: string) => void, boolean]>
+                      ).map(([label, value, setter, synced]) => (
+                        <label key={String(label)} className="space-y-1 text-sm">
+                          <span>{label}</span>
+                          <Input
+                            value={String(value)}
+                            onChange={(event) => {
+                              (setter as (next: string) => void)(event.target.value);
+                              if (synced) setSelectedSavedAddress("");
+                            }}
+                            readOnly={Boolean(synced)}
+                            className={synced ? "h-10 bg-muted/40" : "h-10 bg-background"}
+                          />
+                        </label>
+                      ))}
+                    </div>
+
+                    <label className="space-y-1 text-sm">
+                      <span>Referencias</span>
+                      <Input
+                        value={String(addressReferences)}
+                        onChange={(event) => setAddressReferences(event.target.value)}
+                        className="h-10 bg-background"
+                        placeholder="Entre calles, color de la casa, etc."
+                      />
+                    </label>
                   </div>
                 </div>
                 <div className="space-y-2 sm:col-span-2">

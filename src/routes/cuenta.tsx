@@ -287,6 +287,7 @@ function AccountPageContent({
   const [showAddForm, setShowAddForm] = useState(false);
   const [addressLabel, setAddressLabel] = useState("");
   const [addressValue, setAddressValue] = useState("");
+  const [addressReferences, setAddressReferences] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
   const [addressFloor, setAddressFloor] = useState("");
@@ -2179,29 +2180,58 @@ function AccountPageContent({
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                {(
-                  [
-                    ["Calle", addressStreet, setAddressStreet, false],
-                    ["Altura", addressNumber, setAddressNumber, false],
-                    ["Entre calles", addressValue, setAddressValue, false],
-                    ["Piso", addressFloor, setAddressFloor, false],
-                    ["Departamento", addressApartment, setAddressApartment, false],
-                    ["Ciudad", addressCity, setAddressCity, true],
-                    ["Provincia", addressProvince, setAddressProvince, true],
-                    ["Código Postal", addressPostalCode, setAddressPostalCode, true],
-                  ] as const
-                ).map(([label, value, setter, synced]) => (
-                  <label key={String(label)} className="space-y-2 text-sm font-medium">
-                    <span>{label}</span>
-                    <Input
-                      value={String(value)}
-                      onChange={(event) => (setter as (next: string) => void)(event.target.value)}
-                      readOnly={Boolean(synced)}
-                      className={synced ? "bg-muted/40" : "bg-background/40"}
-                    />
-                  </label>
-                ))}
+              <div className="mt-5 grid gap-4">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,2.8fr)_minmax(90px,0.9fr)_minmax(0,1.8fr)_minmax(90px,0.7fr)_minmax(90px,0.7fr)]">
+                  {(
+                    [
+                      ["Calle", addressStreet, setAddressStreet, false],
+                      ["Altura", addressNumber, setAddressNumber, false],
+                      ["Entre calles", addressValue, setAddressValue, false],
+                      ["Piso", addressFloor, setAddressFloor, false],
+                      ["Departamento", addressApartment, setAddressApartment, false],
+                    ] as const
+                  ).map(([label, value, setter, synced]) => (
+                    <label key={String(label)} className="space-y-2 text-sm font-medium">
+                      <span>{label}</span>
+                      <Input
+                        value={String(value)}
+                        onChange={(event) => (setter as (next: string) => void)(event.target.value)}
+                        readOnly={Boolean(synced)}
+                        className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
+                      />
+                    </label>
+                  ))}
+                </div>
+
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1.5fr)_minmax(90px,0.8fr)]">
+                  {(
+                    [
+                      ["Ciudad", addressCity, setAddressCity, false],
+                      ["Provincia", addressProvince, setAddressProvince, false],
+                      ["Código Postal", addressPostalCode, setAddressPostalCode, false],
+                    ] as const
+                  ).map(([label, value, setter, synced]) => (
+                    <label key={String(label)} className="space-y-2 text-sm font-medium">
+                      <span>{label}</span>
+                      <Input
+                        value={String(value)}
+                        onChange={(event) => (setter as (next: string) => void)(event.target.value)}
+                        readOnly={Boolean(synced)}
+                        className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
+                      />
+                    </label>
+                  ))}
+                </div>
+
+                <label className="space-y-2 text-sm font-medium">
+                  <span>Referencias</span>
+                  <Input
+                    value={String(addressReferences)}
+                    onChange={(event) => setAddressReferences(event.target.value)}
+                    className="h-10 bg-background/40"
+                    placeholder="Entre calles, color de la casa, etc."
+                  />
+                </label>
               </div>
 
               <div className="mt-5 flex flex-wrap gap-3">
@@ -2210,8 +2240,16 @@ function AccountPageContent({
                   disabled={isSavingAddress}
                   className="h-9 rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb]"
                   onClick={async () => {
-                    if (!addressLabel.trim() || !addressStreet.trim() || !addressNumber.trim()) {
-                      toast.error("Por favor completa etiqueta, calle y altura");
+                    if (
+                      !addressLabel.trim() ||
+                      !addressStreet.trim() ||
+                      !addressNumber.trim() ||
+                      !addressValue.trim() ||
+                      !addressCity.trim() ||
+                      !addressProvince.trim() ||
+                      !addressPostalCode.trim()
+                    ) {
+                      toast.error("Completá etiqueta, calle, altura, entre calles, ciudad, provincia y código postal");
                       return;
                     }
                     if (!user?.id) {
@@ -2220,7 +2258,15 @@ function AccountPageContent({
                     }
                     setIsSavingAddress(true);
                     try {
-                      const normalizedValue = [addressStreet.trim(), addressNumber.trim(), addressValue.trim()].filter(Boolean).join(" ").trim();
+                      const normalizedValue = [
+                        addressStreet.trim(),
+                        addressNumber.trim(),
+                        addressValue.trim(),
+                        addressReferences.trim(),
+                      ]
+                        .filter(Boolean)
+                        .join(" ")
+                        .trim();
                       const result = await saveUserAddress({
                         data: {
                           userId: user.id,
@@ -2257,6 +2303,7 @@ function AccountPageContent({
                         ]);
                         setAddressLabel("");
                         setAddressValue("");
+                        setAddressReferences("");
                         setAddressStreet("");
                         setAddressNumber("");
                         setAddressFloor("");
@@ -2372,31 +2419,62 @@ function AccountPageContent({
                             className="h-10 border-border/60"
                           />
                         </div>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          {(
-                            [
-                              ["Calle", addressStreet, setAddressStreet, false],
-                              ["Altura", addressNumber, setAddressNumber, false],
-                              ["Entre calles", addressValue, setAddressValue, false],
-                              ["Piso", addressFloor, setAddressFloor, false],
-                              ["Departamento", addressApartment, setAddressApartment, false],
-                              ["Ciudad", addressCity, setAddressCity, true],
-                              ["Provincia", addressProvince, setAddressProvince, true],
-                              ["Código Postal", addressPostalCode, setAddressPostalCode, true],
-                            ] as const
-                          ).map(([label, value, setter, synced]) => (
-                            <label key={String(label)} className="space-y-2 text-sm font-medium">
-                              <span>{label}</span>
-                              <Input
-                                value={String(value)}
-                                onChange={(event) =>
-                                  (setter as (next: string) => void)(event.target.value)
-                                }
-                                readOnly={Boolean(synced)}
-                                className={synced ? "bg-muted/40" : "bg-background/40"}
-                              />
-                            </label>
-                          ))}
+                        <div className="grid gap-4">
+                          <div className="grid gap-4 xl:grid-cols-[minmax(0,2.8fr)_minmax(90px,0.9fr)_minmax(0,1.8fr)_minmax(90px,0.7fr)_minmax(90px,0.7fr)]">
+                            {(
+                              [
+                                ["Calle", addressStreet, setAddressStreet, false],
+                                ["Altura", addressNumber, setAddressNumber, false],
+                                ["Entre calles", addressValue, setAddressValue, false],
+                                ["Piso", addressFloor, setAddressFloor, false],
+                                ["Departamento", addressApartment, setAddressApartment, false],
+                              ] as const
+                            ).map(([label, value, setter, synced]) => (
+                              <label key={String(label)} className="space-y-2 text-sm font-medium">
+                                <span>{label}</span>
+                                <Input
+                                  value={String(value)}
+                                  onChange={(event) =>
+                                    (setter as (next: string) => void)(event.target.value)
+                                  }
+                                  readOnly={Boolean(synced)}
+                                  className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
+                                />
+                              </label>
+                            ))}
+                          </div>
+
+                          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1.5fr)_minmax(90px,0.8fr)]">
+                            {(
+                              [
+                                ["Ciudad", addressCity, setAddressCity, false],
+                                ["Provincia", addressProvince, setAddressProvince, false],
+                                ["Código Postal", addressPostalCode, setAddressPostalCode, false],
+                              ] as const
+                            ).map(([label, value, setter, synced]) => (
+                              <label key={String(label)} className="space-y-2 text-sm font-medium">
+                                <span>{label}</span>
+                                <Input
+                                  value={String(value)}
+                                  onChange={(event) =>
+                                    (setter as (next: string) => void)(event.target.value)
+                                  }
+                                  readOnly={Boolean(synced)}
+                                  className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
+                                />
+                              </label>
+                            ))}
+                          </div>
+
+                          <label className="space-y-2 text-sm font-medium">
+                            <span>Referencias</span>
+                            <Input
+                              value={String(addressReferences)}
+                              onChange={(event) => setAddressReferences(event.target.value)}
+                              className="h-10 bg-background/40"
+                              placeholder="Entre calles, color de la casa, etc."
+                            />
+                          </label>
                         </div>
 
                         <div className="flex flex-wrap gap-3 pt-1">
@@ -2405,13 +2483,29 @@ function AccountPageContent({
                             disabled={isSavingAddress}
                             className="h-9 px-4 bg-[#39a9de] text-[#111827] hover:bg-[#2f9ed3]"
                             onClick={async () => {
-                              if (!addressLabel.trim() || !addressStreet.trim() || !addressNumber.trim()) {
-                                toast.error("Por favor completa etiqueta, calle y altura");
+                              if (
+                                !addressLabel.trim() ||
+                                !addressStreet.trim() ||
+                                !addressNumber.trim() ||
+                                !addressValue.trim() ||
+                                !addressCity.trim() ||
+                                !addressProvince.trim() ||
+                                !addressPostalCode.trim()
+                              ) {
+                                toast.error("Completá etiqueta, calle, altura, entre calles, ciudad, provincia y código postal");
                                 return;
                               }
                               setIsSavingAddress(true);
                               const addressToUpdate = addresses[index];
-                              const normalizedValue = [addressStreet.trim(), addressNumber.trim(), addressValue.trim()].filter(Boolean).join(" ").trim();
+                              const normalizedValue = [
+                                addressStreet.trim(),
+                                addressNumber.trim(),
+                                addressValue.trim(),
+                                addressReferences.trim(),
+                              ]
+                                .filter(Boolean)
+                                .join(" ")
+                                .trim();
                               if (!addressToUpdate?.id || !user?.id) {
                                 setAddresses((current) =>
                                   current.map((item, itemIndex) =>
@@ -2434,6 +2528,7 @@ function AccountPageContent({
                                 setEditingIndex(null);
                                 setAddressLabel("");
                                 setAddressValue("");
+                                setAddressReferences("");
                                 setIsSavingAddress(false);
                                 return;
                               }
@@ -2481,6 +2576,7 @@ function AccountPageContent({
                               setEditingIndex(null);
                               setAddressLabel("");
                               setAddressValue("");
+                              setAddressReferences("");
                               setIsSavingAddress(false);
                             }}
                           >
@@ -2495,6 +2591,7 @@ function AccountPageContent({
                               setEditingIndex(null);
                               setAddressLabel("");
                               setAddressValue("");
+                              setAddressReferences("");
                             }}
                           >
                             ✕ Cancelar
@@ -2513,6 +2610,7 @@ function AccountPageContent({
                               setEditingIndex(index);
                               setAddressLabel(address.label);
                               setAddressValue(address.value);
+                              setAddressReferences("");
                               setAddressStreet(address.street ?? "");
                               setAddressNumber(address.streetNumber ?? "");
                               setAddressFloor(address.floor ?? "");
@@ -2553,6 +2651,7 @@ function AccountPageContent({
               setEditingIndex(null);
               setAddressLabel("");
               setAddressValue("");
+              setAddressReferences("");
               setAddressStreet("");
               setAddressNumber("");
               setAddressFloor("");
