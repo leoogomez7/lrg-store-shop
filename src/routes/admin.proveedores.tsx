@@ -609,7 +609,7 @@ function AdminSuppliers() {
           <Plus className="size-4" />
           Nuevo proveedor
         </Button>
-        <div className="order-3 flex basis-full flex-wrap items-center justify-end gap-2 sm:basis-auto sm:shrink-0">
+        <div className="order-3 flex basis-full flex-wrap items-center justify-start gap-2 sm:basis-auto sm:shrink-0">
           <Dialog open={sortOpen} onOpenChange={setSortOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
@@ -948,7 +948,7 @@ function AdminSuppliers() {
       <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
         <button
           type="button"
-          className="text-sm font-medium"
+          className="text-sm font-medium text-foreground"
           onClick={() => {
             setSelectionMode((current) => {
               if (current) setSelectedSupplierKeys([]);
@@ -959,7 +959,7 @@ function AdminSuppliers() {
           Seleccionar
         </button>
         <Checkbox
-          className="h-4 w-4 rounded-full border-2 border-sky-400 bg-transparent data-[state=checked]:bg-transparent data-[state=checked]:border-sky-500 data-[state=checked]:[&>div>svg]:opacity-0"
+          className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
           checked={
             allVisibleSuppliersSelected
               ? true
@@ -1013,7 +1013,7 @@ function AdminSuppliers() {
             {visibleRows.map((row) => (
               <div key={row.key} className="flex h-[72px] w-full items-center justify-center">
                 <Checkbox
-                  className="h-4 w-4 rounded-full border-2 border-sky-400 bg-transparent data-[state=checked]:bg-transparent data-[state=checked]:border-sky-500 data-[state=checked]:[&>div>svg]:opacity-0"
+                  className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                   checked={selectedSupplierKeys.includes(row.key)}
                   onCheckedChange={(checked) => toggleSupplierSelection(row.key, checked === true)}
                   aria-label={`Seleccionar proveedor ${row.name}`}

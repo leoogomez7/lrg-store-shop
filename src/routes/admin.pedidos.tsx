@@ -1442,7 +1442,7 @@ function AdminOrders() {
             variant="default"
             size="sm"
             onClick={openNewOrderDialog}
-            className="h-9 shrink-0 gap-2 px-4 py-2 text-sm"
+            className="h-9 w-full shrink-0 gap-2 px-4 py-2 text-sm sm:w-auto"
           >
             <Plus className="size-4" />
             Nuevo pedido

@@ -1301,23 +1301,12 @@ function AdminProducts() {
 
         <div className="order-3 flex basis-full flex-col gap-2 sm:basis-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 sm:shrink-0">
           <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
-            <Button className="h-9 gap-2" onClick={openNewProductDialog}>
+            <Button className="h-9 w-full gap-2 sm:w-auto" onClick={openNewProductDialog}>
               <Plus className="size-4" /> Nuevo producto
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 gap-2 border-amber-500/50 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 hover:text-amber-700"
-              onClick={() => {
-                setUsdRatePromptValue(usdRate > 0 ? String(usdRate) : "");
-                setUsdRatePromptOpen(true);
-              }}
-            >
-              Seleccionar USD
             </Button>
           </div>
 
-          <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
+          <div className="flex w-full flex-nowrap items-center justify-start gap-1 sm:contents sm:gap-2">
 
           <Dialog open={sortMenuOpen} onOpenChange={setSortMenuOpen}>
             <DialogTrigger asChild>
@@ -1370,6 +1359,18 @@ function AdminProducts() {
               </div>
             </DialogContent>
           </Dialog>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 min-w-0 shrink gap-1 border-amber-500/50 bg-amber-500/10 px-2 text-xs text-amber-600 hover:bg-amber-500/20 hover:text-amber-700 sm:gap-2 sm:px-3 sm:text-sm"
+            onClick={() => {
+              setUsdRatePromptValue(usdRate > 0 ? String(usdRate) : "");
+              setUsdRatePromptOpen(true);
+            }}
+          >
+            Seleccionar USD
+          </Button>
 
           <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
             <DialogTrigger asChild>
