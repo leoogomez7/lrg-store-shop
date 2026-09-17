@@ -735,15 +735,13 @@ function CheckoutPage() {
                 )}
                 <div className="space-y-2 sm:col-span-2">
                   <div className="grid gap-3 pt-2">
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                       {(
                         [
                           ["Calle", street, setStreet, false, "lg:col-span-2"],
                           ["Altura", streetNumber, setStreetNumber, false, ""],
-                          ["Entre calles", address, setAddress, false, "lg:col-span-2"],
+                          ["Entre calles", address, setAddress, false, "lg:col-span-1"],
                           ["Piso", floor, setFloor, false, ""],
-                          ["Depto", apartment, setApartment, false, ""],
-                          ["Código Postal", postalCode, setPostalCode, false, ""],
                         ] as Array<[string, string, (next: string) => void, boolean, string]>
                       ).map(([label, value, setter, synced, span]) => (
                         <label key={String(label)} className={`space-y-1 text-sm ${span}`}>
@@ -761,9 +759,11 @@ function CheckoutPage() {
                       ))}
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                       {(
                         [
+                          ["Depto", apartment, setApartment, false],
+                          ["Código Postal", postalCode, setPostalCode, false],
                           ["Ciudad", city, setCity, false],
                           ["Provincia", province, setProvince, false],
                         ] as Array<[string, string, (next: string) => void, boolean]>

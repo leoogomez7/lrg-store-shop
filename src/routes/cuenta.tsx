@@ -2181,15 +2181,13 @@ function AccountPageContent({
               </div>
 
               <div className="mt-5 grid gap-4">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {(
                     [
                       ["Calle", addressStreet, setAddressStreet, false, "lg:col-span-2"],
                       ["Altura", addressNumber, setAddressNumber, false, ""],
-                      ["Entre calles", addressValue, setAddressValue, false, "lg:col-span-2"],
+                      ["Entre calles", addressValue, setAddressValue, false, "lg:col-span-1"],
                       ["Piso", addressFloor, setAddressFloor, false, ""],
-                      ["Depto", addressApartment, setAddressApartment, false, ""],
-                      ["Código Postal", addressPostalCode, setAddressPostalCode, false, ""],
                     ] as const
                   ).map(([label, value, setter, synced, span]) => (
                     <label
@@ -2207,9 +2205,11 @@ function AccountPageContent({
                   ))}
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {(
                     [
+                      ["Depto", addressApartment, setAddressApartment, false],
+                      ["Código Postal", addressPostalCode, setAddressPostalCode, false],
                       ["Ciudad", addressCity, setAddressCity, false],
                       ["Provincia", addressProvince, setAddressProvince, false],
                     ] as const
@@ -2423,15 +2423,13 @@ function AccountPageContent({
                           />
                         </div>
                         <div className="grid gap-4">
-                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             {(
                               [
                                 ["Calle", addressStreet, setAddressStreet, false, "lg:col-span-2"],
                                 ["Altura", addressNumber, setAddressNumber, false, ""],
-                                ["Entre calles", addressValue, setAddressValue, false, "lg:col-span-2"],
+                                ["Entre calles", addressValue, setAddressValue, false, "lg:col-span-1"],
                                 ["Piso", addressFloor, setAddressFloor, false, ""],
-                                ["Depto", addressApartment, setAddressApartment, false, ""],
-                                ["Código Postal", addressPostalCode, setAddressPostalCode, false, ""],
                               ] as const
                             ).map(([label, value, setter, synced, span]) => (
                               <label
@@ -2451,9 +2449,11 @@ function AccountPageContent({
                             ))}
                           </div>
 
-                          <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             {(
                               [
+                                ["Depto", addressApartment, setAddressApartment, false],
+                                ["Código Postal", addressPostalCode, setAddressPostalCode, false],
                                 ["Ciudad", addressCity, setAddressCity, false],
                                 ["Provincia", addressProvince, setAddressProvince, false],
                               ] as const
