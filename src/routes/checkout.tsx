@@ -735,18 +735,18 @@ function CheckoutPage() {
                 )}
                 <div className="space-y-2 sm:col-span-2">
                   <div className="grid gap-3 pt-2">
-                    <div className="grid gap-3 xl:grid-cols-[minmax(0,2.6fr)_minmax(75px,0.75fr)_minmax(0,2.2fr)_minmax(70px,0.5fr)_minmax(70px,0.5fr)_minmax(90px,0.7fr)]">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
                       {(
                         [
-                          ["Calle", street, setStreet, false],
-                          ["Altura", streetNumber, setStreetNumber, false],
-                          ["Entre calles", address, setAddress, false],
-                          ["Piso", floor, setFloor, false],
-                          ["Depto", apartment, setApartment, false],
-                          ["Código Postal", postalCode, setPostalCode, false],
-                        ] as Array<[string, string, (next: string) => void, boolean]>
-                      ).map(([label, value, setter, synced]) => (
-                        <label key={String(label)} className="space-y-1 text-sm">
+                          ["Calle", street, setStreet, false, "lg:col-span-2"],
+                          ["Altura", streetNumber, setStreetNumber, false, ""],
+                          ["Entre calles", address, setAddress, false, "lg:col-span-2"],
+                          ["Piso", floor, setFloor, false, ""],
+                          ["Depto", apartment, setApartment, false, ""],
+                          ["Código Postal", postalCode, setPostalCode, false, ""],
+                        ] as Array<[string, string, (next: string) => void, boolean, string]>
+                      ).map(([label, value, setter, synced, span]) => (
+                        <label key={String(label)} className={`space-y-1 text-sm ${span}`}>
                           <span>{label}</span>
                           <Input
                             value={String(value)}
@@ -761,7 +761,7 @@ function CheckoutPage() {
                       ))}
                     </div>
 
-                    <div className="grid gap-3 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1.4fr)]">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       {(
                         [
                           ["Ciudad", city, setCity, false],

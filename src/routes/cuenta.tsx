@@ -2181,18 +2181,21 @@ function AccountPageContent({
               </div>
 
               <div className="mt-5 grid gap-4">
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,2.6fr)_minmax(75px,0.75fr)_minmax(0,2.2fr)_minmax(70px,0.5fr)_minmax(70px,0.5fr)_minmax(90px,0.7fr)]">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
                   {(
                     [
-                      ["Calle", addressStreet, setAddressStreet, false],
-                      ["Altura", addressNumber, setAddressNumber, false],
-                      ["Entre calles", addressValue, setAddressValue, false],
-                      ["Piso", addressFloor, setAddressFloor, false],
-                      ["Depto", addressApartment, setAddressApartment, false],
-                      ["Código Postal", addressPostalCode, setAddressPostalCode, false],
+                      ["Calle", addressStreet, setAddressStreet, false, "lg:col-span-2"],
+                      ["Altura", addressNumber, setAddressNumber, false, ""],
+                      ["Entre calles", addressValue, setAddressValue, false, "lg:col-span-2"],
+                      ["Piso", addressFloor, setAddressFloor, false, ""],
+                      ["Depto", addressApartment, setAddressApartment, false, ""],
+                      ["Código Postal", addressPostalCode, setAddressPostalCode, false, ""],
                     ] as const
-                  ).map(([label, value, setter, synced]) => (
-                    <label key={String(label)} className="space-y-2 text-sm font-medium">
+                  ).map(([label, value, setter, synced, span]) => (
+                    <label
+                      key={String(label)}
+                      className={`space-y-2 text-sm font-medium ${span}`}
+                    >
                       <span>{label}</span>
                       <Input
                         value={String(value)}
@@ -2204,7 +2207,7 @@ function AccountPageContent({
                   ))}
                 </div>
 
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)]">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {(
                     [
                       ["Ciudad", addressCity, setAddressCity, false],
@@ -2420,18 +2423,21 @@ function AccountPageContent({
                           />
                         </div>
                         <div className="grid gap-4">
-                          <div className="grid gap-4 xl:grid-cols-[minmax(0,2.6fr)_minmax(75px,0.75fr)_minmax(0,2.2fr)_minmax(70px,0.5fr)_minmax(70px,0.5fr)_minmax(90px,0.7fr)]">
+                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
                             {(
                               [
-                                ["Calle", addressStreet, setAddressStreet, false],
-                                ["Altura", addressNumber, setAddressNumber, false],
-                                ["Entre calles", addressValue, setAddressValue, false],
-                                ["Piso", addressFloor, setAddressFloor, false],
-                                ["Depto", addressApartment, setAddressApartment, false],
-                                ["Código Postal", addressPostalCode, setAddressPostalCode, false],
+                                ["Calle", addressStreet, setAddressStreet, false, "lg:col-span-2"],
+                                ["Altura", addressNumber, setAddressNumber, false, ""],
+                                ["Entre calles", addressValue, setAddressValue, false, "lg:col-span-2"],
+                                ["Piso", addressFloor, setAddressFloor, false, ""],
+                                ["Depto", addressApartment, setAddressApartment, false, ""],
+                                ["Código Postal", addressPostalCode, setAddressPostalCode, false, ""],
                               ] as const
-                            ).map(([label, value, setter, synced]) => (
-                              <label key={String(label)} className="space-y-2 text-sm font-medium">
+                            ).map(([label, value, setter, synced, span]) => (
+                              <label
+                                key={String(label)}
+                                className={`space-y-2 text-sm font-medium ${span}`}
+                              >
                                 <span>{label}</span>
                                 <Input
                                   value={String(value)}
@@ -2445,7 +2451,7 @@ function AccountPageContent({
                             ))}
                           </div>
 
-                          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)]">
+                          <div className="grid gap-4 sm:grid-cols-2">
                             {(
                               [
                                 ["Ciudad", addressCity, setAddressCity, false],
