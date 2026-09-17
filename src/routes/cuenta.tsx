@@ -2181,13 +2181,13 @@ function AccountPageContent({
               </div>
 
               <div className="mt-5 grid gap-4">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-8">
                   {(
                     [
                       ["Calle", addressStreet, setAddressStreet, false, "lg:col-span-2"],
-                      ["Altura", addressNumber, setAddressNumber, false, ""],
-                      ["Entre calles", addressValue, setAddressValue, false, "lg:col-span-1"],
-                      ["Piso", addressFloor, setAddressFloor, false, ""],
+                      ["Altura", addressNumber, setAddressNumber, false, "lg:col-span-1"],
+                      ["Entre calles", addressValue, setAddressValue, false, "lg:col-span-2"],
+                      ["Piso", addressFloor, setAddressFloor, false, "lg:col-span-1"],
                     ] as const
                   ).map(([label, value, setter, synced, span]) => (
                     <label
@@ -2205,15 +2205,15 @@ function AccountPageContent({
                   ))}
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-8">
                   {(
                     [
-                      ["Depto", addressApartment, setAddressApartment, false],
-                      ["Código Postal", addressPostalCode, setAddressPostalCode, false],
-                      ["Ciudad", addressCity, setAddressCity, false],
-                      ["Provincia", addressProvince, setAddressProvince, false],
+                      ["Depto", addressApartment, setAddressApartment, false, "lg:col-span-2"],
+                      ["Código Postal", addressPostalCode, setAddressPostalCode, false, "lg:col-span-2"],
+                      ["Ciudad", addressCity, setAddressCity, false, "lg:col-span-2"],
+                      ["Provincia", addressProvince, setAddressProvince, false, "lg:col-span-2"],
                     ] as const
-                  ).map(([label, value, setter, synced]) => (
+                  ).map(([label, value, setter, synced, span]) => (
                     <label key={String(label)} className="space-y-2 text-sm font-medium">
                       <span>{label}</span>
                       <Input
@@ -2423,13 +2423,13 @@ function AccountPageContent({
                           />
                         </div>
                         <div className="grid gap-4">
-                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-8">
                             {(
                               [
                                 ["Calle", addressStreet, setAddressStreet, false, "lg:col-span-2"],
-                                ["Altura", addressNumber, setAddressNumber, false, ""],
-                                ["Entre calles", addressValue, setAddressValue, false, "lg:col-span-1"],
-                                ["Piso", addressFloor, setAddressFloor, false, ""],
+                                ["Altura", addressNumber, setAddressNumber, false, "lg:col-span-1"],
+                                ["Entre calles", addressValue, setAddressValue, false, "lg:col-span-2"],
+                                ["Piso", addressFloor, setAddressFloor, false, "lg:col-span-1"],
                               ] as const
                             ).map(([label, value, setter, synced, span]) => (
                               <label
@@ -2449,15 +2449,15 @@ function AccountPageContent({
                             ))}
                           </div>
 
-                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-8">
                             {(
                               [
-                                ["Depto", addressApartment, setAddressApartment, false],
-                                ["Código Postal", addressPostalCode, setAddressPostalCode, false],
-                                ["Ciudad", addressCity, setAddressCity, false],
-                                ["Provincia", addressProvince, setAddressProvince, false],
+                                ["Depto", addressApartment, setAddressApartment, false, "lg:col-span-2"],
+                                ["Código Postal", addressPostalCode, setAddressPostalCode, false, "lg:col-span-2"],
+                                ["Ciudad", addressCity, setAddressCity, false, "lg:col-span-2"],
+                                ["Provincia", addressProvince, setAddressProvince, false, "lg:col-span-2"],
                               ] as const
-                            ).map(([label, value, setter, synced]) => (
+                            ).map(([label, value, setter, synced, span]) => (
                               <label key={String(label)} className="space-y-2 text-sm font-medium">
                                 <span>{label}</span>
                                 <Input

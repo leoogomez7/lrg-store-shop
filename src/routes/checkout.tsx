@@ -735,13 +735,13 @@ function CheckoutPage() {
                 )}
                 <div className="space-y-2 sm:col-span-2">
                   <div className="grid gap-3 pt-2">
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-8">
                       {(
                         [
                           ["Calle", street, setStreet, false, "lg:col-span-2"],
-                          ["Altura", streetNumber, setStreetNumber, false, ""],
-                          ["Entre calles", address, setAddress, false, "lg:col-span-1"],
-                          ["Piso", floor, setFloor, false, ""],
+                          ["Altura", streetNumber, setStreetNumber, false, "lg:col-span-1"],
+                          ["Entre calles", address, setAddress, false, "lg:col-span-2"],
+                          ["Piso", floor, setFloor, false, "lg:col-span-1"],
                         ] as Array<[string, string, (next: string) => void, boolean, string]>
                       ).map(([label, value, setter, synced, span]) => (
                         <label key={String(label)} className={`space-y-1 text-sm ${span}`}>
@@ -759,15 +759,15 @@ function CheckoutPage() {
                       ))}
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-8">
                       {(
                         [
-                          ["Depto", apartment, setApartment, false],
-                          ["Código Postal", postalCode, setPostalCode, false],
-                          ["Ciudad", city, setCity, false],
-                          ["Provincia", province, setProvince, false],
-                        ] as Array<[string, string, (next: string) => void, boolean]>
-                      ).map(([label, value, setter, synced]) => (
+                          ["Depto", apartment, setApartment, false, "lg:col-span-2"],
+                          ["Código Postal", postalCode, setPostalCode, false, "lg:col-span-2"],
+                          ["Ciudad", city, setCity, false, "lg:col-span-2"],
+                          ["Provincia", province, setProvince, false, "lg:col-span-2"],
+                        ] as Array<[string, string, (next: string) => void, boolean, string]>
+                      ).map(([label, value, setter, synced, span]) => (
                         <label key={String(label)} className="space-y-1 text-sm">
                           <span>{label}</span>
                           <Input
