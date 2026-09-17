@@ -339,6 +339,7 @@ function AccountPageContent({
     typeof window !== "undefined" &&
     window.sessionStorage.getItem("lrg_auth_role") === "admin";
   const accountDisplayName =
+    [userGivenName, userFamilyName].filter(Boolean).join(" ").trim() ||
     [user?.givenName, user?.familyName].filter(Boolean).join(" ").trim() ||
     userName ||
     "Cliente";
@@ -2060,7 +2061,13 @@ function AccountPageContent({
                   </Label>
                   <Input
                     id="account-primary-address"
-                    value={primaryAddress?.value ?? "Sin dirección principal"}
+                    value={
+                      primaryAddress
+                        ? [primaryAddress.street, primaryAddress.streetNumber]
+                            .filter(Boolean)
+                            .join(" ") || primaryAddress.value
+                        : "Sin dirección principal"
+                    }
                     disabled
                     className="h-11 rounded-xl border-border/60 bg-muted/50 text-foreground opacity-80"
                   />
