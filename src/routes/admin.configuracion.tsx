@@ -848,21 +848,6 @@ function AdminConfiguration() {
                   onChange={(event) => setPendingFreeShippingThreshold(event.target.value)}
                   className="h-9 min-w-0 flex-1 sm:w-[28%] sm:max-w-42.5 sm:flex-none"
                 />
-                <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border/50 bg-background/80 px-2 py-1.5 sm:w-fit sm:flex-none sm:px-3 sm:py-2">
-                  <p className="min-w-0 truncate text-[10px] uppercase tracking-[0.12em] text-muted-foreground sm:text-xs sm:tracking-[0.18em]">
-                    Hay envío gratis desde:
-                  </p>
-                  <p className="shrink-0 text-base font-semibold text-foreground sm:text-lg">${freeShippingThreshold}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-2 py-1 sm:w-fit sm:flex-none sm:justify-start sm:gap-3 sm:px-3">
-                  <span className="truncate text-xs sm:text-sm">Aplicar a todas las tiendas</span>
-                  <Switch
-                    checked={applyFreeShippingToAll}
-                    onCheckedChange={setApplyFreeShippingToAll}
-                  />
-                </label>
                 <Button
                   size="sm"
                   onClick={confirmFreeShippingThreshold}
@@ -875,6 +860,15 @@ function AdminConfiguration() {
                   <Check className="size-3.5 sm:size-4" />
                   Confirmar
                 </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-2 py-1 sm:w-fit sm:flex-none sm:justify-start sm:gap-3 sm:px-3">
+                  <span className="truncate text-xs sm:text-sm">Aplicar a todas las tiendas</span>
+                  <Switch
+                    checked={applyFreeShippingToAll}
+                    onCheckedChange={setApplyFreeShippingToAll}
+                  />
+                </label>
               </div>
             </div>
           </div>
@@ -1160,23 +1154,24 @@ function AdminConfiguration() {
                       </>
                     ) : (
                       <>
-                        <label className="inline-flex h-8 w-fit items-center gap-2 rounded-2xl border border-border/60 bg-background/80 px-2">
-                          <span className="text-xs sm:text-sm">
+                        <div className="flex w-full flex-nowrap items-center gap-1 sm:w-auto sm:gap-2">
+                        <label className="inline-flex h-8 shrink-0 items-center gap-1 rounded-2xl border border-border/60 bg-background/80 px-1.5 sm:gap-2 sm:px-2">
+                          <span className="text-[11px] sm:text-sm">
                             {method.enabled ? "Disponible" : "No disponible"}
                           </span>
-                          <Switch
+                          <Switch className="scale-90"
                             checked={method.enabled}
                             onCheckedChange={() => togglePaymentMethod(method.id)}
                           />
                         </label>
-                        <div className="flex w-full items-center gap-2 sm:w-auto">
+                        <div className="flex min-w-0 flex-1 items-center gap-1 sm:w-auto sm:flex-none sm:gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => startEditingPaymentMethod(method)}
-                            className="flex-1 gap-2 sm:flex-none"
+                            className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Pencil className="size-3.5 sm:size-4" />
                             Editar
                           </Button>
                           <Button
@@ -1190,11 +1185,12 @@ function AdminConfiguration() {
                                 onConfirm: () => removePaymentMethod(method.id),
                               })
                             }
-                            className="flex-1 gap-2 text-destructive hover:bg-destructive/10 sm:flex-none"
+                            className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="size-3.5 sm:size-4" />
                             Eliminar
                           </Button>
+                        </div>
                         </div>
                       </>
                     )}
