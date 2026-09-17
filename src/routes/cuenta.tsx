@@ -38,7 +38,6 @@ import {
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
-import { BrandMark } from "@/components/common/brand-mark";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { ProductCard } from "@/components/product/product-card";
 import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
@@ -2937,7 +2936,14 @@ function AccountPageContent({
               <SheetContent side="left" className="w-[min(86vw,20rem)] p-5">
                 <SheetHeader className="mb-6 text-left">
                   <SheetTitle className="flex items-center gap-3">
-                    <BrandMark compact brandSlug="store-shop" />
+                    <span
+                      className={cn(
+                        "grid size-8 shrink-0 place-items-center rounded-lg text-xs font-bold uppercase text-white",
+                        isAdminUser ? "bg-amber-600" : "bg-green-600",
+                      )}
+                    >
+                      {getUserInitials()}
+                    </span>
                     <span className="truncate">{accountDisplayName}</span>
                   </SheetTitle>
                 </SheetHeader>
