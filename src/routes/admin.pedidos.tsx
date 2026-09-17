@@ -1902,12 +1902,14 @@ function AdminOrders() {
                           }
                           aria-label={`Seleccionar pedido ${order.id}`}
                         />
-                        <span className="min-w-0 break-all">{order.id}</span>
-                        {order.isGuest && (
-                          <Badge variant="warning" className="shrink-0 text-[10px]">
-                            Invitado
-                          </Badge>
-                        )}
+                        <div className="flex min-w-0 flex-col items-start gap-1">
+                          <span className="min-w-0 break-all">{order.id}</span>
+                          {order.isGuest && (
+                            <Badge variant="warning" className="shrink-0 text-[10px]">
+                              Invitado
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>{formatDate(order.date)}</TableCell>
@@ -2039,8 +2041,8 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.expenses)}</TableCell>
                     <TableCell>{formatPrice(order.total)}</TableCell>
                     <TableCell>{formatPrice(order.profit)}</TableCell>
-                    <TableCell className="min-w-72">
-                      <div className="flex flex-col items-center justify-center gap-1.5">
+                    <TableCell className="w-72 min-w-72 max-w-72 overflow-hidden">
+                      <div className="flex w-full min-w-0 flex-col items-center justify-center gap-1.5">
                         {isQuickEditing ? (
                           <>
                             <Button
@@ -2065,7 +2067,7 @@ function AdminOrders() {
                           </>
                         ) : (
                           <>
-                            <div className="flex flex-nowrap items-center justify-center gap-1.5">
+                            <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-1.5">
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -2106,7 +2108,7 @@ function AdminOrders() {
                                 <span className="hidden sm:inline">Comprobantes</span>
                               </Button>
                             </div>
-                            <div className="flex flex-nowrap items-center justify-center gap-1.5">
+                            <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-1.5">
                               <Button
                                 variant="ghost"
                                 size="sm"

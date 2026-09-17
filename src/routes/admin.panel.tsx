@@ -664,7 +664,7 @@ function AdminDashboard() {
             </div>
           </div>
           <div className="glass-panel mt-4 touch-pan-x overflow-x-auto overflow-y-hidden rounded-2xl">
-            <ul className="min-w-[28rem] divide-y divide-border/60">
+            <ul className="min-w-md divide-y divide-border/60">
               {currentStockItems.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-2 px-5 py-2">
                   <span className="flex min-w-0 flex-1 items-center gap-2 text-sm">

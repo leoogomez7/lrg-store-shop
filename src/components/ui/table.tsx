@@ -82,7 +82,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
         {scrollbarState.visible && (
           <div
             className={cn(
-              "fixed bottom-2 z-50 flex items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1 shadow-lg backdrop-blur",
+              "fixed bottom-0 z-50 flex items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1 shadow-lg backdrop-blur",
               hideScrollbarOnMobile && "max-lg:hidden",
             )}
             style={{ left: scrollbarState.left, width: scrollbarState.width }}
@@ -94,7 +94,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
               onClick={() => {
                 const container = containerRef.current;
                 if (!container) return;
-                container.scrollBy({ left: -container.clientWidth * 0.75, behavior: "smooth" });
+                container.scrollBy({ left: -container.clientWidth * 0.95, behavior: "smooth" });
               }}
               aria-label="Desplazar tabla hacia la izquierda"
               title="Desplazar hacia la izquierda"
@@ -118,7 +118,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
               onClick={() => {
                 const container = containerRef.current;
                 if (!container) return;
-                container.scrollBy({ left: container.clientWidth * 0.75, behavior: "smooth" });
+                container.scrollBy({ left: container.clientWidth * 0.95, behavior: "smooth" });
               }}
               aria-label="Desplazar tabla hacia la derecha"
               title="Desplazar hacia la derecha"
@@ -189,7 +189,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      "h-12 px-3 text-left align-middle text-sm font-medium text-foreground/90 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+      "h-12 px-3 text-left align-middle text-sm font-medium text-foreground/90 has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-0.5",
       className,
     )}
     {...props}
@@ -204,7 +204,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      "p-3 align-middle text-sm text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+      "p-3 align-middle text-sm text-foreground has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-0.5",
       className,
     )}
     {...props}

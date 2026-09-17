@@ -22,9 +22,6 @@ import {
   X,
   Copy,
   ArrowUpDown,
-  CreditCard,
-  RotateCcw,
-  Tag,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
@@ -113,12 +110,6 @@ type ProductFormState = {
 const getSupplierKey = (supplier: ProductSupplier) =>
   `${supplier.name}|${supplier.phone}|${supplier.social}`;
 
-type AppliedProductActions = {
-  coupon: boolean;
-  interestFree: boolean;
-  cardCommission: boolean;
-};
-
 const getBrandShortName = (brand: Product["brand"] | string | undefined) => {
   const brandKey = typeof brand === "string" ? brand : undefined;
   const brandConfig = brandKey ? brands[brandKey as BrandSlug] : undefined;
@@ -167,9 +158,6 @@ function AdminProducts() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("createdAt_desc");
   const [discounts, setDiscounts] = useState<Record<string, number>>({});
   const [pendingDiscounts, setPendingDiscounts] = useState<Record<string, string>>({});
-  const [appliedProductActions, setAppliedProductActions] = useState<
-    Record<string, AppliedProductActions>
-  >({});
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [createChoiceOpen, setCreateChoiceOpen] = useState(false);
@@ -753,94 +741,6 @@ function AdminProducts() {
         ? nextProduct.variants?.find((variant) => variant.id === variantId)
         : undefined,
     );
-  };
-
-  const handleApplyDiscount = (productId: string) => {
-    const text = pendingDiscounts[productId] ?? String(discounts[productId] ?? 0);
-    const nextDiscount = Math.max(0, Math.min(100, Number(text) || 0));
-
-    setDiscounts((current) => ({
-      ...current,
-      [productId]: nextDiscount,
-    }));
-    setPendingDiscounts((current) => ({
-      ...current,
-      [productId]: String(nextDiscount),
-    }));
-    const appliedProduct = products.find((p) => p.id === productId);
-    toast.success("Descuento aplicado", {
-      description: `${nextDiscount}% aplicado a "${appliedProduct?.name ?? productId}"`,
-    });
-  };
-
-  const toggleCardCommission = (product: Product, variant: ProductVariant | undefined) => {
-    const nextCardCommission = !(variant?.cardCommission ?? product.cardCommission ?? false);
-    const productIndex = (productsData as Product[]).findIndex((item) => item.id === product.id);
-    if (productIndex === -1) return;
-
-    const currentProduct = (productsData as Product[])[productIndex];
-    if (variant) {
-      currentProduct.variants = currentProduct.variants?.map((itemVariant) =>
-        itemVariant.id === variant.id
-          ? { ...itemVariant, cardCommission: nextCardCommission }
-          : itemVariant,
-      );
-    } else {
-      currentProduct.cardCommission = nextCardCommission;
-    }
-
-    saveProducts(productsData as Product[]);
-    setEditableProducts((current) =>
-      current.map((item) =>
-        item.id !== product.id
-          ? item
-          : variant
-            ? {
-                ...item,
-                variants: item.variants?.map((itemVariant) =>
-                  itemVariant.id === variant.id
-                    ? { ...itemVariant, cardCommission: nextCardCommission }
-                    : itemVariant,
-                ),
-              }
-            : { ...item, cardCommission: nextCardCommission },
-      ),
-    );
-    setAppliedProductActions((current) => ({
-      ...current,
-      [getQuickEditKey(product, variant)]: {
-        ...(current[getQuickEditKey(product, variant)] ?? {
-          coupon: false,
-          interestFree: false,
-        }),
-        cardCommission: nextCardCommission,
-      },
-    }));
-  };
-
-  const handleResetDiscount = (productId: string) => {
-    setDiscounts((current) => ({ ...current, [productId]: 0 }));
-    setPendingDiscounts((current) => ({ ...current, [productId]: "0" }));
-    setAppliedProductActions((current) => {
-      const next = { ...current };
-      Object.keys(next)
-        .filter((key) => key.startsWith(`${productId}:`))
-        .forEach((key) => delete next[key]);
-      return next;
-    });
-    const product = (productsData as Product[]).find((item) => item.id === productId);
-    if (product) {
-      product.cardCommission = false;
-      product.variants = product.variants?.map((variant) => ({
-        ...variant,
-        cardCommission: false,
-      }));
-      saveProducts(productsData as Product[]);
-    }
-    const resetProduct = products.find((product) => product.id === productId);
-    toast.success("Aplicaciones restablecidas", {
-      description: `Se restablecieron las opciones seleccionadas de "${resetProduct?.name ?? productId}".`,
-    });
   };
 
   const getQuickEditKey = (product: Product, variant?: ProductVariant) =>
@@ -1942,7 +1842,6 @@ function AdminProducts() {
               <TableHead className="w-20 text-center">Descuento</TableHead>
               <TableHead className="w-24 text-center">Precio tienda</TableHead>
               <TableHead className="w-24 text-center">Ganancias</TableHead>
-              <TableHead className="w-64 min-w-64 text-center">Aplicar</TableHead>
               <TableHead className="w-72 min-w-72 text-center">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -2195,7 +2094,6 @@ function AdminProducts() {
                           quickDraft.price * (1 - quickDraft.discount / 100) - quickDraft.gastos,
                         )}
                       </TableCell>
-                      <TableCell className="align-middle">-</TableCell>
                       <TableCell className="align-middle">
                         <div className="flex flex-wrap items-center justify-center gap-1">
                           <Button
@@ -2295,104 +2193,6 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell>{formatPrice(Math.max(0, discountedPrice))}</TableCell>
                       <TableCell>{formatPrice(displayProfit, displayProfitCurrency)}</TableCell>
-                      <TableCell>
-                        {(() => {
-                          const actionKey = getQuickEditKey(product, variant);
-                          const actions = appliedProductActions[actionKey] ?? {
-                            coupon: false,
-                            interestFree: false,
-                            cardCommission:
-                              variant?.cardCommission ?? product.cardCommission ?? false,
-                          };
-                          const activeActionClass =
-                            "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white";
-                          return (
-                            <div className="flex flex-col items-center justify-center gap-1">
-                              <div className="flex flex-nowrap items-center justify-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className={`h-7 gap-1 px-2 text-[11px] ${actions.coupon ? activeActionClass : ""}`}
-                                  onClick={() => {
-                                    const nextCouponState = !actions.coupon;
-                                    setAppliedProductActions((current) => ({
-                                      ...current,
-                                      [actionKey]: { ...actions, coupon: nextCouponState },
-                                    }));
-                                    toast.success(
-                                      nextCouponState ? "Cupón aplicado" : "Cupón desactivado",
-                                      {
-                                        description: nextCouponState
-                                          ? "El código válido se descontará del precio final en checkout."
-                                          : "El cupón ya no se aplicará.",
-                                      },
-                                    );
-                                  }}
-                                >
-                                  <Tag className="size-3" /> Cupón
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className={`h-7 gap-1 px-2 text-[11px] ${actions.interestFree ? activeActionClass : ""}`}
-                                  onClick={() => {
-                                    const nextInterestFreeState = !actions.interestFree;
-                                    setAppliedProductActions((current) => ({
-                                      ...current,
-                                      [actionKey]: {
-                                        ...actions,
-                                        interestFree: nextInterestFreeState,
-                                      },
-                                    }));
-                                    toast.success(
-                                      nextInterestFreeState
-                                        ? "Cuotas sin interés aplicadas"
-                                        : "Cuotas sin interés desactivadas",
-                                      {
-                                        description: nextInterestFreeState
-                                          ? "El cliente abonará el mismo valor final."
-                                          : "La opción fue desactivada.",
-                                      },
-                                    );
-                                  }}
-                                >
-                                  <CreditCard className="size-3" /> Cuotas s/int
-                                </Button>
-                              </div>
-                              <div className="flex flex-nowrap items-center justify-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className={`h-7 gap-1 px-2 text-[11px] ${actions.cardCommission ? activeActionClass : ""}`}
-                                  onClick={() => {
-                                    toggleCardCommission(product, variant);
-                                    toast.success(
-                                      !actions.cardCommission
-                                        ? "Comisión de tarjeta aplicada"
-                                        : "Comisión de tarjeta desactivada",
-                                      {
-                                        description: !actions.cardCommission
-                                          ? "Se sumará un 10% al pagar con débito o crédito."
-                                          : "La comisión ya no se aplicará.",
-                                      },
-                                    );
-                                  }}
-                                >
-                                  <span className="text-sm font-semibold">$</span> Comisión tarjeta
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 gap-1 px-2 text-[11px]"
-                                  onClick={() => handleResetDiscount(product.id)}
-                                >
-                                  <RotateCcw className="size-3" /> Restablecer
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </TableCell>
                       <TableCell className="min-w-72">
                         <div className="flex flex-col items-center justify-center gap-1.5">
                           <div className="flex flex-nowrap items-center justify-center gap-1.5">

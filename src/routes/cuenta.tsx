@@ -261,6 +261,7 @@ function AccountPageContent({
   const [userName, setUserName] = useState<string | null>(null);
   const [userGivenName, setUserGivenName] = useState<string>("");
   const [userFamilyName, setUserFamilyName] = useState<string>("");
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
   const [userPhone, setUserPhone] = useState<string>("");
   const [userDocument, setUserDocument] = useState<string>("");
@@ -339,10 +340,12 @@ function AccountPageContent({
     typeof window !== "undefined" &&
     window.sessionStorage.getItem("lrg_auth_role") === "admin";
   const accountDisplayName =
-    [userGivenName, userFamilyName].filter(Boolean).join(" ").trim() ||
-    [user?.givenName, user?.familyName].filter(Boolean).join(" ").trim() ||
-    userName ||
-    "Cliente";
+    profileLoaded
+      ? [userGivenName, userFamilyName].filter(Boolean).join(" ").trim() ||
+        [user?.givenName, user?.familyName].filter(Boolean).join(" ").trim() ||
+        userName ||
+        "Cliente"
+      : "Cargando...";
   const handleLogout = async () => {
     setMobileMenuOpen(false);
     setLogoutOpen(false);
@@ -720,13 +723,6 @@ function AccountPageContent({
       };
       setUserName(nextFullName || user.email || null);
 
-      saveKindeUserToTurso({
-        id: user.id,
-        email: user.email || null,
-        givenName: nextGivenName || null,
-        familyName: nextFamilyName || null,
-      });
-
       // Cargar perfil desde BD
       getUserProfile({ data: { userId: user.id } }).then((profile) => {
         if (profile) {
@@ -752,8 +748,12 @@ function AccountPageContent({
         } else {
           setUserEmail(user.email ?? "");
         }
+        setProfileLoaded(true);
+      }).catch(() => {
+        setProfileLoaded(true);
       });
     } else {
+      setProfileLoaded(false);
       setUserName(null);
       setUserGivenName("");
       setUserFamilyName("");
@@ -792,7 +792,7 @@ function AccountPageContent({
   }, [user?.id]);
 
   const getUserInitials = () => {
-    const safeUserName = userName ?? "";
+    const safeUserName = accountDisplayName === "Cargando..." ? "" : accountDisplayName;
     if (!safeUserName) return "C";
     const names = safeUserName.trim().split(/\s+/).filter(Boolean);
     const first = names[0]?.[0] ?? "";
@@ -2819,7 +2819,7 @@ function AccountPageContent({
             >
               <div
                 className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground"
-                title={userName ?? "Cliente"}
+                title={accountDisplayName}
               >
                 <span
                   className={cn(
@@ -2831,7 +2831,7 @@ function AccountPageContent({
                 </span>
                 {!sidebarCollapsed && (
                   <span className="truncate font-medium text-foreground">
-                    {userName || "Cliente"}
+                    {accountDisplayName}
                   </span>
                 )}
               </div>
@@ -2944,7 +2944,7 @@ function AccountPageContent({
                 {getUserInitials()}
               </span>
               <span className="truncate font-medium text-foreground">
-                {userName || "Mi cuenta"}
+                {accountDisplayName}
               </span>
             </div>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
