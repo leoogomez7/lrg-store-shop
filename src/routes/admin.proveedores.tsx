@@ -978,11 +978,12 @@ function AdminSuppliers() {
       </div>
 
       <div className="glass-panel mt-4 flex items-stretch gap-2 rounded-2xl">
-        <div className="flex shrink-0 flex-col border-r border-border/60 bg-surface-2/60 px-2 py-3">
+        <div className="flex w-10 shrink-0 flex-col items-center border-r border-border/50 bg-transparent py-3">
           <div className="mb-3 h-6" />
           {visibleRows.map((row) => (
-            <div key={row.key} className="flex h-[72px] items-center justify-center">
+            <div key={row.key} className="flex h-[72px] w-full items-center justify-center">
               <Checkbox
+                className="h-5 w-5 rounded-full border-2 border-sky-400 bg-transparent data-[state=checked]:bg-transparent data-[state=checked]:border-sky-500 data-[state=checked]:[&>div>svg]:opacity-0"
                 checked={selectedSupplierKeys.includes(row.key)}
                 onCheckedChange={(checked) => toggleSupplierSelection(row.key, checked === true)}
                 aria-label={`Seleccionar proveedor ${row.name}`}
@@ -1054,12 +1055,16 @@ function AdminSuppliers() {
                           row.social
                         )}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col items-center gap-1 text-center">
-                          <span className="text-xs font-medium text-muted-foreground">$</span>
-                          <span>{formatPrice(row.salesByCurrency.ARS)}</span>
-                          <span className="text-xs font-medium text-muted-foreground">USD</span>
-                          <span>{formatPrice(row.salesByCurrency.USD)}</span>
+                      <TableCell className="min-w-[8rem]">
+                        <div className="flex flex-col items-center justify-center gap-1 text-center leading-none">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-medium text-muted-foreground">$</span>
+                            <span className="text-sm">{formatPrice(row.salesByCurrency.ARS)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-medium text-muted-foreground">USD</span>
+                            <span className="text-sm">{formatPrice(row.salesByCurrency.USD)}</span>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>{row.soldQuantity}</TableCell>
