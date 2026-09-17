@@ -134,7 +134,7 @@ export const Route = createFileRoute("/admin/productos")({
       { title: "Administrador" },
       {
         name: "description",
-        content: "Administrá el catálogo completo: precios, stock y categorías por sector.",
+        content: "Administrá el catálogo completo: precios, stock y categorías por tienda.",
       },
       { property: "og:title", content: "Administrador" },
       { property: "og:description", content: "Gestión de catálogo del negocio LRG." },
@@ -1934,7 +1934,7 @@ function AdminProducts() {
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
               <TableHead className="w-40 text-center">Producto</TableHead>
-              <TableHead className="w-20 text-center">Sector</TableHead>
+              <TableHead className="w-20 text-center">Tienda</TableHead>
               <TableHead className="w-16 text-center">Stock</TableHead>
               <TableHead className="w-24 text-center">Mi comisión</TableHead>
               <TableHead className="w-20 text-center">Gastos</TableHead>

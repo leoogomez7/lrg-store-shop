@@ -333,7 +333,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { clientId, domain } = getKindeConfig();
   const redirectUri = getKindeRedirectUri("/login");
-  const logoutUri = getKindeRedirectUri("/");
+  const logoutUri = getKindeRedirectUri("/login");
   const hasKindConfig = hasKindeConfig();
 
   useEffect(() => {

@@ -353,9 +353,9 @@ function AccountPageContent({
       window.sessionStorage.removeItem("lrg_auth_role");
     }
     await kindeLogout({
-      redirectUrl: getKindeRedirectUri("/") ?? "/",
+      redirectUrl: getKindeRedirectUri("/login") ?? "/login",
     });
-    navigate({ to: "/", replace: true });
+    navigate({ to: "/login", replace: true });
   };
 
   const accountNavItems = [

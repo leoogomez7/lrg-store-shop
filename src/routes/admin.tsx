@@ -458,16 +458,12 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 sidebarCollapsed ? "justify-center" : "justify-between gap-2",
               )}
             >
-              <Link
-                to="/"
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-                title="LRG Store Shop"
-              >
-                <BrandMark compact brandSlug="store-shop" />
+              <div className="inline-flex min-w-0 items-center gap-2">
+                <AdminUserMenu />
                 {!sidebarCollapsed && (
-                  <span className="font-medium text-foreground">LRG Store Shop</span>
+                  <span className="truncate font-medium text-foreground">{adminUserName}</span>
                 )}
-              </Link>
+              </div>
               {!sidebarCollapsed && (
                 <Button
                   type="button"
@@ -557,10 +553,6 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
         </aside>
 
         <div className="min-w-0 flex-1">
-          <div className="hidden items-center justify-end gap-2 border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:flex">
-            <AdminUserMenu />
-          </div>
-
           <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:hidden">
             <div className="flex items-center justify-between gap-3">
               <Link to="/" className="inline-flex items-center gap-2 shrink-0">

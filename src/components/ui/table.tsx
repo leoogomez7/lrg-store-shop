@@ -26,12 +26,13 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
       const rect = container.getBoundingClientRect();
       const scrollWidth = container.scrollWidth;
       const isInViewport = rect.bottom > 0 && rect.top < window.innerHeight;
+      const tableEndIsVisible = rect.bottom <= window.innerHeight;
       const isAtDocumentEnd =
         window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 24;
       const hasHorizontalOverflow = scrollWidth > container.clientWidth + 1;
 
       setScrollbarState({
-        visible: isInViewport && !isAtDocumentEnd && hasHorizontalOverflow,
+        visible: isInViewport && !tableEndIsVisible && !isAtDocumentEnd && hasHorizontalOverflow,
         left: Math.max(0, rect.left),
         width: Math.min(window.innerWidth, Math.max(0, rect.width)),
         scrollWidth,

@@ -15,13 +15,6 @@ import {
  * Capa de servicios. Los componentes nunca acceden a los datos directamente:
  * cuando exista backend, sólo cambia la implementación de estas funciones.
  */
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function simulate<T>(value: T, ms = 320): Promise<T> {
-  await delay(ms);
-  return value;
-}
-
 export function expandCatalogProducts(productList: Product[]) {
   const expanded: Product[] = [];
 
@@ -105,41 +98,35 @@ export const catalogService = {
     const filtered = loaded.filter((product) => product.brand === brand);
     const flattened = expandCatalogProducts(filtered);
     products.splice(0, products.length, ...loaded);
-    return simulate(flattened);
+    return flattened;
   },
   detail: async (brand: BrandSlug, slug: string) =>
-    simulate(
-      (await listAdminProducts({ data: {} })).find(
-        (product) => product.brand === brand && product.slug === slug,
-      ) ?? null,
-      260,
-    ),
+    (await listAdminProducts({ data: {} })).find(
+      (product) => product.brand === brand && product.slug === slug,
+    ) ?? null,
   related: async (brand: BrandSlug, slug: string) => {
     const allProducts = await listAdminProducts({ data: {} });
     const product = allProducts.find((item) => item.brand === brand && item.slug === slug);
-    return simulate(
-      product
-        ? allProducts
-            .filter(
-              (item) =>
-                item.id !== product.id &&
-                item.brand === product.brand &&
-                item.category === product.category,
-            )
-            .slice(0, 4)
-        : [],
-      260,
-    );
+    return product
+      ? allProducts
+          .filter(
+            (item) =>
+              item.id !== product.id &&
+              item.brand === product.brand &&
+              item.category === product.category,
+          )
+          .slice(0, 4)
+      : [];
   },
   listAll: async () => {
     const loaded = await listAdminProducts({ data: {} });
     products.splice(0, products.length, ...loaded);
-    return simulate(expandCatalogProducts(loaded), 200);
+    return expandCatalogProducts(loaded);
   },
   listAllAdmin: async () => {
     const loaded = await listAdminProducts({ data: {} });
     products.splice(0, products.length, ...loaded);
-    return simulate(loaded, 200);
+    return loaded;
   },
 };
 
@@ -147,7 +134,7 @@ export const orderService = {
   list: async () => {
     const loaded = await listAdminOrders();
     orders.splice(0, orders.length, ...loaded);
-    return simulate(loaded, 240);
+    return loaded;
   },
   revenue: async () => {
     const orders = await listAdminOrders();
@@ -165,16 +152,16 @@ export const orderService = {
       if (order.brand === "web-design") current.webDesign += order.total;
       totals.set(key, current);
     }
-    return simulate(Array.from(totals.values()), 200);
+    return Array.from(totals.values());
   },
   create: async (order: Order) => {
     await adjustProductStockForOrder(order, -1);
     await upsertAdminOrder({ data: { order } });
-    return simulate(order, 240);
+    return order;
   },
   update: async (order: Order) => {
     await upsertAdminOrder({ data: { order } });
-    return simulate(order, 240);
+    return order;
   },
 };
 
