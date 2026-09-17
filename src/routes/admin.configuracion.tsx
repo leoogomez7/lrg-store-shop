@@ -97,6 +97,10 @@ function AdminConfiguration() {
   const [newDiscountPercentage, setNewDiscountPercentage] = useState<number | string>("");
   const [newDiscountAmount, setNewDiscountAmount] = useState<number | string>("");
   const [discounts, setDiscounts] = useState<BrandDiscount[]>([]);
+  const [editingDiscountId, setEditingDiscountId] = useState<string | null>(null);
+  const [editingDiscountCode, setEditingDiscountCode] = useState("");
+  const [editingDiscountPercentage, setEditingDiscountPercentage] = useState<number | string>("");
+  const [editingDiscountAmount, setEditingDiscountAmount] = useState<number | string>("");
   const [selectedBrand, setSelectedBrand] = useState(brandList[0]?.slug ?? "");
   const [categories, setCategories] = useState(() => {
     const current = brandList.find((brand) => brand.slug === selectedBrand)?.categories ?? [];
@@ -252,6 +256,34 @@ function AdminConfiguration() {
 
   const removeDiscount = (id: string) => {
     persistDiscounts(discounts.filter((discount) => discount.id !== id));
+  };
+
+  const startEditingDiscount = (discount: BrandDiscount) => {
+    setEditingDiscountId(discount.id);
+    setEditingDiscountCode(discount.code);
+    setEditingDiscountPercentage(discount.percentage || "");
+    setEditingDiscountAmount(discount.amount || "");
+  };
+
+  const cancelEditingDiscount = () => {
+    setEditingDiscountId(null);
+    setEditingDiscountCode("");
+    setEditingDiscountPercentage("");
+    setEditingDiscountAmount("");
+  };
+
+  const saveEditedDiscount = (id: string) => {
+    const code = editingDiscountCode.trim().toUpperCase();
+    const percentage = Math.max(0, Math.min(100, Number(editingDiscountPercentage) || 0));
+    const amount = Math.max(0, Number(editingDiscountAmount) || 0);
+    if (!code || (percentage <= 0 && amount <= 0)) return;
+    if (discounts.some((discount) => discount.id !== id && discount.code === code)) return;
+    persistDiscounts(
+      discounts.map((discount) =>
+        discount.id === id ? { ...discount, code, percentage, amount } : discount,
+      ),
+    );
+    cancelEditingDiscount();
   };
 
   const addShippingMethod = () => {
@@ -815,8 +847,8 @@ function AdminConfiguration() {
                 onChange={(event) => setPendingFreeShippingThreshold(event.target.value)}
                 className="h-9 min-w-0 w-[28%] max-w-42.5"
               />
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
+              <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
+                <label className="inline-flex w-fit max-w-full items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
                   <span className="text-sm">Aplicar a todas las tiendas</span>
                   <Switch
                     checked={applyFreeShippingToAll}
@@ -830,7 +862,7 @@ function AdminConfiguration() {
                     pendingFreeShippingThreshold.trim().length === 0 ||
                     Number.isNaN(Number(pendingFreeShippingThreshold))
                   }
-                  className="h-9 shrink-0 gap-2"
+                  className="h-8 shrink-0 gap-2 px-2"
                 >
                   <Check className="h-4 w-4" />
                   Confirmar
@@ -853,9 +885,9 @@ function AdminConfiguration() {
                   value={newShippingMethod}
                   onChange={(event) => setNewShippingMethod(event.target.value)}
                   placeholder="Escribir nuevo método de envío"
-                  className="h-9 min-w-0 w-[70%] max-w-107.5"
+                  className="h-9 min-w-0 w-full sm:w-[70%] sm:max-w-107.5"
                 />
-                <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
+                  <label className="inline-flex w-fit max-w-full items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
                   <span className="text-sm">Aplicar a todas las tiendas</span>
                   <Switch
                     checked={applyShippingMethodsToAll}
@@ -892,7 +924,7 @@ function AdminConfiguration() {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
                     {editingMethodId === method.id ? (
                       <>
                         <Button
@@ -940,31 +972,33 @@ function AdminConfiguration() {
                             />
                           </label>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => startEditingMethod(method)}
-                          className="gap-2"
-                        >
-                          <Pencil className="h-4 w-4" />
-                          Editar
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            setConfirmState({
-                              open: true,
-                              title: `Eliminar "${method.name}"?`,
-                              description: "Esta acción no se puede deshacer.",
-                              onConfirm: () => removeShippingMethod(method.id),
-                            })
-                          }
-                          className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Eliminar
-                        </Button>
+                        <div className="flex w-full items-center gap-2 sm:w-auto">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startEditingMethod(method)}
+                            className="flex-1 gap-2 sm:flex-none"
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setConfirmState({
+                                open: true,
+                                title: `Eliminar "${method.name}"?`,
+                                description: "Esta acción no se puede deshacer.",
+                                onConfirm: () => removeShippingMethod(method.id),
+                              })
+                            }
+                            className="flex-1 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10 sm:flex-none"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Eliminar
+                          </Button>
+                        </div>
                       </>
                     )}
                   </div>
@@ -1051,9 +1085,9 @@ function AdminConfiguration() {
                 value={newPaymentMethod}
                 onChange={(event) => setNewPaymentMethod(event.target.value)}
                 placeholder="Escribir nuevo método de pago"
-                className="h-9 min-w-0 w-[70%] max-w-107.5"
+                className="h-9 min-w-0 w-full sm:w-[70%] sm:max-w-107.5"
               />
-              <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
+              <label className="inline-flex w-fit max-w-full items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
                 <span className="text-sm">Aplicar a todas las tiendas</span>
                 <Switch
                   checked={applyPaymentMethodsToAll}
@@ -1089,7 +1123,7 @@ function AdminConfiguration() {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
                     {editingPaymentMethodId === method.id ? (
                       <>
                         <Button
@@ -1129,31 +1163,33 @@ function AdminConfiguration() {
                             onCheckedChange={() => togglePaymentMethod(method.id)}
                           />
                         </label>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => startEditingPaymentMethod(method)}
-                          className="gap-2"
-                        >
-                          <Pencil className="h-4 w-4" />
-                          Editar
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            setConfirmState({
-                              open: true,
-                              title: `Eliminar "${method.name}"?`,
-                              description: "Esta acción no se puede deshacer.",
-                              onConfirm: () => removePaymentMethod(method.id),
-                            })
-                          }
-                          className="gap-2 text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Eliminar
-                        </Button>
+                        <div className="flex w-full items-center gap-2 sm:w-auto">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startEditingPaymentMethod(method)}
+                            className="flex-1 gap-2 sm:flex-none"
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setConfirmState({
+                                open: true,
+                                title: `Eliminar "${method.name}"?`,
+                                description: "Esta acción no se puede deshacer.",
+                                onConfirm: () => removePaymentMethod(method.id),
+                              })
+                            }
+                            className="flex-1 gap-2 text-destructive hover:bg-destructive/10 sm:flex-none"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Eliminar
+                          </Button>
+                        </div>
                       </>
                     )}
                   </div>
@@ -1188,7 +1224,7 @@ function AdminConfiguration() {
                 className="h-9"
               />
             </div>
-            <label className="inline-flex h-9 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
+            <label className="inline-flex w-fit max-w-full items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
               <span className="text-sm">Aplicar a todas las tiendas</span>
               <Switch checked={applyBankCbuToAll} onCheckedChange={setApplyBankCbuToAll} />
             </label>
@@ -1225,7 +1261,7 @@ function AdminConfiguration() {
                 value={newCategory}
                 onChange={(event) => setNewCategory(event.target.value)}
                 placeholder="Escribir nueva categoría"
-                className="h-9 min-w-0 w-[70%] max-w-107.5"
+                className="h-9 min-w-0 w-full sm:w-[70%] sm:max-w-107.5"
               />
               <Button
                 onClick={addCategory}
@@ -1286,7 +1322,7 @@ function AdminConfiguration() {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
                     {editingCategoryId !== category.id && (
                       <Button
                         type="button"
@@ -1344,32 +1380,34 @@ function AdminConfiguration() {
                           />
                         </label>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => startEditingCategory(category)}
-                          className="gap-2"
-                        >
-                          <Pencil className="h-4 w-4" />
-                          Editar
-                        </Button>
+                        <div className="flex w-full items-center gap-2 sm:w-auto">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startEditingCategory(category)}
+                            className="flex-1 gap-2 sm:flex-none"
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Editar
+                          </Button>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-2 text-destructive hover:bg-destructive/10"
-                          onClick={() =>
-                            setConfirmState({
-                              open: true,
-                              title: `Eliminar "${category.name}"?`,
-                              description: "Esta acción no se puede deshacer.",
-                              onConfirm: () => removeCategory(category.id),
-                            })
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Eliminar
-                        </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex-1 gap-2 text-destructive hover:bg-destructive/10 sm:flex-none"
+                            onClick={() =>
+                              setConfirmState({
+                                open: true,
+                                title: `Eliminar "${category.name}"?`,
+                                description: "Esta acción no se puede deshacer.",
+                                onConfirm: () => removeCategory(category.id),
+                              })
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Eliminar
+                          </Button>
+                        </div>
                       </>
                     )}
                   </div>
@@ -1442,20 +1480,74 @@ function AdminConfiguration() {
             {discounts.map((discount) => (
               <div
                 key={discount.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/80 p-4"
+                className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/80 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold">{discount.code}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {[
-                      discount.percentage > 0 ? `${discount.percentage}%` : null,
-                      discount.amount > 0 ? `$${discount.amount}` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" + ") || "Sin descuento"}
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
+                {editingDiscountId === discount.id ? (
+                  <div className="grid w-full gap-3 sm:grid-cols-[1.5fr_1fr_1fr]">
+                    <Input
+                      value={editingDiscountCode}
+                      onChange={(event) => setEditingDiscountCode(event.target.value)}
+                      placeholder="Código"
+                      className="h-9"
+                    />
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={editingDiscountPercentage}
+                      onChange={(event) => setEditingDiscountPercentage(event.target.value)}
+                      placeholder="Porcentaje (%)"
+                      className="h-9"
+                    />
+                    <Input
+                      type="number"
+                      min={0}
+                      value={editingDiscountAmount}
+                      onChange={(event) => setEditingDiscountAmount(event.target.value)}
+                      placeholder="Monto ($)"
+                      className="h-9"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="font-semibold">{discount.code}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {[
+                        discount.percentage > 0 ? `${discount.percentage}%` : null,
+                        discount.amount > 0 ? `$${discount.amount}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" + ") || "Sin descuento"}
+                    </span>
+                  </div>
+                )}
+                <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
+                  {editingDiscountId === discount.id ? (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => saveEditedDiscount(discount.id)}
+                        disabled={
+                          !editingDiscountCode.trim() ||
+                          (Number(editingDiscountPercentage || 0) <= 0 &&
+                            Number(editingDiscountAmount || 0) <= 0)
+                        }
+                        className="h-8 gap-1 text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                      >
+                        <Check className="size-4" /> Guardar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={cancelEditingDiscount}
+                        className="h-8 gap-2 text-destructive hover:bg-destructive/10"
+                      >
+                        <X className="size-4" /> Cancelar
+                      </Button>
+                    </>
+                  ) : (
+                    <>
                   <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
                     <span className="text-sm">{discount.enabled ? "Activo" : "Inactivo"}</span>
                     <Switch
@@ -1463,14 +1555,26 @@ function AdminConfiguration() {
                       onCheckedChange={() => toggleDiscount(discount.id)}
                     />
                   </label>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-2 text-destructive hover:bg-destructive/10"
-                    onClick={() => removeDiscount(discount.id)}
-                  >
-                    <Trash2 className="size-4" /> Eliminar
-                  </Button>
+                      <div className="flex w-full items-center gap-2 sm:w-auto">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditingDiscount(discount)}
+                          className="flex-1 gap-2 sm:flex-none"
+                        >
+                          <Pencil className="size-4" /> Editar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 gap-2 text-destructive hover:bg-destructive/10 sm:flex-none"
+                          onClick={() => removeDiscount(discount.id)}
+                        >
+                          <Trash2 className="size-4" /> Eliminar
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
