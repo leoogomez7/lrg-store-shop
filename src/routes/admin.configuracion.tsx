@@ -23,7 +23,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -90,6 +89,7 @@ function AdminConfiguration() {
   const [subcategoryDialogCategoryId, setSubcategoryDialogCategoryId] = useState<string | null>(
     null,
   );
+  const [newSubcategoryParentSlug, setNewSubcategoryParentSlug] = useState<string | null>(null);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [editingSubcategoryKey, setEditingSubcategoryKey] = useState<string | null>(null);
   const [editingSubcategoryName, setEditingSubcategoryName] = useState("");
@@ -742,7 +742,10 @@ function AdminConfiguration() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => addSubcategory(categoryId, node.slug)}
+                onClick={() => {
+                  setNewSubcategoryParentSlug(node.slug);
+                  setNewSubcategoryName("");
+                }}
                 className="h-8 gap-1 px-2 text-sm"
               >
                 <Plus className="size-4" /> Subcat.
@@ -1009,10 +1012,14 @@ function AdminConfiguration() {
         <Dialog
           open={subcategoryDialogCategoryId !== null}
           onOpenChange={(open) => {
-            if (!open) setSubcategoryDialogCategoryId(null);
+            if (!open) {
+              setSubcategoryDialogCategoryId(null);
+              setNewSubcategoryParentSlug(null);
+              setNewSubcategoryName("");
+            }
           }}
         >
-          <DialogContent>
+          <DialogContent className="w-[calc(100%-1rem)] max-w-lg max-h-[min(88vh,42rem)] overflow-y-auto p-4 sm:w-full sm:p-6">
             <DialogHeader>
               <DialogTitle>
                 Subcategorías
@@ -1035,13 +1042,16 @@ function AdminConfiguration() {
                 <Input
                   value={newSubcategoryName}
                   onChange={(event) => setNewSubcategoryName(event.target.value)}
-                  placeholder="Nueva subcategoría"
-                  className="h-9"
+                  placeholder={
+                    newSubcategoryParentSlug ? "Nueva subcategoría anidada" : "Nueva subcategoría"
+                  }
+                  className="h-9 min-w-0"
                 />
                 <Button
                   type="button"
                   onClick={() =>
-                    subcategoryDialogCategoryId && addSubcategory(subcategoryDialogCategoryId, null)
+                    subcategoryDialogCategoryId &&
+                    addSubcategory(subcategoryDialogCategoryId, newSubcategoryParentSlug)
                   }
                   disabled={!newSubcategoryName.trim()}
                   className="h-9 shrink-0 gap-2"
@@ -1050,15 +1060,6 @@ function AdminConfiguration() {
                 </Button>
               </div>
             </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSubcategoryDialogCategoryId(null)}
-              >
-                Cerrar
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
 
@@ -1335,6 +1336,7 @@ function AdminConfiguration() {
                         onClick={() => {
                           setSubcategoryDialogCategoryId(category.id);
                           setNewSubcategoryName("");
+                          setNewSubcategoryParentSlug(null);
                         }}
                         className="h-8 gap-1 px-2 text-xs"
                       >
