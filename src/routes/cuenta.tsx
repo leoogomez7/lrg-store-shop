@@ -38,6 +38,7 @@ import {
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
+import { BrandMark } from "@/components/common/brand-mark";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { ProductCard } from "@/components/product/product-card";
 import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
@@ -338,6 +339,10 @@ function AccountPageContent({
   const isAdminUser =
     typeof window !== "undefined" &&
     window.sessionStorage.getItem("lrg_auth_role") === "admin";
+  const accountDisplayName =
+    [user?.givenName, user?.familyName].filter(Boolean).join(" ").trim() ||
+    userName ||
+    "Cliente";
 
   const accountNavItems = [
     { key: "home", label: "Inicio", icon: House, route: "/", exact: true },
@@ -1432,6 +1437,7 @@ function AccountPageContent({
           <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
             <Table
               containerClassName="touch-pan-x touch-pan-y overflow-x-auto overflow-y-visible"
+              hideScrollbarOnMobile
               className="w-full text-sm [&_td]:text-center [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -1548,7 +1554,7 @@ function AccountPageContent({
             </Table>
           </div>
 
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="mt-4 hidden flex-col gap-3 lg:flex">
             <div className="flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
@@ -2905,7 +2911,6 @@ function AccountPageContent({
           <header
             className={cn(
               "sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-xl transition-transform duration-200 lg:hidden",
-              location.pathname === "/cuenta/compras" && "hidden",
               isMobileNavHidden && "-translate-y-full",
             )}
           >
@@ -2931,7 +2936,10 @@ function AccountPageContent({
               </SheetTrigger>
               <SheetContent side="left" className="w-[min(86vw,20rem)] p-5">
                 <SheetHeader className="mb-6 text-left">
-                  <SheetTitle>Mi menú</SheetTitle>
+                  <SheetTitle className="flex items-center gap-3">
+                    <BrandMark compact brandSlug="store-shop" />
+                    <span className="truncate">{accountDisplayName}</span>
+                  </SheetTitle>
                 </SheetHeader>
                 <nav className="space-y-1">
                   {accountNavItems.map(({ key, label, icon: Icon, route, exact }) => {
@@ -2991,9 +2999,7 @@ function AccountPageContent({
         </main>
       </div>
 
-      <div className={location.pathname === "/cuenta/compras" ? "hidden lg:block" : undefined}>
-        <BrandFooter brand={webDesignConfig} section="account" />
-      </div>
+      <BrandFooter brand={webDesignConfig} section="account" />
 
       <ConfirmDialog
         open={logoutOpen}

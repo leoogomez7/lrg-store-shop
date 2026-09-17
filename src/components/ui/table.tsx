@@ -5,10 +5,11 @@ import { cn } from "@/lib/utils";
 
 type TableProps = React.HTMLAttributes<HTMLTableElement> & {
   containerClassName?: string;
+  hideScrollbarOnMobile?: boolean;
 };
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(
-  ({ className, containerClassName, ...props }, ref) => {
+  ({ className, containerClassName, hideScrollbarOnMobile = false, ...props }, ref) => {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const scrollbarRef = React.useRef<HTMLDivElement | null>(null);
     const [scrollbarState, setScrollbarState] = React.useState<{
@@ -79,7 +80,10 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
         </div>
         {scrollbarState.visible && (
           <div
-            className="fixed bottom-2 z-50 flex items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1 shadow-lg backdrop-blur"
+            className={cn(
+              "fixed bottom-2 z-50 flex items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1 shadow-lg backdrop-blur",
+              hideScrollbarOnMobile && "max-lg:hidden",
+            )}
             style={{ left: scrollbarState.left, width: scrollbarState.width }}
             aria-label="Controles de desplazamiento horizontal de la tabla"
           >
