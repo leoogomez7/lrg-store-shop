@@ -2489,7 +2489,7 @@ function AccountPageContent({
           </Button>
 
           {showAddForm && (
-            <div ref={addAddressFormRef} className="mb-6 rounded-2xl p-5">
+            <div ref={addAddressFormRef} className="mb-6 scroll-mt-20 rounded-2xl p-5 md:scroll-mt-0">
               <div className="mt-2 grid gap-5 sm:grid-cols-2">
                 <div className="space-y-3">
                   <Label htmlFor="new-address-label" className="text-sm font-medium">
@@ -2647,6 +2647,15 @@ function AccountPageContent({
                     setShowAddForm(false);
                     setAddressLabel("");
                     setAddressValue("");
+                    setAddressReferences("");
+                    setAddressStreet("");
+                    setAddressNumber("");
+                    setAddressFloor("");
+                    setAddressApartment("");
+                    setAddressCity("");
+                    setAddressProvince("");
+                    setAddressPostalCode("");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                 >
                   ✕ Cancelar
@@ -2991,7 +3000,7 @@ function AccountPageContent({
             window.sessionStorage.removeItem("lrg_auth_role");
           }
           await kindeLogout({
-            redirectURL: getKindeRedirectUri("/") ?? "/",
+            redirectUrl: getKindeRedirectUri("/") ?? "/",
           });
           navigate({ to: "/", replace: true });
         }}
