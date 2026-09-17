@@ -2181,7 +2181,7 @@ function AccountPageContent({
               </div>
 
               <div className="mt-5 grid gap-4">
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,2.8fr)_minmax(90px,0.9fr)_minmax(0,1.8fr)_minmax(90px,0.7fr)_minmax(90px,0.7fr)]">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,2.6fr)_minmax(75px,0.75fr)_minmax(0,2.2fr)_minmax(70px,0.5fr)_minmax(70px,0.5fr)_minmax(90px,0.7fr)]">
                   {(
                     [
                       ["Calle", addressStreet, setAddressStreet, false],
@@ -2189,6 +2189,7 @@ function AccountPageContent({
                       ["Entre calles", addressValue, setAddressValue, false],
                       ["Piso", addressFloor, setAddressFloor, false],
                       ["Departamento", addressApartment, setAddressApartment, false],
+                      ["Código Postal", addressPostalCode, setAddressPostalCode, false],
                     ] as const
                   ).map(([label, value, setter, synced]) => (
                     <label key={String(label)} className="space-y-2 text-sm font-medium">
@@ -2203,12 +2204,11 @@ function AccountPageContent({
                   ))}
                 </div>
 
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1.5fr)_minmax(90px,0.8fr)]">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1.4fr)]">
                   {(
                     [
                       ["Ciudad", addressCity, setAddressCity, false],
                       ["Provincia", addressProvince, setAddressProvince, false],
-                      ["Código Postal", addressPostalCode, setAddressPostalCode, false],
                     ] as const
                   ).map(([label, value, setter, synced]) => (
                     <label key={String(label)} className="space-y-2 text-sm font-medium">
@@ -2420,7 +2420,7 @@ function AccountPageContent({
                           />
                         </div>
                         <div className="grid gap-4">
-                          <div className="grid gap-4 xl:grid-cols-[minmax(0,2.8fr)_minmax(90px,0.9fr)_minmax(0,1.8fr)_minmax(90px,0.7fr)_minmax(90px,0.7fr)]">
+                          <div className="grid gap-4 xl:grid-cols-[minmax(0,2.6fr)_minmax(75px,0.75fr)_minmax(0,2.2fr)_minmax(70px,0.5fr)_minmax(70px,0.5fr)_minmax(90px,0.7fr)]">
                             {(
                               [
                                 ["Calle", addressStreet, setAddressStreet, false],
@@ -2428,6 +2428,7 @@ function AccountPageContent({
                                 ["Entre calles", addressValue, setAddressValue, false],
                                 ["Piso", addressFloor, setAddressFloor, false],
                                 ["Departamento", addressApartment, setAddressApartment, false],
+                                ["Código Postal", addressPostalCode, setAddressPostalCode, false],
                               ] as const
                             ).map(([label, value, setter, synced]) => (
                               <label key={String(label)} className="space-y-2 text-sm font-medium">
@@ -2444,12 +2445,11 @@ function AccountPageContent({
                             ))}
                           </div>
 
-                          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1.5fr)_minmax(90px,0.8fr)]">
+                          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1.4fr)]">
                             {(
                               [
                                 ["Ciudad", addressCity, setAddressCity, false],
                                 ["Provincia", addressProvince, setAddressProvince, false],
-                                ["Código Postal", addressPostalCode, setAddressPostalCode, false],
                               ] as const
                             ).map(([label, value, setter, synced]) => (
                               <label key={String(label)} className="space-y-2 text-sm font-medium">
