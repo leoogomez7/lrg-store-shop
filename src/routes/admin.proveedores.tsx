@@ -222,8 +222,8 @@ function AdminSuppliers() {
     ["name_desc", "Proveedor: Z-A"],
     ["quantity_asc", "Cantidad vendida: menor a mayor"],
     ["quantity_desc", "Cantidad vendida: mayor a menor"],
-    ["sales_asc", "Vendido ($/USD): menor a mayor"],
-    ["sales_desc", "Vendido ($/USD): mayor a menor"],
+    ["sales_asc", "Vendido: menor a mayor"],
+    ["sales_desc", "Vendido: mayor a menor"],
   ] as const;
   const salesLimit = Math.max(
     1,
@@ -565,7 +565,7 @@ function AdminSuppliers() {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.write(
-      `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #d4d4d4;padding:8px;text-align:left}th{background:#f3f3f3}</style></head><body><h2>Proveedores</h2><table border="1" cellpadding="6"><thead><tr><th>Nombre</th><th>Celular</th><th>Red social</th><th>Productos</th><th>Total vendido ($/USD)</th><th>Cantidad vendida</th></tr></thead><tbody>${exportRows.map((row) => `<tr>${row.map((cell) => `<td>${String(cell).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`,
+      `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #d4d4d4;padding:8px;text-align:left}th{background:#f3f3f3}</style></head><body><h2>Proveedores</h2><table border="1" cellpadding="6"><thead><tr><th>Nombre</th><th>Celular</th><th>Red social</th><th>Productos</th><th>Total vendido</th><th>Cantidad vendida</th></tr></thead><tbody>${exportRows.map((row) => `<tr>${row.map((cell) => `<td>${String(cell).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`,
     );
     printWindow.document.close();
     printWindow.print();
@@ -977,183 +977,196 @@ function AdminSuppliers() {
         ) : null}
       </div>
 
-      <div className="glass-panel mt-4 rounded-2xl">
-        <Table
-          containerClassName="overflow-x-auto overflow-y-visible"
-          selectionGutter
-          className="w-full text-sm [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center [&_td]:align-middle [&_th]:align-middle"
-        >
-          <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Celular</TableHead>
-              <TableHead>Red social</TableHead>
-              <TableHead>Total vendido ($/USD)</TableHead>
-              <TableHead>Cantidad vendida</TableHead>
-              <TableHead>Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visibleRows.map((row) => {
-              const isExpanded = expandedSupplierKey === row.key;
-              const isQuickEditing = quickEditSupplierKey === row.key;
-              const quickSupplier = quickEditSupplier ?? {
-                name: row.name,
-                phone: row.phone,
-                social: row.social,
-              };
-              return (
-                <React.Fragment key={row.key}>
-                  <TableRow>
-                    <TableCell>
-                      <Checkbox
-                        className="relative -left-8 mr-2"
-                        checked={selectedSupplierKeys.includes(row.key)}
-                        onCheckedChange={(checked) =>
-                          toggleSupplierSelection(row.key, checked === true)
-                        }
-                        aria-label={`Seleccionar proveedor ${row.name}`}
-                      />
-                      {isQuickEditing ? (
-                        <Input
-                          value={quickSupplier.name}
-                          onChange={(event) =>
-                            setQuickEditSupplier({ ...quickSupplier, name: event.target.value })
-                          }
-                        />
-                      ) : (
-                        row.name
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {isQuickEditing ? (
-                        <Input
-                          value={quickSupplier.phone}
-                          onChange={(event) =>
-                            setQuickEditSupplier({ ...quickSupplier, phone: event.target.value })
-                          }
-                        />
-                      ) : (
-                        row.phone
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {isQuickEditing ? (
-                        <Input
-                          value={quickSupplier.social}
-                          onChange={(event) =>
-                            setQuickEditSupplier({ ...quickSupplier, social: event.target.value })
-                          }
-                        />
-                      ) : (
-                        row.social
-                      )}
-                    </TableCell>
-                    <TableCell>{formatPrice(row.sales)}</TableCell>
-                    <TableCell>{row.soldQuantity}</TableCell>
-                    <TableCell className="min-w-[31rem] whitespace-nowrap">
-                      <div className="flex flex-nowrap items-center justify-center gap-1.5">
-                        {isQuickEditing ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => saveSupplierChanges(row.key, quickSupplier)}
-                              className="h-7 gap-1 px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700"
-                            >
-                              <Check className="size-3.5" /> Guardar
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={cancelQuickEditSupplier}
-                              className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
-                            >
-                              <X className="size-3.5" /> Cancelar
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setExpandedSupplierKey(isExpanded ? null : row.key)}
-                              className="h-7 gap-1.5 px-2 text-xs"
-                            >
-                              {isExpanded ? (
-                                <EyeOff className="size-4" />
-                              ) : (
-                                <Eye className="size-4" />
-                              )}
-                              {isExpanded ? "Ocultar" : "Detalles"}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startQuickEditSupplier(row)}
-                              className="h-7 gap-1 px-2 text-xs"
-                            >
-                              <Edit3 className="size-3.5" /> Editar rápido
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openSupplierEditor(row)}
-                              className="h-7 gap-1 px-2 text-xs"
-                            >
-                              <Pencil className="size-3.5" /> Editar
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                if (window.confirm(`¿Eliminar el proveedor "${row.name}"?`)) {
-                                  deleteSupplier(row.key);
-                                }
-                              }}
-                              className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="size-3.5" /> Eliminar
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                  {isExpanded ? (
+      <div className="glass-panel mt-4 flex items-stretch gap-2 rounded-2xl">
+        <div className="flex shrink-0 flex-col border-r border-border/60 bg-surface-2/60 px-2 py-3">
+          <div className="mb-3 h-6" />
+          {visibleRows.map((row) => (
+            <div key={row.key} className="flex h-[72px] items-center justify-center">
+              <Checkbox
+                checked={selectedSupplierKeys.includes(row.key)}
+                onCheckedChange={(checked) => toggleSupplierSelection(row.key, checked === true)}
+                aria-label={`Seleccionar proveedor ${row.name}`}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <Table
+            containerClassName="overflow-x-auto overflow-y-visible"
+            className="w-full text-sm [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center [&_td]:align-middle [&_th]:align-middle"
+          >
+            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+              <TableRow>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Celular</TableHead>
+                <TableHead>Red social</TableHead>
+                <TableHead>Total vendido</TableHead>
+                <TableHead>Cantidad vendida</TableHead>
+                <TableHead>Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visibleRows.map((row) => {
+                const isExpanded = expandedSupplierKey === row.key;
+                const isQuickEditing = quickEditSupplierKey === row.key;
+                const quickSupplier = quickEditSupplier ?? {
+                  name: row.name,
+                  phone: row.phone,
+                  social: row.social,
+                };
+                return (
+                  <React.Fragment key={row.key}>
                     <TableRow>
-                      <TableCell colSpan={5} className="bg-surface-2/70 p-4 text-left">
-                        <p className="mb-2 font-medium">Productos</p>
-                        <div className="flex flex-wrap gap-2">
-                          {row.products.map((product) => (
-                            <span
-                              key={product}
-                              className="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary"
-                            >
-                              {product}
-                            </span>
-                          ))}
-                          {row.products.length === 0 && (
-                            <p className="text-sm text-muted-foreground">
-                              Este proveedor todavía no tiene productos asignados.
-                            </p>
+                      <TableCell>
+                        {isQuickEditing ? (
+                          <Input
+                            value={quickSupplier.name}
+                            onChange={(event) =>
+                              setQuickEditSupplier({ ...quickSupplier, name: event.target.value })
+                            }
+                          />
+                        ) : (
+                          row.name
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isQuickEditing ? (
+                          <Input
+                            value={quickSupplier.phone}
+                            onChange={(event) =>
+                              setQuickEditSupplier({ ...quickSupplier, phone: event.target.value })
+                            }
+                          />
+                        ) : (
+                          row.phone
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isQuickEditing ? (
+                          <Input
+                            value={quickSupplier.social}
+                            onChange={(event) =>
+                              setQuickEditSupplier({ ...quickSupplier, social: event.target.value })
+                            }
+                          />
+                        ) : (
+                          row.social
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col items-center gap-1 text-center">
+                          <span className="text-xs font-medium text-muted-foreground">$</span>
+                          <span>{formatPrice(row.salesByCurrency.ARS)}</span>
+                          <span className="text-xs font-medium text-muted-foreground">USD</span>
+                          <span>{formatPrice(row.salesByCurrency.USD)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{row.soldQuantity}</TableCell>
+                      <TableCell className="min-w-[31rem] whitespace-nowrap">
+                        <div className="flex flex-nowrap items-center justify-center gap-1.5">
+                          {isQuickEditing ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => saveSupplierChanges(row.key, quickSupplier)}
+                                className="h-7 gap-1 px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                              >
+                                <Check className="size-3.5" /> Guardar
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={cancelQuickEditSupplier}
+                                className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                              >
+                                <X className="size-3.5" /> Cancelar
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setExpandedSupplierKey(isExpanded ? null : row.key)}
+                                className="h-7 gap-1.5 px-2 text-xs"
+                              >
+                                {isExpanded ? (
+                                  <EyeOff className="size-4" />
+                                ) : (
+                                  <Eye className="size-4" />
+                                )}
+                                {isExpanded ? "Ocultar" : "Detalles"}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => startQuickEditSupplier(row)}
+                                className="h-7 gap-1 px-2 text-xs"
+                              >
+                                <Edit3 className="size-3.5" /> Editar rápido
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openSupplierEditor(row)}
+                                className="h-7 gap-1 px-2 text-xs"
+                              >
+                                <Pencil className="size-3.5" /> Editar
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  if (window.confirm(`¿Eliminar el proveedor "${row.name}"?`)) {
+                                    deleteSupplier(row.key);
+                                  }
+                                }}
+                                className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="size-3.5" /> Eliminar
+                              </Button>
+                            </>
                           )}
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : null}
-                </React.Fragment>
-              );
-            })}
-            {filteredRows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="py-16 text-muted-foreground">
-                  No se encontraron proveedores.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                    {isExpanded ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="bg-surface-2/70 p-4 text-left">
+                          <p className="mb-2 font-medium">Productos</p>
+                          <div className="flex flex-wrap gap-2">
+                            {row.products.map((product) => (
+                              <span
+                                key={product}
+                                className="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary"
+                              >
+                                {product}
+                              </span>
+                            ))}
+                            {row.products.length === 0 && (
+                              <p className="text-sm text-muted-foreground">
+                                Este proveedor todavía no tiene productos asignados.
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </React.Fragment>
+                );
+              })}
+              {filteredRows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-16 text-muted-foreground">
+                    No se encontraron proveedores.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
       <div className="mt-4 flex flex-col gap-3 pb-20">
         <div className="flex flex-wrap items-center justify-center gap-2">

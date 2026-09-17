@@ -2068,13 +2068,13 @@ function AdminOrders() {
                           </>
                         ) : (
                           <>
-                            <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-1.5">
+                            <div className="flex w-full min-w-0 items-center justify-center gap-1.5">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
                                 title={isExpanded ? "Ocultar detalles" : "Mostrar detalles"}
-                                className="h-8 flex-none gap-1.5 bg-transparent px-2 text-xs font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
+                                className="h-8 flex-none gap-1.5 whitespace-nowrap bg-transparent px-2 text-xs font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
                               >
                                 {isExpanded ? (
                                   <EyeOff className="size-4" />
@@ -2092,7 +2092,7 @@ function AdminOrders() {
                                   setDocumentsOrder(order);
                                   setPendingAttachments([]);
                                 }}
-                                className="h-8 flex-none gap-1.5 px-2 text-xs"
+                                className="h-8 flex-none gap-1.5 whitespace-nowrap px-2 text-xs"
                               >
                                 <Paperclip className="size-4" />
                                 <span className="hidden sm:inline">Documentos</span>
@@ -2102,19 +2102,19 @@ function AdminOrders() {
                                 size="sm"
                                 onClick={() => setReceiptsOrder(order)}
                                 disabled={!order.paymentReceipts?.length}
-                                className="h-8 flex-none gap-1.5 px-2 text-xs"
+                                className="h-8 flex-none gap-1.5 whitespace-nowrap px-2 text-xs"
                                 title="Ver comprobantes de pago"
                               >
                                 <FileText className="size-4" />
                                 <span className="hidden sm:inline">Comprobantes</span>
                               </Button>
                             </div>
-                            <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-1.5">
+                            <div className="flex w-full min-w-0 items-center justify-center gap-1.5">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => startQuickEditOrder(order)}
-                                className="h-8 flex-none gap-1.5 px-2 text-xs"
+                                className="h-8 flex-none gap-1.5 whitespace-nowrap px-2 text-xs"
                               >
                                 <Edit3 className="size-4" />
                                 <span className="hidden sm:inline">Editar rápido</span>
@@ -2123,7 +2123,7 @@ function AdminOrders() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => openEditOrderDialog(order)}
-                                className="h-8 flex-none gap-1.5 px-2 text-xs"
+                                className="h-8 flex-none gap-1.5 whitespace-nowrap px-2 text-xs"
                               >
                                 <Pencil className="size-4" />
                                 <span className="hidden sm:inline">Editar</span>
@@ -2139,7 +2139,7 @@ function AdminOrders() {
                                     onConfirm: () => handleDeleteOrder(order),
                                   })
                                 }
-                                className="h-8 flex-none gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10"
+                                className="h-8 flex-none gap-1.5 whitespace-nowrap px-2 text-xs text-destructive hover:bg-destructive/10"
                               >
                                 <Trash2 className="size-4" />
                                 <span className="hidden sm:inline">Eliminar</span>
