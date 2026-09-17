@@ -839,17 +839,25 @@ function AdminConfiguration() {
 
           <div className="mt-6">
             <Label htmlFor="freeShippingThreshold">Envío gratis desde ($)</Label>
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
-              <Input
-                id="freeShippingThreshold"
-                type="number"
-                value={pendingFreeShippingThreshold}
-                onChange={(event) => setPendingFreeShippingThreshold(event.target.value)}
-                className="h-9 min-w-0 w-[28%] max-w-42.5"
-              />
-              <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-                <label className="inline-flex w-fit max-w-full items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
-                  <span className="text-sm">Aplicar a todas las tiendas</span>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
+              <div className="flex items-center gap-2 sm:contents">
+                <Input
+                  id="freeShippingThreshold"
+                  type="number"
+                  value={pendingFreeShippingThreshold}
+                  onChange={(event) => setPendingFreeShippingThreshold(event.target.value)}
+                  className="h-9 min-w-0 flex-1 sm:w-[28%] sm:max-w-42.5 sm:flex-none"
+                />
+                <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border/50 bg-background/80 px-2 py-1.5 sm:w-fit sm:flex-none sm:px-3 sm:py-2">
+                  <p className="min-w-0 truncate text-[10px] uppercase tracking-[0.12em] text-muted-foreground sm:text-xs sm:tracking-[0.18em]">
+                    Hay envío gratis desde:
+                  </p>
+                  <p className="shrink-0 text-base font-semibold text-foreground sm:text-lg">${freeShippingThreshold}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-2 py-1 sm:w-fit sm:flex-none sm:justify-start sm:gap-3 sm:px-3">
+                  <span className="truncate text-xs sm:text-sm">Aplicar a todas las tiendas</span>
                   <Switch
                     checked={applyFreeShippingToAll}
                     onCheckedChange={setApplyFreeShippingToAll}
@@ -862,24 +870,18 @@ function AdminConfiguration() {
                     pendingFreeShippingThreshold.trim().length === 0 ||
                     Number.isNaN(Number(pendingFreeShippingThreshold))
                   }
-                  className="h-8 shrink-0 gap-2 px-2"
+                  className="h-8 shrink-0 gap-1 px-2 text-xs sm:gap-2 sm:text-sm"
                 >
-                  <Check className="h-4 w-4" />
+                  <Check className="size-3.5 sm:size-4" />
                   Confirmar
                 </Button>
-              </div>
-              <div className="flex w-fit max-w-full items-center gap-3 rounded-xl border border-border/50 bg-background/80 px-3 py-2">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                  Hay envío gratis desde:
-                </p>
-                <p className="text-lg font-semibold text-foreground">${freeShippingThreshold}</p>
               </div>
             </div>
           </div>
 
           <div className="mt-6 space-y-6">
             <div>
-              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
                 <Input
                   id="newShippingMethod"
                   value={newShippingMethod}
@@ -887,22 +889,24 @@ function AdminConfiguration() {
                   placeholder="Escribir nuevo método de envío"
                   className="h-9 min-w-0 w-full sm:w-[70%] sm:max-w-107.5"
                 />
-                  <label className="inline-flex w-fit max-w-full items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
-                  <span className="text-sm">Aplicar a todas las tiendas</span>
-                  <Switch
-                    checked={applyShippingMethodsToAll}
-                    onCheckedChange={setApplyShippingMethodsToAll}
-                  />
-                </label>
-                <Button
-                  size="sm"
-                  onClick={addShippingMethod}
-                  disabled={!newShippingMethod.trim()}
-                  className="h-9 shrink-0 gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Agregar
-                </Button>
+                <div className="flex items-center gap-2">
+                  <label className="inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-2 py-1 sm:w-fit sm:flex-none sm:justify-start sm:gap-3 sm:px-3">
+                    <span className="truncate text-xs sm:text-sm">Aplicar a todas las tiendas</span>
+                    <Switch
+                      checked={applyShippingMethodsToAll}
+                      onCheckedChange={setApplyShippingMethodsToAll}
+                    />
+                  </label>
+                  <Button
+                    size="sm"
+                    onClick={addShippingMethod}
+                    disabled={!newShippingMethod.trim()}
+                    className="h-8 shrink-0 gap-1 px-2 text-xs sm:h-9 sm:gap-2 sm:text-sm"
+                  >
+                    <Plus className="size-3.5 sm:size-4" />
+                    Agregar
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -954,19 +958,19 @@ function AdminConfiguration() {
                       </>
                     ) : (
                       <>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
-                            <span className="text-sm">
+                        <div className="flex flex-nowrap items-center gap-1">
+                          <label className="inline-flex h-8 min-w-0 items-center gap-1 rounded-2xl border border-border/60 bg-background/80 px-2">
+                            <span className="truncate text-xs">
                               {method.enabled ? "Disponible" : "No disponible"}
                             </span>
-                            <Switch
+                            <Switch className="scale-90" 
                               checked={method.enabled}
                               onCheckedChange={() => toggleShippingMethod(method.id)}
                             />
                           </label>
-                          <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
-                            <span className="text-sm">Requiere código</span>
-                            <Switch
+                          <label className="inline-flex h-8 min-w-0 items-center gap-1 rounded-2xl border border-border/60 bg-background/80 px-2">
+                            <span className="truncate text-xs">Requiere código</span>
+                            <Switch className="scale-90"
                               checked={Boolean(method.codeRequired)}
                               onCheckedChange={() => toggleShippingMethodCodeRequired(method.id)}
                             />
@@ -1079,7 +1083,7 @@ function AdminConfiguration() {
           </div>
 
           <div className="mt-6 space-y-4">
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
               <Input
                 id="newPaymentMethod"
                 value={newPaymentMethod}
@@ -1087,8 +1091,9 @@ function AdminConfiguration() {
                 placeholder="Escribir nuevo método de pago"
                 className="h-9 min-w-0 w-full sm:w-[70%] sm:max-w-107.5"
               />
-              <label className="inline-flex w-fit max-w-full items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
-                <span className="text-sm">Aplicar a todas las tiendas</span>
+              <div className="flex items-center gap-2">
+              <label className="inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-2 py-1 sm:w-fit sm:flex-none sm:justify-start sm:gap-3 sm:px-3">
+                <span className="truncate text-xs sm:text-sm">Aplicar a todas las tiendas</span>
                 <Switch
                   checked={applyPaymentMethodsToAll}
                   onCheckedChange={setApplyPaymentMethodsToAll}
@@ -1098,11 +1103,12 @@ function AdminConfiguration() {
                 size="sm"
                 onClick={addPaymentMethod}
                 disabled={!newPaymentMethod.trim()}
-                className="h-9 shrink-0 gap-2"
+                className="h-8 shrink-0 gap-1 px-2 text-xs sm:h-9 sm:gap-2 sm:text-sm"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="size-3.5 sm:size-4" />
                 Agregar
               </Button>
+              </div>
             </div>
 
             <div className="grid gap-2">
@@ -1123,7 +1129,7 @@ function AdminConfiguration() {
                     )}
                   </div>
 
-                  <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
+                  <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:flex-row sm:items-center">
                     {editingPaymentMethodId === method.id ? (
                       <>
                         <Button
@@ -1154,8 +1160,8 @@ function AdminConfiguration() {
                       </>
                     ) : (
                       <>
-                        <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
-                          <span className="text-sm">
+                        <label className="inline-flex h-8 w-fit items-center gap-2 rounded-2xl border border-border/60 bg-background/80 px-2">
+                          <span className="text-xs sm:text-sm">
                             {method.enabled ? "Disponible" : "No disponible"}
                           </span>
                           <Switch
@@ -1228,14 +1234,14 @@ function AdminConfiguration() {
               <span className="text-sm">Aplicar a todas las tiendas</span>
               <Switch checked={applyBankCbuToAll} onCheckedChange={setApplyBankCbuToAll} />
             </label>
-            <Button
+              <Button
               type="button"
               size="sm"
               onClick={saveBankCbu}
-              disabled={!bankCbu.trim()}
-              className="h-9 shrink-0 gap-2"
+                disabled={!bankCbu.trim() || bankCbu.trim() === (bankCbus[selectedBrand] ?? "").trim()}
+                className="h-8 shrink-0 gap-1 px-2 text-xs sm:h-9 sm:gap-2 sm:text-sm"
             >
-              <Check className="size-4" /> Guardar
+              <Check className="size-3.5 sm:size-4" /> Guardar
             </Button>
           </div>
         </section>
@@ -1521,7 +1527,7 @@ function AdminConfiguration() {
                     </span>
                   </div>
                 )}
-                <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
+                <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:flex-row sm:items-center">
                   {editingDiscountId === discount.id ? (
                     <>
                       <Button
@@ -1548,13 +1554,15 @@ function AdminConfiguration() {
                     </>
                   ) : (
                     <>
-                  <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
-                    <span className="text-sm">{discount.enabled ? "Activo" : "Inactivo"}</span>
-                    <Switch
-                      checked={discount.enabled}
-                      onCheckedChange={() => toggleDiscount(discount.id)}
-                    />
-                  </label>
+                      <label className="inline-flex h-8 w-fit items-center gap-2 rounded-2xl border border-border/60 bg-background/80 px-2">
+                        <span className="text-xs sm:text-sm">
+                          {discount.enabled ? "Activo" : "Inactivo"}
+                        </span>
+                        <Switch
+                          checked={discount.enabled}
+                          onCheckedChange={() => toggleDiscount(discount.id)}
+                        />
+                      </label>
                       <div className="flex w-full items-center gap-2 sm:w-auto">
                         <Button
                           variant="ghost"
