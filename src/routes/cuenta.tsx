@@ -343,6 +343,20 @@ function AccountPageContent({
     [user?.givenName, user?.familyName].filter(Boolean).join(" ").trim() ||
     userName ||
     "Cliente";
+  const handleLogout = async () => {
+    setMobileMenuOpen(false);
+    setLogoutOpen(false);
+    setIsLoggingOut(true);
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    await logout();
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem("lrg_auth_role");
+    }
+    await kindeLogout({
+      redirectUrl: getKindeRedirectUri("/") ?? "/",
+    });
+    navigate({ to: "/", replace: true });
+  };
 
   const accountNavItems = [
     { key: "home", label: "Inicio", icon: House, route: "/", exact: true },
@@ -3021,18 +3035,7 @@ function AccountPageContent({
         description="¿Estás seguro de que deseas cerrar sesión?"
         confirmLabel="Sí, cerrar sesión"
         cancelLabel="No"
-        onConfirm={async () => {
-          setLogoutOpen(false);
-          setIsLoggingOut(true);
-          await logout();
-          if (typeof window !== "undefined") {
-            window.sessionStorage.removeItem("lrg_auth_role");
-          }
-          await kindeLogout({
-            redirectUrl: getKindeRedirectUri("/") ?? "/",
-          });
-          navigate({ to: "/", replace: true });
-        }}
+        onConfirm={handleLogout}
       />
     </div>
   );

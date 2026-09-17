@@ -114,7 +114,10 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     logout: async () => undefined,
     user: null,
   };
-  const adminUserName = user?.givenName || user?.email || "Usuario";
+  const adminUserName =
+    [user?.givenName, user?.familyName].filter(Boolean).join(" ").trim() ||
+    user?.email ||
+    "Administrador";
   const adminUserRole = "Administrador";
   const adminUserInitials = [user?.givenName, user?.familyName]
     .filter(Boolean)
@@ -555,13 +558,6 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
         <div className="min-w-0 flex-1">
           <div className="hidden items-center justify-end gap-2 border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:flex">
-            <Link
-              to="/carrito"
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
-            >
-              <ShoppingCart className="size-4" />
-              <span>Carrito</span>
-            </Link>
             <AdminUserMenu />
           </div>
 
@@ -573,13 +569,6 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               </Link>
             </div>
             <div className="flex items-center gap-2">
-              <Link
-                to="/carrito"
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-2.5 py-1.5 text-xs font-medium text-foreground"
-              >
-                <ShoppingCart className="size-4" />
-                <span>Carrito</span>
-              </Link>
               <AdminUserMenu />
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
@@ -590,7 +579,12 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[min(86vw,20rem)] p-5">
                   <SheetHeader className="mb-6 text-left">
-                    <SheetTitle>Navegación administrativa</SheetTitle>
+                    <SheetTitle className="flex items-center gap-3">
+                      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-amber-600 text-xs font-bold uppercase text-white">
+                        {adminUserInitials}
+                      </span>
+                      <span className="truncate">{adminUserName}</span>
+                    </SheetTitle>
                   </SheetHeader>
                   <nav className="space-y-1">
                     {navigation.map((item) => {

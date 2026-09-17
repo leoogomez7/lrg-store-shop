@@ -285,7 +285,8 @@ function AdminClients() {
           />
         </div>
 
-        <div className="order-3 flex basis-full flex-wrap items-center justify-end gap-2 sm:basis-auto sm:shrink-0">
+        <div className="order-3 flex basis-full flex-col gap-2 sm:basis-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 sm:shrink-0">
+          <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
           <Dialog open={sortOpen} onOpenChange={setSortOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
@@ -582,6 +583,9 @@ function AdminClients() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
+
+          <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
           <Button
             className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {
@@ -687,6 +691,7 @@ function AdminClients() {
             <FileText className="size-4" />
             Exportar PDF
           </Button>
+          </div>
         </div>
       </div>
 

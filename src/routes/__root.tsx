@@ -24,7 +24,6 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { formatDate } from "../lib/format";
-import { LoadingState } from "@/components/common/loading-state";
 import { getKindeConfig, getKindeRedirectUri, hasKindeConfig } from "../lib/kinde";
 import {
   applyAdminSettings,
@@ -109,6 +108,29 @@ function ErrorComponent({ error }: { error: Error; reset: () => void }) {
         <h1 className="mt-4 text-xl font-semibold tracking-tight text-foreground">
           Cargando...
         </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Estamos preparando la página para vos.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function DelayedNavigationLoading() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setVisible(true), 2500);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center">
+        <LoaderCircle className="mx-auto size-8 animate-spin text-primary" aria-hidden="true" />
+        <h1 className="mt-4 text-xl font-semibold tracking-tight text-foreground">Cargando...</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Estamos preparando la página para vos.
         </p>
@@ -366,7 +388,7 @@ function RootComponent() {
   const appContent = (
     <QueryClientProvider client={queryClient}>
       <AuthenticatedCart>
-        <Suspense fallback={<LoadingState />}>
+        <Suspense fallback={<DelayedNavigationLoading />}>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
         </Suspense>
@@ -379,7 +401,7 @@ function RootComponent() {
     return (
       <QueryClientProvider client={queryClient}>
         <CartProvider>
-          <Suspense fallback={<LoadingState />}>
+          <Suspense fallback={<DelayedNavigationLoading />}>
             <Outlet />
           </Suspense>
           <Toaster position="top-right" />

@@ -1399,10 +1399,25 @@ function AdminProducts() {
           />
         </div>
 
-        <div className="order-3 flex basis-full flex-wrap items-center justify-end gap-2 sm:basis-auto sm:shrink-0">
-          <Button className="h-9 gap-2" onClick={openNewProductDialog}>
-            <Plus className="size-4" /> Nuevo producto
-          </Button>
+        <div className="order-3 flex basis-full flex-col gap-2 sm:basis-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 sm:shrink-0">
+          <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
+            <Button className="h-9 gap-2" onClick={openNewProductDialog}>
+              <Plus className="size-4" /> Nuevo producto
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 gap-2 border-amber-500/50 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 hover:text-amber-700"
+              onClick={() => {
+                setUsdRatePromptValue(usdRate > 0 ? String(usdRate) : "");
+                setUsdRatePromptOpen(true);
+              }}
+            >
+              Seleccionar USD
+            </Button>
+          </div>
+
+          <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
 
           <Dialog open={sortMenuOpen} onOpenChange={setSortMenuOpen}>
             <DialogTrigger asChild>
@@ -1743,6 +1758,9 @@ function AdminProducts() {
             </DialogContent>
           </Dialog>
 
+          </div>
+
+          <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
           <Button
             className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             onClick={() => {
@@ -1848,17 +1866,7 @@ function AdminProducts() {
             <FileText className="size-4" />
             Exportar PDF
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 gap-2 border-amber-500/50 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 hover:text-amber-700"
-            onClick={() => {
-              setUsdRatePromptValue(usdRate > 0 ? String(usdRate) : "");
-              setUsdRatePromptOpen(true);
-            }}
-          >
-            Seleccionar USD
-          </Button>
+          </div>
         </div>
       </div>
 
@@ -2758,7 +2766,10 @@ function AdminProducts() {
         supplierProducts={products}
       />
       <Dialog open={usdRatePromptOpen} onOpenChange={setUsdRatePromptOpen}>
-        <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+        <DialogContent
+          className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl"
+          onOpenAutoFocus={(event) => event.preventDefault()}
+        >
           <DialogHeader className="space-y-3">
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-amber-700">
               Tipo de cambio

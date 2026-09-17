@@ -1436,7 +1436,8 @@ function AdminOrders() {
           />
         </div>
 
-        <div className="order-3 flex w-full shrink-0 flex-wrap items-center justify-start gap-2 sm:w-auto">
+        <div className="order-3 flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-start sm:gap-2">
+          <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
           <Button
             variant="default"
             size="sm"
@@ -1446,6 +1447,9 @@ function AdminOrders() {
             <Plus className="size-4" />
             Nuevo pedido
           </Button>
+          </div>
+
+          <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
 
           <Dialog open={sortMenuOpen} onOpenChange={setSortMenuOpen}>
             <DialogTrigger asChild>
@@ -1737,7 +1741,9 @@ function AdminOrders() {
             </DialogContent>
           </Dialog>
 
-          <div id="lrg-export-pedidos-buttons" className="order-4 contents">
+          </div>
+
+          <div id="lrg-export-pedidos-buttons" className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
             <Button
               className="order-1 inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
               onClick={() => {

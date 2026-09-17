@@ -528,7 +528,7 @@ function AdminDashboard() {
         <div>
           <h2 className="mb-3 font-display text-xl font-semibold">Últimos pedidos</h2>
           <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
-            <Table className="w-full min-w-fit text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center" containerClassName="overflow-x-auto overflow-y-visible">
+            <Table className="w-full min-w-fit text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center" containerClassName="touch-pan-x overflow-x-auto overflow-y-visible">
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
                   <TableHead className="w-24">Pedido</TableHead>
@@ -561,8 +561,8 @@ function AdminDashboard() {
               </TableBody>
             </Table>
           </div>
-          <div className="mt-4 flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-4 flex w-full flex-col gap-3">
+            <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -663,8 +663,8 @@ function AdminDashboard() {
               />
             </div>
           </div>
-          <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
-            <ul className="divide-y divide-border/60">
+          <div className="glass-panel mt-4 touch-pan-x overflow-x-auto overflow-y-hidden rounded-2xl">
+            <ul className="min-w-[28rem] divide-y divide-border/60">
               {currentStockItems.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-2 px-5 py-2">
                   <span className="flex min-w-0 flex-1 items-center gap-2 text-sm">
@@ -689,8 +689,8 @@ function AdminDashboard() {
               ) : null}
             </ul>
           </div>
-          <div className="mt-4 flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-4 flex w-full flex-col gap-3">
+            <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
