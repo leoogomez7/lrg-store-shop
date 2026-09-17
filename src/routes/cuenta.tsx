@@ -295,27 +295,12 @@ function AccountPageContent({
   const [addressProvince, setAddressProvince] = useState("");
   const [addressPostalCode, setAddressPostalCode] = useState("");
   const [isSavingAddress, setIsSavingAddress] = useState(false);
-  const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null);
-  const [isMapLoading, setIsMapLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const savedProfileValues = useRef({ givenName: "", familyName: "", phone: "", document: "" });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobileNavHidden, setIsMobileNavHidden] = useState(false);
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
-  const [addressSuggestions, setAddressSuggestions] = useState<
-    Array<{
-      label: string;
-      value: string;
-      display?: { street: string; city: string };
-      cityName?: string;
-      streetNumber?: string;
-      province?: string;
-      postalCode?: string;
-      lat?: string;
-      lon?: string;
-    }>
-  >([]);
   const [ordersPage, setOrdersPage] = useState(0);
   const [ordersPageSize, setOrdersPageSize] = useState<number>(10);
   const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("10");
@@ -792,203 +777,8 @@ function AccountPageContent({
   };
 
   useEffect(() => {
-    const query = addressValue.trim();
-    if (!query) {
-      setMapPreviewUrl(null);
-      setAddressSuggestions([]);
-      return;
-    }
-
-    const timer = window.setTimeout(async () => {
-      try {
-        setIsMapLoading(true);
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&addressdetails=1&q=${encodeURIComponent(query)}`,
-          { headers: { "Accept-Language": "es" } },
-        );
-        const data = (await response.json()) as Array<{
-          lat?: string;
-          lon?: string;
-          display_name?: string;
-          address?: Record<string, string>;
-        }>;
-
-        if (data.length > 0) {
-          const normalizeAddressText = (value: string) =>
-            value
-              .toLowerCase()
-              .normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "")
-              .replace(/[^a-z0-9 ]/g, " ")
-              .replace(/\s+/g, " ")
-              .trim();
-
-          const formatAddress = (item: {
-            display_name?: string;
-            address?: Record<string, string>;
-          }) => {
-            const parsedInputAddress = splitStreetAndNumber(query);
-            const address = item.address ?? ({} as Record<string, string>);
-            const road =
-              address["road"] ||
-              address["pedestrian"] ||
-              address["path"] ||
-              address["street"] ||
-              "";
-            const houseNumber =
-              address["house_number"] ||
-              address["street_number"] ||
-              address["housenumber"] ||
-              address["house"] ||
-              "";
-            const city =
-              address["city"] ||
-              address["town"] ||
-              address["village"] ||
-              address["municipality"] ||
-              address["county"] ||
-              address["state"] ||
-              "";
-            const province = address["state"] || address["province"] || "";
-            const postalCode = address["postcode"] || "";
-            const district =
-              address["suburb"] || address["neighbourhood"] || address["city_district"] || "";
-
-            const displayName = item.display_name || "";
-            const extractedFromDisplay = displayName.split(",")[0]?.trim() || "";
-            const fallbackStreetMatch = extractedFromDisplay.match(/^(.*?\d+\s*[A-Za-z]?)$/);
-            const fallbackStreet = fallbackStreetMatch?.[1]?.trim() || extractedFromDisplay;
-            const fallbackNumber =
-              extractedFromDisplay.match(/(\d+\s*[A-Za-z0-9-]*)$/)?.[1]?.trim() || "";
-            const resultStreetNumber = extractStreetNumberFromResult(displayName, road);
-
-            const resolvedRoad =
-              road ||
-              fallbackStreet
-                .replace(
-                  new RegExp(`\\s*${fallbackNumber.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
-                  "",
-                )
-                .trim();
-            const resolvedHouseNumber =
-              houseNumber ||
-              resultStreetNumber ||
-              parsedInputAddress.streetNumber ||
-              fallbackNumber ||
-              "";
-
-            const parsedAddress = splitStreetAndNumber(
-              [resolvedRoad, resolvedHouseNumber].filter(Boolean).join(" ").trim(),
-            );
-            const street = [parsedAddress.street, parsedAddress.streetNumber]
-              .filter(Boolean)
-              .join(" ")
-              .trim();
-            const area = [district, city].filter(Boolean).join(", ").trim();
-            const value = [street, area].filter(Boolean).join(", ").trim();
-
-            return {
-              street: parsedAddress.street || resolvedRoad || displayName.split(",")[0]?.trim() || "",
-              city: area || displayName.split(",").slice(1).join(", ").trim() || "",
-              cityName: city,
-              streetNumber:
-                parsedInputAddress.streetNumber || parsedAddress.streetNumber || resolvedHouseNumber,
-              province,
-              postalCode,
-              value: value || displayName || "Dirección",
-            };
-          };
-
-          const seen = new Set<string>();
-          const suggestions = data.reduce<
-            Array<{
-              label: string;
-              value: string;
-              display?: { street: string; city: string };
-              cityName?: string;
-              streetNumber?: string;
-              province?: string;
-              postalCode?: string;
-              lat?: string;
-              lon?: string;
-            }>
-          >((acc, item) => {
-            const formatted = formatAddress(item);
-            const candidate = formatted.value;
-            const key = normalizeAddressText(candidate);
-
-            if (!candidate || !key || seen.has(key)) {
-              return acc;
-            }
-
-            seen.add(key);
-            const suggestion: {
-              label: string;
-              value: string;
-              display: { street: string; city: string };
-              cityName?: string;
-              streetNumber?: string;
-              province?: string;
-              postalCode?: string;
-              lat?: string;
-              lon?: string;
-            } = {
-              label: candidate,
-              value: candidate,
-              display: { street: formatted.street, city: formatted.city },
-              cityName: formatted.cityName,
-              streetNumber: formatted.streetNumber,
-              province: formatted.province,
-              postalCode: formatted.postalCode,
-            };
-
-            if (typeof item.lat === "string" && item.lat.length > 0) {
-              suggestion.lat = item.lat;
-            }
-            if (typeof item.lon === "string" && item.lon.length > 0) {
-              suggestion.lon = item.lon;
-            }
-
-            acc.push(suggestion);
-            return acc;
-          }, []);
-
-          setAddressSuggestions(suggestions.slice(0, 3));
-
-          const firstLocation = suggestions[0];
-          if (firstLocation) {
-            setAddressStreet(firstLocation.display?.street ?? "");
-            setAddressNumber(firstLocation.streetNumber ?? "");
-            setAddressCity(firstLocation.cityName ?? "");
-            setAddressProvince(firstLocation.province ?? "");
-            setAddressPostalCode(firstLocation.postalCode ?? "");
-          }
-
-          const location = data[0];
-          if (location?.lat && location?.lon) {
-            const lat = Number(location.lat);
-            const lon = Number(location.lon);
-            if (Number.isFinite(lat) && Number.isFinite(lon)) {
-              setMapPreviewUrl(
-                `https://maps.google.com/maps?q=${lat},${lon}&z=15&output=embed&hl=es`,
-              );
-            }
-          }
-        } else {
-          setMapPreviewUrl(null);
-          setAddressSuggestions([]);
-        }
-      } catch (error) {
-        console.error("Error generando vista de mapa:", error);
-        setMapPreviewUrl(null);
-        setAddressSuggestions([]);
-      } finally {
-        setIsMapLoading(false);
-      }
-    }, 600);
-
-    return () => window.clearTimeout(timer);
-  }, [addressValue]);
+    setAddressValue((current) => current.trim());
+  }, []);
 
   const renderAccountContent = () => {
     if (activeTab === "inicio") {
@@ -2387,53 +2177,14 @@ function AccountPageContent({
                     className="h-11 rounded-xl border-border/60 bg-background/40"
                   />
                 </div>
-                <div className="space-y-3">
-                  <Label htmlFor="new-address-value" className="text-sm font-medium">
-                    Dirección
-                  </Label>
-                  <Input
-                    id="new-address-value"
-                    value={addressValue}
-                    onChange={(event) => setAddressValue(event.target.value)}
-                    placeholder="Calle, número, ciudad, país"
-                    className="h-11 rounded-xl border-border/60 bg-background/40"
-                  />
-                </div>
               </div>
-              {addressValue.trim() && (
-                <div className="mt-5">
-                  <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/60">
-                    <div className="flex items-center justify-between border-b border-border/60 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                      <span>Verificación de ubicación</span>
-                      <MapPin className="size-3.5" />
-                    </div>
-                    {isMapLoading ? (
-                      <div className="flex h-52 items-center justify-center text-sm text-muted-foreground">
-                        Buscando ubicación…
-                      </div>
-                    ) : mapPreviewUrl ? (
-                      <iframe
-                        title="Mapa de la dirección"
-                        src={mapPreviewUrl}
-                        className="h-52 w-full border-0"
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                      />
-                    ) : (
-                      <div className="flex h-52 items-center justify-center px-4 text-center text-sm text-muted-foreground">
-                        No encontramos una ubicación precisa para esa dirección. Revisá el texto o
-                        agregá barrio, ciudad y país.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 {(
                   [
-                    ["Calle", addressStreet, setAddressStreet, true],
-                    ["Altura", addressNumber, setAddressNumber, true],
+                    ["Calle", addressStreet, setAddressStreet, false],
+                    ["Altura", addressNumber, setAddressNumber, false],
+                    ["Entre calles", addressValue, setAddressValue, false],
                     ["Piso", addressFloor, setAddressFloor, false],
                     ["Departamento", addressApartment, setAddressApartment, false],
                     ["Ciudad", addressCity, setAddressCity, true],
@@ -2459,8 +2210,8 @@ function AccountPageContent({
                   disabled={isSavingAddress}
                   className="h-9 rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb]"
                   onClick={async () => {
-                    if (!addressLabel.trim() || !addressValue.trim()) {
-                      toast.error("Por favor completa etiqueta y dirección");
+                    if (!addressLabel.trim() || !addressStreet.trim() || !addressNumber.trim()) {
+                      toast.error("Por favor completa etiqueta, calle y altura");
                       return;
                     }
                     if (!user?.id) {
@@ -2469,11 +2220,12 @@ function AccountPageContent({
                     }
                     setIsSavingAddress(true);
                     try {
+                      const normalizedValue = [addressStreet.trim(), addressNumber.trim(), addressValue.trim()].filter(Boolean).join(" ").trim();
                       const result = await saveUserAddress({
                         data: {
                           userId: user.id,
                           label: addressLabel.trim(),
-                          value: addressValue,
+                          value: normalizedValue,
                           city: addressCity,
                           street: addressStreet,
                           streetNumber: addressNumber,
@@ -2512,8 +2264,6 @@ function AccountPageContent({
                         setAddressCity("");
                         setAddressProvince("");
                         setAddressPostalCode("");
-                        setMapPreviewUrl(null);
-                        setAddressSuggestions([]);
                         setShowAddForm(false);
                         window.scrollTo({ top: 0, behavior: "smooth" });
                         toast.success("Dirección guardada correctamente");
@@ -2622,51 +2372,12 @@ function AccountPageContent({
                             className="h-10 border-border/60"
                           />
                         </div>
-                        <div className="space-y-2.5">
-                          <Label
-                            htmlFor={`edit-address-value-${index}`}
-                            className="text-sm font-medium"
-                          >
-                            Dirección
-                          </Label>
-                          <Input
-                            id={`edit-address-value-${index}`}
-                            value={addressValue}
-                            onChange={(event) => setAddressValue(event.target.value)}
-                            className="h-10 border-border/60"
-                          />
-                        </div>
-                        {addressValue.trim() && (
-                          <div className="mt-2 overflow-hidden rounded-2xl border border-border/60 bg-background/60">
-                            <div className="flex items-center justify-between border-b border-border/60 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                              <span>Verificación de ubicación</span>
-                              <MapPin className="size-3.5" />
-                            </div>
-                            {isMapLoading ? (
-                              <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
-                                Buscando ubicación…
-                              </div>
-                            ) : mapPreviewUrl ? (
-                              <iframe
-                                title="Mapa de la dirección editada"
-                                src={mapPreviewUrl}
-                                className="h-40 w-full border-0"
-                                loading="lazy"
-                                referrerPolicy="no-referrer-when-downgrade"
-                              />
-                            ) : (
-                              <div className="flex h-40 items-center justify-center px-4 text-center text-xs text-muted-foreground">
-                                No encontramos una ubicación precisa.
-                              </div>
-                            )}
-                          </div>
-                        )}
-
                         <div className="grid gap-4 sm:grid-cols-2">
                           {(
                             [
-                              ["Calle", addressStreet, setAddressStreet, true],
-                              ["Altura", addressNumber, setAddressNumber, true],
+                              ["Calle", addressStreet, setAddressStreet, false],
+                              ["Altura", addressNumber, setAddressNumber, false],
+                              ["Entre calles", addressValue, setAddressValue, false],
                               ["Piso", addressFloor, setAddressFloor, false],
                               ["Departamento", addressApartment, setAddressApartment, false],
                               ["Ciudad", addressCity, setAddressCity, true],
@@ -2694,9 +2405,13 @@ function AccountPageContent({
                             disabled={isSavingAddress}
                             className="h-9 px-4 bg-[#39a9de] text-[#111827] hover:bg-[#2f9ed3]"
                             onClick={async () => {
-                              if (!addressLabel.trim() || !addressValue.trim()) return;
+                              if (!addressLabel.trim() || !addressStreet.trim() || !addressNumber.trim()) {
+                                toast.error("Por favor completa etiqueta, calle y altura");
+                                return;
+                              }
                               setIsSavingAddress(true);
                               const addressToUpdate = addresses[index];
+                              const normalizedValue = [addressStreet.trim(), addressNumber.trim(), addressValue.trim()].filter(Boolean).join(" ").trim();
                               if (!addressToUpdate?.id || !user?.id) {
                                 setAddresses((current) =>
                                   current.map((item, itemIndex) =>
@@ -2719,7 +2434,6 @@ function AccountPageContent({
                                 setEditingIndex(null);
                                 setAddressLabel("");
                                 setAddressValue("");
-                                setMapPreviewUrl(null);
                                 setIsSavingAddress(false);
                                 return;
                               }
@@ -2729,7 +2443,7 @@ function AccountPageContent({
                                   userId: user.id,
                                   addressId: addressToUpdate.id,
                                   label: addressLabel.trim(),
-                                  value: addressValue,
+                                  value: normalizedValue,
                                   city: addressCity,
                                   street: addressStreet,
                                   streetNumber: addressNumber,
@@ -2767,7 +2481,6 @@ function AccountPageContent({
                               setEditingIndex(null);
                               setAddressLabel("");
                               setAddressValue("");
-                              setMapPreviewUrl(null);
                               setIsSavingAddress(false);
                             }}
                           >
@@ -2847,7 +2560,6 @@ function AccountPageContent({
               setAddressCity("");
               setAddressProvince("");
               setAddressPostalCode("");
-              setAddressSuggestions([]);
             }}
           >
             <Plus className="size-4" /> Nueva dirección

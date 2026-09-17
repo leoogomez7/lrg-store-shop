@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -257,9 +257,6 @@ function CheckoutPage() {
   >([]);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [selectedSavedAddress, setSelectedSavedAddress] = useState("");
-  const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null);
-  const [isMapLoading, setIsMapLoading] = useState(false);
-  const geocodedAddressRef = useRef("");
   const discountedItemsSubtotal = couponApplied
     ? items
         .filter((item) => item.brand === couponBrandSlug)
@@ -414,84 +411,9 @@ function CheckoutPage() {
   }, [isAuthenticated, user?.email, user?.familyName, user?.givenName, user?.id, kindeLoading]);
 
   useEffect(() => {
-    const query = address.trim();
-    if (!query) {
-      setMapPreviewUrl(null);
-      return;
-    }
-    if (geocodedAddressRef.current === query) return;
-
-    const timer = window.setTimeout(async () => {
-      try {
-        setIsMapLoading(true);
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&q=${encodeURIComponent(query)}`,
-          { headers: { "Accept-Language": "es" } },
-        );
-        const results = (await response.json()) as Array<{
-          lat?: string;
-          lon?: string;
-          display_name?: string;
-          address?: Record<string, string>;
-        }>;
-        const firstResult = results[0];
-        const resultAddress = firstResult?.address;
-        const inputNumbers = query.match(/\b\d{1,6}\b/g) ?? [];
-        const inputNumber = inputNumbers.at(-1) ?? "";
-        const displayNameFirstPart = firstResult?.display_name?.split(",")[0]?.trim() ?? "";
-        const displayNameNumbers = displayNameFirstPart.match(/\b\d{1,6}\b/g) ?? [];
-        const resultNumber =
-          resultAddress?.["house_number"] ||
-          resultAddress?.["street_number"] ||
-          resultAddress?.["housenumber"] ||
-          resultAddress?.["house"] ||
-          extractStreetNumberFromResult(firstResult?.display_name ?? "", resultAddress?.["road"]) ||
-          displayNameNumbers.at(-1) ||
-          "";
-        const parsedAddress = splitStreetAndNumber(query);
-        const resolvedStreet =
-          resultAddress?.["road"] ||
-          resultAddress?.["pedestrian"] ||
-          resultAddress?.["street"] ||
-          parsedAddress.street ||
-          street;
-        const resolvedNumber =
-          resultNumber ||
-          streetNumber ||
-          parsedAddress.streetNumber ||
-          inputNumber ||
-          "";
-        const resolvedCity =
-          resultAddress?.["city"] ||
-          resultAddress?.["town"] ||
-          resultAddress?.["village"] ||
-          resultAddress?.["municipality"] ||
-          city;
-        const resolvedProvince =
-          resultAddress?.["state"] || resultAddress?.["province"] || province;
-        const resolvedPostalCode = resultAddress?.["postcode"] || postalCode;
-        geocodedAddressRef.current = query;
-        setStreet(resolvedStreet);
-        setStreetNumber(resolvedNumber);
-        setCity(resolvedCity);
-        setProvince(resolvedProvince);
-        setPostalCode(resolvedPostalCode);
-        if (firstResult?.lat && firstResult.lon) {
-          setMapPreviewUrl(
-            `https://maps.google.com/maps?q=${firstResult.lat},${firstResult.lon}&z=15&output=embed&hl=es`,
-          );
-        } else {
-          setMapPreviewUrl(null);
-        }
-      } catch {
-        setMapPreviewUrl(null);
-      } finally {
-        setIsMapLoading(false);
-      }
-    }, 600);
-
-    return () => window.clearTimeout(timer);
-  }, [address]);
+    if (!selectedSavedAddress) return;
+    setAddress((current) => current.trim() || current);
+  }, [selectedSavedAddress]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -501,7 +423,8 @@ function CheckoutPage() {
     if (!customerName.trim()) missingFields.push("Nombre completo");
     if (!email.trim()) missingFields.push("Email");
     if (!phone.trim()) missingFields.push("Teléfono");
-    if (!address.trim()) missingFields.push("Dirección");
+    if (!street.trim()) missingFields.push("Calle");
+    if (!streetNumber.trim()) missingFields.push("Altura");
     brandSlugs.forEach((slug) => {
       if (!shippingMethodsByBrand[slug])
         missingFields.push(`Método de envío de ${getBrand(slug)?.name}`);
@@ -536,6 +459,7 @@ function CheckoutPage() {
     }
     const id = `LRG-${Math.floor(10000 + Math.random() * 89999)}`;
     const expenses = Math.round(total * 0.65);
+    const normalizedAddress = [street, streetNumber, address].filter(Boolean).join(" ").trim();
     const order = {
       id,
       brand: brand.slug,
@@ -552,6 +476,7 @@ function CheckoutPage() {
       apartment,
       province,
       postalCode,
+      address: normalizedAddress,
       extraInfo: notes,
       date: new Date().toISOString().slice(0, 10),
       total,
@@ -595,7 +520,7 @@ function CheckoutPage() {
           email,
           phone,
           city,
-          address,
+          address: normalizedAddress,
           notes,
           total,
           expenses,
@@ -801,36 +726,12 @@ function CheckoutPage() {
                   </div>
                 )}
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="address">Dirección o referencia</Label>
-                  <Input
-                    id="address"
-                    required
-                    placeholder="Calle, referencia, barrio, etc."
-                    value={address}
-                    onChange={(event) => {
-                      setSelectedSavedAddress("");
-                      geocodedAddressRef.current = "";
-                      setAddress(event.target.value);
-                    }}
-                  />
-                  {isMapLoading && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <LoaderCircle className="size-4 animate-spin" /> Buscando ubicación...
-                    </div>
-                  )}
-                  {mapPreviewUrl && (
-                    <iframe
-                      title="Mapa de la dirección"
-                      src={mapPreviewUrl}
-                      className="h-56 w-full rounded-xl border border-border/60"
-                      loading="lazy"
-                    />
-                  )}
                   <div className="grid gap-3 pt-2 sm:grid-cols-2">
                     {(
                       [
                         ["Calle", street, setStreet, true],
                         ["Altura", streetNumber, setStreetNumber, true],
+                        ["Entre calles", address, setAddress, false],
                         ["Piso", floor, setFloor, false],
                         ["Departamento", apartment, setApartment, false],
                         ["Ciudad", city, setCity, true],
