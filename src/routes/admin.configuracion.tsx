@@ -1374,31 +1374,32 @@ function AdminConfiguration() {
                       </>
                     ) : (
                       <>
-                        <label className="inline-flex h-8 items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3">
-                          <span className="text-sm">
+                        <div className="flex w-full flex-nowrap items-center gap-1 sm:w-auto sm:gap-2">
+                        <label className="inline-flex h-8 shrink-0 items-center gap-1 rounded-2xl border border-border/60 bg-background/80 px-1.5 sm:gap-2 sm:px-2">
+                          <span className="text-[11px] sm:text-sm">
                             {category.enabled ? "Disponible" : "No disponible"}
                           </span>
-                          <Switch
+                          <Switch className="scale-90"
                             checked={category.enabled}
                             onCheckedChange={() => toggleCategory(category.id)}
                           />
                         </label>
 
-                        <div className="flex w-full items-center gap-2 sm:w-auto">
+                        <div className="flex min-w-0 flex-1 items-center gap-1 sm:w-auto sm:flex-none sm:gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => startEditingCategory(category)}
-                            className="flex-1 gap-2 sm:flex-none"
+                            className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Pencil className="size-3.5 sm:size-4" />
                             Editar
                           </Button>
 
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="flex-1 gap-2 text-destructive hover:bg-destructive/10 sm:flex-none"
+                            className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
                             onClick={() =>
                               setConfirmState({
                                 open: true,
@@ -1408,9 +1409,10 @@ function AdminConfiguration() {
                               })
                             }
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="size-3.5 sm:size-4" />
                             Eliminar
                           </Button>
+                        </div>
                         </div>
                       </>
                     )}
@@ -1497,23 +1499,29 @@ function AdminConfiguration() {
                       className="h-9"
                     />
                     <div className="col-span-1 flex gap-2 sm:contents">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={editingDiscountPercentage}
-                        onChange={(event) => setEditingDiscountPercentage(event.target.value)}
-                        placeholder="Porcentaje (%)"
-                        className="h-9 min-w-0 flex-1 sm:flex-none"
-                      />
-                      <Input
-                        type="number"
-                        min={0}
-                        value={editingDiscountAmount}
-                        onChange={(event) => setEditingDiscountAmount(event.target.value)}
-                        placeholder="Monto ($)"
-                        className="h-9 min-w-0 flex-1 sm:flex-none"
-                      />
+                      <div className="min-w-0 flex-1 space-y-2 sm:flex-none">
+                        <Label htmlFor={`discount-percentage-${discount.id}`}>Porcentaje (%)</Label>
+                        <Input
+                          id={`discount-percentage-${discount.id}`}
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={editingDiscountPercentage}
+                          onChange={(event) => setEditingDiscountPercentage(event.target.value)}
+                          className="h-9 w-full"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-2 sm:flex-none">
+                        <Label htmlFor={`discount-amount-${discount.id}`}>Monto ($)</Label>
+                        <Input
+                          id={`discount-amount-${discount.id}`}
+                          type="number"
+                          min={0}
+                          value={editingDiscountAmount}
+                          onChange={(event) => setEditingDiscountAmount(event.target.value)}
+                          className="h-9 w-full"
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
