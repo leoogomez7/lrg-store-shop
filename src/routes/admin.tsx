@@ -126,7 +126,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     .toUpperCase()
     .slice(0, 2) || "U";
   const AdminUserMenu = () => (
-    <DropdownMenu>
+    <DropdownMenu open={adminUserMenuOpen} onOpenChange={setAdminUserMenuOpen}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
@@ -136,14 +136,14 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           {adminUserInitials}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-60 w-auto p-1">
+      <DropdownMenuContent align="end" className="min-w-56 w-auto p-1">
         <div className="border-b px-3 py-2">
           <div className="truncate text-sm font-semibold">{adminUserName}</div>
           <div className="text-xs text-muted-foreground">{adminUserRole}</div>
         </div>
         {navigation.slice(1).map(({ label, to, icon: Icon }) => (
           <DropdownMenuItem key={to} asChild>
-            <Link to={to} className="whitespace-nowrap">
+            <Link to={to} onClick={() => setAdminUserMenuOpen(false)} className="whitespace-nowrap">
               <Icon className="size-4" />
               {label}
             </Link>
@@ -151,7 +151,10 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
         ))}
         <DropdownMenuItem
           className="whitespace-nowrap bg-red-50 font-semibold text-red-600 hover:bg-red-100 hover:text-red-700 focus:bg-red-100 focus:text-red-700"
-          onSelect={() => setLogoutOpen(true)}
+          onSelect={() => {
+            setAdminUserMenuOpen(false);
+            setLogoutOpen(true);
+          }}
         >
           <LogOut className="size-4" />
           Cerrar sesión
@@ -160,6 +163,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     </DropdownMenu>
   );
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [adminUserMenuOpen, setAdminUserMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
