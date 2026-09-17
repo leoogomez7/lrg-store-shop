@@ -2334,6 +2334,7 @@ function AccountPageContent({
                                 setAddressValue("");
                                 setAddressReferences("");
                                 setIsSavingAddress(false);
+                                window.scrollTo({ top: 0, behavior: "smooth" });
                                 return;
                               }
 
@@ -2384,6 +2385,7 @@ function AccountPageContent({
                               setAddressValue("");
                               setAddressReferences("");
                               setIsSavingAddress(false);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
                             }}
                           >
                             <Save className="mr-2 size-4 text-current" />
@@ -2398,6 +2400,7 @@ function AccountPageContent({
                               setAddressLabel("");
                               setAddressValue("");
                               setAddressReferences("");
+                              window.scrollTo({ top: 0, behavior: "smooth" });
                             }}
                           >
                             ✕ Cancelar
