@@ -297,6 +297,7 @@ function AccountPageContent({
   const [addressProvince, setAddressProvince] = useState("");
   const [addressPostalCode, setAddressPostalCode] = useState("");
   const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const addAddressFormRef = useRef<HTMLDivElement | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const savedProfileValues = useRef({ givenName: "", familyName: "", phone: "", document: "" });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -2409,7 +2410,10 @@ function AccountPageContent({
                       </div>
                     ) : (
                       <>
-                        <p className="mt-3 text-sm text-muted-foreground">{address.value}</p>
+                        <p className="mt-3 text-sm text-muted-foreground">
+                          {[address.street, address.streetNumber].filter(Boolean).join(" ") ||
+                            address.value}
+                        </p>
                         <div className="mt-4 flex flex-wrap gap-3">
                           <Button
                             variant="outline"
@@ -2456,7 +2460,18 @@ function AccountPageContent({
             size="sm"
             className="mt-1 h-9 gap-2 self-start rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb]"
             onClick={() => {
-              setShowAddForm((current) => !current);
+              setShowAddForm((current) => {
+                const nextValue = !current;
+                if (nextValue) {
+                  requestAnimationFrame(() => {
+                    addAddressFormRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  });
+                }
+                return nextValue;
+              });
               setEditingIndex(null);
               setAddressLabel("");
               setAddressValue("");
@@ -2474,7 +2489,7 @@ function AccountPageContent({
           </Button>
 
           {showAddForm && (
-            <div className="mb-6 rounded-2xl p-5">
+            <div ref={addAddressFormRef} className="mb-6 rounded-2xl p-5">
               <div className="mt-2 grid gap-5 sm:grid-cols-2">
                 <div className="space-y-3">
                   <Label htmlFor="new-address-label" className="text-sm font-medium">
@@ -2718,7 +2733,7 @@ function AccountPageContent({
                 size="lg"
                 className="h-9 gap-2 rounded-md bg-[#3b82f6] px-4 text-[#111827] shadow-none hover:bg-[#2563eb]"
               >
-                <Link to="/productos" className="inline-flex items-center gap-2">
+                <Link to="/productos">
                   <Package className="size-4" /> Explorar productos
                 </Link>
               </Button>
