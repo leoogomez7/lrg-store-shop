@@ -227,6 +227,7 @@ async function ensureUserAddressColumns() {
       { name: "userId", type: "TEXT" },
       { name: "label", type: "TEXT" },
       { name: "value", type: "TEXT" },
+      { name: "addressReferences", type: "TEXT" },
       { name: "city", type: "TEXT" },
       { name: "street", type: "TEXT" },
       { name: "streetNumber", type: "TEXT" },
