@@ -1218,7 +1218,7 @@ function AdminConfiguration() {
               </p>
             </div>
           </div>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
             <div className="w-full sm:w-[70%] sm:max-w-107.5">
               <Input
                 id="bank-cbu"
@@ -1230,19 +1230,21 @@ function AdminConfiguration() {
                 className="h-9"
               />
             </div>
-            <label className="inline-flex w-fit max-w-full items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
-              <span className="text-sm">Aplicar a todas las tiendas</span>
-              <Switch checked={applyBankCbuToAll} onCheckedChange={setApplyBankCbuToAll} />
-            </label>
+            <div className="flex items-center gap-2">
+              <label className="inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-2 py-1 sm:w-fit sm:flex-none sm:justify-start sm:gap-3 sm:px-3">
+                <span className="truncate text-xs sm:text-sm">Aplicar a todas las tiendas</span>
+                <Switch checked={applyBankCbuToAll} onCheckedChange={setApplyBankCbuToAll} />
+              </label>
               <Button
-              type="button"
-              size="sm"
-              onClick={saveBankCbu}
+                type="button"
+                size="sm"
+                onClick={saveBankCbu}
                 disabled={!bankCbu.trim() || bankCbu.trim() === (bankCbus[selectedBrand] ?? "").trim()}
                 className="h-8 shrink-0 gap-1 px-2 text-xs sm:h-9 sm:gap-2 sm:text-sm"
-            >
-              <Check className="size-3.5 sm:size-4" /> Guardar
-            </Button>
+              >
+                <Check className="size-3.5 sm:size-4" /> Guardar
+              </Button>
+            </div>
           </div>
         </section>
 
@@ -1448,26 +1450,28 @@ function AdminConfiguration() {
                 className="h-9"
               />
             </div>
-            <div className="w-full space-y-3 sm:w-28">
-              <Label htmlFor="newDiscountPercentage">Porcentaje (%)</Label>
-              <Input
-                id="newDiscountPercentage"
-                type="number"
-                min={0}
-                max={100}
-                value={newDiscountPercentage}
-                onChange={(event) => setNewDiscountPercentage(Number(event.target.value))}
-              />
-            </div>
-            <div className="w-full space-y-3 sm:w-28">
-              <Label htmlFor="newDiscountAmount">Monto ($)</Label>
-              <Input
-                id="newDiscountAmount"
-                type="number"
-                min={0}
-                value={newDiscountAmount}
-                onChange={(event) => setNewDiscountAmount(Number(event.target.value))}
-              />
+            <div className="flex w-full gap-2 sm:w-auto">
+              <div className="min-w-0 flex-1 space-y-2 sm:w-28 sm:flex-none">
+                <Label htmlFor="newDiscountPercentage">Porcentaje (%)</Label>
+                <Input
+                  id="newDiscountPercentage"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={newDiscountPercentage}
+                  onChange={(event) => setNewDiscountPercentage(Number(event.target.value))}
+                />
+              </div>
+              <div className="min-w-0 flex-1 space-y-2 sm:w-28 sm:flex-none">
+                <Label htmlFor="newDiscountAmount">Monto ($)</Label>
+                <Input
+                  id="newDiscountAmount"
+                  type="number"
+                  min={0}
+                  value={newDiscountAmount}
+                  onChange={(event) => setNewDiscountAmount(Number(event.target.value))}
+                />
+              </div>
             </div>
             <Button
               onClick={addDiscount}
@@ -1496,23 +1500,25 @@ function AdminConfiguration() {
                       placeholder="Código"
                       className="h-9"
                     />
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={editingDiscountPercentage}
-                      onChange={(event) => setEditingDiscountPercentage(event.target.value)}
-                      placeholder="Porcentaje (%)"
-                      className="h-9"
-                    />
-                    <Input
-                      type="number"
-                      min={0}
-                      value={editingDiscountAmount}
-                      onChange={(event) => setEditingDiscountAmount(event.target.value)}
-                      placeholder="Monto ($)"
-                      className="h-9"
-                    />
+                    <div className="col-span-1 flex gap-2 sm:contents">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={editingDiscountPercentage}
+                        onChange={(event) => setEditingDiscountPercentage(event.target.value)}
+                        placeholder="Porcentaje (%)"
+                        className="h-9 min-w-0 flex-1 sm:flex-none"
+                      />
+                      <Input
+                        type="number"
+                        min={0}
+                        value={editingDiscountAmount}
+                        onChange={(event) => setEditingDiscountAmount(event.target.value)}
+                        placeholder="Monto ($)"
+                        className="h-9 min-w-0 flex-1 sm:flex-none"
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div className="flex min-w-0 items-center gap-3">
@@ -1527,7 +1533,7 @@ function AdminConfiguration() {
                     </span>
                   </div>
                 )}
-                <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:flex-row sm:items-center">
+                <div className="flex w-full flex-nowrap items-center gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
                   {editingDiscountId === discount.id ? (
                     <>
                       <Button
@@ -1554,8 +1560,8 @@ function AdminConfiguration() {
                     </>
                   ) : (
                     <>
-                      <label className="inline-flex h-8 w-fit items-center gap-2 rounded-2xl border border-border/60 bg-background/80 px-2">
-                        <span className="text-xs sm:text-sm">
+                      <label className="inline-flex h-8 shrink-0 items-center gap-1 rounded-2xl border border-border/60 bg-background/80 px-1.5 sm:gap-2 sm:px-2">
+                        <span className="text-[11px] sm:text-sm">
                           {discount.enabled ? "Activo" : "Inactivo"}
                         </span>
                         <Switch
@@ -1563,22 +1569,22 @@ function AdminConfiguration() {
                           onCheckedChange={() => toggleDiscount(discount.id)}
                         />
                       </label>
-                      <div className="flex w-full items-center gap-2 sm:w-auto">
+                      <div className="flex min-w-0 flex-1 items-center gap-1 sm:w-auto sm:flex-none sm:gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => startEditingDiscount(discount)}
-                          className="flex-1 gap-2 sm:flex-none"
+                          className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
                         >
-                          <Pencil className="size-4" /> Editar
+                          <Pencil className="size-3.5 sm:size-4" /> Editar
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="flex-1 gap-2 text-destructive hover:bg-destructive/10 sm:flex-none"
+                          className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
                           onClick={() => removeDiscount(discount.id)}
                         >
-                          <Trash2 className="size-4" /> Eliminar
+                          <Trash2 className="size-3.5 sm:size-4" /> Eliminar
                         </Button>
                       </div>
                     </>
