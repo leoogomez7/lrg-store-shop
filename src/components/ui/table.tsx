@@ -11,39 +11,35 @@ type TableProps = React.HTMLAttributes<HTMLTableElement> & {
 };
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(
-  ({
-    className,
-    containerClassName,
-    hideScrollbarOnMobile = false,
-    hideScrollbar = false,
-    selectionGutter = false,
-    ...props
-  }, ref) => {
+  (
+    {
+      className,
+      containerClassName,
+      hideScrollbarOnMobile = false,
+      hideScrollbar = false,
+      selectionGutter = false,
+      ...props
+    },
+    ref,
+  ) => {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const scrollbarRef = React.useRef<HTMLDivElement | null>(null);
     const [scrollbarState, setScrollbarState] = React.useState<{
       visible: boolean;
-      left: number;
       width: number;
       scrollWidth: number;
-    }>({ visible: false, left: 0, width: 0, scrollWidth: 0 });
+    }>({ visible: false, width: 0, scrollWidth: 0 });
 
     const updateScrollbar = React.useCallback(() => {
       const container = containerRef.current;
       if (!container) return;
 
-      const rect = container.getBoundingClientRect();
       const scrollWidth = container.scrollWidth;
-      const isInViewport = rect.bottom > 0 && rect.top < window.innerHeight;
-      const tableEndIsVisible = rect.bottom <= window.innerHeight;
-      const isAtDocumentEnd =
-        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 24;
       const hasHorizontalOverflow = scrollWidth > container.clientWidth + 1;
 
       setScrollbarState({
-        visible: isInViewport && !tableEndIsVisible && !isAtDocumentEnd && hasHorizontalOverflow,
-        left: Math.max(0, rect.left),
-        width: Math.min(window.innerWidth, Math.max(0, rect.width)),
+        visible: hasHorizontalOverflow,
+        width: container.clientWidth,
         scrollWidth,
       });
     }, []);
@@ -59,7 +55,6 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
       const handleWindowChange = () => updateScrollbar();
 
       container.addEventListener("scroll", handleScroll, { passive: true });
-      window.addEventListener("scroll", handleWindowChange, { passive: true });
       window.addEventListener("resize", handleWindowChange);
       const observer = new ResizeObserver(handleWindowChange);
       observer.observe(container);
@@ -67,7 +62,6 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
 
       return () => {
         container.removeEventListener("scroll", handleScroll);
-        window.removeEventListener("scroll", handleWindowChange);
         window.removeEventListener("resize", handleWindowChange);
         observer.disconnect();
       };
@@ -78,7 +72,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
         <div
           ref={containerRef}
           className={cn(
-            "relative w-full overflow-x-auto overflow-y-visible rounded-2xl border border-border/60 bg-muted/20 backdrop-blur-sm",
+            "relative w-full overflow-x-auto overflow-y-visible rounded-2xl border border-border/60 bg-muted/20 backdrop-blur-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
             selectionGutter && "pl-8",
             containerClassName,
           )}
@@ -92,10 +86,10 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
         {scrollbarState.visible && !hideScrollbar && (
           <div
             className={cn(
-              "fixed bottom-0 z-50 flex items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1 shadow-lg backdrop-blur",
+              "mt-2 flex w-full items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1 shadow-lg backdrop-blur",
               hideScrollbarOnMobile && "max-lg:hidden",
             )}
-            style={{ left: scrollbarState.left, width: scrollbarState.width }}
+            style={{ width: scrollbarState.width }}
             aria-label="Controles de desplazamiento horizontal de la tabla"
           >
             <button

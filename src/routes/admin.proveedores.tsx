@@ -1025,8 +1025,7 @@ function AdminSuppliers() {
 
         <div className="min-w-0 flex-1">
           <Table
-            hideScrollbar
-            containerClassName="overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            containerClassName="overflow-x-auto overflow-y-visible"
             className="w-full text-sm [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center [&_td]:align-middle [&_th]:align-middle"
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
