@@ -2180,8 +2180,8 @@ function AccountPageContent({
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-4">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[2.2fr_1fr_2.2fr_1fr_1fr]">
+              <div className="mt-5 grid gap-3">
+                <div className="grid gap-3">
                   {(
                     [
                       ["Calle", addressStreet, setAddressStreet, false],
@@ -2203,7 +2203,7 @@ function AccountPageContent({
                   ))}
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.1fr_2fr_2fr_3fr]">
+                <div className="grid gap-3">
                   {(
                     [
                       ["Código Postal", addressPostalCode, setAddressPostalCode, false],
@@ -2411,8 +2411,8 @@ function AccountPageContent({
                             className="h-10 border-border/60"
                           />
                         </div>
-                        <div className="grid gap-4">
-                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[2.2fr_1fr_2.2fr_1fr_1fr]">
+                        <div className="grid gap-3">
+                          <div className="grid gap-3">
                             {(
                               [
                                 ["Calle", addressStreet, setAddressStreet, false],
@@ -2436,7 +2436,7 @@ function AccountPageContent({
                             ))}
                           </div>
 
-                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.1fr_2fr_2fr_3fr]">
+                          <div className="grid gap-3">
                             {(
                               [
                                 ["Código Postal", addressPostalCode, setAddressPostalCode, false],
