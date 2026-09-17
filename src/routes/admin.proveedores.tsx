@@ -46,7 +46,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
-import { formatPrice } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
 import { saveProducts, type Product } from "@/data/products";
 
 export const Route = createFileRoute("/admin/proveedores")({
@@ -134,8 +134,23 @@ function AdminSuppliers() {
             supplier: variant.supplier ?? product.supplier,
             productName: `${product.name} · ${variant.name}`,
             variantName: variant.name,
+            gastos: variant.gastos ?? product.gastos ?? 0,
+            gastosCurrency:
+              variant.gastosCurrency ??
+              product.gastosCurrency ??
+              variant.priceCurrency ??
+              product.priceCurrency ??
+              "ARS",
           }))
-        : [{ supplier: product.supplier, productName: product.name, variantName: product.name }];
+        : [
+            {
+              supplier: product.supplier,
+              productName: product.name,
+              variantName: product.name,
+              gastos: product.gastos ?? 0,
+              gastosCurrency: product.gastosCurrency ?? product.priceCurrency ?? "ARS",
+            },
+          ];
       for (const assignment of assignments) {
         const supplier = assignment.supplier;
         const name = supplier?.name ?? "";
@@ -153,7 +168,7 @@ function AdminSuppliers() {
                 itemName === assignment.productName.toLowerCase() ||
                 itemVariantName === assignment.variantName.toLowerCase() ||
                 (!product.variants?.length && itemName === product.name.toLowerCase());
-              return matches ? itemSum + item.price * item.quantity : itemSum;
+              return matches ? itemSum + assignment.gastos * item.quantity : itemSum;
             }, 0),
           0,
         );
@@ -186,12 +201,7 @@ function AdminSuppliers() {
           current.products.push(assignment.productName);
         if (!current.stores.includes(product.brand)) current.stores.push(product.brand);
         current.sales += sales;
-        const currency =
-          product.variants?.find((variant) => variant.name === assignment.variantName)
-            ?.priceCurrency ??
-          product.priceCurrency ??
-          "ARS";
-        current.salesByCurrency[currency] += sales;
+        current.salesByCurrency[assignment.gastosCurrency] += sales;
         current.soldQuantity += soldQuantity;
         grouped.set(key, current);
       }
@@ -977,8 +987,8 @@ function AdminSuppliers() {
         ) : null}
       </div>
 
-      <div className="glass-panel mt-4 flex items-stretch gap-2 rounded-2xl">
-        <div className="flex w-10 shrink-0 flex-col items-center border-r border-border/50 bg-transparent py-3">
+      <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
+        <div className="flex w-10 shrink-0 flex-col items-center bg-transparent py-3">
           <div className="mb-3 h-6" />
           {visibleRows.map((row) => (
             <div key={row.key} className="flex h-[72px] w-full items-center justify-center">
@@ -994,7 +1004,8 @@ function AdminSuppliers() {
 
         <div className="min-w-0 flex-1">
           <Table
-            containerClassName="overflow-x-auto overflow-y-visible"
+            hideScrollbar
+            containerClassName="overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             className="w-full text-sm [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center [&_td]:align-middle [&_th]:align-middle"
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -1059,11 +1070,11 @@ function AdminSuppliers() {
                         <div className="flex flex-col items-center justify-center gap-1 text-center leading-none">
                           <div className="flex items-center gap-1.5">
                             <span className="text-[11px] font-medium text-muted-foreground">$</span>
-                            <span className="text-sm">{formatPrice(row.salesByCurrency.ARS)}</span>
+                            <span className="text-sm">{formatNumber(row.salesByCurrency.ARS)}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-[11px] font-medium text-muted-foreground">USD</span>
-                            <span className="text-sm">{formatPrice(row.salesByCurrency.USD)}</span>
+                            <span className="text-sm">{formatNumber(row.salesByCurrency.USD)}</span>
                           </div>
                         </div>
                       </TableCell>
