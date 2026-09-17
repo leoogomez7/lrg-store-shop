@@ -335,6 +335,9 @@ function AccountPageContent({
     userFamilyName !== savedProfileValues.current.familyName ||
     userPhone !== savedProfileValues.current.phone ||
     userDocument !== savedProfileValues.current.document;
+  const isAdminUser =
+    typeof window !== "undefined" &&
+    window.sessionStorage.getItem("lrg_auth_role") === "admin";
 
   const accountNavItems = [
     { key: "home", label: "Inicio", icon: House, route: "/", exact: true },
@@ -2792,7 +2795,12 @@ function AccountPageContent({
                 className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground"
                 title={userName ?? "Cliente"}
               >
-                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-xs font-bold uppercase text-primary">
+                <span
+                  className={cn(
+                    "grid size-8 shrink-0 place-items-center rounded-lg text-xs font-bold uppercase text-white",
+                    isAdminUser ? "bg-amber-600" : "bg-green-600",
+                  )}
+                >
                   {getUserInitials()}
                 </span>
                 {!sidebarCollapsed && (
@@ -2902,7 +2910,12 @@ function AccountPageContent({
             )}
           >
             <div className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-xs font-bold uppercase text-primary">
+              <span
+                className={cn(
+                  "grid size-8 shrink-0 place-items-center rounded-lg text-xs font-bold uppercase text-white",
+                  isAdminUser ? "bg-amber-600" : "bg-green-600",
+                )}
+              >
                 {getUserInitials()}
               </span>
               <span className="truncate font-medium text-foreground">
