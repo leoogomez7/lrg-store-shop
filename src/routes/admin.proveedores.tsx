@@ -104,6 +104,7 @@ function AdminSuppliers() {
   const [pageSize, setPageSize] = React.useState(10);
   const [pageSizeInput, setPageSizeInput] = React.useState("10");
   const [selectedSupplierKeys, setSelectedSupplierKeys] = React.useState<string[]>([]);
+  const [selectionMode, setSelectionMode] = React.useState(false);
   const [quickEditSupplierKey, setQuickEditSupplierKey] = React.useState<string | null>(null);
   const [quickEditSupplier, setQuickEditSupplier] = React.useState<StandaloneSupplier | null>(null);
   const [editingSupplierKey, setEditingSupplierKey] = React.useState<string | null>(null);
@@ -945,8 +946,20 @@ function AdminSuppliers() {
       </Dialog>
       <FilterChipList chips={filterChips} />
       <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
-        <span className="text-sm font-medium">Seleccionar</span>
+        <button
+          type="button"
+          className="text-sm font-medium"
+          onClick={() => {
+            setSelectionMode((current) => {
+              if (current) setSelectedSupplierKeys([]);
+              return !current;
+            });
+          }}
+        >
+          Seleccionar
+        </button>
         <Checkbox
+          className="h-4 w-4 rounded-full border-2 border-sky-400 bg-transparent data-[state=checked]:bg-transparent data-[state=checked]:border-sky-500 data-[state=checked]:[&>div>svg]:opacity-0"
           checked={
             allVisibleSuppliersSelected
               ? true
@@ -955,6 +968,12 @@ function AdminSuppliers() {
                 : false
           }
           onCheckedChange={(checked) => {
+            if (checked === false) {
+              setSelectionMode(false);
+              setSelectedSupplierKeys([]);
+              return;
+            }
+            setSelectionMode(true);
             const shouldSelect = checked === true || checked === "indeterminate";
             setSelectedSupplierKeys((current) =>
               shouldSelect
@@ -988,19 +1007,21 @@ function AdminSuppliers() {
       </div>
 
       <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
-        <div className="flex w-10 shrink-0 flex-col items-center bg-transparent py-3">
-          <div className="mb-3 h-6" />
-          {visibleRows.map((row) => (
-            <div key={row.key} className="flex h-[72px] w-full items-center justify-center">
-              <Checkbox
-                className="h-5 w-5 rounded-full border-2 border-sky-400 bg-transparent data-[state=checked]:bg-transparent data-[state=checked]:border-sky-500 data-[state=checked]:[&>div>svg]:opacity-0"
-                checked={selectedSupplierKeys.includes(row.key)}
-                onCheckedChange={(checked) => toggleSupplierSelection(row.key, checked === true)}
-                aria-label={`Seleccionar proveedor ${row.name}`}
-              />
-            </div>
-          ))}
-        </div>
+        {selectionMode ? (
+          <div className="flex w-10 shrink-0 flex-col items-center bg-transparent py-3">
+            <div className="mb-3 h-6" />
+            {visibleRows.map((row) => (
+              <div key={row.key} className="flex h-[72px] w-full items-center justify-center">
+                <Checkbox
+                  className="h-4 w-4 rounded-full border-2 border-sky-400 bg-transparent data-[state=checked]:bg-transparent data-[state=checked]:border-sky-500 data-[state=checked]:[&>div>svg]:opacity-0"
+                  checked={selectedSupplierKeys.includes(row.key)}
+                  onCheckedChange={(checked) => toggleSupplierSelection(row.key, checked === true)}
+                  aria-label={`Seleccionar proveedor ${row.name}`}
+                />
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         <div className="min-w-0 flex-1">
           <Table
