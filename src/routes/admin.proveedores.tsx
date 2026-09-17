@@ -587,6 +587,17 @@ function AdminSuppliers() {
             className="h-9 pl-9"
           />
         </div>
+        <Button
+          onClick={() => {
+            setEditingSupplierKey(null);
+            setNewSupplier({ name: "", phone: "", social: "" });
+            setNewSupplierOpen(true);
+          }}
+          className="order-2 h-9 basis-full gap-2 sm:basis-auto"
+        >
+          <Plus className="size-4" />
+          Nuevo proveedor
+        </Button>
         <div className="order-3 flex basis-full flex-wrap items-center justify-end gap-2 sm:basis-auto sm:shrink-0">
           <Dialog open={sortOpen} onOpenChange={setSortOpen}>
             <DialogTrigger asChild>
@@ -841,17 +852,6 @@ function AdminSuppliers() {
               </div>
             </DialogContent>
           </Dialog>
-          <Button
-            onClick={() => {
-              setEditingSupplierKey(null);
-              setNewSupplier({ name: "", phone: "", social: "" });
-              setNewSupplierOpen(true);
-            }}
-            className="h-9 gap-2"
-          >
-            <Plus className="size-4" />
-            Nuevo proveedor
-          </Button>
           <Button
             onClick={exportExcel}
             className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"

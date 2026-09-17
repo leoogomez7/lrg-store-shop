@@ -1419,7 +1419,7 @@ function AdminOrders() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
       <div className="flex flex-wrap items-center gap-2">
         <div className="order-1 basis-full shrink-0">
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Ventas</p>
@@ -1839,7 +1839,7 @@ function AdminOrders() {
         <Table
           containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
           selectionGutter
-          className="w-full min-w-280 table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
+          className="w-full min-w-[140rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
@@ -2042,7 +2042,7 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.expenses)}</TableCell>
                     <TableCell>{formatPrice(order.total)}</TableCell>
                     <TableCell>{formatPrice(order.profit)}</TableCell>
-                    <TableCell className="w-72 min-w-72 max-w-72 overflow-hidden">
+                    <TableCell className="w-[36rem] min-w-[36rem] max-w-none overflow-visible">
                       <div className="flex w-full min-w-0 flex-col items-center justify-center gap-1.5">
                         {isQuickEditing ? (
                           <>
