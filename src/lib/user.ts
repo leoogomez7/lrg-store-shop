@@ -23,6 +23,7 @@ export type UserAddress = {
   id?: string;
   label: string;
   value: string;
+  references?: string;
   city?: string;
   street?: string;
   streetNumber?: string;
@@ -54,6 +55,7 @@ async function ensureUserProfileColumns() {
       { name: "streetNumber", type: "TEXT" },
       { name: "floor", type: "TEXT" },
       { name: "apartment", type: "TEXT" },
+      { name: "addressReferences", type: "TEXT" },
       { name: "province", type: "TEXT" },
       { name: "postalCode", type: "TEXT" },
       { name: "createdAt", type: "TEXT" },
@@ -269,7 +271,7 @@ export const getUserAddresses = createServerFn({ method: "GET" })
       await ensureUserAddressColumns();
 
       const result = await client.execute({
-        sql: "SELECT id, label, value, city, street, streetNumber, floor, apartment, province, postalCode, isPrimary FROM user_addresses WHERE userId = ? ORDER BY isPrimary DESC, createdAt DESC",
+        sql: "SELECT id, label, value, addressReferences, city, street, streetNumber, floor, apartment, province, postalCode, isPrimary FROM user_addresses WHERE userId = ? ORDER BY isPrimary DESC, createdAt DESC",
         args: [data.userId],
       });
 
@@ -277,6 +279,7 @@ export const getUserAddresses = createServerFn({ method: "GET" })
         id: typeof row.id === "string" ? row.id : undefined,
         label: String(row.label ?? ""),
         value: String(row.value ?? ""),
+        references: typeof row.addressReferences === "string" ? row.addressReferences : undefined,
         city: typeof row.city === "string" ? row.city : undefined,
         street: typeof row.street === "string" ? row.street : undefined,
         streetNumber: typeof row.streetNumber === "string" ? row.streetNumber : undefined,
@@ -330,6 +333,7 @@ export const saveUserAddress = createServerFn({ method: "POST" })
           userId TEXT NOT NULL,
           label TEXT NOT NULL,
           value TEXT NOT NULL,
+          addressReferences TEXT,
           city TEXT,
           isPrimary INTEGER NOT NULL DEFAULT 0,
           createdAt TEXT,
@@ -354,13 +358,14 @@ export const saveUserAddress = createServerFn({ method: "POST" })
       const id = crypto.randomUUID();
 
       await client.execute({
-          sql: `INSERT INTO user_addresses (id, userId, label, value, city, street, streetNumber, floor, apartment, province, postalCode, isPrimary, createdAt, updatedAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          sql: `INSERT INTO user_addresses (id, userId, label, value, addressReferences, city, street, streetNumber, floor, apartment, province, postalCode, isPrimary, createdAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           id,
           userId,
           label,
           value,
+          data.references?.trim() ?? "",
           data.city?.trim() ?? "",
           data.street?.trim() ?? "",
           data.streetNumber?.trim() ?? "",
@@ -392,11 +397,12 @@ export const updateUserAddress = createServerFn({ method: "POST" })
     try {
       await client.execute({
           sql: `UPDATE user_addresses
-            SET label = ?, value = ?, city = ?, street = ?, streetNumber = ?, floor = ?, apartment = ?, province = ?, postalCode = ?, updatedAt = ?
+            SET label = ?, value = ?, addressReferences = ?, city = ?, street = ?, streetNumber = ?, floor = ?, apartment = ?, province = ?, postalCode = ?, updatedAt = ?
               WHERE id = ? AND userId = ?`,
         args: [
           data.label.trim(),
           data.value.trim(),
+          data.references?.trim() ?? "",
           data.city ?? "",
           data.street ?? "",
           data.streetNumber ?? "",
