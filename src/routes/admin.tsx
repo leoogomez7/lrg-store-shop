@@ -33,7 +33,6 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-import { BrandMark } from "@/components/common/brand-mark";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { LoadingState } from "@/components/common/loading-state";
 import { BrandFooter } from "@/components/layout/brand-footer";
@@ -558,14 +557,8 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
         <div className="min-w-0 flex-1">
           <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:hidden">
-            <div className="flex items-center justify-between gap-3">
-              <Link to="/" className="inline-flex items-center gap-2 shrink-0">
-                <BrandMark compact brandSlug="store-shop" />
-                <span className="text-sm font-medium text-foreground">LRG Store Shop</span>
-              </Link>
-            </div>
+            <AdminUserMenu />
             <div className="flex items-center gap-2">
-              <AdminUserMenu />
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <Button type="button" variant="outline" size="sm" className="gap-2">
