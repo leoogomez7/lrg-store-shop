@@ -1838,6 +1838,7 @@ function AdminOrders() {
       <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
         <Table
           containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
+          selectionGutter
           className="w-full min-w-280 table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -1895,7 +1896,7 @@ function AdminOrders() {
                     <TableCell className="w-32 font-medium">
                       <div className="flex min-w-0 items-center justify-center gap-2 text-center">
                         <Checkbox
-                          className="shrink-0"
+                          className="relative -left-8 shrink-0"
                           checked={selectedOrderIds.includes(order.id)}
                           onCheckedChange={(checked) =>
                             toggleOrderSelection(order.id, checked === true)

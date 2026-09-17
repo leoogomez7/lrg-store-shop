@@ -980,6 +980,7 @@ function AdminSuppliers() {
       <div className="glass-panel mt-4 rounded-2xl">
         <Table
           containerClassName="overflow-x-auto overflow-y-visible"
+          selectionGutter
           className="w-full text-sm [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center [&_td]:align-middle [&_th]:align-middle"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -1006,7 +1007,7 @@ function AdminSuppliers() {
                   <TableRow>
                     <TableCell>
                       <Checkbox
-                        className="mr-2"
+                        className="relative -left-8 mr-2"
                         checked={selectedSupplierKeys.includes(row.key)}
                         onCheckedChange={(checked) =>
                           toggleSupplierSelection(row.key, checked === true)
@@ -1050,8 +1051,8 @@ function AdminSuppliers() {
                     </TableCell>
                     <TableCell>{formatPrice(row.sales)}</TableCell>
                     <TableCell>{row.soldQuantity}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap items-center justify-center gap-1.5">
+                    <TableCell className="min-w-[31rem] whitespace-nowrap">
+                      <div className="flex flex-nowrap items-center justify-center gap-1.5">
                         {isQuickEditing ? (
                           <>
                             <Button

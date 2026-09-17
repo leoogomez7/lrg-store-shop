@@ -6,10 +6,17 @@ import { cn } from "@/lib/utils";
 type TableProps = React.HTMLAttributes<HTMLTableElement> & {
   containerClassName?: string;
   hideScrollbarOnMobile?: boolean;
+  selectionGutter?: boolean;
 };
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(
-  ({ className, containerClassName, hideScrollbarOnMobile = false, ...props }, ref) => {
+  ({
+    className,
+    containerClassName,
+    hideScrollbarOnMobile = false,
+    selectionGutter = false,
+    ...props
+  }, ref) => {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const scrollbarRef = React.useRef<HTMLDivElement | null>(null);
     const [scrollbarState, setScrollbarState] = React.useState<{
@@ -70,6 +77,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
           ref={containerRef}
           className={cn(
             "relative w-full overflow-x-auto overflow-y-visible rounded-2xl border border-border/60 bg-muted/20 backdrop-blur-sm",
+            selectionGutter && "pl-8",
             containerClassName,
           )}
         >

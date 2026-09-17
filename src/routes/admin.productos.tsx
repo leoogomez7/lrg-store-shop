@@ -1829,6 +1829,7 @@ function AdminProducts() {
       <div className="glass-panel mt-4 rounded-2xl">
         <Table
           containerClassName="overflow-x-auto overflow-y-visible"
+          selectionGutter
           className="w-full min-w-max text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -1896,6 +1897,7 @@ function AdminProducts() {
                         <div className="flex min-w-60 flex-col gap-2 text-left">
                           <div className="flex items-center gap-2">
                             <Checkbox
+                              className="relative -left-8"
                               checked={selectedProductIds.includes(
                                 getProductSelectionKey(product, variant),
                               )}
@@ -2129,7 +2131,7 @@ function AdminProducts() {
                       <TableCell className="min-w-64">
                         <div className="flex min-w-0 flex-wrap items-center gap-2 text-left">
                           <Checkbox
-                            className="shrink-0"
+                            className="relative -left-8 shrink-0"
                             checked={selectedProductIds.includes(
                               getProductSelectionKey(product, variant),
                             )}
