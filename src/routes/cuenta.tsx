@@ -796,9 +796,8 @@ function AccountPageContent({
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <button
-                type="button"
-                onClick={() => handleTabChange("orders")}
+              <a
+                href="/cuenta/compras"
                 className="glass-panel flex min-h-36.5 flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
                 <div className="flex items-center gap-3">
@@ -813,10 +812,9 @@ function AccountPageContent({
                   <p className="text-2xl font-semibold">{visibleOrders.length}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">Compras</p>
                 </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTabChange("profile")}
+              </a>
+              <a
+                href="/cuenta/perfil"
                 className="glass-panel flex min-h-36.5 flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
                 <div className="flex items-center gap-3">
@@ -831,10 +829,9 @@ function AccountPageContent({
                   <p className="text-base font-medium">Editar información</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">Datos personales</p>
                 </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTabChange("addresses")}
+              </a>
+              <a
+                href="/cuenta/direcciones"
                 className="glass-panel flex min-h-36.5 flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
                 <div className="flex items-center gap-3">
@@ -849,10 +846,9 @@ function AccountPageContent({
                   <p className="text-2xl font-semibold">{addresses.length}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">Guardadas</p>
                 </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTabChange("favorites")}
+              </a>
+              <a
+                href="/cuenta/favoritos"
                 className="glass-panel flex min-h-36.5 flex-col justify-between rounded-2xl p-4 text-left transition hover:border-border/60"
               >
                 <div className="flex items-center gap-3">
@@ -867,7 +863,7 @@ function AccountPageContent({
                   <p className="text-2xl font-semibold">{favoriteProducts.length}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">Productos guardados</p>
                 </div>
-              </button>
+              </a>
             </div>
           </div>
         </div>
@@ -2836,10 +2832,9 @@ function AccountPageContent({
                   ? location.pathname === route
                   : location.pathname.startsWith(route);
                 return (
-                  <button
-                    type="button"
+                  <a
+                    href={route}
                     key={key}
-                    onClick={() => handleTabChange(key)}
                     title={sidebarCollapsed ? label : undefined}
                     className={cn(
                       "group relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-left text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
@@ -2851,7 +2846,7 @@ function AccountPageContent({
                   >
                     <Icon className="relative z-10 size-4 shrink-0" />
                     {!sidebarCollapsed && <span className="relative z-10">{label}</span>}
-                  </button>
+                  </a>
                 );
               })}
               <a
@@ -2902,6 +2897,7 @@ function AccountPageContent({
           <header
             className={cn(
               "sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-xl transition-transform duration-200 lg:hidden",
+              location.pathname === "/cuenta/compras" && "hidden",
               isMobileNavHidden && "-translate-y-full",
             )}
           >
@@ -2930,10 +2926,9 @@ function AccountPageContent({
                       ? location.pathname === route
                       : location.pathname.startsWith(route);
                     return (
-                      <button
-                        type="button"
+                      <a
+                        href={route}
                         key={key}
-                        onClick={() => handleTabChange(key)}
                         className={cn(
                           "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
                           isActive
@@ -2943,7 +2938,7 @@ function AccountPageContent({
                       >
                         <Icon className="size-4 shrink-0" />
                         {label}
-                      </button>
+                      </a>
                     );
                   })}
                   <a
@@ -2983,7 +2978,9 @@ function AccountPageContent({
         </main>
       </div>
 
-      <BrandFooter brand={webDesignConfig} section="account" />
+      <div className={location.pathname === "/cuenta/compras" ? "hidden lg:block" : undefined}>
+        <BrandFooter brand={webDesignConfig} section="account" />
+      </div>
 
       <ConfirmDialog
         open={logoutOpen}
