@@ -742,7 +742,7 @@ function CheckoutPage() {
                           ["Altura", streetNumber, setStreetNumber, false],
                           ["Entre calles", address, setAddress, false],
                           ["Piso", floor, setFloor, false],
-                          ["Departamento", apartment, setApartment, false],
+                          ["Depto", apartment, setApartment, false],
                           ["Código Postal", postalCode, setPostalCode, false],
                         ] as Array<[string, string, (next: string) => void, boolean]>
                       ).map(([label, value, setter, synced]) => (

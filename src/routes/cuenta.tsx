@@ -2188,7 +2188,7 @@ function AccountPageContent({
                       ["Altura", addressNumber, setAddressNumber, false],
                       ["Entre calles", addressValue, setAddressValue, false],
                       ["Piso", addressFloor, setAddressFloor, false],
-                      ["Departamento", addressApartment, setAddressApartment, false],
+                      ["Depto", addressApartment, setAddressApartment, false],
                       ["Código Postal", addressPostalCode, setAddressPostalCode, false],
                     ] as const
                   ).map(([label, value, setter, synced]) => (
@@ -2204,7 +2204,7 @@ function AccountPageContent({
                   ))}
                 </div>
 
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1.4fr)]">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)]">
                   {(
                     [
                       ["Ciudad", addressCity, setAddressCity, false],
@@ -2223,7 +2223,7 @@ function AccountPageContent({
                   ))}
                 </div>
 
-                <label className="space-y-2 text-sm font-medium">
+                <div className="space-y-2 text-sm font-medium">
                   <span>Referencias</span>
                   <Input
                     value={String(addressReferences)}
@@ -2231,7 +2231,7 @@ function AccountPageContent({
                     className="h-10 bg-background/40"
                     placeholder="Entre calles, color de la casa, etc."
                   />
-                </label>
+                </div>
               </div>
 
               <div className="mt-5 flex flex-wrap gap-3">
@@ -2427,7 +2427,7 @@ function AccountPageContent({
                                 ["Altura", addressNumber, setAddressNumber, false],
                                 ["Entre calles", addressValue, setAddressValue, false],
                                 ["Piso", addressFloor, setAddressFloor, false],
-                                ["Departamento", addressApartment, setAddressApartment, false],
+                                ["Depto", addressApartment, setAddressApartment, false],
                                 ["Código Postal", addressPostalCode, setAddressPostalCode, false],
                               ] as const
                             ).map(([label, value, setter, synced]) => (
@@ -2445,7 +2445,7 @@ function AccountPageContent({
                             ))}
                           </div>
 
-                          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1.4fr)]">
+                          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)]">
                             {(
                               [
                                 ["Ciudad", addressCity, setAddressCity, false],
@@ -2466,7 +2466,7 @@ function AccountPageContent({
                             ))}
                           </div>
 
-                          <label className="space-y-2 text-sm font-medium">
+                          <div className="space-y-2 text-sm font-medium">
                             <span>Referencias</span>
                             <Input
                               value={String(addressReferences)}
@@ -2474,7 +2474,7 @@ function AccountPageContent({
                               className="h-10 bg-background/40"
                               placeholder="Entre calles, color de la casa, etc."
                             />
-                          </label>
+                          </div>
                         </div>
 
                         <div className="flex flex-wrap gap-3 pt-1">
