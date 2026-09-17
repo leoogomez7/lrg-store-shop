@@ -2181,39 +2181,16 @@ function AccountPageContent({
               </div>
 
               <div className="mt-5 grid gap-4">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-8">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[2.2fr_1fr_2.2fr_1fr_1fr]">
                   {(
                     [
-                      ["Calle", addressStreet, setAddressStreet, false, "lg:col-span-2"],
-                      ["Altura", addressNumber, setAddressNumber, false, "lg:col-span-1"],
-                      ["Entre calles", addressValue, setAddressValue, false, "lg:col-span-2"],
-                      ["Piso", addressFloor, setAddressFloor, false, "lg:col-span-1"],
+                      ["Calle", addressStreet, setAddressStreet, false],
+                      ["Altura", addressNumber, setAddressNumber, false],
+                      ["Entre calles", addressValue, setAddressValue, false],
+                      ["Piso", addressFloor, setAddressFloor, false],
+                      ["Depto", addressApartment, setAddressApartment, false],
                     ] as const
-                  ).map(([label, value, setter, synced, span]) => (
-                    <label
-                      key={String(label)}
-                      className={`space-y-2 text-sm font-medium ${span}`}
-                    >
-                      <span>{label}</span>
-                      <Input
-                        value={String(value)}
-                        onChange={(event) => (setter as (next: string) => void)(event.target.value)}
-                        readOnly={Boolean(synced)}
-                        className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
-                      />
-                    </label>
-                  ))}
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-8">
-                  {(
-                    [
-                      ["Depto", addressApartment, setAddressApartment, false, "lg:col-span-2"],
-                      ["Código Postal", addressPostalCode, setAddressPostalCode, false, "lg:col-span-2"],
-                      ["Ciudad", addressCity, setAddressCity, false, "lg:col-span-2"],
-                      ["Provincia", addressProvince, setAddressProvince, false, "lg:col-span-2"],
-                    ] as const
-                  ).map(([label, value, setter, synced, span]) => (
+                  ).map(([label, value, setter, synced]) => (
                     <label key={String(label)} className="space-y-2 text-sm font-medium">
                       <span>{label}</span>
                       <Input
@@ -2226,14 +2203,26 @@ function AccountPageContent({
                   ))}
                 </div>
 
-                <div className="space-y-2 text-sm font-medium">
-                  <span>Referencias</span>
-                  <Input
-                    value={String(addressReferences)}
-                    onChange={(event) => setAddressReferences(event.target.value)}
-                    className="h-10 bg-background/40"
-                    placeholder="Entre calles, color de la casa, etc."
-                  />
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.1fr_2fr_2fr_3fr]">
+                  {(
+                    [
+                      ["Código Postal", addressPostalCode, setAddressPostalCode, false],
+                      ["Ciudad", addressCity, setAddressCity, false],
+                      ["Provincia", addressProvince, setAddressProvince, false],
+                      ["Referencias", addressReferences, setAddressReferences, false],
+                    ] as const
+                  ).map(([label, value, setter, synced]) => (
+                    <label key={String(label)} className="space-y-2 text-sm font-medium">
+                      <span>{label}</span>
+                      <Input
+                        value={String(value)}
+                        onChange={(event) => (setter as (next: string) => void)(event.target.value)}
+                        readOnly={Boolean(synced)}
+                        className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
+                        placeholder={label === "Referencias" ? "Entre calles, color de la casa, etc." : undefined}
+                      />
+                    </label>
+                  ))}
                 </div>
               </div>
 
@@ -2423,41 +2412,16 @@ function AccountPageContent({
                           />
                         </div>
                         <div className="grid gap-4">
-                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-8">
+                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[2.2fr_1fr_2.2fr_1fr_1fr]">
                             {(
                               [
-                                ["Calle", addressStreet, setAddressStreet, false, "lg:col-span-2"],
-                                ["Altura", addressNumber, setAddressNumber, false, "lg:col-span-1"],
-                                ["Entre calles", addressValue, setAddressValue, false, "lg:col-span-2"],
-                                ["Piso", addressFloor, setAddressFloor, false, "lg:col-span-1"],
+                                ["Calle", addressStreet, setAddressStreet, false],
+                                ["Altura", addressNumber, setAddressNumber, false],
+                                ["Entre calles", addressValue, setAddressValue, false],
+                                ["Piso", addressFloor, setAddressFloor, false],
+                                ["Depto", addressApartment, setAddressApartment, false],
                               ] as const
-                            ).map(([label, value, setter, synced, span]) => (
-                              <label
-                                key={String(label)}
-                                className={`space-y-2 text-sm font-medium ${span}`}
-                              >
-                                <span>{label}</span>
-                                <Input
-                                  value={String(value)}
-                                  onChange={(event) =>
-                                    (setter as (next: string) => void)(event.target.value)
-                                  }
-                                  readOnly={Boolean(synced)}
-                                  className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
-                                />
-                              </label>
-                            ))}
-                          </div>
-
-                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-8">
-                            {(
-                              [
-                                ["Depto", addressApartment, setAddressApartment, false, "lg:col-span-2"],
-                                ["Código Postal", addressPostalCode, setAddressPostalCode, false, "lg:col-span-2"],
-                                ["Ciudad", addressCity, setAddressCity, false, "lg:col-span-2"],
-                                ["Provincia", addressProvince, setAddressProvince, false, "lg:col-span-2"],
-                              ] as const
-                            ).map(([label, value, setter, synced, span]) => (
+                            ).map(([label, value, setter, synced]) => (
                               <label key={String(label)} className="space-y-2 text-sm font-medium">
                                 <span>{label}</span>
                                 <Input
@@ -2472,14 +2436,28 @@ function AccountPageContent({
                             ))}
                           </div>
 
-                          <div className="space-y-2 text-sm font-medium">
-                            <span>Referencias</span>
-                            <Input
-                              value={String(addressReferences)}
-                              onChange={(event) => setAddressReferences(event.target.value)}
-                              className="h-10 bg-background/40"
-                              placeholder="Entre calles, color de la casa, etc."
-                            />
+                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.1fr_2fr_2fr_3fr]">
+                            {(
+                              [
+                                ["Código Postal", addressPostalCode, setAddressPostalCode, false],
+                                ["Ciudad", addressCity, setAddressCity, false],
+                                ["Provincia", addressProvince, setAddressProvince, false],
+                                ["Referencias", addressReferences, setAddressReferences, false],
+                              ] as const
+                            ).map(([label, value, setter, synced]) => (
+                              <label key={String(label)} className="space-y-2 text-sm font-medium">
+                                <span>{label}</span>
+                                <Input
+                                  value={String(value)}
+                                  onChange={(event) =>
+                                    (setter as (next: string) => void)(event.target.value)
+                                  }
+                                  readOnly={Boolean(synced)}
+                                  className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
+                                  placeholder={label === "Referencias" ? "Entre calles, color de la casa, etc." : undefined}
+                                />
+                              </label>
+                            ))}
                           </div>
                         </div>
 
