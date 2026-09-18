@@ -12,6 +12,11 @@
   appearance: none;
 }
 
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /*

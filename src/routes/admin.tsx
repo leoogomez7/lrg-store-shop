@@ -125,6 +125,24 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
       .join("")
       .toUpperCase()
       .slice(0, 2) || "U";
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [adminUserMenuOpen, setAdminUserMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [initialPasswordVerified, setInitialPasswordVerified] = useState(false);
+  const [adminUnlocked, setAdminUnlocked] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem("lrg_admin_final_verified") === "true",
+  );
+  const [password, setPassword] = useState("");
+  const [finalPassword, setFinalPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showFinalPassword, setShowFinalPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [finalPasswordError, setFinalPasswordError] = useState("");
+  const hasVerifiedAdminAccess = isAuthenticated && adminUnlocked;
   const AdminUserMenu = () => (
     <DropdownMenu open={adminUserMenuOpen} onOpenChange={setAdminUserMenuOpen}>
       <DropdownMenuTrigger asChild>
@@ -162,24 +180,6 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
       </DropdownMenuContent>
     </DropdownMenu>
   );
-  const [logoutOpen, setLogoutOpen] = useState(false);
-  const [adminUserMenuOpen, setAdminUserMenuOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [initialPasswordVerified, setInitialPasswordVerified] = useState(false);
-  const [adminUnlocked, setAdminUnlocked] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.sessionStorage.getItem("lrg_admin_final_verified") === "true",
-  );
-  const [password, setPassword] = useState("");
-  const [finalPassword, setFinalPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showFinalPassword, setShowFinalPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
-  const [finalPasswordError, setFinalPasswordError] = useState("");
-  const hasVerifiedAdminAccess = isAuthenticated && adminUnlocked;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -315,7 +315,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="h-11 w-full rounded-md border border-border bg-background px-3 pr-11"
+                className="h-11 w-full rounded-md border border-border bg-background px-3 pr-11 [&::-ms-clear]:hidden [&::-ms-reveal]:hidden"
                 autoComplete="current-password"
                 required
               />
@@ -422,7 +422,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 type={showFinalPassword ? "text" : "password"}
                 value={finalPassword}
                 onChange={(event) => setFinalPassword(event.target.value)}
-                className="h-11 w-full rounded-md border border-border bg-background px-3 pr-11"
+                className="h-11 w-full rounded-md border border-border bg-background px-3 pr-11 [&::-ms-clear]:hidden [&::-ms-reveal]:hidden"
                 autoComplete="current-password"
                 required
               />
@@ -438,17 +438,19 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             </span>
           </label>
           {finalPasswordError && <p className="text-sm text-destructive">{finalPasswordError}</p>}
-          <Button type="submit" className="w-full">
-            <ArrowRight className="size-4" /> Continuar
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={() => navigate({ to: "/" })}
-          >
-            <CircleArrowLeft className="size-4 text-white" /> Volver
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button type="submit" className="flex-1">
+              <ArrowRight className="size-4" /> Continuar
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => navigate({ to: "/" })}
+            >
+              <CircleArrowLeft className="size-4 text-white" /> Volver
+            </Button>
+          </div>
         </form>
       </div>
     );

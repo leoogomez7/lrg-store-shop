@@ -42,11 +42,6 @@ export default defineConfig({
               return "vendor-ui";
             return "vendor-other";
           }
-          // Separate large admin pages
-          if (id.includes("admin.pedidos")) return "admin-pedidos";
-          if (id.includes("admin.productos")) return "admin-productos";
-          if (id.includes("admin.panel")) return "admin-panel";
-          if (id.includes("admin.")) return "admin-pages";
         },
       },
     },
