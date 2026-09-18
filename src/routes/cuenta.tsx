@@ -136,7 +136,11 @@ function toggleOrderFilterOption(
 }
 
 export const Route = createFileRoute("/cuenta")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(orderQueries.list()),
+      context.queryClient.ensureQueryData(catalogQueries.all()),
+    ]),
   beforeLoad: ({ location }) => {
     if (location.pathname === "/cuenta") {
       throw redirect({ to: "/cuenta/panel" });

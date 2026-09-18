@@ -70,6 +70,7 @@ import {
 } from "@/components/ui/table";
 import { brandList, brands, type BrandSlug } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { catalogQueries, type Product } from "@/services/catalog.service";
 import { moveToTrash } from "@/data/trash";
 import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
