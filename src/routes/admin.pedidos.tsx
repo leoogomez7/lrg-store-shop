@@ -1952,7 +1952,7 @@ function AdminOrders() {
                         : undefined
                     }
                   >
-                    <TableCell className="w-32 font-medium">
+                    <TableCell className="w-32 text-center font-medium">
                       <div className="flex min-w-0 items-center justify-center gap-2 text-center">
                         {selectionMode && (
                           <Checkbox
@@ -2105,7 +2105,7 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.profit)}</TableCell>
                     <TableCell
                       className={cn(
-                        "sticky right-0 z-10 w-xl min-w-xl max-w-none overflow-visible bg-background",
+                        "sticky right-0 z-10 w-72 min-w-72 max-w-none overflow-visible bg-background text-center",
                         selectionMode && "hidden",
                       )}
                     >

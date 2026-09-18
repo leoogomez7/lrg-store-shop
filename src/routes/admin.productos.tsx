@@ -1863,7 +1863,7 @@ function AdminProducts() {
         <Table
           containerClassName="overflow-x-auto overflow-y-visible"
           selectionGutter={selectionMode}
-          className="w-full min-w-max text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
+          className="w-full min-w-max text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
@@ -1933,7 +1933,7 @@ function AdminProducts() {
                 <TableRow key={`${product.id}-${variant?.id ?? "base"}`}>
                   {isQuickEditing ? (
                     <>
-                      <TableCell className="min-w-64 align-middle">
+                      <TableCell className="min-w-64 align-middle text-center">
                         <div className="flex min-w-60 flex-col gap-2 text-left">
                           <div className="flex items-center gap-2">
                             {selectionMode && (
@@ -1959,7 +1959,7 @@ function AdminProducts() {
                                   [quickEditKey]: { ...quickDraft, name: event.target.value },
                                 }))
                               }
-                              className="w-full min-w-52"
+                              className="w-full min-w-52 text-center"
                             />
                           </div>
                           {variant ? (
@@ -1978,7 +1978,7 @@ function AdminProducts() {
                                     },
                                   }))
                                 }
-                                className="w-full min-w-44"
+                                className="w-full min-w-44 text-center"
                               />
                             </div>
                           ) : null}
@@ -2170,8 +2170,8 @@ function AdminProducts() {
                     </>
                   ) : (
                     <>
-                      <TableCell className="min-w-64">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2 text-left">
+                      <TableCell className="min-w-64 text-center">
+                        <div className="flex min-w-0 flex-wrap items-center justify-center gap-2 text-left">
                           {selectionMode && (
                             <Checkbox
                               className="relative -left-8 shrink-0 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
@@ -2191,7 +2191,7 @@ function AdminProducts() {
                             {product.name}
                           </span>
                           {variant ? (
-                            <span className="flex basis-full items-center pl-6 text-[10px] uppercase tracking-wider">
+                            <span className="flex basis-full items-center justify-center pl-6 text-[10px] uppercase tracking-wider">
                               <span className="rounded-full border border-border px-1.5 py-0.5 text-muted-foreground">
                                 {variant.name}
                               </span>
@@ -2204,8 +2204,8 @@ function AdminProducts() {
                           ) : null}
                         </div>
                       </TableCell>
-                      <TableCell>{getBrandShortName(product.brand)}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">{getBrandShortName(product.brand)}</TableCell>
+                      <TableCell className="text-center">
                         <Badge
                           variant={
                             displayStock === "∞"
@@ -2220,28 +2220,28 @@ function AdminProducts() {
                           {displayStock}
                         </Badge>
                       </TableCell>
-                      <TableCell>{formatPrice(displayComision, displayComisionCurrency)}</TableCell>
-                      <TableCell>{formatPrice(displayGastos, displayGastosCurrency)}</TableCell>
-                      <TableCell>{formatPrice(displayPrice)}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">{formatPrice(displayComision, displayComisionCurrency)}</TableCell>
+                      <TableCell className="text-center">{formatPrice(displayGastos, displayGastosCurrency)}</TableCell>
+                      <TableCell className="text-center">{formatPrice(displayPrice)}</TableCell>
+                      <TableCell className="text-center">
                         <Input
                           type="number"
                           min={0}
                           max={100}
                           value={pendingDiscounts[product.id] ?? (discount ? String(discount) : "")}
                           placeholder="0%"
-                          className="w-24 border-0 shadow-none bg-transparent px-0 text-center cursor-default"
+                          className="w-24 border-0 bg-transparent px-0 text-center shadow-none"
                           readOnly
                           tabIndex={-1}
                           onFocus={(e) => (e.currentTarget as HTMLInputElement).blur()}
                           onMouseDown={(e) => e.preventDefault()}
                         />
                       </TableCell>
-                      <TableCell>{formatPrice(Math.max(0, discountedPrice))}</TableCell>
-                      <TableCell>{formatPrice(displayProfit, displayProfitCurrency)}</TableCell>
+                      <TableCell className="text-center">{formatPrice(Math.max(0, discountedPrice))}</TableCell>
+                      <TableCell className="text-center">{formatPrice(displayProfit, displayProfitCurrency)}</TableCell>
                       <TableCell
                         className={cn(
-                          "sticky right-0 z-10 min-w-72 bg-background",
+                          "sticky right-0 z-10 min-w-72 bg-background text-center",
                           selectionMode && "hidden",
                         )}
                       >

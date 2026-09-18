@@ -866,6 +866,7 @@ function AdminSuppliers() {
             </Button>
           </div>
         </div>
+
       <Dialog
         open={newSupplierOpen}
         onOpenChange={(open) => {
@@ -1272,7 +1273,6 @@ function AdminSuppliers() {
         </p>
       </div>
     </div>
-</div>
-  </main>
+    </main>
   );
 }
