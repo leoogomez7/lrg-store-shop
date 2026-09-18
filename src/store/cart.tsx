@@ -133,30 +133,60 @@ export function CartProvider({
     }
   }, [isAuthenticated, state.hydrated, state.items, state.remoteHydrated, user?.email, user?.id]);
 
-  const addProduct = useCallback((product: Product, quantity = 1) => {
-    if (!product.stockUnlimited && product.stock <= 0) {
-      toast.error("Sin stock disponible", {
-        description: `${product.name} no está disponible por el momento.`,
-      });
-      return;
-    }
-    const existing = state.items.find((i) => i.id === product.id);
-    if (existing) {
-      if (!product.stockUnlimited && existing.quantity >= product.stock) {
-        toast.error("No hay más stock disponible", {
-          description: `${product.name} alcanzó su límite de stock.`,
+  const addProduct = useCallback(
+    (product: Product, quantity = 1) => {
+      if (!product.stockUnlimited && product.stock <= 0) {
+        toast.error("Sin stock disponible", {
+          description: `${product.name} no está disponible por el momento.`,
         });
         return;
       }
-      const canAdd = product.stockUnlimited
-        ? quantity
-        : Math.min(quantity, product.stock - existing.quantity);
-      if (canAdd <= 0) {
-        toast.error("No hay más stock disponible", {
-          description: `${product.name} alcanzó su límite de stock.`,
+      const existing = state.items.find((i) => i.id === product.id);
+      if (existing) {
+        if (!product.stockUnlimited && existing.quantity >= product.stock) {
+          toast.error("No hay más stock disponible", {
+            description: `${product.name} alcanzó su límite de stock.`,
+          });
+          return;
+        }
+        const canAdd = product.stockUnlimited
+          ? quantity
+          : Math.min(quantity, product.stock - existing.quantity);
+        if (canAdd <= 0) {
+          toast.error("No hay más stock disponible", {
+            description: `${product.name} alcanzó su límite de stock.`,
+          });
+          return;
+        }
+        dispatch({
+          type: "add",
+          item: {
+            id: product.id,
+            slug: product.slug,
+            brand: product.brand,
+            name: product.name,
+            category: product.category,
+            subcategory: product.subcategory,
+            variantName: product.variantName,
+            cardCommission: product.cardCommission,
+            image: product.image,
+            price: product.price,
+            quantity: canAdd,
+            stock: product.stock,
+            stockUnlimited: product.stockUnlimited,
+          },
         });
+        if (canAdd < quantity) {
+          toast.warning("Se agregó parte del pedido: se alcanzó el límite de stock", {
+            description: product.name,
+          });
+        } else {
+          toast.success("Agregado al carrito", { description: product.name });
+        }
         return;
       }
+
+      const toAdd = product.stockUnlimited ? quantity : Math.min(quantity, product.stock);
       dispatch({
         type: "add",
         item: {
@@ -170,48 +200,21 @@ export function CartProvider({
           cardCommission: product.cardCommission,
           image: product.image,
           price: product.price,
-          quantity: canAdd,
+          quantity: toAdd,
           stock: product.stock,
           stockUnlimited: product.stockUnlimited,
         },
       });
-      if (canAdd < quantity) {
+      if (toAdd < quantity) {
         toast.warning("Se agregó parte del pedido: se alcanzó el límite de stock", {
           description: product.name,
         });
       } else {
         toast.success("Agregado al carrito", { description: product.name });
       }
-      return;
-    }
-
-    const toAdd = product.stockUnlimited ? quantity : Math.min(quantity, product.stock);
-    dispatch({
-      type: "add",
-      item: {
-        id: product.id,
-        slug: product.slug,
-        brand: product.brand,
-        name: product.name,
-        category: product.category,
-        subcategory: product.subcategory,
-        variantName: product.variantName,
-        cardCommission: product.cardCommission,
-        image: product.image,
-        price: product.price,
-        quantity: toAdd,
-        stock: product.stock,
-        stockUnlimited: product.stockUnlimited,
-      },
-    });
-    if (toAdd < quantity) {
-      toast.warning("Se agregó parte del pedido: se alcanzó el límite de stock", {
-        description: product.name,
-      });
-    } else {
-      toast.success("Agregado al carrito", { description: product.name });
-    }
-  }, [state.items]);
+    },
+    [state.items],
+  );
 
   const removeItem = useCallback((id: string) => {
     dispatch({ type: "remove", id });

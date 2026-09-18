@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import {
   cloneElement,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -54,12 +55,15 @@ export function CartSheet({
     );
   };
 
-  const handleOpenChange = (next: boolean) => {
-    if (controlledOpen === undefined) {
-      setInternalOpen(next);
-    }
-    onOpenChange?.(next);
-  };
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (controlledOpen === undefined) {
+        setInternalOpen(next);
+      }
+      onOpenChange?.(next);
+    },
+    [controlledOpen, onOpenChange],
+  );
 
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
@@ -95,7 +99,7 @@ export function CartSheet({
       document.removeEventListener("keydown", handleEscape);
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [open]);
+  }, [handleOpenChange, open]);
 
   const triggerElement = children as ReactElement;
   const triggerProps = {
@@ -166,103 +170,105 @@ export function CartSheet({
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {items.map((item) => (
+                      {items.map((item) =>
                         (() => {
                           const variantName = getCartVariantName(item);
                           return (
-                        <div
-                          key={item.id}
-                          className="group flex gap-4 rounded-3xl border border-border bg-surface-2 p-4 shadow-sm transition hover:border-primary/60"
-                        >
-                          <ProductVisual
-                            seed={item.id}
-                            label={item.name}
-                            image={item.image}
-                            className="h-20 w-20 rounded-3xl"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-3 flex flex-wrap items-center gap-2">
-                              <span className="rounded-full bg-background px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                {getBrand(item.brand)?.shortName ?? item.brand}
-                              </span>
-                              <span className="text-xs font-medium text-muted-foreground">
-                                {item.stockUnlimited ? "∞ Stock ilimitado" : `Stock ${item.stock}`}
-                              </span>
-                            </div>
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                              <div className="min-w-0">
-                                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                  <p className="truncate text-base font-semibold text-foreground">
-                                    {item.name}
-                                  </p>
-                                  {variantName ? (
-                                    <span className="truncate text-sm text-muted-foreground">
-                                      {variantName}
-                                    </span>
-                                  ) : null}
+                            <div
+                              key={item.id}
+                              className="group flex gap-4 rounded-3xl border border-border bg-surface-2 p-4 shadow-sm transition hover:border-primary/60"
+                            >
+                              <ProductVisual
+                                seed={item.id}
+                                label={item.name}
+                                image={item.image}
+                                className="h-20 w-20 rounded-3xl"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="mb-3 flex flex-wrap items-center gap-2">
+                                  <span className="rounded-full bg-background px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                    {getBrand(item.brand)?.shortName ?? item.brand}
+                                  </span>
+                                  <span className="text-xs font-medium text-muted-foreground">
+                                    {item.stockUnlimited
+                                      ? "∞ Stock ilimitado"
+                                      : `Stock ${item.stock}`}
+                                  </span>
                                 </div>
-                                <p className="text-sm text-muted-foreground">
-                                  {formatPrice(item.price)} por unidad
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                  <div className="min-w-0">
+                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                      <p className="truncate text-base font-semibold text-foreground">
+                                        {item.name}
+                                      </p>
+                                      {variantName ? (
+                                        <span className="truncate text-sm text-muted-foreground">
+                                          {variantName}
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                      {formatPrice(item.price)} por unidad
+                                    </p>
+                                  </div>
+                                  <span className="text-sm font-semibold text-foreground">
+                                    {formatPrice(item.price * item.quantity)}
+                                  </span>
+                                </div>
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                  Cantidad: {item.quantity}
                                 </p>
+                                <div className="mt-4 flex flex-wrap items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 min-w-10 rounded-full"
+                                    onClick={() => setQuantity(item.id, item.quantity - 1)}
+                                    aria-label="Restar unidad"
+                                    disabled={item.quantity <= 1}
+                                  >
+                                    <Minus className="size-4" />
+                                  </Button>
+                                  <span className="inline-flex min-w-8 justify-center rounded-full bg-surface px-2 py-1 text-sm font-medium text-foreground">
+                                    {item.quantity}
+                                  </span>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 min-w-10 rounded-full"
+                                    onClick={() => setQuantity(item.id, item.quantity + 1)}
+                                    aria-label="Sumar unidad"
+                                    disabled={!item.stockUnlimited && item.quantity >= item.stock}
+                                  >
+                                    <Plus className="size-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="ml-auto text-muted-foreground hover:text-destructive"
+                                    onClick={() =>
+                                      setConfirmState({
+                                        open: true,
+                                        title: `Eliminar "${item.name}" del carrito?`,
+                                        description: undefined,
+                                        onConfirm: () => removeItem(item.id),
+                                      })
+                                    }
+                                    aria-label="Eliminar producto"
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </Button>
+                                </div>
+                                {!item.stockUnlimited && item.quantity >= item.stock && (
+                                  <p className="mt-2 text-xs font-medium text-destructive">
+                                    No hay más stock disponible para agregar.
+                                  </p>
+                                )}
                               </div>
-                              <span className="text-sm font-semibold text-foreground">
-                                {formatPrice(item.price * item.quantity)}
-                              </span>
                             </div>
-                            <p className="mt-2 text-sm text-muted-foreground">
-                              Cantidad: {item.quantity}
-                            </p>
-                            <div className="mt-4 flex flex-wrap items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 min-w-10 rounded-full"
-                                onClick={() => setQuantity(item.id, item.quantity - 1)}
-                                aria-label="Restar unidad"
-                                disabled={item.quantity <= 1}
-                              >
-                                <Minus className="size-4" />
-                              </Button>
-                              <span className="inline-flex min-w-8 justify-center rounded-full bg-surface px-2 py-1 text-sm font-medium text-foreground">
-                                {item.quantity}
-                              </span>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 min-w-10 rounded-full"
-                                onClick={() => setQuantity(item.id, item.quantity + 1)}
-                                aria-label="Sumar unidad"
-                                disabled={!item.stockUnlimited && item.quantity >= item.stock}
-                              >
-                                <Plus className="size-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="ml-auto text-muted-foreground hover:text-destructive"
-                                onClick={() =>
-                                  setConfirmState({
-                                    open: true,
-                                    title: `Eliminar "${item.name}" del carrito?`,
-                                    description: undefined,
-                                    onConfirm: () => removeItem(item.id),
-                                  })
-                                }
-                                aria-label="Eliminar producto"
-                              >
-                                <Trash2 className="size-4" />
-                              </Button>
-                            </div>
-                            {!item.stockUnlimited && item.quantity >= item.stock && (
-                              <p className="mt-2 text-xs font-medium text-destructive">
-                                No hay más stock disponible para agregar.
-                              </p>
-                            )}
-                          </div>
-                        </div>
                           );
-                        })()
-                      ))}
+                        })(),
+                      )}
                     </div>
                   )}
                 </div>

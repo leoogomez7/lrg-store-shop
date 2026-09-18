@@ -1011,7 +1011,7 @@ function AdminSuppliers() {
           <div className="flex w-10 shrink-0 flex-col items-center bg-transparent py-3">
             <div className="mb-3 h-6" />
             {visibleRows.map((row) => (
-              <div key={row.key} className="flex h-[72px] w-full items-center justify-center">
+              <div key={row.key} className="flex h-18 w-full items-center justify-center">
                 <Checkbox
                   className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                   checked={selectedSupplierKeys.includes(row.key)}
@@ -1086,20 +1086,22 @@ function AdminSuppliers() {
                           row.social
                         )}
                       </TableCell>
-                      <TableCell className="min-w-[8rem]">
+                      <TableCell className="min-w-32">
                         <div className="flex flex-col items-center justify-center gap-1 text-center leading-none">
                           <div className="flex items-center gap-1.5">
                             <span className="text-[11px] font-medium text-muted-foreground">$</span>
                             <span className="text-sm">{formatNumber(row.salesByCurrency.ARS)}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-medium text-muted-foreground">USD</span>
+                            <span className="text-[11px] font-medium text-muted-foreground">
+                              USD
+                            </span>
                             <span className="text-sm">{formatNumber(row.salesByCurrency.USD)}</span>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>{row.soldQuantity}</TableCell>
-                      <TableCell className="min-w-[31rem] whitespace-nowrap">
+                      <TableCell className="min-w-124 whitespace-nowrap">
                         <div className="flex flex-nowrap items-center justify-center gap-1.5">
                           {isQuickEditing ? (
                             <>

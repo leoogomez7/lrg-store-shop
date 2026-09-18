@@ -287,355 +287,355 @@ function AdminClients() {
 
         <div className="order-3 flex basis-full flex-col gap-2 sm:basis-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 sm:shrink-0">
           <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
-          <Dialog open={sortOpen} onOpenChange={setSortOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
-                <ArrowUpDown className="size-4" /> Ordenar por
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
-              <DialogHeader>
-                <DialogTitle>Ordenar por</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-1 pt-2">
-                {sortOptions.map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      setSortOrder(value);
-                      setSortOpen(false);
-                    }}
-                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2 ${sortOrder === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"}`}
-                  >
-                    <span>{label}</span>
-                    {sortOrder === value && <span aria-hidden="true">✓</span>}
-                  </button>
-                ))}
-              </div>
-            </DialogContent>
-          </Dialog>
-          <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
-                <Filter className="size-4" /> Filtros
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[min(92vh,48rem)] max-w-2xl overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
-              <DialogHeader>
-                <DialogTitle>Filtros</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-6 pt-2">
-                {[
-                  {
-                    label: "Productos comprados en tiendas",
-                    open: storeOpen,
-                    setOpen: setStoreOpen,
-                    selected: storeFilter,
-                    setSelected: setStoreFilter,
-                    options: storeOptions,
-                  },
-                  {
-                    label: "Tipo cliente",
-                    open: typeOpen,
-                    setOpen: setTypeOpen,
-                    selected: typeFilter,
-                    setSelected: setTypeFilter,
-                    options: [
-                      ["customer", "Clientes"],
-                      ["guest", "Invitados"],
-                    ] as const,
-                  },
-                ].map((section) => (
-                  <div key={section.label} className="space-y-3">
+            <Dialog open={sortOpen} onOpenChange={setSortOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
+                  <ArrowUpDown className="size-4" /> Ordenar por
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                <DialogHeader>
+                  <DialogTitle>Ordenar por</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-1 pt-2">
+                  {sortOptions.map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        setSortOrder(value);
+                        setSortOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2 ${sortOrder === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"}`}
+                    >
+                      <span>{label}</span>
+                      {sortOrder === value && <span aria-hidden="true">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
+                  <Filter className="size-4" /> Filtros
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[min(92vh,48rem)] max-w-2xl overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                <DialogHeader>
+                  <DialogTitle>Filtros</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6 pt-2">
+                  {[
+                    {
+                      label: "Productos comprados en tiendas",
+                      open: storeOpen,
+                      setOpen: setStoreOpen,
+                      selected: storeFilter,
+                      setSelected: setStoreFilter,
+                      options: storeOptions,
+                    },
+                    {
+                      label: "Tipo cliente",
+                      open: typeOpen,
+                      setOpen: setTypeOpen,
+                      selected: typeFilter,
+                      setSelected: setTypeFilter,
+                      options: [
+                        ["customer", "Clientes"],
+                        ["guest", "Invitados"],
+                      ] as const,
+                    },
+                  ].map((section) => (
+                    <div key={section.label} className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => section.setOpen((current) => !current)}
+                        className="flex items-center gap-2 text-sm font-medium"
+                        aria-expanded={section.open}
+                      >
+                        <span>{section.label}</span>
+                        {section.selected.length > 0 && (
+                          <Badge variant="secondary">{section.selected.length}</Badge>
+                        )}
+                        {section.open ? (
+                          <ChevronUp className="size-4" />
+                        ) : (
+                          <ChevronDown className="size-4" />
+                        )}
+                      </button>
+                      {section.open && (
+                        <div className="space-y-2.5">
+                          {[...[["all", "Todos"] as const], ...section.options].map(
+                            ([value, label]) => (
+                              <label
+                                key={value}
+                                className="flex cursor-pointer items-start gap-3 text-sm"
+                              >
+                                <Checkbox
+                                  checked={
+                                    value === "all"
+                                      ? section.selected.length === 0
+                                      : section.selected.includes(value)
+                                  }
+                                  onCheckedChange={(checked) =>
+                                    section.setSelected(
+                                      toggleSelection(
+                                        section.selected,
+                                        value,
+                                        checked === true,
+                                        section.options.map(([option]) => option),
+                                      ),
+                                    )
+                                  }
+                                />
+                                <span className="font-medium">{label}</span>
+                              </label>
+                            ),
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  <div className="space-y-3">
                     <button
                       type="button"
-                      onClick={() => section.setOpen((current) => !current)}
+                      onClick={() => setSpentOpen((current) => !current)}
                       className="flex items-center gap-2 text-sm font-medium"
-                      aria-expanded={section.open}
+                      aria-expanded={spentOpen}
                     >
-                      <span>{section.label}</span>
-                      {section.selected.length > 0 && (
-                        <Badge variant="secondary">{section.selected.length}</Badge>
-                      )}
-                      {section.open ? (
+                      <span>Total gastado</span>
+                      {spentOpen ? (
                         <ChevronUp className="size-4" />
                       ) : (
                         <ChevronDown className="size-4" />
                       )}
                     </button>
-                    {section.open && (
-                      <div className="space-y-2.5">
-                        {[...[["all", "Todos"] as const], ...section.options].map(
-                          ([value, label]) => (
+                    {spentOpen && (
+                      <div className="space-y-3">
+                        <div className="space-y-2.5">
+                          {(["ARS", "USD"] as const).map((currency) => (
                             <label
-                              key={value}
+                              key={currency}
                               className="flex cursor-pointer items-start gap-3 text-sm"
                             >
                               <Checkbox
-                                checked={
-                                  value === "all"
-                                    ? section.selected.length === 0
-                                    : section.selected.includes(value)
-                                }
+                                checked={currencyFilter.includes(currency)}
                                 onCheckedChange={(checked) =>
-                                  section.setSelected(
-                                    toggleSelection(
-                                      section.selected,
-                                      value,
-                                      checked === true,
-                                      section.options.map(([option]) => option),
-                                    ),
+                                  setCurrencyFilter((current) =>
+                                    checked
+                                      ? Array.from(new Set([...current, currency]))
+                                      : current.length === 1
+                                        ? current
+                                        : current.filter((item) => item !== currency),
                                   )
                                 }
                               />
-                              <span className="font-medium">{label}</span>
+                              <span className="font-medium">
+                                {currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}
+                              </span>
                             </label>
-                          ),
-                        )}
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
+                          <label className="flex items-center gap-2">
+                            <span>
+                              Desde{" "}
+                              {currencyFilter.length === 2
+                                ? "$/USD"
+                                : currencyFilter[0] === "USD"
+                                  ? "USD"
+                                  : "$"}
+                            </span>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={spentLimit}
+                              value={spentMin}
+                              onChange={(event) =>
+                                setSpentMin(
+                                  Math.min(Math.max(0, Number(event.target.value) || 0), spentMax),
+                                )
+                              }
+                              className="h-8 w-24"
+                            />
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <span>
+                              Hasta{" "}
+                              {currencyFilter.length === 2
+                                ? "$/USD"
+                                : currencyFilter[0] === "USD"
+                                  ? "USD"
+                                  : "$"}
+                            </span>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={spentLimit}
+                              value={spentMax}
+                              onChange={(event) =>
+                                setSpentMax(
+                                  Math.max(
+                                    Math.min(spentLimit, Number(event.target.value) || 0),
+                                    spentMin,
+                                  ),
+                                )
+                              }
+                              className="h-8 w-24"
+                            />
+                          </label>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={spentLimit}
+                          step={Math.max(1, Math.round(spentLimit / 100))}
+                          value={[spentMin, spentMax]}
+                          onValueChange={(value) => {
+                            setSpentMin(value[0] ?? 0);
+                            setSpentMax(value[1] ?? spentLimit);
+                          }}
+                        />
                       </div>
                     )}
                   </div>
-                ))}
 
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => setSpentOpen((current) => !current)}
-                    className="flex items-center gap-2 text-sm font-medium"
-                    aria-expanded={spentOpen}
-                  >
-                    <span>Total gastado</span>
-                    {spentOpen ? (
-                      <ChevronUp className="size-4" />
-                    ) : (
-                      <ChevronDown className="size-4" />
-                    )}
-                  </button>
-                  {spentOpen && (
-                    <div className="space-y-3">
-                      <div className="space-y-2.5">
-                        {(["ARS", "USD"] as const).map((currency) => (
-                          <label
-                            key={currency}
-                            className="flex cursor-pointer items-start gap-3 text-sm"
-                          >
-                            <Checkbox
-                              checked={currencyFilter.includes(currency)}
-                              onCheckedChange={(checked) =>
-                                setCurrencyFilter((current) =>
-                                  checked
-                                    ? Array.from(new Set([...current, currency]))
-                                    : current.length === 1
-                                      ? current
-                                      : current.filter((item) => item !== currency),
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setOrdersOpen((current) => !current)}
+                      className="flex items-center gap-2 text-sm font-medium"
+                      aria-expanded={ordersOpen}
+                    >
+                      <span>Total de pedidos</span>
+                      {ordersOpen ? (
+                        <ChevronUp className="size-4" />
+                      ) : (
+                        <ChevronDown className="size-4" />
+                      )}
+                    </button>
+                    {ordersOpen && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
+                          <label className="flex items-center gap-2">
+                            <span>Desde</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={ordersLimit}
+                              value={ordersMin}
+                              onChange={(event) =>
+                                setOrdersMin(
+                                  Math.min(Math.max(0, Number(event.target.value) || 0), ordersMax),
                                 )
                               }
+                              className="h-8 w-24"
                             />
-                            <span className="font-medium">
-                              {currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}
-                            </span>
                           </label>
-                        ))}
+                          <label className="flex items-center gap-2">
+                            <span>Hasta</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={ordersLimit}
+                              value={ordersMax}
+                              onChange={(event) =>
+                                setOrdersMax(
+                                  Math.max(
+                                    Math.min(ordersLimit, Number(event.target.value) || 0),
+                                    ordersMin,
+                                  ),
+                                )
+                              }
+                              className="h-8 w-24"
+                            />
+                          </label>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={ordersLimit}
+                          step={1}
+                          value={[ordersMin, ordersMax]}
+                          onValueChange={(value) => {
+                            setOrdersMin(value[0] ?? 0);
+                            setOrdersMax(value[1] ?? ordersLimit);
+                          }}
+                        />
                       </div>
-                      <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
-                        <label className="flex items-center gap-2">
-                          <span>
-                            Desde{" "}
-                            {currencyFilter.length === 2
-                              ? "$/USD"
-                              : currencyFilter[0] === "USD"
-                                ? "USD"
-                                : "$"}
-                          </span>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={spentLimit}
-                            value={spentMin}
-                            onChange={(event) =>
-                              setSpentMin(
-                                Math.min(Math.max(0, Number(event.target.value) || 0), spentMax),
-                              )
-                            }
-                            className="h-8 w-24"
-                          />
-                        </label>
-                        <label className="flex items-center gap-2">
-                          <span>
-                            Hasta{" "}
-                            {currencyFilter.length === 2
-                              ? "$/USD"
-                              : currencyFilter[0] === "USD"
-                                ? "USD"
-                                : "$"}
-                          </span>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={spentLimit}
-                            value={spentMax}
-                            onChange={(event) =>
-                              setSpentMax(
-                                Math.max(
-                                  Math.min(spentLimit, Number(event.target.value) || 0),
-                                  spentMin,
-                                ),
-                              )
-                            }
-                            className="h-8 w-24"
-                          />
-                        </label>
-                      </div>
-                      <Slider
-                        min={0}
-                        max={spentLimit}
-                        step={Math.max(1, Math.round(spentLimit / 100))}
-                        value={[spentMin, spentMax]}
-                        onValueChange={(value) => {
-                          setSpentMin(value[0] ?? 0);
-                          setSpentMax(value[1] ?? spentLimit);
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => setOrdersOpen((current) => !current)}
-                    className="flex items-center gap-2 text-sm font-medium"
-                    aria-expanded={ordersOpen}
-                  >
-                    <span>Total de pedidos</span>
-                    {ordersOpen ? (
-                      <ChevronUp className="size-4" />
-                    ) : (
-                      <ChevronDown className="size-4" />
                     )}
-                  </button>
-                  {ordersOpen && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
-                        <label className="flex items-center gap-2">
-                          <span>Desde</span>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={ordersLimit}
-                            value={ordersMin}
-                            onChange={(event) =>
-                              setOrdersMin(
-                                Math.min(Math.max(0, Number(event.target.value) || 0), ordersMax),
-                              )
-                            }
-                            className="h-8 w-24"
-                          />
-                        </label>
-                        <label className="flex items-center gap-2">
-                          <span>Hasta</span>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={ordersLimit}
-                            value={ordersMax}
-                            onChange={(event) =>
-                              setOrdersMax(
-                                Math.max(
-                                  Math.min(ordersLimit, Number(event.target.value) || 0),
-                                  ordersMin,
-                                ),
-                              )
-                            }
-                            className="h-8 w-24"
-                          />
-                        </label>
-                      </div>
-                      <Slider
-                        min={0}
-                        max={ordersLimit}
-                        step={1}
-                        value={[ordersMin, ordersMax]}
-                        onValueChange={(value) => {
-                          setOrdersMin(value[0] ?? 0);
-                          setOrdersMax(value[1] ?? ordersLimit);
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
+                  </div>
 
-                <div className="flex items-center justify-between border-t border-border/50 pt-4">
-                  <p className="text-xs text-muted-foreground">
-                    {filteredCustomers.length} clientes encontrados
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetFilters}
-                    disabled={activeFilterCount === 0}
-                    className="h-8 px-2 text-xs"
-                  >
-                    <X className="mr-1 size-3.5" /> Limpiar
-                  </Button>
+                  <div className="flex items-center justify-between border-t border-border/50 pt-4">
+                    <p className="text-xs text-muted-foreground">
+                      {filteredCustomers.length} clientes encontrados
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetFilters}
+                      disabled={activeFilterCount === 0}
+                      className="h-8 px-2 text-xs"
+                    >
+                      <X className="mr-1 size-3.5" /> Limpiar
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
-          <Button
-            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
-            onClick={() => {
-              const rows: (string | number)[][] = [
-                ["Cliente", "Email", "Total de pedidos", "Total gastado"],
-              ];
-
-              for (const c of visibleCustomers) {
-                const total = c.orders.reduce((s, o) => s + (o.total || 0), 0);
-                const gasto = new Intl.NumberFormat("es-AR", {
-                  style: "currency",
-                  currency: "ARS",
-                  minimumFractionDigits: 0,
-                }).format(total);
-
-                rows.push([c.name ?? "", c.email ?? "", String(c.orders.length), gasto]);
-              }
-
-              const worksheet = XLSX.utils.aoa_to_sheet(rows);
-              const workbook = XLSX.utils.book_new();
-              XLSX.utils.book_append_sheet(workbook, worksheet, "Clientes");
-              const date = new Date().toISOString().slice(0, 10);
-              const pageSuffix = page + 1;
-              XLSX.writeFile(workbook, `clientes_pedidos_${date}_page-${pageSuffix}.xlsx`);
-            }}
-          >
-            <Sheet className="size-4" />
-            Exportar Excel
-          </Button>
-
-          <Button
-            className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
-            onClick={() => {
-              const rows = visibleCustomers.map((customer) => {
-                const total = customer.orders.reduce((s, o) => s + (o.total || 0), 0);
-                const gasto = new Intl.NumberFormat("es-AR", {
-                  style: "currency",
-                  currency: "ARS",
-                  minimumFractionDigits: 0,
-                }).format(total);
-
-                return [
-                  customer.name ?? "",
-                  customer.email ?? "",
-                  String(customer.orders.length),
-                  gasto,
+            <Button
+              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
+              onClick={() => {
+                const rows: (string | number)[][] = [
+                  ["Cliente", "Email", "Total de pedidos", "Total gastado"],
                 ];
-              });
 
-              const tableHtml = `
+                for (const c of visibleCustomers) {
+                  const total = c.orders.reduce((s, o) => s + (o.total || 0), 0);
+                  const gasto = new Intl.NumberFormat("es-AR", {
+                    style: "currency",
+                    currency: "ARS",
+                    minimumFractionDigits: 0,
+                  }).format(total);
+
+                  rows.push([c.name ?? "", c.email ?? "", String(c.orders.length), gasto]);
+                }
+
+                const worksheet = XLSX.utils.aoa_to_sheet(rows);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Clientes");
+                const date = new Date().toISOString().slice(0, 10);
+                const pageSuffix = page + 1;
+                XLSX.writeFile(workbook, `clientes_pedidos_${date}_page-${pageSuffix}.xlsx`);
+              }}
+            >
+              <Sheet className="size-4" />
+              Exportar Excel
+            </Button>
+
+            <Button
+              className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
+              onClick={() => {
+                const rows = visibleCustomers.map((customer) => {
+                  const total = customer.orders.reduce((s, o) => s + (o.total || 0), 0);
+                  const gasto = new Intl.NumberFormat("es-AR", {
+                    style: "currency",
+                    currency: "ARS",
+                    minimumFractionDigits: 0,
+                  }).format(total);
+
+                  return [
+                    customer.name ?? "",
+                    customer.email ?? "",
+                    String(customer.orders.length),
+                    gasto,
+                  ];
+                });
+
+                const tableHtml = `
                 <!DOCTYPE html>
                 <html lang="es">
                   <head>
@@ -677,20 +677,20 @@ function AdminClients() {
                 </html>
               `;
 
-              const printWindow = window.open("", "_blank");
-              if (!printWindow) return;
-              const date = new Date().toISOString().slice(0, 10);
-              const pageSuffix = page + 1;
-              printWindow.document.title = `clientes_pedidos_${date}_page-${pageSuffix}`;
-              printWindow.document.write(tableHtml);
-              printWindow.document.close();
-              printWindow.focus();
-              printWindow.print();
-            }}
-          >
-            <FileText className="size-4" />
-            Exportar PDF
-          </Button>
+                const printWindow = window.open("", "_blank");
+                if (!printWindow) return;
+                const date = new Date().toISOString().slice(0, 10);
+                const pageSuffix = page + 1;
+                printWindow.document.title = `clientes_pedidos_${date}_page-${pageSuffix}`;
+                printWindow.document.write(tableHtml);
+                printWindow.document.close();
+                printWindow.focus();
+                printWindow.print();
+              }}
+            >
+              <FileText className="size-4" />
+              Exportar PDF
+            </Button>
           </div>
         </div>
       </div>

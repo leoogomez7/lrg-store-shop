@@ -337,15 +337,13 @@ function AccountPageContent({
     userPhone !== savedProfileValues.current.phone ||
     userDocument !== savedProfileValues.current.document;
   const isAdminUser =
-    typeof window !== "undefined" &&
-    window.sessionStorage.getItem("lrg_auth_role") === "admin";
-  const accountDisplayName =
-    profileLoaded
-      ? [userGivenName, userFamilyName].filter(Boolean).join(" ").trim() ||
-        [user?.givenName, user?.familyName].filter(Boolean).join(" ").trim() ||
-        userName ||
-        "Cliente"
-      : "Cargando...";
+    typeof window !== "undefined" && window.sessionStorage.getItem("lrg_auth_role") === "admin";
+  const accountDisplayName = profileLoaded
+    ? [userGivenName, userFamilyName].filter(Boolean).join(" ").trim() ||
+      [user?.givenName, user?.familyName].filter(Boolean).join(" ").trim() ||
+      userName ||
+      "Cliente"
+    : "Cargando...";
   const handleLogout = async () => {
     setMobileMenuOpen(false);
     setLogoutOpen(false);
@@ -724,34 +722,36 @@ function AccountPageContent({
       setUserName(nextFullName || user.email || null);
 
       // Cargar perfil desde BD
-      getUserProfile({ data: { userId: user.id } }).then((profile) => {
-        if (profile) {
-          const profileGivenName = profile.givenName ?? "";
-          const profileFamilyName = profile.familyName ?? "";
-          const profileFullName = [profileGivenName, profileFamilyName]
-            .filter(Boolean)
-            .join(" ")
-            .trim();
+      getUserProfile({ data: { userId: user.id } })
+        .then((profile) => {
+          if (profile) {
+            const profileGivenName = profile.givenName ?? "";
+            const profileFamilyName = profile.familyName ?? "";
+            const profileFullName = [profileGivenName, profileFamilyName]
+              .filter(Boolean)
+              .join(" ")
+              .trim();
 
-          setUserGivenName(profileGivenName || nextGivenName);
-          setUserFamilyName(profileFamilyName || nextFamilyName);
-          setUserName(profileFullName || nextFullName || user.email || null);
-          setUserEmail(profile.email ?? user.email ?? "");
-          setUserPhone(profile.phone ?? "");
-          setUserDocument(profile.document ?? "");
-          savedProfileValues.current = {
-            givenName: profileGivenName || nextGivenName,
-            familyName: profileFamilyName || nextFamilyName,
-            phone: profile.phone ?? "",
-            document: profile.document ?? "",
-          };
-        } else {
-          setUserEmail(user.email ?? "");
-        }
-        setProfileLoaded(true);
-      }).catch(() => {
-        setProfileLoaded(true);
-      });
+            setUserGivenName(profileGivenName || nextGivenName);
+            setUserFamilyName(profileFamilyName || nextFamilyName);
+            setUserName(profileFullName || nextFullName || user.email || null);
+            setUserEmail(profile.email ?? user.email ?? "");
+            setUserPhone(profile.phone ?? "");
+            setUserDocument(profile.document ?? "");
+            savedProfileValues.current = {
+              givenName: profileGivenName || nextGivenName,
+              familyName: profileFamilyName || nextFamilyName,
+              phone: profile.phone ?? "",
+              document: profile.document ?? "",
+            };
+          } else {
+            setUserEmail(user.email ?? "");
+          }
+          setProfileLoaded(true);
+        })
+        .catch(() => {
+          setProfileLoaded(true);
+        });
     } else {
       setProfileLoaded(false);
       setUserName(null);
@@ -771,23 +771,25 @@ function AccountPageContent({
 
     // Cargar direcciones guardadas desde la BD
     setAddressesLoading(true);
-    void getUserAddresses({ data: { userId: user.id } }).then((addresses) => {
-      setAddresses(
-        addresses.map((addr) => ({
-          ...(addr.id !== undefined ? { id: addr.id } : {}),
-          label: addr.label,
-          value: addr.value,
-          city: addr.city,
-          street: addr.street,
-          streetNumber: addr.streetNumber,
-          floor: addr.floor,
-          apartment: addr.apartment,
-          province: addr.province,
-          postalCode: addr.postalCode,
-          isPrimary: Boolean(addr.isPrimary),
-        })) as Address[],
-      );
-    }).finally(() => setAddressesLoading(false));
+    void getUserAddresses({ data: { userId: user.id } })
+      .then((addresses) => {
+        setAddresses(
+          addresses.map((addr) => ({
+            ...(addr.id !== undefined ? { id: addr.id } : {}),
+            label: addr.label,
+            value: addr.value,
+            city: addr.city,
+            street: addr.street,
+            streetNumber: addr.streetNumber,
+            floor: addr.floor,
+            apartment: addr.apartment,
+            province: addr.province,
+            postalCode: addr.postalCode,
+            isPrimary: Boolean(addr.isPrimary),
+          })) as Address[],
+        );
+      })
+      .finally(() => setAddressesLoading(false));
     return unsubscribe;
   }, [user?.id]);
 
@@ -2197,286 +2199,302 @@ function AccountPageContent({
               </div>
             ) : (
               addresses.map((address, index) => (
-              <div
-                key={`${address.label}-${index}`}
-                className="glass-panel w-full max-w-full rounded-2xl border border-border/60 p-5"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="w-full max-w-full">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="relative grid size-10 shrink-0 place-items-center rounded-xl bg-sky-500/10 text-sky-400 ring-1 ring-sky-400/25">
-                          <MapPin className="size-4" />
-                        </div>
-                        <h3 className="truncate text-sm font-semibold text-foreground">
-                          {address.label}
-                        </h3>
-                      </div>
-                      {editingIndex !== index && (
-                        <Button
-                          variant={address.isPrimary ? "secondary" : "outline"}
-                          size="sm"
-                          className={
-                            address.isPrimary
-                              ? "h-8 shrink-0 gap-1.5 bg-amber-400 px-3 text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.25)] hover:bg-amber-300"
-                              : "h-8 shrink-0 gap-1.5 px-3"
-                          }
-                          onClick={async () => {
-                            if (!address.id || !user?.id) return;
-                            const success = await setPrimaryUserAddress({
-                              data: { userId: user.id, addressId: address.id },
-                            });
-                            if (success) {
-                              setAddresses((current) =>
-                                current.map((item) => ({
-                                  ...item,
-                                  isPrimary: item.id === address.id,
-                                })),
-                              );
-                              toast.success("Dirección principal actualizada");
-                            } else {
-                              toast.error("No se pudo actualizar la dirección principal");
-                            }
-                          }}
-                        >
-                          {address.isPrimary ? (
-                            <Check className="size-4 text-current" />
-                          ) : (
+                <div
+                  key={`${address.label}-${index}`}
+                  className="glass-panel w-full max-w-full rounded-2xl border border-border/60 p-5"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="w-full max-w-full">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="relative grid size-10 shrink-0 place-items-center rounded-xl bg-sky-500/10 text-sky-400 ring-1 ring-sky-400/25">
                             <MapPin className="size-4" />
-                          )}{" "}
-                          {address.isPrimary ? "Principal" : "Marcar principal"}
-                        </Button>
-                      )}
-                    </div>
-                    {editingIndex === index ? (
-                      <div className="mt-4 grid gap-4">
-                        <div className="space-y-2.5">
-                          <Label
-                            htmlFor={`edit-address-label-${index}`}
-                            className="text-sm font-medium"
-                          >
-                            Etiqueta
-                          </Label>
-                          <Input
-                            id={`edit-address-label-${index}`}
-                            value={addressLabel}
-                            onChange={(event) => setAddressLabel(event.target.value)}
-                            className="h-10 border-border/60"
-                          />
-                        </div>
-                        <div className="grid gap-3">
-                          <div className="grid gap-3">
-                            {(
-                              [
-                                ["Calle", addressStreet, setAddressStreet, false],
-                                ["Altura", addressNumber, setAddressNumber, false],
-                                ["Entre calles", addressValue, setAddressValue, false],
-                                ["Piso", addressFloor, setAddressFloor, false],
-                                ["Depto", addressApartment, setAddressApartment, false],
-                              ] as const
-                            ).map(([label, value, setter, synced]) => (
-                              <label key={String(label)} className="space-y-2 text-sm font-medium">
-                                <span>{label}</span>
-                                <Input
-                                  value={String(value)}
-                                  onChange={(event) =>
-                                    (setter as (next: string) => void)(event.target.value)
-                                  }
-                                  readOnly={Boolean(synced)}
-                                  className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
-                                />
-                              </label>
-                            ))}
                           </div>
-
-                          <div className="grid gap-3">
-                            {(
-                              [
-                                ["Código Postal", addressPostalCode, setAddressPostalCode, false],
-                                ["Ciudad", addressCity, setAddressCity, false],
-                                ["Provincia", addressProvince, setAddressProvince, false],
-                                ["Referencias", addressReferences, setAddressReferences, false],
-                              ] as const
-                            ).map(([label, value, setter, synced]) => (
-                              <label key={String(label)} className="space-y-2 text-sm font-medium">
-                                <span>{label}</span>
-                                <Input
-                                  value={String(value)}
-                                  onChange={(event) =>
-                                    (setter as (next: string) => void)(event.target.value)
-                                  }
-                                  readOnly={Boolean(synced)}
-                                  className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
-                                  placeholder={label === "Referencias" ? "Entre calles, color de la casa, etc." : undefined}
-                                />
-                              </label>
-                            ))}
-                          </div>
+                          <h3 className="truncate text-sm font-semibold text-foreground">
+                            {address.label}
+                          </h3>
                         </div>
-
-                        <div className="flex flex-wrap gap-3 pt-1">
+                        {editingIndex !== index && (
                           <Button
+                            variant={address.isPrimary ? "secondary" : "outline"}
                             size="sm"
-                            disabled={isSavingAddress}
-                            className="h-9 px-4 bg-[#39a9de] text-[#111827] hover:bg-[#2f9ed3]"
+                            className={
+                              address.isPrimary
+                                ? "h-8 shrink-0 gap-1.5 bg-amber-400 px-3 text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.25)] hover:bg-amber-300"
+                                : "h-8 shrink-0 gap-1.5 px-3"
+                            }
                             onClick={async () => {
-                              if (
-                                !addressLabel.trim() ||
-                                !addressStreet.trim() ||
-                                !addressNumber.trim() ||
-                                !addressValue.trim() ||
-                                !addressCity.trim() ||
-                                !addressProvince.trim() ||
-                                !addressPostalCode.trim()
-                              ) {
-                                toast.error("Completá etiqueta, calle, altura, entre calles, ciudad, provincia y código postal");
-                                return;
-                              }
-                              setIsSavingAddress(true);
-                              const addressToUpdate = addresses[index];
-                              if (!addressToUpdate?.id || !user?.id) {
+                              if (!address.id || !user?.id) return;
+                              const success = await setPrimaryUserAddress({
+                                data: { userId: user.id, addressId: address.id },
+                              });
+                              if (success) {
                                 setAddresses((current) =>
-                                  current.map((item, itemIndex) =>
-                                    itemIndex === index
-                                      ? {
-                                          ...item,
-                                          label: addressLabel.trim(),
-                                          value: addressValue.trim(),
-                                          references: addressReferences.trim(),
-                                          city: addressCity,
-                                          street: addressStreet,
-                                          streetNumber: addressNumber,
-                                          floor: addressFloor,
-                                          apartment: addressApartment,
-                                          province: addressProvince,
-                                          postalCode: addressPostalCode,
-                                        }
-                                      : item,
-                                  ),
+                                  current.map((item) => ({
+                                    ...item,
+                                    isPrimary: item.id === address.id,
+                                  })),
                                 );
+                                toast.success("Dirección principal actualizada");
+                              } else {
+                                toast.error("No se pudo actualizar la dirección principal");
+                              }
+                            }}
+                          >
+                            {address.isPrimary ? (
+                              <Check className="size-4 text-current" />
+                            ) : (
+                              <MapPin className="size-4" />
+                            )}{" "}
+                            {address.isPrimary ? "Principal" : "Marcar principal"}
+                          </Button>
+                        )}
+                      </div>
+                      {editingIndex === index ? (
+                        <div className="mt-4 grid gap-4">
+                          <div className="space-y-2.5">
+                            <Label
+                              htmlFor={`edit-address-label-${index}`}
+                              className="text-sm font-medium"
+                            >
+                              Etiqueta
+                            </Label>
+                            <Input
+                              id={`edit-address-label-${index}`}
+                              value={addressLabel}
+                              onChange={(event) => setAddressLabel(event.target.value)}
+                              className="h-10 border-border/60"
+                            />
+                          </div>
+                          <div className="grid gap-3">
+                            <div className="grid gap-3">
+                              {(
+                                [
+                                  ["Calle", addressStreet, setAddressStreet, false],
+                                  ["Altura", addressNumber, setAddressNumber, false],
+                                  ["Entre calles", addressValue, setAddressValue, false],
+                                  ["Piso", addressFloor, setAddressFloor, false],
+                                  ["Depto", addressApartment, setAddressApartment, false],
+                                ] as const
+                              ).map(([label, value, setter, synced]) => (
+                                <label
+                                  key={String(label)}
+                                  className="space-y-2 text-sm font-medium"
+                                >
+                                  <span>{label}</span>
+                                  <Input
+                                    value={String(value)}
+                                    onChange={(event) =>
+                                      (setter as (next: string) => void)(event.target.value)
+                                    }
+                                    readOnly={Boolean(synced)}
+                                    className={
+                                      synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"
+                                    }
+                                  />
+                                </label>
+                              ))}
+                            </div>
+
+                            <div className="grid gap-3">
+                              {(
+                                [
+                                  ["Código Postal", addressPostalCode, setAddressPostalCode, false],
+                                  ["Ciudad", addressCity, setAddressCity, false],
+                                  ["Provincia", addressProvince, setAddressProvince, false],
+                                  ["Referencias", addressReferences, setAddressReferences, false],
+                                ] as const
+                              ).map(([label, value, setter, synced]) => (
+                                <label
+                                  key={String(label)}
+                                  className="space-y-2 text-sm font-medium"
+                                >
+                                  <span>{label}</span>
+                                  <Input
+                                    value={String(value)}
+                                    onChange={(event) =>
+                                      (setter as (next: string) => void)(event.target.value)
+                                    }
+                                    readOnly={Boolean(synced)}
+                                    className={
+                                      synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"
+                                    }
+                                    placeholder={
+                                      label === "Referencias"
+                                        ? "Entre calles, color de la casa, etc."
+                                        : undefined
+                                    }
+                                  />
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-3 pt-1">
+                            <Button
+                              size="sm"
+                              disabled={isSavingAddress}
+                              className="h-9 px-4 bg-[#39a9de] text-[#111827] hover:bg-[#2f9ed3]"
+                              onClick={async () => {
+                                if (
+                                  !addressLabel.trim() ||
+                                  !addressStreet.trim() ||
+                                  !addressNumber.trim() ||
+                                  !addressValue.trim() ||
+                                  !addressCity.trim() ||
+                                  !addressProvince.trim() ||
+                                  !addressPostalCode.trim()
+                                ) {
+                                  toast.error(
+                                    "Completá etiqueta, calle, altura, entre calles, ciudad, provincia y código postal",
+                                  );
+                                  return;
+                                }
+                                setIsSavingAddress(true);
+                                const addressToUpdate = addresses[index];
+                                if (!addressToUpdate?.id || !user?.id) {
+                                  setAddresses((current) =>
+                                    current.map((item, itemIndex) =>
+                                      itemIndex === index
+                                        ? {
+                                            ...item,
+                                            label: addressLabel.trim(),
+                                            value: addressValue.trim(),
+                                            references: addressReferences.trim(),
+                                            city: addressCity,
+                                            street: addressStreet,
+                                            streetNumber: addressNumber,
+                                            floor: addressFloor,
+                                            apartment: addressApartment,
+                                            province: addressProvince,
+                                            postalCode: addressPostalCode,
+                                          }
+                                        : item,
+                                    ),
+                                  );
+                                  setEditingIndex(null);
+                                  setAddressLabel("");
+                                  setAddressValue("");
+                                  setAddressReferences("");
+                                  setIsSavingAddress(false);
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                  return;
+                                }
+
+                                const success = await updateUserAddress({
+                                  data: {
+                                    userId: user.id,
+                                    addressId: addressToUpdate.id,
+                                    label: addressLabel.trim(),
+                                    value: addressValue.trim(),
+                                    references: addressReferences.trim(),
+                                    city: addressCity,
+                                    street: addressStreet,
+                                    streetNumber: addressNumber,
+                                    floor: addressFloor,
+                                    apartment: addressApartment,
+                                    province: addressProvince,
+                                    postalCode: addressPostalCode,
+                                  },
+                                });
+
+                                if (success) {
+                                  setAddresses((current) =>
+                                    current.map((item, itemIndex) =>
+                                      itemIndex === index
+                                        ? {
+                                            ...item,
+                                            label: addressLabel.trim(),
+                                            value: addressValue.trim(),
+                                            references: addressReferences.trim(),
+                                            city: addressCity,
+                                            street: addressStreet,
+                                            streetNumber: addressNumber,
+                                            floor: addressFloor,
+                                            apartment: addressApartment,
+                                            province: addressProvince,
+                                            postalCode: addressPostalCode,
+                                          }
+                                        : item,
+                                    ),
+                                  );
+                                  toast.success("Dirección actualizada");
+                                } else {
+                                  toast.error("Error al actualizar la dirección");
+                                }
+
                                 setEditingIndex(null);
                                 setAddressLabel("");
                                 setAddressValue("");
                                 setAddressReferences("");
                                 setIsSavingAddress(false);
                                 window.scrollTo({ top: 0, behavior: "smooth" });
-                                return;
-                              }
-
-                              const success = await updateUserAddress({
-                                data: {
-                                  userId: user.id,
-                                  addressId: addressToUpdate.id,
-                                  label: addressLabel.trim(),
-                                  value: addressValue.trim(),
-                                  references: addressReferences.trim(),
-                                  city: addressCity,
-                                  street: addressStreet,
-                                  streetNumber: addressNumber,
-                                  floor: addressFloor,
-                                  apartment: addressApartment,
-                                  province: addressProvince,
-                                  postalCode: addressPostalCode,
-                                },
-                              });
-
-                              if (success) {
-                                setAddresses((current) =>
-                                  current.map((item, itemIndex) =>
-                                    itemIndex === index
-                                      ? {
-                                          ...item,
-                                          label: addressLabel.trim(),
-                                          value: addressValue.trim(),
-                                          references: addressReferences.trim(),
-                                          city: addressCity,
-                                          street: addressStreet,
-                                          streetNumber: addressNumber,
-                                          floor: addressFloor,
-                                          apartment: addressApartment,
-                                          province: addressProvince,
-                                          postalCode: addressPostalCode,
-                                        }
-                                      : item,
-                                  ),
-                                );
-                                toast.success("Dirección actualizada");
-                              } else {
-                                toast.error("Error al actualizar la dirección");
-                              }
-
-                              setEditingIndex(null);
-                              setAddressLabel("");
-                              setAddressValue("");
-                              setAddressReferences("");
-                              setIsSavingAddress(false);
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                            }}
-                          >
-                            <Save className="mr-2 size-4 text-current" />
-                            {isSavingAddress ? "Guardando…" : "Guardar"}
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="h-9 px-4"
-                            onClick={() => {
-                              setEditingIndex(null);
-                              setAddressLabel("");
-                              setAddressValue("");
-                              setAddressReferences("");
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                            }}
-                          >
-                            ✕ Cancelar
-                          </Button>
+                              }}
+                            >
+                              <Save className="mr-2 size-4 text-current" />
+                              {isSavingAddress ? "Guardando…" : "Guardar"}
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="h-9 px-4"
+                              onClick={() => {
+                                setEditingIndex(null);
+                                setAddressLabel("");
+                                setAddressValue("");
+                                setAddressReferences("");
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                              }}
+                            >
+                              ✕ Cancelar
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="mt-3 text-sm text-muted-foreground">
-                          {[address.street, address.streetNumber].filter(Boolean).join(" ") ||
-                            address.value}
-                        </p>
-                        <div className="mt-4 flex flex-wrap gap-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-1.5 px-3"
-                            onClick={() => {
-                              setEditingIndex(index);
-                              setAddressLabel(address.label);
-                              setAddressValue(address.value);
-                              setAddressReferences(address.references ?? "");
-                              setAddressStreet(address.street ?? "");
-                              setAddressNumber(address.streetNumber ?? "");
-                              setAddressFloor(address.floor ?? "");
-                              setAddressApartment(address.apartment ?? "");
-                              setAddressCity(address.city ?? "");
-                              setAddressProvince(address.province ?? "");
-                              setAddressPostalCode(address.postalCode ?? "");
-                              setShowAddForm(false);
-                            }}
-                          >
-                            <Pencil className="size-4" /> Editar
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="h-8 gap-1.5 px-3"
-                            onClick={() => {
-                              setDeleteIndex(index);
-                              setDeleteOpen(true);
-                            }}
-                          >
-                            <Trash2 className="size-4" /> Borrar
-                          </Button>
-                        </div>
-                      </>
-                    )}
+                      ) : (
+                        <>
+                          <p className="mt-3 text-sm text-muted-foreground">
+                            {[address.street, address.streetNumber].filter(Boolean).join(" ") ||
+                              address.value}
+                          </p>
+                          <div className="mt-4 flex flex-wrap gap-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 gap-1.5 px-3"
+                              onClick={() => {
+                                setEditingIndex(index);
+                                setAddressLabel(address.label);
+                                setAddressValue(address.value);
+                                setAddressReferences(address.references ?? "");
+                                setAddressStreet(address.street ?? "");
+                                setAddressNumber(address.streetNumber ?? "");
+                                setAddressFloor(address.floor ?? "");
+                                setAddressApartment(address.apartment ?? "");
+                                setAddressCity(address.city ?? "");
+                                setAddressProvince(address.province ?? "");
+                                setAddressPostalCode(address.postalCode ?? "");
+                                setShowAddForm(false);
+                              }}
+                            >
+                              <Pencil className="size-4" /> Editar
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="h-8 gap-1.5 px-3"
+                              onClick={() => {
+                                setDeleteIndex(index);
+                                setDeleteOpen(true);
+                              }}
+                            >
+                              <Trash2 className="size-4" /> Borrar
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
               ))
             )}
           </div>
@@ -2513,7 +2531,10 @@ function AccountPageContent({
           </Button>
 
           {showAddForm && (
-            <div ref={addAddressFormRef} className="mb-6 scroll-mt-20 rounded-2xl p-5 md:scroll-mt-0">
+            <div
+              ref={addAddressFormRef}
+              className="mb-6 scroll-mt-20 rounded-2xl p-5 md:scroll-mt-0"
+            >
               <div className="mt-2 grid gap-5 sm:grid-cols-2">
                 <div className="space-y-3">
                   <Label htmlFor="new-address-label" className="text-sm font-medium">
@@ -2568,7 +2589,11 @@ function AccountPageContent({
                         onChange={(event) => (setter as (next: string) => void)(event.target.value)}
                         readOnly={Boolean(synced)}
                         className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
-                        placeholder={label === "Referencias" ? "Entre calles, color de la casa, etc." : undefined}
+                        placeholder={
+                          label === "Referencias"
+                            ? "Entre calles, color de la casa, etc."
+                            : undefined
+                        }
                       />
                     </label>
                   ))}
@@ -2829,9 +2854,7 @@ function AccountPageContent({
                   {getUserInitials()}
                 </span>
                 {!sidebarCollapsed && (
-                  <span className="truncate font-medium text-foreground">
-                    {accountDisplayName}
-                  </span>
+                  <span className="truncate font-medium text-foreground">{accountDisplayName}</span>
                 )}
               </div>
               {!sidebarCollapsed && (
@@ -2942,9 +2965,7 @@ function AccountPageContent({
               >
                 {getUserInitials()}
               </span>
-              <span className="truncate font-medium text-foreground">
-                {accountDisplayName}
-              </span>
+              <span className="truncate font-medium text-foreground">{accountDisplayName}</span>
             </div>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>

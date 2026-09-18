@@ -1,6 +1,6 @@
 ﻿import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import {
@@ -68,6 +68,15 @@ import { catalogQueries, orderQueries, type Product } from "@/services/catalog.s
 import { cn } from "@/lib/utils";
 import { saveOrders, type Order, type OrderAttachment, type OrderStatus } from "@/data/orders";
 import { moveToTrash } from "@/data/trash";
+
+/* eslint-disable no-control-regex */
+
+declare global {
+  interface Window {
+    __lrg_filtered_orders?: Order[];
+    __orders?: Order[];
+  }
+}
 
 // Export helpers (summary only — no `items` field)
 function buildExportRowsFromOrders(ordersList: Order[]) {
@@ -182,10 +191,8 @@ if (typeof window !== "undefined") {
       const excelBtn = makeBtn("Exportar Excel", svgSheet, () => {
         // try to obtain filtered orders from global react query cache if available
         // fallback to window.__orders or empty array
-        // @ts-ignore
-        const dataset = (window as any).__lrg_filtered_orders || (window as any).__orders || [];
+        const dataset = window.__lrg_filtered_orders ?? window.__orders ?? [];
         try {
-          // @ts-ignore
           exportOrdersExcel(dataset);
         } catch (e) {
           console.error(e);
@@ -193,10 +200,8 @@ if (typeof window !== "undefined") {
       });
 
       const pdfBtn = makeBtn("Exportar PDF", svgFileText, () => {
-        // @ts-ignore
-        const dataset = (window as any).__lrg_filtered_orders || (window as any).__orders || [];
+        const dataset = window.__lrg_filtered_orders ?? window.__orders ?? [];
         try {
-          // @ts-ignore
           exportOrdersPdf(dataset);
         } catch (e) {
           console.error(e);
@@ -235,7 +240,7 @@ if (typeof window !== "undefined") {
       const svgSheet = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sheet size-4" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><line x1="3" x2="21" y1="9" y2="9"></line><line x1="3" x2="21" y1="15" y2="15"></line><line x1="9" x2="9" y1="9" y2="21"></line><line x1="15" x2="15" y1="9" y2="21"></line></svg>`;
       const svgFileText = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text size-4" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>`;
 
-      const makeBtn = (label, svgMarkup, onClick) => {
+      const makeBtn = (label: string, svgMarkup: string, onClick: () => void) => {
         const b = document.createElement("button");
         const isExcel = label.includes("Excel");
         b.className = isExcel ? excelBtnClass : pdfBtnClass;
@@ -247,9 +252,8 @@ if (typeof window !== "undefined") {
       };
 
       const excelBtn = makeBtn("Exportar Excel", svgSheet, () => {
-        const dataset = (window as any).__lrg_filtered_orders || (window as any).__orders || [];
+        const dataset = window.__lrg_filtered_orders ?? window.__orders ?? [];
         try {
-          // @ts-ignore
           exportOrdersExcel(dataset);
         } catch (e) {
           console.error(e);
@@ -257,9 +261,8 @@ if (typeof window !== "undefined") {
       });
 
       const pdfBtn = makeBtn("Exportar PDF", svgFileText, () => {
-        const dataset = (window as any).__lrg_filtered_orders || (window as any).__orders || [];
+        const dataset = window.__lrg_filtered_orders ?? window.__orders ?? [];
         try {
-          // @ts-ignore
           exportOrdersPdf(dataset);
         } catch (e) {
           console.error(e);
@@ -326,13 +329,21 @@ const getConfiguredMethodNames = (storageKey: string, fallback: string[]) => {
 
     const methods = Array.isArray(parsed)
       ? parsed
-      : Object.values(parsed).flatMap((brandConfig: any) =>
-          Array.isArray(brandConfig) ? brandConfig : (brandConfig?.methods ?? []),
-        );
+      : Object.values(parsed as Record<string, unknown>).flatMap((brandConfig) => {
+          if (Array.isArray(brandConfig)) return brandConfig;
+          if (brandConfig && typeof brandConfig === "object") {
+            const configuredMethods = (brandConfig as { methods?: unknown }).methods;
+            return Array.isArray(configuredMethods) ? configuredMethods : [];
+          }
+          return [];
+        });
 
     const configured = methods
-      .filter((item: any) => item?.enabled)
-      .map((item: any) => (item && item.name ? String(item.name) : String(item)))
+      .filter((item): item is { enabled?: boolean; name?: unknown } =>
+        Boolean(item && typeof item === "object" && "enabled" in item),
+      )
+      .filter((item) => item.enabled)
+      .map((item) => (item.name ? String(item.name) : String(item)))
       .filter(Boolean);
 
     const uniqueConfigured = Array.from(new Set(configured));
@@ -530,9 +541,9 @@ function AdminOrders() {
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     title: string;
-    description?: string;
+    description?: string | undefined;
     onConfirm: () => void;
-  }>({ open: false, title: "", description: undefined, onConfirm: () => {} });
+  }>({ open: false, title: "", onConfirm: () => {} });
 
   const [quickEditOrderId, setQuickEditOrderId] = useState<string | null>(null);
   const [quickEditOrderForm, setQuickEditOrderForm] = useState<
@@ -584,7 +595,7 @@ function AdminOrders() {
     }));
   };
 
-  const cancelQuickEditOrder = () => {
+  const cancelQuickEditOrder = useCallback(() => {
     setQuickEditOrderId(null);
     setQuickEditOrderForm((current) => {
       const next = { ...current };
@@ -594,7 +605,7 @@ function AdminOrders() {
       }
       return next;
     });
-  };
+  }, [quickEditOrderId]);
 
   const saveQuickEditOrder = async (order: Order) => {
     const draft = quickEditOrderForm[order.id];
@@ -722,7 +733,7 @@ function AdminOrders() {
 
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [quickEditOrderId, quickEditOrderForm]);
+  }, [cancelQuickEditOrder, quickEditOrderForm, quickEditOrderId]);
 
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
   const [availableShippingMethods, setAvailableShippingMethods] = useState<string[]>([]);
@@ -774,12 +785,16 @@ function AdminOrders() {
     return options;
   }, [availableShippingMethods, orderForm?.shippingMethod]);
 
-  const getOrderCurrencies = (order: Order) =>
-    new Set(
-      order.items.map(
-        (item) => allProducts.find((product) => product.name === item.name)?.priceCurrency ?? "ARS",
+  const getOrderCurrencies = useCallback(
+    (order: Order) =>
+      new Set(
+        order.items.map(
+          (item) =>
+            allProducts.find((product) => product.name === item.name)?.priceCurrency ?? "ARS",
+        ),
       ),
-    );
+    [allProducts],
+  );
 
   const priceLimit = useMemo(() => {
     const values = editableOrders
@@ -792,7 +807,7 @@ function AdminOrders() {
       )
       .map((order) => order.total);
     return Math.max(1, Math.ceil(Math.max(0, ...values) / 50) * 50);
-  }, [editableOrders, allProducts, currencyFilter]);
+  }, [editableOrders, currencyFilter, getOrderCurrencies]);
 
   const quantityLimit = useMemo(
     () =>
@@ -896,7 +911,7 @@ function AdminOrders() {
     quantityMax,
     query,
     sortOrder,
-    allProducts,
+    getOrderCurrencies,
   ]);
 
   useEffect(() => {
@@ -1066,7 +1081,7 @@ function AdminOrders() {
   const openEditOrderDialog = (order: Order) => {
     const expenseRatio = order.total ? order.expenses / order.total : 0.65;
     const cloned: EditableOrder = {
-      ...(order as any),
+      ...order,
       items: order.items.map((item) => {
         const productMatch = allProducts.find((product) => product.name === item.name);
         return {
@@ -1438,319 +1453,328 @@ function AdminOrders() {
 
         <div className="order-3 flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-start sm:gap-2">
           <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
-          <Button
-            variant="default"
-            size="sm"
-            onClick={openNewOrderDialog}
-            className="h-9 w-full shrink-0 gap-2 px-4 py-2 text-sm sm:w-auto"
-          >
-            <Plus className="size-4" />
-            Nuevo pedido
-          </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={openNewOrderDialog}
+              className="h-9 w-full shrink-0 gap-2 px-4 py-2 text-sm sm:w-auto"
+            >
+              <Plus className="size-4" />
+              Nuevo pedido
+            </Button>
           </div>
 
           <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
+            <Dialog open={sortMenuOpen} onOpenChange={setSortMenuOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  ref={sortButtonRef}
+                  variant={sortMenuOpen ? "secondary" : "outline"}
+                  size="sm"
+                  className="h-9 shrink-0 gap-1.5 px-2.5"
+                  aria-expanded={sortMenuOpen}
+                >
+                  <ArrowUpDown className="size-4 text-white" />
+                  Ordenar por
+                </Button>
+              </DialogTrigger>
 
-          <Dialog open={sortMenuOpen} onOpenChange={setSortMenuOpen}>
-            <DialogTrigger asChild>
-              <Button
-                ref={sortButtonRef as any}
-                variant={sortMenuOpen ? "secondary" : "outline"}
-                size="sm"
-                className="h-9 shrink-0 gap-1.5 px-2.5"
-                aria-expanded={sortMenuOpen}
-              >
-                <ArrowUpDown className="size-4 text-white" />
-                Ordenar por
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
-              <DialogHeader className="space-y-2">
-                <DialogTitle>Ordenar por</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-1 pt-2">
-                {(
-                  [
-                    ["customer_asc", "Cliente: A-Z"],
-                    ["customer_desc", "Cliente: Z-A"],
-                    ["date_desc", "Fecha de venta: más recientes"],
-                    ["date_asc", "Fecha de venta: más antiguas"],
-                    ["total_asc", "Precio total: menor a mayor"],
-                    ["total_desc", "Precio total: mayor a menor"],
-                    ["profit_asc", "Ganancias: menor a mayor"],
-                    ["profit_desc", "Ganancias: mayor a menor"],
-                  ] as [OrderSort, string][]
-                ).map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      setSortOrder(value);
-                      setSortMenuOpen(false);
-                    }}
-                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
-                      sortOrder !== null && sortOrder === value
-                        ? "bg-surface-2 text-foreground"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    <span>{label}</span>
-                    {sortOrder !== null && sortOrder === value && <span aria-hidden="true">✓</span>}
-                  </button>
-                ))}
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant={filtersOpen ? "secondary" : "outline"}
-                size="sm"
-                className="h-9 shrink-0 gap-1.5 px-2.5"
-                aria-expanded={filtersOpen}
-              >
-                <Filter className="size-4 text-white" />
-                Filtros
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent className="max-w-2xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
-              <DialogHeader className="space-y-2">
-                <DialogTitle>Filtros</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-6 pt-2">
-                {filterSections.map(({ label, open, setOpen, selected, setSelected, options }) => (
-                  <div key={label} className="space-y-3">
+              <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                <DialogHeader className="space-y-2">
+                  <DialogTitle>Ordenar por</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-1 pt-2">
+                  {(
+                    [
+                      ["customer_asc", "Cliente: A-Z"],
+                      ["customer_desc", "Cliente: Z-A"],
+                      ["date_desc", "Fecha de venta: más recientes"],
+                      ["date_asc", "Fecha de venta: más antiguas"],
+                      ["total_asc", "Precio total: menor a mayor"],
+                      ["total_desc", "Precio total: mayor a menor"],
+                      ["profit_asc", "Ganancias: menor a mayor"],
+                      ["profit_desc", "Ganancias: mayor a menor"],
+                    ] as [OrderSort, string][]
+                  ).map(([value, label]) => (
                     <button
+                      key={value}
                       type="button"
-                      onClick={() => setOpen((current) => !current)}
-                      className="flex items-center gap-2 text-sm font-medium"
-                      aria-expanded={open}
+                      onClick={() => {
+                        setSortOrder(value);
+                        setSortMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2 ${
+                        sortOrder !== null && sortOrder === value
+                          ? "bg-surface-2 text-foreground"
+                          : "text-muted-foreground"
+                      }`}
                     >
                       <span>{label}</span>
-                      {selected.length > 0 && <Badge variant="secondary">{selected.length}</Badge>}
-                      {open ? (
+                      {sortOrder !== null && sortOrder === value && (
+                        <span aria-hidden="true">✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant={filtersOpen ? "secondary" : "outline"}
+                  size="sm"
+                  className="h-9 shrink-0 gap-1.5 px-2.5"
+                  aria-expanded={filtersOpen}
+                >
+                  <Filter className="size-4 text-white" />
+                  Filtros
+                </Button>
+              </DialogTrigger>
+
+              <DialogContent className="max-w-2xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                <DialogHeader className="space-y-2">
+                  <DialogTitle>Filtros</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6 pt-2">
+                  {filterSections.map(
+                    ({ label, open, setOpen, selected, setSelected, options }) => (
+                      <div key={label} className="space-y-3">
+                        <button
+                          type="button"
+                          onClick={() => setOpen((current) => !current)}
+                          className="flex items-center gap-2 text-sm font-medium"
+                          aria-expanded={open}
+                        >
+                          <span>{label}</span>
+                          {selected.length > 0 && (
+                            <Badge variant="secondary">{selected.length}</Badge>
+                          )}
+                          {open ? (
+                            <ChevronUp className="size-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="size-4 text-muted-foreground" />
+                          )}
+                        </button>
+                        {open && (
+                          <div className="space-y-2.5">
+                            {[{ value: "todos", label: "Todos" }, ...options].map((option) => (
+                              <label
+                                key={option.value}
+                                className="flex cursor-pointer items-start gap-3 text-sm"
+                              >
+                                <Checkbox
+                                  checked={
+                                    option.value === "todos"
+                                      ? selected.length === 0
+                                      : selected.includes(option.value)
+                                  }
+                                  onCheckedChange={(checked) =>
+                                    setSelected(option.value, checked === true)
+                                  }
+                                />
+                                <span className="font-medium">{option.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  )}
+
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setPriceFilterOpen((current) => !current)}
+                      className="flex items-center gap-2 text-sm font-medium"
+                      aria-expanded={priceFilterOpen}
+                    >
+                      <span>Precio total</span>
+                      {currencyFilter.length === 1 && (
+                        <Badge variant="secondary">{currencyFilter.length}</Badge>
+                      )}
+                      {priceFilterOpen ? (
                         <ChevronUp className="size-4 text-muted-foreground" />
                       ) : (
                         <ChevronDown className="size-4 text-muted-foreground" />
                       )}
                     </button>
-                    {open && (
+                    {priceFilterOpen && (
                       <div className="space-y-2.5">
-                        {[{ value: "todos", label: "Todos" }, ...options].map((option) => (
+                        {(["ARS", "USD"] as const).map((currency) => (
                           <label
-                            key={option.value}
+                            key={currency}
                             className="flex cursor-pointer items-start gap-3 text-sm"
                           >
                             <Checkbox
-                              checked={
-                                option.value === "todos"
-                                  ? selected.length === 0
-                                  : selected.includes(option.value)
-                              }
+                              checked={currencyFilter.includes(currency)}
                               onCheckedChange={(checked) =>
-                                setSelected(option.value, checked === true)
+                                setCurrencyFilter((current) =>
+                                  checked
+                                    ? Array.from(new Set([...current, currency]))
+                                    : current.length === 1
+                                      ? current
+                                      : current.filter((value) => value !== currency),
+                                )
                               }
                             />
-                            <span className="font-medium">{option.label}</span>
+                            <span className="font-medium">
+                              {currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}
+                            </span>
                           </label>
                         ))}
+                        <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
+                          <label className="flex shrink-0 items-center gap-2">
+                            <span>Desde {priceCurrencyLabel}</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={priceLimit}
+                              value={priceMin}
+                              onChange={(event) =>
+                                setPriceMin(
+                                  Math.min(Math.max(0, Number(event.target.value) || 0), priceMax),
+                                )
+                              }
+                              className="h-8 w-20 px-2 sm:w-24"
+                            />
+                          </label>
+                          <label className="flex shrink-0 items-center justify-end gap-2">
+                            <span>Hasta {priceCurrencyLabel}</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={priceLimit}
+                              value={priceMax}
+                              onChange={(event) =>
+                                setPriceMax(
+                                  Math.max(
+                                    Math.min(priceLimit, Number(event.target.value) || 0),
+                                    priceMin,
+                                  ),
+                                )
+                              }
+                              className="h-8 w-20 px-2 sm:w-24"
+                            />
+                          </label>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={priceLimit}
+                          step={Math.max(1, Math.round(priceLimit / 100))}
+                          value={[priceMin, priceMax]}
+                          onValueChange={(value) => {
+                            const nextMin = value[0] ?? 0;
+                            const nextMax = value[1] ?? priceLimit;
+                            setPriceMin(Math.min(nextMin, nextMax));
+                            setPriceMax(Math.max(nextMin, nextMax));
+                          }}
+                        />
                       </div>
                     )}
                   </div>
-                ))}
 
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => setPriceFilterOpen((current) => !current)}
-                    className="flex items-center gap-2 text-sm font-medium"
-                    aria-expanded={priceFilterOpen}
-                  >
-                    <span>Precio total</span>
-                    {currencyFilter.length === 1 && (
-                      <Badge variant="secondary">{currencyFilter.length}</Badge>
-                    )}
-                    {priceFilterOpen ? (
-                      <ChevronUp className="size-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="size-4 text-muted-foreground" />
-                    )}
-                  </button>
-                  {priceFilterOpen && (
-                    <div className="space-y-2.5">
-                      {(["ARS", "USD"] as const).map((currency) => (
-                        <label
-                          key={currency}
-                          className="flex cursor-pointer items-start gap-3 text-sm"
-                        >
-                          <Checkbox
-                            checked={currencyFilter.includes(currency)}
-                            onCheckedChange={(checked) =>
-                              setCurrencyFilter((current) =>
-                                checked
-                                  ? Array.from(new Set([...current, currency]))
-                                  : current.length === 1
-                                    ? current
-                                    : current.filter((value) => value !== currency),
-                              )
-                            }
-                          />
-                          <span className="font-medium">
-                            {currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}
-                          </span>
-                        </label>
-                      ))}
-                      <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
-                        <label className="flex shrink-0 items-center gap-2">
-                          <span>Desde {priceCurrencyLabel}</span>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={priceLimit}
-                            value={priceMin}
-                            onChange={(event) =>
-                              setPriceMin(
-                                Math.min(Math.max(0, Number(event.target.value) || 0), priceMax),
-                              )
-                            }
-                            className="h-8 w-20 px-2 sm:w-24"
-                          />
-                        </label>
-                        <label className="flex shrink-0 items-center justify-end gap-2">
-                          <span>Hasta {priceCurrencyLabel}</span>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={priceLimit}
-                            value={priceMax}
-                            onChange={(event) =>
-                              setPriceMax(
-                                Math.max(
-                                  Math.min(priceLimit, Number(event.target.value) || 0),
-                                  priceMin,
-                                ),
-                              )
-                            }
-                            className="h-8 w-20 px-2 sm:w-24"
-                          />
-                        </label>
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setQuantityFilterOpen((current) => !current)}
+                      className="flex items-center gap-2 text-sm font-medium"
+                      aria-expanded={quantityFilterOpen}
+                    >
+                      <span>Cantidad</span>
+                      {(quantityMin > 0 || quantityMax < quantityLimit) && (
+                        <Badge variant="secondary">1</Badge>
+                      )}
+                      {quantityFilterOpen ? (
+                        <ChevronUp className="size-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="size-4 text-muted-foreground" />
+                      )}
+                    </button>
+                    {quantityFilterOpen && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
+                          <label className="flex shrink-0 items-center gap-2">
+                            <span>Desde</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={quantityLimit}
+                              value={quantityMin}
+                              onChange={(event) =>
+                                setQuantityMin(
+                                  Math.min(
+                                    Math.max(0, Number(event.target.value) || 0),
+                                    quantityMax,
+                                  ),
+                                )
+                              }
+                              className="h-8 w-20 px-2 sm:w-24"
+                            />
+                          </label>
+                          <label className="flex shrink-0 items-center justify-end gap-2">
+                            <span>Hasta</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={quantityLimit}
+                              value={quantityMax}
+                              onChange={(event) =>
+                                setQuantityMax(
+                                  Math.max(
+                                    Math.min(quantityLimit, Number(event.target.value) || 0),
+                                    quantityMin,
+                                  ),
+                                )
+                              }
+                              className="h-8 w-20 px-2 sm:w-24"
+                            />
+                          </label>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={quantityLimit}
+                          step={1}
+                          value={[quantityMin, quantityMax]}
+                          onValueChange={(value) => {
+                            const nextMin = value[0] ?? 0;
+                            const nextMax = value[1] ?? quantityLimit;
+                            setQuantityMin(Math.min(nextMin, nextMax));
+                            setQuantityMax(Math.max(nextMin, nextMax));
+                          }}
+                        />
                       </div>
-                      <Slider
-                        min={0}
-                        max={priceLimit}
-                        step={Math.max(1, Math.round(priceLimit / 100))}
-                        value={[priceMin, priceMax]}
-                        onValueChange={(value) => {
-                          const nextMin = value[0] ?? 0;
-                          const nextMax = value[1] ?? priceLimit;
-                          setPriceMin(Math.min(nextMin, nextMax));
-                          setPriceMax(Math.max(nextMin, nextMax));
-                        }}
-                      />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-
-                <div className="space-y-3">
-                  <button
+                <div className="flex items-center justify-between border-t border-border/50 pt-4">
+                  <p className="text-xs text-muted-foreground">
+                    {results.length} pedidos encontrados
+                  </p>
+                  <Button
                     type="button"
-                    onClick={() => setQuantityFilterOpen((current) => !current)}
-                    className="flex items-center gap-2 text-sm font-medium"
-                    aria-expanded={quantityFilterOpen}
+                    variant="ghost"
+                    onClick={resetFilters}
+                    disabled={activeFilterCount === 0}
+                    className="h-8 px-2 text-xs"
                   >
-                    <span>Cantidad</span>
-                    {(quantityMin > 0 || quantityMax < quantityLimit) && (
-                      <Badge variant="secondary">1</Badge>
-                    )}
-                    {quantityFilterOpen ? (
-                      <ChevronUp className="size-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="size-4 text-muted-foreground" />
-                    )}
-                  </button>
-                  {quantityFilterOpen && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-3 text-[11px] font-medium">
-                        <label className="flex shrink-0 items-center gap-2">
-                          <span>Desde</span>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={quantityLimit}
-                            value={quantityMin}
-                            onChange={(event) =>
-                              setQuantityMin(
-                                Math.min(Math.max(0, Number(event.target.value) || 0), quantityMax),
-                              )
-                            }
-                            className="h-8 w-20 px-2 sm:w-24"
-                          />
-                        </label>
-                        <label className="flex shrink-0 items-center justify-end gap-2">
-                          <span>Hasta</span>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={quantityLimit}
-                            value={quantityMax}
-                            onChange={(event) =>
-                              setQuantityMax(
-                                Math.max(
-                                  Math.min(quantityLimit, Number(event.target.value) || 0),
-                                  quantityMin,
-                                ),
-                              )
-                            }
-                            className="h-8 w-20 px-2 sm:w-24"
-                          />
-                        </label>
-                      </div>
-                      <Slider
-                        min={0}
-                        max={quantityLimit}
-                        step={1}
-                        value={[quantityMin, quantityMax]}
-                        onValueChange={(value) => {
-                          const nextMin = value[0] ?? 0;
-                          const nextMax = value[1] ?? quantityLimit;
-                          setQuantityMin(Math.min(nextMin, nextMax));
-                          setQuantityMax(Math.max(nextMin, nextMax));
-                        }}
-                      />
-                    </div>
-                  )}
+                    <X className="mr-1 size-3.5" /> Limpiar
+                  </Button>
                 </div>
-              </div>
-              <div className="flex items-center justify-between border-t border-border/50 pt-4">
-                <p className="text-xs text-muted-foreground">
-                  {results.length} pedidos encontrados
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={resetFilters}
-                  disabled={activeFilterCount === 0}
-                  className="h-8 px-2 text-xs"
-                >
-                  <X className="mr-1 size-3.5" /> Limpiar
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
+              </DialogContent>
+            </Dialog>
           </div>
 
-          <div id="lrg-export-pedidos-buttons" className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
+          <div
+            id="lrg-export-pedidos-buttons"
+            className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents"
+          >
             <Button
               className="order-1 inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
               onClick={() => {
                 try {
                   exportOrdersExcel(results);
                 } catch (e) {
-                  // eslint-disable-next-line no-console
                   console.error(e);
                 }
               }}
@@ -1765,7 +1789,6 @@ function AdminOrders() {
                 try {
                   exportOrdersPdf(results);
                 } catch (e) {
-                  // eslint-disable-next-line no-console
                   console.error(e);
                 }
               }}
@@ -1781,7 +1804,7 @@ function AdminOrders() {
         open={confirmState.open}
         onOpenChange={(v) => setConfirmState((s) => ({ ...s, open: v }))}
         title={confirmState.title}
-        description={confirmState.description}
+        description={confirmState.description ?? ""}
         confirmLabel="Eliminar"
         cancelLabel="Cancelar"
         onConfirm={() => {
@@ -2042,7 +2065,7 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.expenses)}</TableCell>
                     <TableCell>{formatPrice(order.total)}</TableCell>
                     <TableCell>{formatPrice(order.profit)}</TableCell>
-                    <TableCell className="w-[36rem] min-w-[36rem] max-w-none overflow-visible">
+                    <TableCell className="w-xl min-w-xl max-w-none overflow-visible">
                       <div className="flex w-full min-w-0 flex-col items-center justify-center gap-1.5">
                         {isQuickEditing ? (
                           <>
@@ -2435,7 +2458,7 @@ function AdminOrders() {
                 <div className="flex min-w-0 flex-col gap-0">
                   <Label className="min-h-5">Método de envío</Label>
                   <Select
-                    value={orderForm.shippingMethod}
+                    value={orderForm.shippingMethod ?? ""}
                     onValueChange={(value) => setOrderForm({ ...orderForm, shippingMethod: value })}
                   >
                     <SelectTrigger className="w-full">
@@ -2596,7 +2619,7 @@ function AdminOrders() {
                           />
                           {exceedsStock && (
                             <p className="mt-1 text-xs text-destructive">
-                              No hay stock suficiente. Disponible: {selectedProduct.stock}
+                              No hay stock suficiente. Disponible: {selectedProduct?.stock}
                             </p>
                           )}
                         </div>
@@ -2622,7 +2645,6 @@ function AdminOrders() {
                                   setConfirmState({
                                     open: true,
                                     title: `Eliminar producto del pedido?`,
-                                    description: undefined,
                                     onConfirm: () => removeOrderItem(itemIndex),
                                   })
                                 }

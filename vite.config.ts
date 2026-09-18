@@ -29,10 +29,7 @@ export default defineConfig({
           // Separate vendor libraries
           if (id.includes("node_modules")) {
             if (id.includes("react")) return "vendor-react";
-            if (
-              id.includes("@tanstack/react-query") ||
-              id.includes("@tanstack/react-router")
-            )
+            if (id.includes("@tanstack/react-query") || id.includes("@tanstack/react-router"))
               return "vendor-tanstack";
             if (
               id.includes("recharts") ||

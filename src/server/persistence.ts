@@ -79,39 +79,44 @@ async function ensureUserTables() {
   return database;
 }
 
-async function ensureAdminTables() {
-  const database = adminClient;
-  if (!database) return null;
-  await database.batch(
-    [
-      `CREATE TABLE IF NOT EXISTS admins (
+let adminTablesPromise: Promise<typeof adminClient> | null = null;
+
+function ensureAdminTables() {
+  if (adminTablesPromise) return adminTablesPromise;
+
+  adminTablesPromise = (async () => {
+    const database = adminClient;
+    if (!database) return null;
+    await database.batch(
+      [
+        `CREATE TABLE IF NOT EXISTS admins (
       userId TEXT PRIMARY KEY,
       email TEXT,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     )`,
-      `CREATE TABLE IF NOT EXISTS admin_settings (
+        `CREATE TABLE IF NOT EXISTS admin_settings (
       settingKey TEXT PRIMARY KEY,
       settingValue TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     )`,
-      `CREATE TABLE IF NOT EXISTS products (
+        `CREATE TABLE IF NOT EXISTS products (
         id TEXT PRIMARY KEY,
         productData TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )`,
-      `CREATE TABLE IF NOT EXISTS product_variants (
+        `CREATE TABLE IF NOT EXISTS product_variants (
         id TEXT PRIMARY KEY,
         productId TEXT NOT NULL,
         variantData TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )`,
-      `CREATE TABLE IF NOT EXISTS orders (
+        `CREATE TABLE IF NOT EXISTS orders (
         id TEXT PRIMARY KEY,
         orderData TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )`,
-      `CREATE TABLE IF NOT EXISTS payment_intents (
+        `CREATE TABLE IF NOT EXISTS payment_intents (
         id TEXT PRIMARY KEY,
         intentData TEXT NOT NULL,
         status TEXT NOT NULL,
@@ -119,42 +124,45 @@ async function ensureAdminTables() {
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )`,
-      `CREATE TABLE IF NOT EXISTS suppliers (
+        `CREATE TABLE IF NOT EXISTS suppliers (
         id TEXT PRIMARY KEY,
         supplierData TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )`,
-      `CREATE TABLE IF NOT EXISTS trash (
+        `CREATE TABLE IF NOT EXISTS trash (
         id TEXT PRIMARY KEY,
         itemType TEXT NOT NULL,
         itemData TEXT NOT NULL,
         deletedAt TEXT NOT NULL,
         expiresAt TEXT NOT NULL
       )`,
-      `CREATE TABLE IF NOT EXISTS site_visitors (
+        `CREATE TABLE IF NOT EXISTS site_visitors (
         visitorId TEXT PRIMARY KEY,
         visits INTEGER NOT NULL DEFAULT 0,
         firstSeenAt TEXT NOT NULL,
         lastSeenAt TEXT NOT NULL
       )`,
-    ],
-    "write",
-  );
-  try {
-    await database.execute("ALTER TABLE payment_intents ADD COLUMN orderId TEXT");
-  } catch {
-    // Existing databases already have the column.
-  }
-  return database;
+      ],
+      "write",
+    );
+    try {
+      await database.execute("ALTER TABLE payment_intents ADD COLUMN orderId TEXT");
+    } catch {
+      // Existing databases already have the column.
+    }
+    return database;
+  })().catch((error) => {
+    adminTablesPromise = null;
+    throw error;
+  });
+
+  return adminTablesPromise;
 }
 
 export const initializeDatabase = createServerFn({ method: "POST" })
   .validator(() => ({}))
   .handler(async () => {
-    await Promise.all([
-      ensureUserTables(),
-      ensureAdminTables(),
-    ]);
+    await Promise.all([ensureUserTables(), ensureAdminTables()]);
 
     return true;
   });

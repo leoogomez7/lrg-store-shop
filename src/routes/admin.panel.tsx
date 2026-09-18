@@ -237,16 +237,14 @@ function AdminDashboard() {
   const stockItems: StockItem[] = filteredProducts
     .flatMap((product): StockItem[] => {
       if (product.variants?.length) {
-        return product.variants.map(
-          (variant): StockItem => ({
-            id: `${product.id}-${variant.id}`,
-            name: product.name,
-            variantName: variant.name,
-            category: product.category,
-            brand: product.brand,
-            stock: variant.stock,
-          }),
-        );
+        return product.variants.map((variant): StockItem => ({
+          id: `${product.id}-${variant.id}`,
+          name: product.name,
+          variantName: variant.name,
+          category: product.category,
+          brand: product.brand,
+          stock: variant.stock,
+        }));
       }
 
       return [
@@ -528,7 +526,10 @@ function AdminDashboard() {
         <div>
           <h2 className="mb-3 font-display text-xl font-semibold">Últimos pedidos</h2>
           <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
-            <Table className="w-full min-w-fit text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center" containerClassName="touch-pan-x overflow-x-auto overflow-y-visible">
+            <Table
+              className="w-full min-w-fit text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
+              containerClassName="touch-pan-x overflow-x-auto overflow-y-visible"
+            >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
                   <TableHead className="w-24">Pedido</TableHead>
@@ -612,8 +613,7 @@ function AdminDashboard() {
                 const v = Number(ordersPageSizeInput);
                 const isValid = Number.isFinite(v) && v >= 1;
                 const isChanged =
-                  ordersPageSizeInput !== "" &&
-                  String(Math.floor(v)) !== String(ordersPageSize);
+                  ordersPageSizeInput !== "" && String(Math.floor(v)) !== String(ordersPageSize);
                 return (
                   <Button
                     type="button"
@@ -675,7 +675,10 @@ function AdminDashboard() {
                       </span>
                     ) : null}
                   </span>
-                  <Badge variant={item.stock === 0 ? "destructive" : "secondary"} className="px-2 py-1 text-[11px]">
+                  <Badge
+                    variant={item.stock === 0 ? "destructive" : "secondary"}
+                    className="px-2 py-1 text-[11px]"
+                  >
                     {item.stock} unidades
                   </Badge>
                 </li>
@@ -740,8 +743,7 @@ function AdminDashboard() {
                 const v = Number(stockPageSizeInput);
                 const isValid = Number.isFinite(v) && v >= 1;
                 const isChanged =
-                  stockPageSizeInput !== "" &&
-                  String(Math.floor(v)) !== String(stockPageSize);
+                  stockPageSizeInput !== "" && String(Math.floor(v)) !== String(stockPageSize);
                 return (
                   <Button
                     type="button"

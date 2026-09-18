@@ -81,11 +81,18 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, { hasError: b
           <div className="max-w-md text-center">
             <LoaderCircle className="mx-auto size-8 animate-spin text-primary" aria-hidden="true" />
             <h1 className="mt-4 text-xl font-semibold tracking-tight text-foreground">
-              Cargando...
+              Ocurrió un error al cargar la página
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Estamos preparando la página para vos.
+              Recargá la página para volver a intentarlo.
             </p>
+            <button
+              type="button"
+              className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+              onClick={() => window.location.reload()}
+            >
+              Recargar
+            </button>
           </div>
         </div>
       );
@@ -95,7 +102,7 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, { hasError: b
   }
 }
 
-function ErrorComponent({ error }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   useEffect(() => {
     reportClientError(error, { boundary: "tanstack_root_error_component" });
@@ -106,11 +113,18 @@ function ErrorComponent({ error }: { error: Error; reset: () => void }) {
       <div className="max-w-md text-center">
         <LoaderCircle className="mx-auto size-8 animate-spin text-primary" aria-hidden="true" />
         <h1 className="mt-4 text-xl font-semibold tracking-tight text-foreground">
-          Cargando...
+          No se pudo cargar la página
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Estamos preparando la página para vos.
+          Revisá la conexión e intentá nuevamente.
         </p>
+        <button
+          type="button"
+          className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          onClick={reset}
+        >
+          Reintentar
+        </button>
       </div>
     </div>
   );
@@ -131,9 +145,7 @@ function DelayedNavigationLoading() {
       <div className="max-w-md text-center">
         <LoaderCircle className="mx-auto size-8 animate-spin text-primary" aria-hidden="true" />
         <h1 className="mt-4 text-xl font-semibold tracking-tight text-foreground">Cargando...</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Estamos preparando la página para vos.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">Estamos preparando la página para vos.</p>
       </div>
     </div>
   );

@@ -8,7 +8,11 @@ import { ProductVisual } from "@/components/common/product-visual";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/store/cart-context";
 import type { Product } from "@/data/products";
-import { hydrateFavorites, subscribeToFavoriteChanges, toggleFavoriteProduct } from "@/lib/favorites";
+import {
+  hydrateFavorites,
+  subscribeToFavoriteChanges,
+  toggleFavoriteProduct,
+} from "@/lib/favorites";
 
 export function ProductCard({
   product,
@@ -114,7 +118,9 @@ export function ProductCard({
             onClick={(event) => {
               event.stopPropagation();
               if (!favoriteOwner) return;
-              const nextIsFavorite = toggleFavoriteProduct(favoriteOwner, product.id).includes(product.id);
+              const nextIsFavorite = toggleFavoriteProduct(favoriteOwner, product.id).includes(
+                product.id,
+              );
               setIsFavorite(nextIsFavorite);
               onFavoriteChange?.(nextIsFavorite);
             }}
@@ -147,18 +153,20 @@ export function ProductCard({
         <div className="mt-auto flex items-end justify-between gap-2 pt-1">
           <div>
             <p className="font-display text-xl font-semibold">{formatPrice(product.price)}</p>
-          {product.compareAtPrice && (
-            <p className="text-xs text-muted-foreground line-through">
-              {formatPrice(product.compareAtPrice)}
-            </p>
-          )}
+            {product.compareAtPrice && (
+              <p className="text-xs text-muted-foreground line-through">
+                {formatPrice(product.compareAtPrice)}
+              </p>
+            )}
           </div>
           <Button
             size="sm"
             variant={outOfStock ? "outline" : "default"}
             className="size-8 px-0 sm:h-9 sm:w-auto sm:px-3"
             disabled={outOfStock}
-            aria-label={outOfStock ? `${product.name} sin stock` : `Agregar ${product.name} al carrito`}
+            aria-label={
+              outOfStock ? `${product.name} sin stock` : `Agregar ${product.name} al carrito`
+            }
             title={outOfStock ? "Sin stock" : "Agregar al carrito"}
             onClick={(event) => {
               event.stopPropagation();

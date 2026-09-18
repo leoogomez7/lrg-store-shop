@@ -254,9 +254,7 @@ function ProductDetail() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/productos">
-                Todos los productos
-              </Link>
+              <Link to="/productos">Todos los productos</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -447,7 +445,7 @@ function ProductDetail() {
               </span>
             )}
           </div>
-          <h1 className="font-display mt-4 break-words text-3xl font-semibold sm:text-4xl">
+          <h1 className="font-display mt-4 wrap-break-word text-3xl font-semibold sm:text-4xl">
             {product.name}
           </h1>
           {(deliveryText || freeShippingText) && (
@@ -461,7 +459,10 @@ function ProductDetail() {
           )}
           <div className="mt-3 flex flex-wrap gap-2">
             {configuredPaymentMethods.map((payment, index) => (
-              <span key={payment} className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+              <span
+                key={payment}
+                className="inline-flex items-center gap-2 text-xs text-muted-foreground"
+              >
                 {index > 0 && <span aria-hidden="true">·</span>}
                 {payment}
               </span>
@@ -557,7 +558,7 @@ function ProductDetail() {
             <div className="mt-4 flex flex-nowrap items-center justify-start gap-1 sm:gap-2">
               <Button
                 size="lg"
-                className="min-w-0 flex-1 !px-2 !text-xs sm:max-w-44 sm:gap-2 sm:!px-3 sm:!text-sm"
+                className="min-w-0 flex-1 px-2! text-xs! sm:max-w-44 sm:gap-2 sm:px-3! sm:text-sm!"
                 disabled={!hasStock}
                 onClick={() => addProduct(activeProduct, quantity)}
               >
@@ -567,7 +568,7 @@ function ProductDetail() {
               <Button
                 size="lg"
                 variant="secondary"
-                className="min-w-0 flex-1 !px-2 !text-xs sm:max-w-44 sm:gap-2 sm:!px-3 sm:!text-sm"
+                className="min-w-0 flex-1 px-2! text-xs! sm:max-w-44 sm:gap-2 sm:px-3! sm:text-sm!"
                 onClick={() => {
                   if (!hasStock) return;
                   addProduct(activeProduct, quantity);

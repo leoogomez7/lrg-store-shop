@@ -297,10 +297,7 @@ export const getUserAddresses = createServerFn({ method: "GET" })
   });
 
 export const saveUserAddress = createServerFn({ method: "POST" })
-  .validator(
-    (data: UserAddress & { userId: string }) =>
-      data,
-  )
+  .validator((data: UserAddress & { userId: string }) => data)
   .handler(async ({ data }) => {
     const userId = data.userId.trim();
     const label = data.label.trim();
@@ -359,7 +356,7 @@ export const saveUserAddress = createServerFn({ method: "POST" })
       const id = crypto.randomUUID();
 
       await client.execute({
-          sql: `INSERT INTO user_addresses (id, userId, label, value, addressReferences, city, street, streetNumber, floor, apartment, province, postalCode, isPrimary, createdAt, updatedAt)
+        sql: `INSERT INTO user_addresses (id, userId, label, value, addressReferences, city, street, streetNumber, floor, apartment, province, postalCode, isPrimary, createdAt, updatedAt)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           id,
@@ -388,16 +385,13 @@ export const saveUserAddress = createServerFn({ method: "POST" })
   });
 
 export const updateUserAddress = createServerFn({ method: "POST" })
-  .validator(
-    (data: UserAddress & { userId: string; addressId: string }) =>
-      data,
-  )
+  .validator((data: UserAddress & { userId: string; addressId: string }) => data)
   .handler(async ({ data }) => {
     if (!client || !data.userId || !data.addressId || !data.label || !data.value) return false;
 
     try {
       await client.execute({
-          sql: `UPDATE user_addresses
+        sql: `UPDATE user_addresses
             SET label = ?, value = ?, addressReferences = ?, city = ?, street = ?, streetNumber = ?, floor = ?, apartment = ?, province = ?, postalCode = ?, updatedAt = ?
               WHERE id = ? AND userId = ?`,
         args: [

@@ -23,10 +23,13 @@ function initializeFavoriteSync() {
 
   if ("BroadcastChannel" in window) {
     favoriteChannel = new BroadcastChannel(favoriteSyncKey);
-    favoriteChannel.addEventListener("message", (event: MessageEvent<{ userId?: string; productIds?: string[] }>) => {
-      if (!event.data?.userId || !Array.isArray(event.data.productIds)) return;
-      applySynchronizedFavorites(event.data.userId, event.data.productIds);
-    });
+    favoriteChannel.addEventListener(
+      "message",
+      (event: MessageEvent<{ userId?: string; productIds?: string[] }>) => {
+        if (!event.data?.userId || !Array.isArray(event.data.productIds)) return;
+        applySynchronizedFavorites(event.data.userId, event.data.productIds);
+      },
+    );
   }
 
   window.addEventListener("storage", (event) => {

@@ -163,12 +163,13 @@ function BrandHeaderContent({
 
   const isAdmin = userRole === "admin";
   const userRoleLabel = isAdmin ? "Administrador" : "Cliente";
-  const userInitials = [userName, userFamilyName]
-    .filter((value) => value && value !== user?.email)
-    .map((value) => value!.trim().charAt(0))
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "U";
+  const userInitials =
+    [userName, userFamilyName]
+      .filter((value) => value && value !== user?.email)
+      .map((value) => value!.trim().charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "U";
   const userMenuItems = isAdmin
     ? [
         { label: "Panel administrativo", to: "/admin/panel", icon: LayoutDashboard },
@@ -211,7 +212,11 @@ function BrandHeaderContent({
           </div>
           {userMenuItems.map(({ label, to, icon: Icon }) => (
             <DropdownMenuItem key={to} asChild>
-              <Link to={to as "/"} onClick={() => setOpenUserMenu(false)} className="whitespace-nowrap">
+              <Link
+                to={to as "/"}
+                onClick={() => setOpenUserMenu(false)}
+                className="whitespace-nowrap"
+              >
                 <Icon className="size-4" />
                 {label}
               </Link>

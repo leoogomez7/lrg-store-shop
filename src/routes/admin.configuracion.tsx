@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowUpRight,
   BadgePercent,
@@ -114,30 +114,33 @@ function AdminConfiguration() {
   });
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const loadBrandSettings = (brandSlug: string) => {
-    const brand = getBrand(brandSlug);
-    if (!brand) return;
+  const loadBrandSettings = useCallback(
+    (brandSlug: string) => {
+      const brand = getBrand(brandSlug);
+      if (!brand) return;
 
-    syncCategoriesToSelectedBrand(brandSlug);
+      syncCategoriesToSelectedBrand(brandSlug);
 
-    setPaymentMethods(brand.paymentMethods?.length ? brand.paymentMethods : []);
+      setPaymentMethods(brand.paymentMethods?.length ? brand.paymentMethods : []);
 
-    setShippingMethods(brand.shipping?.methods ?? []);
+      setShippingMethods(brand.shipping?.methods ?? []);
 
-    setDiscounts(brand.discounts ?? []);
+      setDiscounts(brand.discounts ?? []);
 
-    const shippingThreshold = brand.shipping?.freeShippingThreshold ?? 300;
-    setFreeShippingThreshold(shippingThreshold);
-    setPendingFreeShippingThreshold(shippingThreshold > 0 ? String(shippingThreshold) : "");
-    setFreeShippingConfirmationStatus(null);
-    setFreeShippingConfirmed(false);
-    setIsInitialized(true);
-  };
+      const shippingThreshold = brand.shipping?.freeShippingThreshold ?? 300;
+      setFreeShippingThreshold(shippingThreshold);
+      setPendingFreeShippingThreshold(shippingThreshold > 0 ? String(shippingThreshold) : "");
+      setFreeShippingConfirmationStatus(null);
+      setFreeShippingConfirmed(false);
+      setIsInitialized(true);
+    },
+    [syncCategoriesToSelectedBrand],
+  );
 
   useEffect(() => {
     if (!selectedBrand) return;
     loadBrandSettings(selectedBrand);
-  }, [selectedBrand]);
+  }, [loadBrandSettings, selectedBrand]);
 
   useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
@@ -164,7 +167,7 @@ function AdminConfiguration() {
       setBankCbus(migratedCbus);
       setBankCbu(setting.settingValue);
     });
-  }, [selectedBrand]);
+  }, [loadBrandSettings, selectedBrand]);
 
   useEffect(() => {
     setBankCbu(bankCbus[selectedBrand] ?? "");
@@ -207,7 +210,7 @@ function AdminConfiguration() {
     setCategories(nextCategories);
   };
 
-  const syncCategoriesToSelectedBrand = (brandSlug: string) => {
+  const syncCategoriesToSelectedBrand = useCallback((brandSlug: string) => {
     const current = brandList.find((brand) => brand.slug === brandSlug)?.categories ?? [];
     setCategories(
       current.map((category) => ({
@@ -218,7 +221,7 @@ function AdminConfiguration() {
         enabled: true,
       })),
     );
-  };
+  }, []);
 
   const persistDiscounts = (nextDiscounts: BrandDiscount[]) => {
     setDiscounts(nextDiscounts);
@@ -552,7 +555,10 @@ function AdminConfiguration() {
       return item;
     });
 
-  const removeSubcategoryFromTree = (items: SubcategoryNode[] = [], targetSlug: string): SubcategoryNode[] =>
+  const removeSubcategoryFromTree = (
+    items: SubcategoryNode[] = [],
+    targetSlug: string,
+  ): SubcategoryNode[] =>
     items
       .filter((item) => item.slug !== targetSlug)
       .map((item) => ({
@@ -787,7 +793,9 @@ function AdminConfiguration() {
               setConfirmState((s) => ({ ...s, open: false }));
             }}
           />
-          <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Ajustes del panel</p>
+          <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
+            Ajustes del panel
+          </p>
           <h1 className="mt-2 text-3xl font-semibold">Configuración</h1>
         </div>
       </div>
@@ -960,14 +968,16 @@ function AdminConfiguration() {
                             <span className="truncate text-xs">
                               {method.enabled ? "Disponible" : "No disponible"}
                             </span>
-                            <Switch className="scale-90" 
+                            <Switch
+                              className="scale-90"
                               checked={method.enabled}
                               onCheckedChange={() => toggleShippingMethod(method.id)}
                             />
                           </label>
                           <label className="inline-flex h-8 min-w-0 items-center gap-1 rounded-2xl border border-border/60 bg-background/80 px-2">
                             <span className="truncate text-xs">Requiere código</span>
-                            <Switch className="scale-90"
+                            <Switch
+                              className="scale-90"
                               checked={Boolean(method.codeRequired)}
                               onCheckedChange={() => toggleShippingMethodCodeRequired(method.id)}
                             />
@@ -1087,22 +1097,22 @@ function AdminConfiguration() {
                 className="h-9 min-w-0 w-full sm:w-[70%] sm:max-w-107.5"
               />
               <div className="flex items-center gap-2">
-              <label className="inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-2 py-1 sm:w-fit sm:flex-none sm:justify-start sm:gap-3 sm:px-3">
-                <span className="truncate text-xs sm:text-sm">Aplicar a todas las tiendas</span>
-                <Switch
-                  checked={applyPaymentMethodsToAll}
-                  onCheckedChange={setApplyPaymentMethodsToAll}
-                />
-              </label>
-              <Button
-                size="sm"
-                onClick={addPaymentMethod}
-                disabled={!newPaymentMethod.trim()}
-                className="h-8 shrink-0 gap-1 px-2 text-xs sm:h-9 sm:gap-2 sm:text-sm"
-              >
-                <Plus className="size-3.5 sm:size-4" />
-                Agregar
-              </Button>
+                <label className="inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-2 py-1 sm:w-fit sm:flex-none sm:justify-start sm:gap-3 sm:px-3">
+                  <span className="truncate text-xs sm:text-sm">Aplicar a todas las tiendas</span>
+                  <Switch
+                    checked={applyPaymentMethodsToAll}
+                    onCheckedChange={setApplyPaymentMethodsToAll}
+                  />
+                </label>
+                <Button
+                  size="sm"
+                  onClick={addPaymentMethod}
+                  disabled={!newPaymentMethod.trim()}
+                  className="h-8 shrink-0 gap-1 px-2 text-xs sm:h-9 sm:gap-2 sm:text-sm"
+                >
+                  <Plus className="size-3.5 sm:size-4" />
+                  Agregar
+                </Button>
               </div>
             </div>
 
@@ -1156,42 +1166,43 @@ function AdminConfiguration() {
                     ) : (
                       <>
                         <div className="flex w-full flex-nowrap items-center gap-1 sm:w-auto sm:gap-2">
-                        <label className="inline-flex h-8 shrink-0 items-center gap-1 rounded-2xl border border-border/60 bg-background/80 px-1.5 sm:gap-2 sm:px-2">
-                          <span className="text-[11px] sm:text-sm">
-                            {method.enabled ? "Disponible" : "No disponible"}
-                          </span>
-                          <Switch className="scale-90"
-                            checked={method.enabled}
-                            onCheckedChange={() => togglePaymentMethod(method.id)}
-                          />
-                        </label>
-                        <div className="flex min-w-0 flex-1 items-center gap-1 sm:w-auto sm:flex-none sm:gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => startEditingPaymentMethod(method)}
-                            className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
-                          >
-                            <Pencil className="size-3.5 sm:size-4" />
-                            Editar
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              setConfirmState({
-                                open: true,
-                                title: `Eliminar "${method.name}"?`,
-                                description: "Esta acción no se puede deshacer.",
-                                onConfirm: () => removePaymentMethod(method.id),
-                              })
-                            }
-                            className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
-                          >
-                            <Trash2 className="size-3.5 sm:size-4" />
-                            Eliminar
-                          </Button>
-                        </div>
+                          <label className="inline-flex h-8 shrink-0 items-center gap-1 rounded-2xl border border-border/60 bg-background/80 px-1.5 sm:gap-2 sm:px-2">
+                            <span className="text-[11px] sm:text-sm">
+                              {method.enabled ? "Disponible" : "No disponible"}
+                            </span>
+                            <Switch
+                              className="scale-90"
+                              checked={method.enabled}
+                              onCheckedChange={() => togglePaymentMethod(method.id)}
+                            />
+                          </label>
+                          <div className="flex min-w-0 flex-1 items-center gap-1 sm:w-auto sm:flex-none sm:gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditingPaymentMethod(method)}
+                              className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
+                            >
+                              <Pencil className="size-3.5 sm:size-4" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setConfirmState({
+                                  open: true,
+                                  title: `Eliminar "${method.name}"?`,
+                                  description: "Esta acción no se puede deshacer.",
+                                  onConfirm: () => removePaymentMethod(method.id),
+                                })
+                              }
+                              className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
+                            >
+                              <Trash2 className="size-3.5 sm:size-4" />
+                              Eliminar
+                            </Button>
+                          </div>
                         </div>
                       </>
                     )}
@@ -1236,7 +1247,9 @@ function AdminConfiguration() {
                 type="button"
                 size="sm"
                 onClick={saveBankCbu}
-                disabled={!bankCbu.trim() || bankCbu.trim() === (bankCbus[selectedBrand] ?? "").trim()}
+                disabled={
+                  !bankCbu.trim() || bankCbu.trim() === (bankCbus[selectedBrand] ?? "").trim()
+                }
                 className="h-8 shrink-0 gap-1 px-2 text-xs sm:h-9 sm:gap-2 sm:text-sm"
               >
                 <Check className="size-3.5 sm:size-4" /> Guardar
@@ -1377,44 +1390,45 @@ function AdminConfiguration() {
                     ) : (
                       <>
                         <div className="flex w-full flex-nowrap items-center gap-1 sm:w-auto sm:gap-2">
-                        <label className="inline-flex h-8 shrink-0 items-center gap-1 rounded-2xl border border-border/60 bg-background/80 px-1.5 sm:gap-2 sm:px-2">
-                          <span className="text-[11px] sm:text-sm">
-                            {category.enabled ? "Disponible" : "No disponible"}
-                          </span>
-                          <Switch className="scale-90"
-                            checked={category.enabled}
-                            onCheckedChange={() => toggleCategory(category.id)}
-                          />
-                        </label>
+                          <label className="inline-flex h-8 shrink-0 items-center gap-1 rounded-2xl border border-border/60 bg-background/80 px-1.5 sm:gap-2 sm:px-2">
+                            <span className="text-[11px] sm:text-sm">
+                              {category.enabled ? "Disponible" : "No disponible"}
+                            </span>
+                            <Switch
+                              className="scale-90"
+                              checked={category.enabled}
+                              onCheckedChange={() => toggleCategory(category.id)}
+                            />
+                          </label>
 
-                        <div className="flex min-w-0 flex-1 items-center gap-1 sm:w-auto sm:flex-none sm:gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => startEditingCategory(category)}
-                            className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
-                          >
-                            <Pencil className="size-3.5 sm:size-4" />
-                            Editar
-                          </Button>
+                          <div className="flex min-w-0 flex-1 items-center gap-1 sm:w-auto sm:flex-none sm:gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditingCategory(category)}
+                              className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
+                            >
+                              <Pencil className="size-3.5 sm:size-4" />
+                              Editar
+                            </Button>
 
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
-                            onClick={() =>
-                              setConfirmState({
-                                open: true,
-                                title: `Eliminar "${category.name}"?`,
-                                description: "Esta acción no se puede deshacer.",
-                                onConfirm: () => removeCategory(category.id),
-                              })
-                            }
-                          >
-                            <Trash2 className="size-3.5 sm:size-4" />
-                            Eliminar
-                          </Button>
-                        </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
+                              onClick={() =>
+                                setConfirmState({
+                                  open: true,
+                                  title: `Eliminar "${category.name}"?`,
+                                  description: "Esta acción no se puede deshacer.",
+                                  onConfirm: () => removeCategory(category.id),
+                                })
+                              }
+                            >
+                              <Trash2 className="size-3.5 sm:size-4" />
+                              Eliminar
+                            </Button>
+                          </div>
                         </div>
                       </>
                     )}

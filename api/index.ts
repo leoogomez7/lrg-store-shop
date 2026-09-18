@@ -2,7 +2,7 @@ type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
-// @ts-ignore The generated entrypoint has no source declaration file.
+// @ts-expect-error The generated entrypoint has no source declaration file.
 import generatedServer from "../dist/server/server.js";
 
 const server = generatedServer as ServerEntry;

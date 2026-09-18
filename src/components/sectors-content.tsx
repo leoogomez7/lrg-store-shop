@@ -21,7 +21,7 @@ function getBrandLogo(slug: string) {
 export function SectorsContent() {
   const navigate = useNavigate();
 
-  function handleBrandClick(e: any) {
+  function handleBrandClick(e: React.MouseEvent<HTMLAnchorElement>) {
     e.preventDefault();
     if (typeof window !== "undefined" && window.location.pathname === "/") {
       window.scrollTo({ top: 0, behavior: "smooth" });

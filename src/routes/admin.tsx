@@ -118,12 +118,13 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     user?.email ||
     "Administrador";
   const adminUserRole = "Administrador";
-  const adminUserInitials = [user?.givenName, user?.familyName]
-    .filter(Boolean)
-    .map((value) => value!.trim().charAt(0))
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "U";
+  const adminUserInitials =
+    [user?.givenName, user?.familyName]
+      .filter(Boolean)
+      .map((value) => value!.trim().charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "U";
   const AdminUserMenu = () => (
     <DropdownMenu open={adminUserMenuOpen} onOpenChange={setAdminUserMenuOpen}>
       <DropdownMenuTrigger asChild>
@@ -577,7 +578,9 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   </SheetHeader>
                   <nav className="space-y-1">
                     {navigation.map((item) => {
-                      const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
+                      const active = item.exact
+                        ? pathname === item.to
+                        : pathname.startsWith(item.to);
                       return (
                         <Link
                           key={item.to}
@@ -653,7 +656,7 @@ function AdminEntryNotice() {
     const seenOrders = new Set(
       JSON.parse(window.localStorage.getItem("lrg_admin_seen_order_ids") ?? "[]") as string[],
     );
-    const lowStock = products
+    const lowStock: AdminEntryNoticeData["lowStock"] = products
       .flatMap((product) =>
         product.variants?.length
           ? product.variants.map((variant) => ({
@@ -661,12 +664,13 @@ function AdminEntryNotice() {
               name: product.name,
               variantName: variant.name,
               stock: variant.stock,
-              stockUnlimited: variant.stockUnlimited ?? product.stockUnlimited,
+              stockUnlimited: variant.stockUnlimited ?? product.stockUnlimited ?? false,
             }))
           : [
               {
                 id: product.id,
                 name: product.name,
+                variantName: "",
                 stock: product.stock,
                 stockUnlimited: product.stockUnlimited ?? false,
               },

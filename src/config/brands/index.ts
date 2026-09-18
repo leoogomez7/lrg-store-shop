@@ -134,9 +134,7 @@ function readStoredPaymentMethods(): Record<BrandSlug, BrandPaymentMethod[]> {
     return {
       arcade: Array.isArray(parsed.arcade) ? parsed.arcade : [],
       scents: Array.isArray(parsed.scents) ? parsed.scents : [],
-      "web-design": Array.isArray(parsed["web-design"])
-        ? parsed["web-design"]
-        : [],
+      "web-design": Array.isArray(parsed["web-design"]) ? parsed["web-design"] : [],
     };
   } catch {
     return emptyPaymentMethods;
@@ -446,8 +444,16 @@ export function setStoreShopContact(contact: Partial<StoreShopContact>) {
 export function getBrandContactPresentation(slug: BrandSlug): BrandContactPresentation {
   const brand = brands[slug];
   const fallback: BrandContactPresentation = {
-    email: { text: brand.contact.email, href: brand.contact.email ? `mailto:${brand.contact.email}` : "", logo: "" },
-    phone: { text: brand.contact.phone, href: brand.contact.phone ? `tel:${brand.contact.phone}` : "", logo: "" },
+    email: {
+      text: brand.contact.email,
+      href: brand.contact.email ? `mailto:${brand.contact.email}` : "",
+      logo: "",
+    },
+    phone: {
+      text: brand.contact.phone,
+      href: brand.contact.phone ? `tel:${brand.contact.phone}` : "",
+      logo: "",
+    },
     location: {
       text: brand.contact.location,
       href: brand.contact.location

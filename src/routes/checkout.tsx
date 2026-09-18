@@ -117,78 +117,88 @@ function CheckoutPage() {
   }, [brandSlugs]);
 
   useEffect(() => {
-    void loadAdminSettings({ data: {} }).then((settings) => {
-      applyAdminSettings(settings);
-      const refreshedBrands = refreshBrandData();
-      const paymentSetting = settings.find(
-        (setting) => setting.settingKey === "lrg:paymentMethods",
-      );
-      const shippingSetting = settings.find(
-        (setting) => setting.settingKey === "lrg:shippingMethods",
-      );
-      let paymentMethodsFromDatabase: Record<string, BrandPaymentMethod[]> = {};
-      let shippingMethodsFromDatabase: Record<string, BrandPaymentMethod[]> = {};
-      try {
-        const storedPayments = paymentSetting
-          ? (JSON.parse(paymentSetting.settingValue) as
-              BrandPaymentMethod[] | Record<string, BrandPaymentMethod[]>)
-          : undefined;
-        const storedShipping = shippingSetting
-          ? (JSON.parse(shippingSetting.settingValue) as
-              BrandPaymentMethod[] | Record<string, { methods?: BrandPaymentMethod[] }>)
-          : undefined;
-        paymentMethodsFromDatabase = Array.isArray(storedPayments)
-          ? Object.fromEntries(brandSlugs.map((slug) => [slug, storedPayments]))
-          : (storedPayments ?? {});
-        shippingMethodsFromDatabase = Array.isArray(storedShipping)
-          ? Object.fromEntries(brandSlugs.map((slug) => [slug, storedShipping]))
-          : Object.fromEntries(
-              Object.entries(storedShipping ?? {}).map(([slug, config]) => [
+    void loadAdminSettings({ data: {} })
+      .then((settings) => {
+        applyAdminSettings(settings);
+        const refreshedBrands = refreshBrandData();
+        const paymentSetting = settings.find(
+          (setting) => setting.settingKey === "lrg:paymentMethods",
+        );
+        const shippingSetting = settings.find(
+          (setting) => setting.settingKey === "lrg:shippingMethods",
+        );
+        let paymentMethodsFromDatabase: Record<string, BrandPaymentMethod[]> = {};
+        let shippingMethodsFromDatabase: Record<string, BrandPaymentMethod[]> = {};
+        try {
+          const storedPayments = paymentSetting
+            ? (JSON.parse(paymentSetting.settingValue) as
+                BrandPaymentMethod[] | Record<string, BrandPaymentMethod[]>)
+            : undefined;
+          const storedShipping = shippingSetting
+            ? (JSON.parse(shippingSetting.settingValue) as
+                BrandPaymentMethod[] | Record<string, { methods?: BrandPaymentMethod[] }>)
+            : undefined;
+          paymentMethodsFromDatabase = Array.isArray(storedPayments)
+            ? Object.fromEntries(brandSlugs.map((slug) => [slug, storedPayments]))
+            : (storedPayments ?? {});
+          shippingMethodsFromDatabase = Array.isArray(storedShipping)
+            ? Object.fromEntries(brandSlugs.map((slug) => [slug, storedShipping]))
+            : Object.fromEntries(
+                Object.entries(storedShipping ?? {}).map(([slug, config]) => [
+                  slug,
+                  Array.isArray(config)
+                    ? config
+                    : ((config as { methods?: BrandPaymentMethod[] }).methods ?? []),
+                ]),
+              );
+        } catch {
+          // Use the refreshed brand configuration when a legacy value is invalid.
+        }
+        setShippingMethodsByBrand((current) =>
+          Object.fromEntries(
+            brandSlugs.map((slug) => {
+              const methods =
+                shippingMethodsFromDatabase[slug]?.filter((method) => method.enabled) ??
+                refreshedBrands[slug]?.shipping?.methods.filter((method) => method.enabled) ??
+                [];
+              return [
                 slug,
-                Array.isArray(config)
-                  ? config
-                  : ((config as { methods?: BrandPaymentMethod[] }).methods ?? []),
-              ]),
-            );
-      } catch {
-        // Use the refreshed brand configuration when a legacy value is invalid.
-      }
-      setShippingMethodsByBrand((current) =>
-        Object.fromEntries(
-          brandSlugs.map((slug) => {
-            const methods =
-              shippingMethodsFromDatabase[slug]?.filter((method) => method.enabled) ??
-              refreshedBrands[slug]?.shipping?.methods.filter((method) => method.enabled) ??
-              [];
-            return [slug, current[slug] || (methods.length === 1 ? (methods[0]?.name ?? "") : "")];
-          }),
-        ),
-      );
-      setPaymentMethodsByBrand((current) =>
-        Object.fromEntries(
-          brandSlugs.map((slug) => {
-            const methods =
-              paymentMethodsFromDatabase[slug]?.filter((method) => method.enabled) ??
-              refreshedBrands[slug]?.paymentMethods?.filter((method) => method.enabled) ??
-              [];
-            return [slug, current[slug] || (methods.length === 1 ? (methods[0]?.name ?? "") : "")];
-          }),
-        ),
-      );
-      setBrandSettingsReady(true);
-      const storedCbu = settings.find((item) => item.settingKey === "lrg:bank-cbu")?.settingValue;
-      if (!storedCbu) return;
-      try {
-        const cbuByBrand = JSON.parse(storedCbu) as Record<string, string>;
-        setBankCbus(cbuByBrand);
-      } catch {
-        setBankCbus({
-          arcade: storedCbu,
-          scents: storedCbu,
-          "web-design": storedCbu,
-        });
-      }
-    });
+                current[slug] || (methods.length === 1 ? (methods[0]?.name ?? "") : ""),
+              ];
+            }),
+          ),
+        );
+        setPaymentMethodsByBrand((current) =>
+          Object.fromEntries(
+            brandSlugs.map((slug) => {
+              const methods =
+                paymentMethodsFromDatabase[slug]?.filter((method) => method.enabled) ??
+                refreshedBrands[slug]?.paymentMethods?.filter((method) => method.enabled) ??
+                [];
+              return [
+                slug,
+                current[slug] || (methods.length === 1 ? (methods[0]?.name ?? "") : ""),
+              ];
+            }),
+          ),
+        );
+        setBrandSettingsReady(true);
+        const storedCbu = settings.find((item) => item.settingKey === "lrg:bank-cbu")?.settingValue;
+        if (!storedCbu) return;
+        try {
+          const cbuByBrand = JSON.parse(storedCbu) as Record<string, string>;
+          setBankCbus(cbuByBrand);
+        } catch {
+          setBankCbus({
+            arcade: storedCbu,
+            scents: storedCbu,
+            "web-design": storedCbu,
+          });
+        }
+      })
+      .catch(() => {
+        setBrandSettingsReady(true);
+      });
   }, [brand.slug, brandSlugs]);
   const [couponCode] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -223,8 +233,7 @@ function CheckoutPage() {
     if (typeof window === "undefined") return 0;
     try {
       return (
-        Number(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").amount) ||
-        0
+        Number(JSON.parse(window.localStorage.getItem("lrg_checkout_coupon") ?? "{}").amount) || 0
       );
     } catch {
       return 0;
@@ -328,7 +337,7 @@ function CheckoutPage() {
     if (items.length > 0) {
       window.sessionStorage.removeItem("lrg_checkout_completed");
     }
-  }, [items.length, step]);
+  }, [items.length, navigate, step]);
 
   useEffect(() => {
     if (validationMessage && validationRef.current) {
@@ -381,7 +390,9 @@ function CheckoutPage() {
       if (profile) {
         const givenName = profile.givenName || user.givenName || "";
         const familyName = profile.familyName || user.familyName || "";
-        setCustomerName([givenName, familyName].filter(Boolean).join(" ") || profile.fullName || "");
+        setCustomerName(
+          [givenName, familyName].filter(Boolean).join(" ") || profile.fullName || "",
+        );
         setEmail(user.email || "");
         setPhone(profile.phone || "");
         setDocument(profile.document || "");
@@ -717,7 +728,9 @@ function CheckoutPage() {
                               setAddress(addr.value);
                               const parsedAddress = splitStreetAndNumber(addr.value);
                               setStreet(addr.street || parsedAddress.street || "");
-                              setStreetNumber(addr.streetNumber || parsedAddress.streetNumber || "");
+                              setStreetNumber(
+                                addr.streetNumber || parsedAddress.streetNumber || "",
+                              );
                               setFloor(addr.floor ?? "");
                               setApartment(addr.apartment ?? "");
                               setCity(addr.city ?? "");
@@ -779,7 +792,11 @@ function CheckoutPage() {
                             }}
                             readOnly={Boolean(synced)}
                             className={synced ? "h-10 bg-muted/40" : "h-10 bg-background"}
-                            placeholder={label === "Referencias" ? "Entre calles, color de la casa, etc." : undefined}
+                            placeholder={
+                              label === "Referencias"
+                                ? "Entre calles, color de la casa, etc."
+                                : undefined
+                            }
                           />
                         </label>
                       ))}
