@@ -1002,6 +1002,16 @@ function AdminSuppliers() {
             >
               <Trash2 className="size-4" /> Eliminar
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setSelectionMode(false);
+                setSelectedSupplierKeys([]);
+              }}
+            >
+              <X className="size-4" /> Cancelar
+            </Button>
           </div>
         ) : null}
       </div>
@@ -1035,7 +1045,7 @@ function AdminSuppliers() {
                 <TableHead>Red social</TableHead>
                 <TableHead>Total vendido</TableHead>
                 <TableHead>Cantidad vendida</TableHead>
-                <TableHead>Acciones</TableHead>
+                <TableHead className={selectionMode ? "hidden" : undefined}>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1101,7 +1111,9 @@ function AdminSuppliers() {
                         </div>
                       </TableCell>
                       <TableCell>{row.soldQuantity}</TableCell>
-                      <TableCell className="min-w-124 whitespace-nowrap">
+                      <TableCell
+                        className={cn("min-w-124 whitespace-nowrap", selectionMode && "hidden")}
+                      >
                         <div className="flex flex-nowrap items-center justify-center gap-1.5">
                           {isQuickEditing ? (
                             <>

@@ -518,6 +518,7 @@ function AdminOrders() {
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [selectionMode, setSelectionMode] = useState(false);
   const [bulkOrderEditQueue, setBulkOrderEditQueue] = useState<string[]>([]);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
@@ -1817,12 +1818,30 @@ function AdminOrders() {
       />
 
       <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
-        <span className="text-sm font-medium">Seleccionar</span>
+        <button
+          type="button"
+          className="text-sm font-medium text-foreground"
+          onClick={() => {
+            setSelectionMode((current) => {
+              if (current) setSelectedOrderIds([]);
+              return !current;
+            });
+          }}
+        >
+          Seleccionar
+        </button>
         <Checkbox
+          className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
           checked={
             allVisibleOrdersSelected ? true : someVisibleOrdersSelected ? "indeterminate" : false
           }
           onCheckedChange={(checked) => {
+            if (checked === false) {
+              setSelectionMode(false);
+              setSelectedOrderIds([]);
+              return;
+            }
+            setSelectionMode(true);
             const shouldSelect = checked === true || checked === "indeterminate";
             setSelectedOrderIds((current) =>
               shouldSelect
@@ -1854,6 +1873,16 @@ function AdminOrders() {
             >
               <Trash2 className="size-4" /> Eliminar
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setSelectionMode(false);
+                setSelectedOrderIds([]);
+              }}
+            >
+              <X className="size-4" /> Cancelar
+            </Button>
           </div>
         ) : null}
       </div>
@@ -1875,7 +1904,7 @@ function AdminOrders() {
               <TableHead className="w-20">Gastos</TableHead>
               <TableHead className="w-24">Precio total</TableHead>
               <TableHead className="w-20">Ganancias</TableHead>
-              <TableHead className="w-72 min-w-72">Acciones</TableHead>
+              <TableHead className={selectionMode ? "hidden" : "w-72 min-w-72"}>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1918,14 +1947,16 @@ function AdminOrders() {
                   >
                     <TableCell className="w-32 font-medium">
                       <div className="flex min-w-0 items-center justify-center gap-2 text-center">
-                        <Checkbox
-                          className="relative -left-8 shrink-0"
-                          checked={selectedOrderIds.includes(order.id)}
-                          onCheckedChange={(checked) =>
-                            toggleOrderSelection(order.id, checked === true)
-                          }
-                          aria-label={`Seleccionar pedido ${order.id}`}
-                        />
+                        {selectionMode && (
+                          <Checkbox
+                            className="relative -left-8 shrink-0 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                            checked={selectedOrderIds.includes(order.id)}
+                            onCheckedChange={(checked) =>
+                              toggleOrderSelection(order.id, checked === true)
+                            }
+                            aria-label={`Seleccionar pedido ${order.id}`}
+                          />
+                        )}
                         <div className="flex min-w-0 flex-col items-start gap-1">
                           <span className="min-w-0 break-all">{order.id}</span>
                           {order.isGuest && (
@@ -2065,7 +2096,12 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.expenses)}</TableCell>
                     <TableCell>{formatPrice(order.total)}</TableCell>
                     <TableCell>{formatPrice(order.profit)}</TableCell>
-                    <TableCell className="w-xl min-w-xl max-w-none overflow-visible">
+                    <TableCell
+                      className={cn(
+                        "w-xl min-w-xl max-w-none overflow-visible",
+                        selectionMode && "hidden",
+                      )}
+                    >
                       <div className="flex w-full min-w-0 flex-col items-center justify-center gap-1.5">
                         {isQuickEditing ? (
                           <>

@@ -89,7 +89,7 @@ function AdminConfiguration() {
   const [subcategoryDialogCategoryId, setSubcategoryDialogCategoryId] = useState<string | null>(
     null,
   );
-  const [newSubcategoryParentSlug, setNewSubcategoryParentSlug] = useState<string | null>(null);
+  const [newSubcategoryParentSlugs, setNewSubcategoryParentSlugs] = useState<string[]>([]);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [editingSubcategoryKey, setEditingSubcategoryKey] = useState<string | null>(null);
   const [editingSubcategoryName, setEditingSubcategoryName] = useState("");
@@ -592,22 +592,25 @@ function AdminConfiguration() {
     persistCategories(next);
   };
 
-  const addSubcategory = (categoryId: string, parentSlug: string | null = null) => {
+  const addSubcategory = (categoryId: string, parentSlugs: string[] = []) => {
     const name = newSubcategoryName.trim();
     if (!name) return;
 
     const next = categories.map((category) => {
       if (category.id !== categoryId) return category;
-      const nextChildren = appendSubcategoryToTree(
+      const nextChildren = parentSlugs.reduce(
+        (items, parentSlug) => appendSubcategoryToTree(items, parentSlug, name),
         (category.subcategories ?? []) as SubcategoryNode[],
-        parentSlug,
-        name,
       );
-      return { ...category, subcategories: nextChildren };
+      const updatedChildren = parentSlugs.length
+        ? nextChildren
+        : appendSubcategoryToTree(nextChildren, null, name);
+      return { ...category, subcategories: updatedChildren };
     });
 
     persistCategories(next);
     setNewSubcategoryName("");
+    setNewSubcategoryParentSlugs([]);
     setEditingSubcategoryKey(null);
   };
 
@@ -696,7 +699,10 @@ function AdminConfiguration() {
     return (
       <div key={node.slug} className="space-y-2">
         <div
-          className="flex items-center gap-2 rounded-xl border border-input p-3"
+          className={cn(
+            "flex items-center gap-2 rounded-xl border p-3",
+            depth === 0 ? "border-input bg-background" : "border-amber-500/30 bg-amber-500/10",
+          )}
           style={{ marginLeft: depth * 14 }}
         >
           {isEditing ? (
@@ -749,10 +755,18 @@ function AdminConfiguration() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setNewSubcategoryParentSlug(node.slug);
+                  setNewSubcategoryParentSlugs((current) =>
+                    current.includes(node.slug)
+                      ? current.filter((slug) => slug !== node.slug)
+                      : [...current, node.slug],
+                  );
                   setNewSubcategoryName("");
                 }}
-                className="h-8 gap-1 px-2 text-sm"
+                className={cn(
+                  "h-8 gap-1 px-2 text-sm",
+                  newSubcategoryParentSlugs.includes(node.slug) &&
+                    "border-primary bg-primary/10 text-primary",
+                )}
               >
                 <Plus className="size-4" /> Subcat.
               </Button>
@@ -1024,22 +1038,60 @@ function AdminConfiguration() {
           onOpenChange={(open) => {
             if (!open) {
               setSubcategoryDialogCategoryId(null);
-              setNewSubcategoryParentSlug(null);
+              setNewSubcategoryParentSlugs([]);
+              setEditingCategoryId(null);
               setNewSubcategoryName("");
             }
           }}
         >
           <DialogContent className="w-[calc(100%-1rem)] max-w-lg max-h-[min(88vh,42rem)] overflow-y-auto p-4 sm:w-full sm:p-6">
             <DialogHeader>
-              <DialogTitle>
-                Subcategorías
-                {subcategoryDialogCategory ? ` de ${subcategoryDialogCategory.name}` : ""}
+              <DialogTitle className="flex items-center gap-2">
+                <span>{subcategoryDialogCategory?.name}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  onClick={() => {
+                    if (!subcategoryDialogCategory) return;
+                    setEditingCategoryId((current) =>
+                      current === subcategoryDialogCategory.id
+                        ? null
+                        : subcategoryDialogCategory.id,
+                    );
+                  }}
+                  aria-label="Editar nombre de categoría"
+                  title="Editar nombre de categoría"
+                >
+                  <Pencil className="size-4" />
+                </Button>
               </DialogTitle>
               <DialogDescription>
-                Agregá y administrá las subcategorías de esta categoría.
+                Editá la categoría y administrá sus subcategorías.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2">
+              {subcategoryDialogCategory && editingCategoryId === subcategoryDialogCategory.id && (
+                <div className="space-y-3 rounded-xl border border-border/60 bg-surface/50 p-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="modal-category-name">Nombre</Label>
+                    <Input
+                      id="modal-category-name"
+                      value={editingCategoryName}
+                      onChange={(event) => setEditingCategoryName(event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="modal-category-description">Descripción</Label>
+                    <Input
+                      id="modal-category-description"
+                      value={editingCategorySubtitle}
+                      onChange={(event) => setEditingCategorySubtitle(event.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
               {subcategoryDialogCategory?.subcategories?.map((subcategory) =>
                 renderSubcategoryNode(subcategory as SubcategoryNode, subcategoryDialogCategory.id),
               )}
@@ -1053,7 +1105,9 @@ function AdminConfiguration() {
                   value={newSubcategoryName}
                   onChange={(event) => setNewSubcategoryName(event.target.value)}
                   placeholder={
-                    newSubcategoryParentSlug ? "Nueva subcategoría anidada" : "Nueva subcategoría"
+                    newSubcategoryParentSlugs.length
+                      ? "Nueva subcategoría anidada"
+                      : "Nueva subcategoría"
                   }
                   className="h-9 min-w-0"
                 />
@@ -1061,12 +1115,36 @@ function AdminConfiguration() {
                   type="button"
                   onClick={() =>
                     subcategoryDialogCategoryId &&
-                    addSubcategory(subcategoryDialogCategoryId, newSubcategoryParentSlug)
+                    addSubcategory(subcategoryDialogCategoryId, newSubcategoryParentSlugs)
                   }
                   disabled={!newSubcategoryName.trim()}
                   className="h-9 shrink-0 gap-2"
                 >
                   <Plus className="size-4" /> Agregar
+                </Button>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-border/60 pt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSubcategoryDialogCategoryId(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      subcategoryDialogCategory &&
+                      editingCategoryId === subcategoryDialogCategory.id
+                    ) {
+                      saveEditedCategory(subcategoryDialogCategory.id);
+                    }
+                    setSubcategoryDialogCategoryId(null);
+                  }}
+                  disabled={!editingCategoryName.trim()}
+                >
+                  <Check className="size-4" /> Guardar cambios
                 </Button>
               </div>
             </div>
@@ -1341,21 +1419,6 @@ function AdminConfiguration() {
                   </div>
 
                   <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-                    {editingCategoryId !== category.id && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSubcategoryDialogCategoryId(category.id);
-                          setNewSubcategoryName("");
-                          setNewSubcategoryParentSlug(null);
-                        }}
-                        className="h-8 gap-1 px-2 text-xs"
-                      >
-                        <Plus className="size-3" /> Subcategorías
-                      </Button>
-                    )}
                     {editingCategoryId === category.id ? (
                       <>
                         <Button
@@ -1405,7 +1468,14 @@ function AdminConfiguration() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => startEditingCategory(category)}
+                              onClick={() => {
+                                setEditingCategoryName(category.name);
+                                setEditingCategorySubtitle(category.description ?? "");
+                                setEditingCategoryId(null);
+                                setSubcategoryDialogCategoryId(category.id);
+                                setNewSubcategoryName("");
+                                setNewSubcategoryParentSlugs([]);
+                              }}
                               className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
                             >
                               <Pencil className="size-3.5 sm:size-4" />
@@ -1508,12 +1578,16 @@ function AdminConfiguration() {
               >
                 {editingDiscountId === discount.id ? (
                   <div className="grid w-full gap-3 sm:grid-cols-[1.5fr_1fr_1fr]">
-                    <Input
-                      value={editingDiscountCode}
-                      onChange={(event) => setEditingDiscountCode(event.target.value)}
-                      placeholder="Código"
-                      className="h-9"
-                    />
+                    <div className="min-w-0 space-y-2">
+                      <Label htmlFor={`discount-code-${discount.id}`}>Código</Label>
+                      <Input
+                        id={`discount-code-${discount.id}`}
+                        value={editingDiscountCode}
+                        onChange={(event) => setEditingDiscountCode(event.target.value)}
+                        placeholder="Código"
+                        className="h-9"
+                      />
+                    </div>
                     <div className="col-span-1 flex gap-2 sm:contents">
                       <div className="min-w-0 flex-1 space-y-2 sm:flex-none">
                         <Label htmlFor={`discount-percentage-${discount.id}`}>Porcentaje (%)</Label>

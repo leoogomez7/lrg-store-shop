@@ -163,6 +163,7 @@ function AdminProducts() {
   const [createChoiceOpen, setCreateChoiceOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [selectionMode, setSelectionMode] = useState(false);
   const [bulkEditQueue, setBulkEditQueue] = useState<string[]>([]);
   const [bulkEditPosition, setBulkEditPosition] = useState(0);
   const [initialVariantId, setInitialVariantId] = useState<string | null>(null);
@@ -1307,6 +1308,18 @@ function AdminProducts() {
           </div>
 
           <div className="flex w-full flex-nowrap items-center justify-start gap-1 sm:contents sm:gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 min-w-0 shrink gap-1 border-amber-500/50 bg-amber-500/10 px-2 text-xs text-amber-600 hover:bg-amber-500/20 hover:text-amber-700 sm:gap-2 sm:px-3 sm:text-sm"
+              onClick={() => {
+                setUsdRatePromptValue(usdRate > 0 ? String(usdRate) : "");
+                setUsdRatePromptOpen(true);
+              }}
+            >
+              Seleccionar USD
+            </Button>
+
             <Dialog open={sortMenuOpen} onOpenChange={setSortMenuOpen}>
               <DialogTrigger asChild>
                 <Button
@@ -1360,18 +1373,6 @@ function AdminProducts() {
                 </div>
               </DialogContent>
             </Dialog>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 min-w-0 shrink gap-1 border-amber-500/50 bg-amber-500/10 px-2 text-xs text-amber-600 hover:bg-amber-500/20 hover:text-amber-700 sm:gap-2 sm:px-3 sm:text-sm"
-              onClick={() => {
-                setUsdRatePromptValue(usdRate > 0 ? String(usdRate) : "");
-                setUsdRatePromptOpen(true);
-              }}
-            >
-              Seleccionar USD
-            </Button>
 
             <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
               <DialogTrigger asChild>
@@ -1774,8 +1775,20 @@ function AdminProducts() {
       </div>
 
       <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
-        <span className="text-sm font-medium">Seleccionar</span>
+        <button
+          type="button"
+          className="text-sm font-medium text-foreground"
+          onClick={() => {
+            setSelectionMode((current) => {
+              if (current) setSelectedProductIds([]);
+              return !current;
+            });
+          }}
+        >
+          Seleccionar
+        </button>
         <Checkbox
+          className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
           checked={
             allVisibleProductsSelected
               ? true
@@ -1784,6 +1797,12 @@ function AdminProducts() {
                 : false
           }
           onCheckedChange={(checked) => {
+            if (checked === false) {
+              setSelectionMode(false);
+              setSelectedProductIds([]);
+              return;
+            }
+            setSelectionMode(true);
             const shouldSelect = checked === true || checked === "indeterminate";
             setSelectedProductIds((current) =>
               shouldSelect
@@ -1824,6 +1843,16 @@ function AdminProducts() {
             >
               <Trash2 className="size-4" /> Eliminar
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setSelectionMode(false);
+                setSelectedProductIds([]);
+              }}
+            >
+              <X className="size-4" /> Cancelar
+            </Button>
           </div>
         ) : null}
       </div>
@@ -1846,7 +1875,9 @@ function AdminProducts() {
               <TableHead className="w-20 text-center">Descuento</TableHead>
               <TableHead className="w-24 text-center">Precio tienda</TableHead>
               <TableHead className="w-24 text-center">Ganancias</TableHead>
-              <TableHead className="w-72 min-w-72 text-center">Acciones</TableHead>
+              <TableHead className={cn("w-72 min-w-72 text-center", selectionMode && "hidden")}>
+                Acciones
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1899,19 +1930,21 @@ function AdminProducts() {
                       <TableCell className="min-w-64 align-middle">
                         <div className="flex min-w-60 flex-col gap-2 text-left">
                           <div className="flex items-center gap-2">
-                            <Checkbox
-                              className="relative -left-8"
-                              checked={selectedProductIds.includes(
-                                getProductSelectionKey(product, variant),
-                              )}
-                              onCheckedChange={(checked) =>
-                                toggleProductSelection(
+                            {selectionMode && (
+                              <Checkbox
+                                className="relative -left-8 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                                checked={selectedProductIds.includes(
                                   getProductSelectionKey(product, variant),
-                                  checked === true,
-                                )
-                              }
-                              aria-label={`Seleccionar ${product.name}`}
-                            />
+                                )}
+                                onCheckedChange={(checked) =>
+                                  toggleProductSelection(
+                                    getProductSelectionKey(product, variant),
+                                    checked === true,
+                                  )
+                                }
+                                aria-label={`Seleccionar ${product.name}`}
+                              />
+                            )}
                             <Input
                               value={quickDraft.name}
                               onChange={(event) =>
@@ -2133,19 +2166,21 @@ function AdminProducts() {
                     <>
                       <TableCell className="min-w-64">
                         <div className="flex min-w-0 flex-wrap items-center gap-2 text-left">
-                          <Checkbox
-                            className="relative -left-8 shrink-0"
-                            checked={selectedProductIds.includes(
-                              getProductSelectionKey(product, variant),
-                            )}
-                            onCheckedChange={(checked) =>
-                              toggleProductSelection(
+                          {selectionMode && (
+                            <Checkbox
+                              className="relative -left-8 shrink-0 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                              checked={selectedProductIds.includes(
                                 getProductSelectionKey(product, variant),
-                                checked === true,
-                              )
-                            }
-                            aria-label={`Seleccionar ${product.name}`}
-                          />
+                              )}
+                              onCheckedChange={(checked) =>
+                                toggleProductSelection(
+                                  getProductSelectionKey(product, variant),
+                                  checked === true,
+                                )
+                              }
+                              aria-label={`Seleccionar ${product.name}`}
+                            />
+                          )}
                           <span className="min-w-0 wrap-break-word font-medium">
                             {product.name}
                           </span>
@@ -2198,7 +2233,7 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell>{formatPrice(Math.max(0, discountedPrice))}</TableCell>
                       <TableCell>{formatPrice(displayProfit, displayProfitCurrency)}</TableCell>
-                      <TableCell className="min-w-72">
+                      <TableCell className={cn("min-w-72", selectionMode && "hidden")}>
                         <div className="flex flex-col items-center justify-center gap-1.5">
                           <div className="flex flex-nowrap items-center justify-center gap-1.5">
                             <label className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
