@@ -203,6 +203,19 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   }, [pathname]);
 
   useEffect(() => {
+    const resetKindeFlow = () => {
+      setInitialPasswordVerified(false);
+      setPassword("");
+    };
+    window.addEventListener("pageshow", resetKindeFlow);
+    window.addEventListener("popstate", resetKindeFlow);
+    return () => {
+      window.removeEventListener("pageshow", resetKindeFlow);
+      window.removeEventListener("popstate", resetKindeFlow);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isAuthenticated || typeof window === "undefined") return;
     if (window.sessionStorage.getItem("lrg_auth_role") !== "admin") {
       navigate({ to: "/cuenta/panel", replace: true });

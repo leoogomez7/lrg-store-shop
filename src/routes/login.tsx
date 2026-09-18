@@ -56,6 +56,16 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
     }
   }, [isAuthenticated, isLoading, navigate]);
 
+  useEffect(() => {
+    const resetLoginState = () => setIsStartingLogin(false);
+    window.addEventListener("pageshow", resetLoginState);
+    window.addEventListener("popstate", resetLoginState);
+    return () => {
+      window.removeEventListener("pageshow", resetLoginState);
+      window.removeEventListener("popstate", resetLoginState);
+    };
+  }, []);
+
   const startLogin = () => {
     setIsStartingLogin(true);
     if (typeof window !== "undefined") {

@@ -7,6 +7,7 @@ import { orders } from "@/data/orders";
 import {
   listAdminOrders,
   listAdminProducts,
+  loadAdminSettings,
   saveAdminProducts,
   upsertAdminOrder,
 } from "@/server/persistence";
@@ -93,19 +94,19 @@ export async function adjustProductStockForOrder(order: Order, direction: 1 | -1
 }
 
 export const catalogService = {
-  listByBrand: async (brand: BrandSlug) => {
-    const loaded = await listAdminProducts({ data: {} });
-    const filtered = loaded.filter((product) => product.brand === brand);
+  listByBrand: async (brand: BrandSlug, loaded?: Product[]) => {
+    const productsData = loaded ?? (await listAdminProducts({ data: {} }));
+    const filtered = productsData.filter((product) => product.brand === brand);
     const flattened = expandCatalogProducts(filtered);
-    products.splice(0, products.length, ...loaded);
+    products.splice(0, products.length, ...productsData);
     return flattened;
   },
-  detail: async (brand: BrandSlug, slug: string) =>
-    (await listAdminProducts({ data: {} })).find(
+  detail: async (brand: BrandSlug, slug: string, loaded?: Product[]) =>
+    (loaded ?? (await listAdminProducts({ data: {} }))).find(
       (product) => product.brand === brand && product.slug === slug,
     ) ?? null,
-  related: async (brand: BrandSlug, slug: string) => {
-    const allProducts = await listAdminProducts({ data: {} });
+  related: async (brand: BrandSlug, slug: string, loaded?: Product[]) => {
+    const allProducts = loaded ?? (await listAdminProducts({ data: {} }));
     const product = allProducts.find((item) => item.brand === brand && item.slug === slug);
     return product
       ? allProducts
@@ -166,20 +167,34 @@ export const orderService = {
 };
 
 export const catalogQueries = {
+  settings: () =>
+    queryOptions({
+      queryKey: ["admin-settings"],
+      queryFn: () => loadAdminSettings({ data: {} }),
+    }),
   byBrand: (brand: BrandSlug) =>
     queryOptions({
       queryKey: ["products", brand],
-      queryFn: () => catalogService.listByBrand(brand),
+      queryFn: ({ client }) =>
+        client
+          .ensureQueryData(catalogQueries.all())
+          .then((loaded) => catalogService.listByBrand(brand, loaded)),
     }),
   detail: (brand: BrandSlug, slug: string) =>
     queryOptions({
       queryKey: ["product", brand, slug],
-      queryFn: () => catalogService.detail(brand, slug),
+      queryFn: ({ client }) =>
+        client
+          .ensureQueryData(catalogQueries.all())
+          .then((loaded) => catalogService.detail(brand, slug, loaded)),
     }),
   related: (brand: BrandSlug, slug: string) =>
     queryOptions({
       queryKey: ["product", brand, slug, "related"],
-      queryFn: () => catalogService.related(brand, slug),
+      queryFn: ({ client }) =>
+        client
+          .ensureQueryData(catalogQueries.all())
+          .then((loaded) => catalogService.related(brand, slug, loaded)),
     }),
   all: () =>
     queryOptions({

@@ -35,18 +35,17 @@ import { formatPrice } from "@/lib/format";
 import { catalogQueries } from "@/services/catalog.service";
 import { useCart } from "@/store/cart-context";
 import { useNavigate } from "@tanstack/react-router";
-import { loadAdminSettings } from "@/server/persistence";
 
 export const Route = createFileRoute("/$brand/producto/$slug")({
   loader: async ({ params, context }) => {
-    const settings = await loadAdminSettings({ data: {} });
-    applyAdminSettings(settings);
-    refreshBrandData();
     const brand = getBrand(params.brand);
     if (!brand) throw notFound();
-    const product = await context.queryClient.ensureQueryData(
-      catalogQueries.detail(brand.slug, params.slug),
-    );
+    const [settings, product] = await Promise.all([
+      context.queryClient.ensureQueryData(catalogQueries.settings()),
+      context.queryClient.ensureQueryData(catalogQueries.detail(brand.slug, params.slug)),
+    ]);
+    applyAdminSettings(settings);
+    refreshBrandData();
     if (!product) throw notFound();
     await context.queryClient.ensureQueryData(catalogQueries.related(brand.slug, params.slug));
     return {

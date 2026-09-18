@@ -33,7 +33,6 @@ import { brandList } from "@/config/brands";
 import { webDesignConfig } from "@/config/brands/web-design.config";
 import { catalogQueries } from "@/services/catalog.service";
 import { applyAdminSettings, refreshBrandData } from "@/config/brands";
-import { loadAdminSettings } from "@/server/persistence";
 
 const searchSchema = z.object({
   categoria: z.string().optional(),
@@ -43,10 +42,12 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/productos")({
   validateSearch: searchSchema,
   loader: async ({ context }) => {
-    const settings = await loadAdminSettings({ data: {} });
+    const [settings] = await Promise.all([
+      context.queryClient.ensureQueryData(catalogQueries.settings()),
+      context.queryClient.ensureQueryData(catalogQueries.all()),
+    ]);
     applyAdminSettings(settings);
     refreshBrandData();
-    await context.queryClient.ensureQueryData(catalogQueries.all());
     return { settings };
   },
   head: () => ({

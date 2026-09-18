@@ -29,7 +29,6 @@ import { ProductCard } from "@/components/product/product-card";
 import { applyAdminSettings, getBrand, refreshBrandData } from "@/config/brands";
 import { catalogQueries } from "@/services/catalog.service";
 import { orders } from "@/data/orders";
-import { loadAdminSettings } from "@/server/persistence";
 
 const searchSchema = z.object({
   categoria: z.string().optional(),
@@ -39,12 +38,14 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/$brand/productos")({
   validateSearch: searchSchema,
   loader: async ({ params, context }) => {
-    const settings = await loadAdminSettings({ data: {} });
-    applyAdminSettings(settings);
-    refreshBrandData();
     const brand = getBrand(params.brand);
     if (!brand) throw notFound();
-    await context.queryClient.ensureQueryData(catalogQueries.byBrand(brand.slug));
+    const [settings] = await Promise.all([
+      context.queryClient.ensureQueryData(catalogQueries.settings()),
+      context.queryClient.ensureQueryData(catalogQueries.byBrand(brand.slug)),
+    ]);
+    applyAdminSettings(settings);
+    refreshBrandData();
     return { brandSlug: brand.slug, settings };
   },
   head: ({ params }) => {

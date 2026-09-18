@@ -33,6 +33,7 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
   const [role, setRole] = useState<"client" | "admin" | null>(requestedRole ?? null);
   const [adminAccessOpen, setAdminAccessOpen] = useState(false);
   const [adminAuthorized, setAdminAuthorized] = useState(false);
+  const [isStartingRegister, setIsStartingRegister] = useState(false);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -43,7 +44,18 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
     }
   }, [isAuthenticated, isLoading, navigate]);
 
+  useEffect(() => {
+    const resetRegisterState = () => setIsStartingRegister(false);
+    window.addEventListener("pageshow", resetRegisterState);
+    window.addEventListener("popstate", resetRegisterState);
+    return () => {
+      window.removeEventListener("pageshow", resetRegisterState);
+      window.removeEventListener("popstate", resetRegisterState);
+    };
+  }, []);
+
   const startRegister = () => {
+    setIsStartingRegister(true);
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("lrg_auth_role", role ?? "client");
     }
@@ -104,11 +116,11 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
 
           <Button
             type="button"
-            disabled={isLoading || role === null}
+            disabled={isLoading || isStartingRegister || role === null}
             onClick={handleRegister}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 flex items-center justify-center gap-2 font-semibold"
           >
-            {isLoading ? (
+            {isLoading || isStartingRegister ? (
               "Cargando..."
             ) : (
               <>
