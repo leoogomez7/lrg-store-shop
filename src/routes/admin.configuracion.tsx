@@ -114,6 +114,19 @@ function AdminConfiguration() {
   });
   const [isInitialized, setIsInitialized] = useState(false);
 
+  const syncCategoriesToSelectedBrand = useCallback((brandSlug: string) => {
+    const current = brandList.find((brand) => brand.slug === brandSlug)?.categories ?? [];
+    setCategories(
+      current.map((category) => ({
+        id: category.slug,
+        name: category.name,
+        description: category.description ?? "",
+        subcategories: category.subcategories ?? [],
+        enabled: true,
+      })),
+    );
+  }, []);
+
   const loadBrandSettings = useCallback(
     (brandSlug: string) => {
       const brand = getBrand(brandSlug);
@@ -209,19 +222,6 @@ function AdminConfiguration() {
     setBrandCategories(selectedBrandConfig.slug, updatedCategories);
     setCategories(nextCategories);
   };
-
-  const syncCategoriesToSelectedBrand = useCallback((brandSlug: string) => {
-    const current = brandList.find((brand) => brand.slug === brandSlug)?.categories ?? [];
-    setCategories(
-      current.map((category) => ({
-        id: category.slug,
-        name: category.name,
-        description: category.description ?? "",
-        subcategories: category.subcategories ?? [],
-        enabled: true,
-      })),
-    );
-  }, []);
 
   const persistDiscounts = (nextDiscounts: BrandDiscount[]) => {
     setDiscounts(nextDiscounts);

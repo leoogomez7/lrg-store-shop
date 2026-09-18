@@ -81,7 +81,7 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, { hasError: b
           <div className="max-w-md text-center">
             <LoaderCircle className="mx-auto size-8 animate-spin text-primary" aria-hidden="true" />
             <h1 className="mt-4 text-xl font-semibold tracking-tight text-foreground">
-              Ocurrió un error al cargar la página
+              Cargando contenido
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Recargá la página para volver a intentarlo.
