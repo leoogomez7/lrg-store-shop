@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
-import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
+import { saveAdminSetting } from "@/server/persistence";
 import {
   Dialog,
   DialogContent,
@@ -52,7 +52,10 @@ import { saveProducts, type Product } from "@/data/products";
 
 export const Route = createFileRoute("/admin/proveedores")({
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(catalogQueries.all());
+    await Promise.all([
+      context.queryClient.ensureQueryData(catalogQueries.all()),
+      context.queryClient.ensureQueryData(catalogQueries.settings()),
+    ]);
   },
   head: () => ({ meta: [{ title: "Administrador" }] }),
   component: AdminSuppliers,
@@ -76,6 +79,7 @@ const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
 
 function AdminSuppliers() {
   const { data: products } = useSuspenseQuery(catalogQueries.all());
+  const { data: settings } = useSuspenseQuery(catalogQueries.settings());
   const { data: orders = [] } = useQuery(orderQueries.list());
   const queryClient = useQueryClient();
   const [query, setQuery] = React.useState("");
@@ -95,6 +99,22 @@ function AdminSuppliers() {
   const [quantityOpen, setQuantityOpen] = React.useState(false);
   const [expandedSupplierKey, setExpandedSupplierKey] = React.useState<string | null>(null);
   const [standaloneSuppliers, setStandaloneSuppliers] = React.useState<StandaloneSupplier[]>([]);
+
+  React.useEffect(() => {
+    const stored = settings.find((setting) => setting.settingKey === SUPPLIERS_STORAGE_KEY);
+    if (!stored) {
+      setStandaloneSuppliers([]);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored.settingValue) as unknown;
+      setStandaloneSuppliers(Array.isArray(parsed) ? (parsed as StandaloneSupplier[]) : []);
+    } catch {
+      setStandaloneSuppliers([]);
+    }
+  }, [settings]);
+
   const [newSupplierOpen, setNewSupplierOpen] = React.useState(false);
   const [newSupplier, setNewSupplier] = React.useState<StandaloneSupplier>({
     name: "",
@@ -115,18 +135,6 @@ function AdminSuppliers() {
       checked ? [...new Set([...current, key])] : current.filter((item) => item !== key),
     );
   };
-
-  React.useEffect(() => {
-    void loadAdminSettings({ data: {} }).then((settings) => {
-      const stored = settings.find((setting) => setting.settingKey === SUPPLIERS_STORAGE_KEY);
-      if (!stored) return;
-      try {
-        setStandaloneSuppliers(JSON.parse(stored.settingValue) as StandaloneSupplier[]);
-      } catch {
-        setStandaloneSuppliers([]);
-      }
-    });
-  }, []);
 
   const rows = React.useMemo<SupplierRow[]>(() => {
     const grouped = new Map<string, SupplierRow>();
@@ -584,299 +592,292 @@ function AdminSuppliers() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <div className="order-1 basis-full shrink-0">
-          <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Listado</p>
-          <h1 className="mt-2 text-3xl font-semibold">Proveedores</h1>
-        </div>
-        <div className="order-2 relative min-w-0 basis-full flex-1 sm:basis-auto">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar proveedor"
-            className="h-9 pl-9"
-          />
-        </div>
-        <Button
-          onClick={() => {
-            setEditingSupplierKey(null);
-            setNewSupplier({ name: "", phone: "", social: "" });
-            setNewSupplierOpen(true);
-          }}
-          className="order-2 h-9 basis-full gap-2 sm:basis-auto"
-        >
-          <Plus className="size-4" />
-          Nuevo proveedor
-        </Button>
-        <div className="order-3 flex basis-full flex-wrap items-center justify-start gap-2 sm:basis-auto sm:shrink-0">
-          <Dialog open={sortOpen} onOpenChange={setSortOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
-                <ArrowUpDown className="size-4" /> Ordenar por
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Ordenar por</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-1 pt-2">
-                {sortOptions.map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      setSortOrder(value);
-                      setSortOpen(false);
-                    }}
-                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2 ${sortOrder === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"}`}
-                  >
-                    <span>{label}</span>
-                    {sortOrder === value && <Check className="size-4" />}
-                  </button>
-                ))}
-              </div>
-            </DialogContent>
-          </Dialog>
-          <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
-                <Filter className="size-4" /> Filtros
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[min(92vh,48rem)] max-w-2xl overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Filtros</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-6 pt-2">
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => setStoreOpen((current) => !current)}
-                    className="flex items-center gap-2 text-sm font-medium"
-                    aria-expanded={storeOpen}
-                  >
-                    <span>Productos en tiendas</span>
-                    {storeFilter.length > 0 && (
-                      <Badge variant="secondary">{storeFilter.length}</Badge>
-                    )}
-                    {storeOpen ? (
-                      <ChevronUp className="size-4" />
-                    ) : (
-                      <ChevronDown className="size-4" />
-                    )}
-                  </button>
-                  {storeOpen && (
-                    <div className="space-y-2.5">
-                      {[["all", "Todos"] as const, ...storeOptions].map(([value, label]) => (
-                        <label
-                          key={value}
-                          className="flex cursor-pointer items-start gap-3 text-sm"
-                        >
-                          <Checkbox
-                            checked={
-                              value === "all"
-                                ? storeFilter.length === 0
-                                : storeFilter.includes(value)
-                            }
-                            onCheckedChange={(checked) =>
-                              setStoreFilter((current) =>
-                                toggleFilterSelection(
-                                  current,
-                                  value,
-                                  checked === true,
-                                  storeOptions.map(([option]) => option),
-                                ),
-                              )
-                            }
-                          />
-                          <span className="font-medium">{label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
+    <main className="min-h-screen bg-[#020d1a] px-4 py-6 text-[#edf5ff] sm:px-6">
+      <div className="mx-auto w-full max-w-[1280px]">
+        <div className="mb-2 flex flex-wrap items-center gap-3">
+          <div className="order-1 basis-full shrink-0">
+            <p className="text-[11px] tracking-[0.25em] text-slate-400 uppercase">Listado</p>
+            <h1 className="mt-2 text-[2.1rem] font-semibold leading-none tracking-[-0.04em] text-white">
+              Proveedores
+            </h1>
+          </div>
+          <div className="order-2 relative min-w-0 basis-full flex-1 sm:basis-auto">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar proveedor"
+              className="h-11 rounded-xl border border-[#2a3646] bg-[#0d1724] pl-10 text-sm text-white placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-[#4b9ef7]"
+            />
+          </div>
+          <Button
+            onClick={() => {
+              setEditingSupplierKey(null);
+              setNewSupplier({ name: "", phone: "", social: "" });
+              setNewSupplierOpen(true);
+            }}
+            className="order-2 h-11 basis-full rounded-xl border border-[#4ca2ff] bg-[#0a72ff] text-sm font-medium text-white shadow-[0_0_0_1px_rgba(76,162,255,0.4)] hover:bg-[#0b66e8] sm:basis-auto"
+          >
+            <Plus className="size-4" />
+            Nuevo proveedor
+          </Button>
+          <div className="order-3 flex basis-full flex-wrap items-center justify-start gap-2 sm:basis-auto sm:shrink-0">
+            <Dialog open={sortOpen} onOpenChange={setSortOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-11 gap-1.5 rounded-xl border border-[#2d3b4d] bg-[#0d1724] px-3 text-sm text-white hover:bg-[#111f2d]"
+                >
+                  <ArrowUpDown className="size-4" /> Ordenar por
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Ordenar por</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-1 pt-2">
+                  {sortOptions.map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        setSortOrder(value);
+                        setSortOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2 ${sortOrder === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"}`}
+                    >
+                      <span>{label}</span>
+                      {sortOrder === value && <Check className="size-4" />}
+                    </button>
+                  ))}
                 </div>
+              </DialogContent>
+            </Dialog>
 
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => setSalesOpen((current) => !current)}
-                    className="flex items-center gap-2 text-sm font-medium"
-                    aria-expanded={salesOpen}
-                  >
-                    <span>Total vendido</span>
-                    {salesOpen ? (
-                      <ChevronUp className="size-4" />
-                    ) : (
-                      <ChevronDown className="size-4" />
-                    )}
-                  </button>
-                  {salesOpen && (
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-4">
-                        {(["ARS", "USD"] as const).map((currency) => (
-                          <label key={currency} className="flex items-center gap-2 text-sm">
+            <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
+                  <Filter className="size-4" /> Filtros
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[min(92vh,48rem)] max-w-2xl overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Filtros</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6 pt-2">
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setStoreOpen((current) => !current)}
+                      className="flex items-center gap-2 text-sm font-medium"
+                      aria-expanded={storeOpen}
+                    >
+                      <span>Productos en tiendas</span>
+                      {storeFilter.length > 0 && (
+                        <Badge variant="secondary">{storeFilter.length}</Badge>
+                      )}
+                      {storeOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                    </button>
+                    {storeOpen && (
+                      <div className="space-y-2.5">
+                        {[["all", "Todos"] as const, ...storeOptions].map(([value, label]) => (
+                          <label key={value} className="flex cursor-pointer items-start gap-3 text-sm">
                             <Checkbox
-                              checked={currencyFilter.includes(currency)}
+                              checked={value === "all" ? storeFilter.length === 0 : storeFilter.includes(value)}
                               onCheckedChange={(checked) =>
-                                setCurrencyFilter((current) =>
-                                  checked
-                                    ? Array.from(new Set([...current, currency]))
-                                    : current.length === 1
-                                      ? current
-                                      : current.filter((item) => item !== currency),
+                                setStoreFilter((current) =>
+                                  toggleFilterSelection(
+                                    current,
+                                    value,
+                                    checked === true,
+                                    storeOptions.map(([option]) => option),
+                                  ),
                                 )
                               }
                             />
-                            <span>{currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}</span>
+                            <span className="font-medium">{label}</span>
                           </label>
                         ))}
                       </div>
-                      <div className="flex items-center justify-between gap-3 text-xs font-medium">
-                        <label className="flex items-center gap-2">
-                          Desde{" "}
-                          <Input
-                            type="number"
-                            min={0}
-                            max={salesMax}
-                            value={salesMin}
-                            onChange={(event) =>
-                              setSalesMin(
-                                Math.min(Math.max(0, Number(event.target.value) || 0), salesMax),
-                              )
-                            }
-                            className="h-8 w-24"
-                          />
-                        </label>
-                        <label className="flex items-center gap-2">
-                          Hasta{" "}
-                          <Input
-                            type="number"
-                            min={0}
-                            max={salesLimit}
-                            value={salesMax}
-                            onChange={(event) =>
-                              setSalesMax(
-                                Math.max(
-                                  Math.min(salesLimit, Number(event.target.value) || 0),
-                                  salesMin,
-                                ),
-                              )
-                            }
-                            className="h-8 w-24"
-                          />
-                        </label>
-                      </div>
-                      <Slider
-                        min={0}
-                        max={salesLimit}
-                        step={Math.max(1, Math.round(salesLimit / 100))}
-                        value={[salesMin, salesMax]}
-                        onValueChange={(value) => {
-                          setSalesMin(value[0] ?? 0);
-                          setSalesMax(value[1] ?? salesLimit);
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => setQuantityOpen((current) => !current)}
-                    className="flex items-center gap-2 text-sm font-medium"
-                    aria-expanded={quantityOpen}
-                  >
-                    <span>Total de cantidad vendida</span>
-                    {quantityOpen ? (
-                      <ChevronUp className="size-4" />
-                    ) : (
-                      <ChevronDown className="size-4" />
                     )}
-                  </button>
-                  {quantityOpen && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-3 text-xs font-medium">
-                        <label className="flex items-center gap-2">
-                          Desde{" "}
-                          <Input
-                            type="number"
-                            min={0}
-                            max={quantityMax}
-                            value={quantityMin}
-                            onChange={(event) =>
-                              setQuantityMin(
-                                Math.min(Math.max(0, Number(event.target.value) || 0), quantityMax),
-                              )
-                            }
-                            className="h-8 w-24"
-                          />
-                        </label>
-                        <label className="flex items-center gap-2">
-                          Hasta{" "}
-                          <Input
-                            type="number"
-                            min={0}
-                            max={quantityLimit}
-                            value={quantityMax}
-                            onChange={(event) =>
-                              setQuantityMax(
-                                Math.max(
-                                  Math.min(quantityLimit, Number(event.target.value) || 0),
-                                  quantityMin,
-                                ),
-                              )
-                            }
-                            className="h-8 w-24"
-                          />
-                        </label>
-                      </div>
-                      <Slider
-                        min={0}
-                        max={quantityLimit}
-                        step={1}
-                        value={[quantityMin, quantityMax]}
-                        onValueChange={(value) => {
-                          setQuantityMin(value[0] ?? 0);
-                          setQuantityMax(value[1] ?? quantityLimit);
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
+                  </div>
 
-                <div className="flex items-center justify-between border-t border-border/50 pt-4">
-                  <p className="text-xs text-muted-foreground">
-                    {filteredRows.length} proveedores encontrados
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetFilters}
-                    disabled={activeFilterCount === 0}
-                    className="h-8 px-2 text-xs"
-                  >
-                    <X className="mr-1 size-3.5" /> Limpiar
-                  </Button>
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setSalesOpen((current) => !current)}
+                      className="flex items-center gap-2 text-sm font-medium"
+                      aria-expanded={salesOpen}
+                    >
+                      <span>Total vendido</span>
+                      {salesOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                    </button>
+                    {salesOpen && (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap gap-4">
+                          {(["ARS", "USD"] as const).map((currency) => (
+                            <label key={currency} className="flex items-center gap-2 text-sm">
+                              <Checkbox
+                                checked={currencyFilter.includes(currency)}
+                                onCheckedChange={(checked) =>
+                                  setCurrencyFilter((current) =>
+                                    checked
+                                      ? Array.from(new Set([...current, currency]))
+                                      : current.length === 1
+                                        ? current
+                                        : current.filter((item) => item !== currency),
+                                  )
+                                }
+                              />
+                              <span>{currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-between gap-3 text-xs font-medium">
+                          <label className="flex items-center gap-2">
+                            Desde{" "}
+                            <Input
+                              type="number"
+                              min={0}
+                              max={salesMax}
+                              value={salesMin}
+                              onChange={(event) =>
+                                setSalesMin(
+                                  Math.min(Math.max(0, Number(event.target.value) || 0), salesMax),
+                                )
+                              }
+                              className="h-8 w-24"
+                            />
+                          </label>
+                          <label className="flex items-center gap-2">
+                            Hasta{" "}
+                            <Input
+                              type="number"
+                              min={0}
+                              max={salesLimit}
+                              value={salesMax}
+                              onChange={(event) =>
+                                setSalesMax(
+                                  Math.max(
+                                    Math.min(salesLimit, Number(event.target.value) || 0),
+                                    salesMin,
+                                  ),
+                                )
+                              }
+                              className="h-8 w-24"
+                            />
+                          </label>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={salesLimit}
+                          step={Math.max(1, Math.round(salesLimit / 100))}
+                          value={[salesMin, salesMax]}
+                          onValueChange={(value) => {
+                            setSalesMin(value[0] ?? 0);
+                            setSalesMax(value[1] ?? salesLimit);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setQuantityOpen((current) => !current)}
+                      className="flex items-center gap-2 text-sm font-medium"
+                      aria-expanded={quantityOpen}
+                    >
+                      <span>Total de cantidad vendida</span>
+                      {quantityOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                    </button>
+                    {quantityOpen && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-3 text-xs font-medium">
+                          <label className="flex items-center gap-2">
+                            Desde{" "}
+                            <Input
+                              type="number"
+                              min={0}
+                              max={quantityMax}
+                              value={quantityMin}
+                              onChange={(event) =>
+                                setQuantityMin(
+                                  Math.min(Math.max(0, Number(event.target.value) || 0), quantityMax),
+                                )
+                              }
+                              className="h-8 w-24"
+                            />
+                          </label>
+                          <label className="flex items-center gap-2">
+                            Hasta{" "}
+                            <Input
+                              type="number"
+                              min={0}
+                              max={quantityLimit}
+                              value={quantityMax}
+                              onChange={(event) =>
+                                setQuantityMax(
+                                  Math.max(
+                                    Math.min(quantityLimit, Number(event.target.value) || 0),
+                                    quantityMin,
+                                  ),
+                                )
+                              }
+                              className="h-8 w-24"
+                            />
+                          </label>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={quantityLimit}
+                          step={1}
+                          value={[quantityMin, quantityMax]}
+                          onValueChange={(value) => {
+                            setQuantityMin(value[0] ?? 0);
+                            setQuantityMax(value[1] ?? quantityLimit);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-border/50 pt-4">
+                    <p className="text-xs text-muted-foreground">
+                      {filteredRows.length} proveedores encontrados
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetFilters}
+                      disabled={activeFilterCount === 0}
+                      className="h-8 px-2 text-xs"
+                    >
+                      <X className="mr-1 size-3.5" /> Limpiar
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-          <Button
-            onClick={exportExcel}
-            className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
-          >
-            <Sheet className="size-4" />
-            Exportar Excel
-          </Button>
-          <Button onClick={exportPdf} className="gap-2 bg-red-600 text-white hover:bg-red-700">
-            <FileText className="size-4" />
-            Exportar PDF
-          </Button>
+              </DialogContent>
+            </Dialog>
+
+            <Button
+              onClick={exportExcel}
+              className="h-11 gap-2 rounded-xl bg-[#1bbf72] text-sm font-medium text-white hover:bg-[#17a967]"
+            >
+              <Sheet className="size-4" />
+              Exportar Excel
+            </Button>
+            <Button
+              onClick={exportPdf}
+              className="h-11 gap-2 rounded-xl bg-[#e5484d] text-sm font-medium text-white hover:bg-[#d93c42]"
+            >
+              <FileText className="size-4" />
+              Exportar PDF
+            </Button>
+          </div>
         </div>
-      </div>
       <Dialog
         open={newSupplierOpen}
         onOpenChange={(open) => {
@@ -1036,20 +1037,20 @@ function AdminSuppliers() {
 
         <div className="min-w-0 flex-1">
           <Table
-            containerClassName="overflow-x-auto overflow-y-visible"
-            className="w-full text-sm [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center [&_td]:align-middle [&_th]:align-middle"
+            containerClassName="overflow-x-auto overflow-y-visible rounded-2xl border border-[#2a3748] bg-[#0a111a]"
+            className="w-full text-sm text-[#edf6ff]"
           >
-            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+            <TableHeader className="bg-[#1b2430] text-[#edf6ff] [&_th]:border-b [&_th]:border-[#2c3948] [&_th]:py-4 [&_th]:text-left [&_th]:text-[13px] [&_th]:font-semibold [&_th]:text-white">
               <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Celular</TableHead>
-                <TableHead>Red social</TableHead>
-                <TableHead>Total vendido</TableHead>
-                <TableHead>Cantidad vendida</TableHead>
-                <TableHead className={selectionMode ? "hidden" : undefined}>Acciones</TableHead>
+                <TableHead className="w-[24%] pl-5">Nombre</TableHead>
+                <TableHead className="w-[18%]">Celular</TableHead>
+                <TableHead className="w-[18%]">Red social</TableHead>
+                <TableHead className="w-[20%]">Total vendido</TableHead>
+                <TableHead className="w-[20%]">Cantidad vendida</TableHead>
+                <TableHead className={cn("w-[12%] text-right pr-5", selectionMode && "hidden")}>Acciones</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="bg-[#0a111a]">
               {visibleRows.map((row) => {
                 const isExpanded = expandedSupplierKey === row.key;
                 const isQuickEditing = quickEditSupplierKey === row.key;
@@ -1060,69 +1061,72 @@ function AdminSuppliers() {
                 };
                 return (
                   <React.Fragment key={row.key}>
-                    <TableRow>
-                      <TableCell>
+                    <TableRow className="border-b border-[#2a3748] bg-[#0a111a] hover:bg-[#101b28]">
+                      <TableCell className="pl-5 text-left text-[15px] font-medium text-white">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.name}
                             onChange={(event) =>
                               setQuickEditSupplier({ ...quickSupplier, name: event.target.value })
                             }
+                            className="h-9 border-[#2d3d4f] bg-[#101c2b] text-white"
                           />
                         ) : (
                           row.name
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-left text-[15px] text-white">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.phone}
                             onChange={(event) =>
                               setQuickEditSupplier({ ...quickSupplier, phone: event.target.value })
                             }
+                            className="h-9 border-[#2d3d4f] bg-[#101c2b] text-white"
                           />
                         ) : (
                           row.phone
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-left text-[15px] text-white">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.social}
                             onChange={(event) =>
                               setQuickEditSupplier({ ...quickSupplier, social: event.target.value })
                             }
+                            className="h-9 border-[#2d3d4f] bg-[#101c2b] text-white"
                           />
                         ) : (
                           row.social
                         )}
                       </TableCell>
-                      <TableCell className="min-w-32">
-                        <div className="flex flex-col items-center justify-center gap-1 text-center leading-none">
+                      <TableCell className="min-w-32 text-left">
+                        <div className="flex flex-col items-start justify-center gap-1 leading-none text-white">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-medium text-muted-foreground">$</span>
-                            <span className="text-sm">{formatNumber(row.salesByCurrency.ARS)}</span>
+                            <span className="text-[11px] font-medium text-slate-400">$</span>
+                            <span className="text-[15px]">{formatNumber(row.salesByCurrency.ARS)}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-medium text-muted-foreground">
-                              USD
-                            </span>
-                            <span className="text-sm">{formatNumber(row.salesByCurrency.USD)}</span>
+                            <span className="text-[11px] font-medium text-slate-400">USD</span>
+                            <span className="text-[15px]">{formatNumber(row.salesByCurrency.USD)}</span>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{row.soldQuantity}</TableCell>
+                      <TableCell className="text-left text-[15px] text-white">
+                        {row.soldQuantity}
+                      </TableCell>
                       <TableCell
-                        className={cn("min-w-124 whitespace-nowrap", selectionMode && "hidden")}
+                        className={cn("w-[12%] pr-5 text-right", selectionMode && "hidden")}
                       >
-                        <div className="flex flex-nowrap items-center justify-center gap-1.5">
+                        <div className="flex flex-nowrap items-center justify-end gap-1.5">
                           {isQuickEditing ? (
                             <>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => saveSupplierChanges(row.key, quickSupplier)}
-                                className="h-7 gap-1 px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                                className="h-7 gap-1 px-2 text-xs text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
                               >
                                 <Check className="size-3.5" /> Guardar
                               </Button>
@@ -1130,7 +1134,7 @@ function AdminSuppliers() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={cancelQuickEditSupplier}
-                                className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                                className="h-7 gap-1 px-2 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
                               >
                                 <X className="size-3.5" /> Cancelar
                               </Button>
@@ -1141,7 +1145,7 @@ function AdminSuppliers() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setExpandedSupplierKey(isExpanded ? null : row.key)}
-                                className="h-7 gap-1.5 px-2 text-xs"
+                                className="h-7 gap-1.5 px-2 text-xs text-slate-200 hover:bg-slate-700/70"
                               >
                                 {isExpanded ? (
                                   <EyeOff className="size-4" />
@@ -1154,7 +1158,7 @@ function AdminSuppliers() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => startQuickEditSupplier(row)}
-                                className="h-7 gap-1 px-2 text-xs"
+                                className="h-7 gap-1 px-2 text-xs text-slate-200 hover:bg-slate-700/70"
                               >
                                 <Edit3 className="size-3.5" /> Editar rápido
                               </Button>
@@ -1162,7 +1166,7 @@ function AdminSuppliers() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => openSupplierEditor(row)}
-                                className="h-7 gap-1 px-2 text-xs"
+                                className="h-7 gap-1 px-2 text-xs text-slate-200 hover:bg-slate-700/70"
                               >
                                 <Pencil className="size-3.5" /> Editar
                               </Button>
@@ -1174,7 +1178,7 @@ function AdminSuppliers() {
                                     deleteSupplier(row.key);
                                   }
                                 }}
-                                className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                                className="h-7 gap-1 px-2 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
                               >
                                 <Trash2 className="size-3.5" /> Eliminar
                               </Button>
@@ -1210,7 +1214,7 @@ function AdminSuppliers() {
               })}
               {filteredRows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-16 text-muted-foreground">
+                  <TableCell colSpan={5} className="py-16 text-slate-400">
                     No se encontraron proveedores.
                   </TableCell>
                 </TableRow>
@@ -1294,6 +1298,7 @@ function AdminSuppliers() {
           {visibleRows.length} de {filteredRows.length} proveedores mostrados
         </p>
       </div>
-    </main>
+    </div>
+  </main>
   );
 }
