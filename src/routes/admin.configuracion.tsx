@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import {
   ArrowUpRight,
   BadgePercent,
@@ -34,6 +34,7 @@ import {
   BrandPaymentMethod,
   applyAdminSettings,
   type BrandDiscount,
+  type BrandSubcategory,
   brandList,
   getBrand,
   refreshBrandData,
@@ -89,6 +90,13 @@ function AdminConfiguration() {
   const [subcategoryDialogCategoryId, setSubcategoryDialogCategoryId] = useState<string | null>(
     null,
   );
+  type CategoryEntry = {
+    id: string;
+    name: string;
+    description: string;
+    subcategories?: BrandSubcategory[];
+    enabled: boolean;
+  };
   const [newSubcategoryParentSlugs, setNewSubcategoryParentSlugs] = useState<string[]>([]);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [editingSubcategoryKey, setEditingSubcategoryKey] = useState<string | null>(null);
@@ -101,8 +109,10 @@ function AdminConfiguration() {
   const [editingDiscountCode, setEditingDiscountCode] = useState("");
   const [editingDiscountPercentage, setEditingDiscountPercentage] = useState<number | string>("");
   const [editingDiscountAmount, setEditingDiscountAmount] = useState<number | string>("");
-  const [selectedBrand, setSelectedBrand] = useState(brandList[0]?.slug ?? "");
-  const [categories, setCategories] = useState(() => {
+  const [selectedBrand, setSelectedBrand] = useState<BrandSlug>(
+    (brandList[0]?.slug as BrandSlug | undefined) ?? "arcade",
+  );
+  const [categories, setCategories] = useState<CategoryEntry[]>(() => {
     const current = brandList.find((brand) => brand.slug === selectedBrand)?.categories ?? [];
     return current.map((category) => ({
       id: category.slug,
@@ -165,8 +175,13 @@ function AdminConfiguration() {
       try {
         const parsed = JSON.parse(setting.settingValue) as Partial<Record<BrandSlug, string>>;
         if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-          setBankCbus(parsed);
-          setBankCbu(parsed[selectedBrand] ?? "");
+          const nextBankCbus: Partial<Record<BrandSlug, string>> = {
+            arcade: parsed.arcade ?? undefined,
+            scents: parsed.scents ?? undefined,
+            "web-design": parsed["web-design"] ?? undefined,
+          };
+          setBankCbus(nextBankCbus);
+          setBankCbu(nextBankCbus[selectedBrand] ?? "");
           return;
         }
       } catch {
@@ -683,12 +698,17 @@ function AdminConfiguration() {
     persistCategories(next);
   };
 
-  const handleBrandChange = (brandSlug: string) => {
+  const handleBrandChange = (brandSlug: BrandSlug) => {
     if (selectedBrand && isInitialized) {
       persistShippingConfig(shippingMethods, freeShippingThreshold);
       persistPaymentMethods(paymentMethods);
     }
     setSelectedBrand(brandSlug);
+  };
+
+  const nextBankCbuForBrand = (brandSlug: string): string => {
+    const key = brandSlug as BrandSlug;
+    return bankCbus[key] ?? "";
   };
 
   const selectedBrandName =
@@ -704,7 +724,7 @@ function AdminConfiguration() {
     node: SubcategoryNode,
     categoryId: string,
     depth = 0,
-  ): JSX.Element => {
+  ): React.ReactElement => {
     const currentKey = `${categoryId}|${node.slug}`;
     const isEditing = editingSubcategoryKey === currentKey;
 

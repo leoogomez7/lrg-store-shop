@@ -78,26 +78,28 @@ export function AdminAccessDialog({
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <span className="text-sm font-medium">Contraseña</span>
-            <div className="mt-2 flex items-center gap-2">
-              <input
-                id="admin-access-password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="h-11 min-w-0 flex-1 rounded-md border border-border bg-background px-3 [&::-ms-clear]:hidden [&::-ms-reveal]:hidden"
-                autoComplete="current-password"
-                required
-              />
-              <button
-                type="button"
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:text-foreground"
-                onClick={() => setShowPassword((visible) => !visible)}
-                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
-              <Button type="submit" className="w-auto min-w-32 shrink-0" disabled={isSubmitting}>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative min-w-0 flex-1">
+                <input
+                  id="admin-access-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="h-11 w-full rounded-md border border-border bg-background px-3 pr-11 [&::-ms-clear]:hidden [&::-ms-reveal]:hidden"
+                  autoComplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+              <Button type="submit" className="w-full min-w-32 shrink-0 sm:w-auto" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <LoaderCircle className="size-4 animate-spin" /> Cargando...

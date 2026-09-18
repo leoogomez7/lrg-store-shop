@@ -1,4 +1,4 @@
-import type { BrandCategory, BrandSubcategory } from "@/config/brands";
+import type { BrandCategory, BrandSubcategory } from "@/config/brands/types";
 import type { Product } from "@/data/products";
 import type { SortOption } from "./product-filters";
 
@@ -65,8 +65,10 @@ export function matchesDeliveryOption(product: Product, option: string): boolean
 }
 
 export const sortLabels: Record<SortOption, string> = {
-  "descuento-asc": "Precio: menor a mayor",
-  "descuento-desc": "Precio: mayor a menor",
+  "precio-asc": "Precio: menor a mayor",
+  "precio-desc": "Precio: mayor a menor",
+  "descuento-asc": "Precio con descuento: menor a mayor",
+  "descuento-desc": "Precio con descuento: mayor a menor",
   "nombre-asc": "Nombre: A-Z",
   "nombre-desc": "Nombre: Z-A",
   "agregado-asc": "Producto agregado: Antiguo a nuevo",
@@ -143,10 +145,10 @@ export function getCategoryFilterValues(
   const descendants = new Map<string, string[]>();
   const aliases = (slug: string) => [slug, slug.replace(/^root-/, "")];
 
-  const collect = (slug: string, children: BrandSubcategory[] = []) => {
+  const collect = (slug: string, children: BrandSubcategory[] = []): string[] => {
     const values = children.flatMap((child) => [
       child.slug,
-      ...(child.children ? collect(child.slug, child.children) : []),
+      ...collect(child.slug, child.children ?? []),
     ]);
     descendants.set(
       slug,

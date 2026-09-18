@@ -1818,44 +1818,48 @@ function AdminOrders() {
       />
 
       <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
-        <button
-          type="button"
-          className="text-sm font-medium text-foreground"
-          onClick={() => {
-            setSelectionMode((current) => {
-              if (current) setSelectedOrderIds([]);
-              return !current;
-            });
-          }}
-        >
-          Seleccionar
-        </button>
-        <Checkbox
-          className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-          checked={
-            allVisibleOrdersSelected ? true : someVisibleOrdersSelected ? "indeterminate" : false
-          }
-          onCheckedChange={(checked) => {
-            if (checked === false) {
-              setSelectionMode(false);
-              setSelectedOrderIds([]);
-              return;
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="text-sm font-medium text-foreground"
+            onClick={() => {
+              setSelectionMode((current) => {
+                if (current) setSelectedOrderIds([]);
+                return !current;
+              });
+            }}
+          >
+            Seleccionar
+          </button>
+          <Checkbox
+            className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+            checked={
+              allVisibleOrdersSelected ? true : someVisibleOrdersSelected ? "indeterminate" : false
             }
-            setSelectionMode(true);
-            const shouldSelect = checked === true || checked === "indeterminate";
-            setSelectedOrderIds((current) =>
-              shouldSelect
-                ? [...new Set([...current, ...visibleOrderIds])]
-                : current.filter((id) => !visibleOrderIds.includes(id)),
-            );
-          }}
-          aria-label="Seleccionar pedidos visibles"
-        />
-        {selectedOrderIds.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2">
+            onCheckedChange={(checked) => {
+              if (checked === false) {
+                setSelectionMode(false);
+                setSelectedOrderIds([]);
+                return;
+              }
+              setSelectionMode(true);
+              const shouldSelect = checked === true || checked === "indeterminate";
+              setSelectedOrderIds((current) =>
+                shouldSelect
+                  ? [...new Set([...current, ...visibleOrderIds])]
+                  : current.filter((id) => !visibleOrderIds.includes(id)),
+              );
+            }}
+            aria-label="Seleccionar pedidos visibles"
+          />
+          {selectedOrderIds.length > 0 ? (
             <span className="text-xs text-muted-foreground">
               {selectedOrderIds.length} seleccionados
             </span>
+          ) : null}
+        </div>
+        {selectedOrderIds.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="outline" onClick={handleBulkEditOrders}>
               <Pencil className="size-4" /> Editar
             </Button>

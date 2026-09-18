@@ -103,7 +103,7 @@ function ProductDetail() {
   const navigate = useNavigate();
 
   const productImages = product?.images ?? [];
-  const selectedImage = productImages[selectedImageIndex] ?? productImages[0];
+  const selectedImage = productImages[selectedImageIndex] ?? productImages[0] ?? "";
   const hasMultipleImages = productImages.length > 1;
 
   useEffect(() => {
@@ -169,8 +169,8 @@ function ProductDetail() {
       .replace(/[\u0300-\u036f]/g, "")
       .trim()
       .toLowerCase();
-  const categoryValue = normalizeTaxonomyValue(product.category);
-  const subcategoryValue = normalizeTaxonomyValue(product.subcategory);
+  const categoryValue = normalizeTaxonomyValue(product.category) ?? "";
+  const subcategoryValue = normalizeTaxonomyValue(product.subcategory) ?? "";
   const findSubcategoryPath = (
     items: BrandSubcategory[] = [],
     target: string,
@@ -272,7 +272,7 @@ function ProductDetail() {
                   <Link
                     to="/$brand/productos"
                     params={{ brand: brand.slug }}
-                    search={{ categoria: category.slug }}
+                    search={{ categoria: category.slug ?? "" }}
                   >
                     {category.name}
                   </Link>
@@ -288,7 +288,7 @@ function ProductDetail() {
                   <Link
                     to="/$brand/productos"
                     params={{ brand: brand.slug }}
-                    search={{ categoria: category?.slug, subcategoria: subcategory.slug }}
+                    search={{ categoria: category?.slug ?? "", subcategoria: subcategory.slug ?? "" }}
                   >
                     {subcategory.name}
                   </Link>

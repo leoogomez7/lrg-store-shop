@@ -6,6 +6,28 @@ export type BrandSubcategory = {
   children?: BrandSubcategory[];
 };
 
+export type StoreShopContactItem = {
+  text: string;
+  href: string;
+  logo: string;
+};
+
+export type StoreShopContact = {
+  email: StoreShopContactItem;
+  phone: StoreShopContactItem;
+  location: StoreShopContactItem;
+  socials: {
+    instagram: StoreShopContactItem;
+    whatsapp: StoreShopContactItem;
+    tiktok: StoreShopContactItem;
+    facebook: StoreShopContactItem;
+    trustpilot: StoreShopContactItem;
+    google: StoreShopContactItem;
+  };
+};
+
+export type BrandContactPresentation = StoreShopContact;
+
 export type BrandCategory = {
   slug: string;
   name: string;

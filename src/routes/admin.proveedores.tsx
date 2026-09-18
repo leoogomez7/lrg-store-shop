@@ -937,48 +937,52 @@ function AdminSuppliers() {
       </Dialog>
       <FilterChipList chips={filterChips} />
       <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
-        <button
-          type="button"
-          className="text-sm font-medium text-foreground"
-          onClick={() => {
-            setSelectionMode((current) => {
-              if (current) setSelectedSupplierKeys([]);
-              return !current;
-            });
-          }}
-        >
-          Seleccionar
-        </button>
-        <Checkbox
-          className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-          checked={
-            allVisibleSuppliersSelected
-              ? true
-              : someVisibleSuppliersSelected
-                ? "indeterminate"
-                : false
-          }
-          onCheckedChange={(checked) => {
-            if (checked === false) {
-              setSelectionMode(false);
-              setSelectedSupplierKeys([]);
-              return;
+        <div className="flex flex-wrap items-center gap-2 leading-none">
+          <button
+            type="button"
+            className="text-sm font-medium text-foreground leading-none"
+            onClick={() => {
+              setSelectionMode((current) => {
+                if (current) setSelectedSupplierKeys([]);
+                return !current;
+              });
+            }}
+          >
+            Seleccionar
+          </button>
+          <Checkbox
+            className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+            checked={
+              allVisibleSuppliersSelected
+                ? true
+                : someVisibleSuppliersSelected
+                  ? "indeterminate"
+                  : false
             }
-            setSelectionMode(true);
-            const shouldSelect = checked === true || checked === "indeterminate";
-            setSelectedSupplierKeys((current) =>
-              shouldSelect
-                ? [...new Set([...current, ...visibleSupplierKeys])]
-                : current.filter((key) => !visibleSupplierKeys.includes(key)),
-            );
-          }}
-          aria-label="Seleccionar proveedores visibles"
-        />
-        {selectedSupplierKeys.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2">
+            onCheckedChange={(checked) => {
+              if (checked === false) {
+                setSelectionMode(false);
+                setSelectedSupplierKeys([]);
+                return;
+              }
+              setSelectionMode(true);
+              const shouldSelect = checked === true || checked === "indeterminate";
+              setSelectedSupplierKeys((current) =>
+                shouldSelect
+                  ? [...new Set([...current, ...visibleSupplierKeys])]
+                  : current.filter((key) => !visibleSupplierKeys.includes(key)),
+              );
+            }}
+            aria-label="Seleccionar proveedores visibles"
+          />
+          {selectedSupplierKeys.length > 0 ? (
             <span className="text-xs text-muted-foreground">
               {selectedSupplierKeys.length} seleccionados
             </span>
+          ) : null}
+        </div>
+        {selectedSupplierKeys.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="outline" onClick={editSelectedSupplier}>
               <Pencil className="size-4" /> Editar
             </Button>

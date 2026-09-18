@@ -5,10 +5,13 @@ import { saveAdminSetting } from "@/server/persistence";
 import type {
   BrandCategory,
   BrandConfig,
+  BrandContactPresentation,
   BrandDiscount,
   BrandPaymentMethod,
   BrandShippingConfig,
   BrandSlug,
+  StoreShopContact,
+  StoreShopContactItem,
 } from "./types";
 
 const CATEGORY_STORAGE_KEY = "lrg-brand-categories-v1";
@@ -358,22 +361,6 @@ export let brandList: BrandConfig[] = Object.values(brands);
 export const storeShopListing = { slug: "store-shop" as const, name: "LRG Store Shop" };
 export const getStoreNavigation = () => [storeShopListing, ...brandList];
 
-export type StoreShopContactItem = { text: string; href: string; logo: string };
-export type StoreShopContact = {
-  email: StoreShopContactItem;
-  phone: StoreShopContactItem;
-  location: StoreShopContactItem;
-  socials: {
-    instagram: StoreShopContactItem;
-    whatsapp: StoreShopContactItem;
-    tiktok: StoreShopContactItem;
-    facebook: StoreShopContactItem;
-    trustpilot: StoreShopContactItem;
-    google: StoreShopContactItem;
-  };
-};
-export type BrandContactPresentation = StoreShopContact;
-
 const defaultStoreShopContact: StoreShopContact = {
   email: { text: "lrgwebdesign@gmail.com", href: "mailto:lrgwebdesign@gmail.com", logo: "" },
   phone: { text: "+5491132965583", href: "tel:+5491132965583", logo: "" },
@@ -589,8 +576,12 @@ export function getBrand(slug: string): BrandConfig | undefined {
 export type {
   BrandConfig,
   BrandCategory,
+  BrandSubcategory,
+  BrandContactPresentation,
   BrandDiscount,
   BrandPaymentMethod,
   BrandShippingConfig,
   BrandSlug,
+  StoreShopContact,
+  StoreShopContactItem,
 } from "./types";

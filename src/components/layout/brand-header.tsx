@@ -136,7 +136,7 @@ function BrandHeaderContent({
       if (closeMenu) setOpenMenu(false);
     };
 
-  const defaultLinks: Array<{ label: string; to: string; exact?: boolean }> = [];
+  const defaultLinks: Array<{ label: string; to?: string; href?: string; exact?: boolean }> = [];
 
   const effectiveSlug = displayBrandName ? (logoBrandSlug ?? brand.slug) : brand.slug;
   const links = defaultLinks;
@@ -148,25 +148,23 @@ function BrandHeaderContent({
 
   const otherBrands = brandList.filter((item) => item.slug !== effectiveSlug);
   const tiendaMenuItems = [
-    { slug: "store-shop", name: "LRG Store Shop" },
-    ...brandList.filter((item) => item.slug !== "store-shop"),
+    { slug: "store-shop" as const, name: "LRG Store Shop" },
+    ...brandList,
   ];
   const buyMenuItems = [
-    { slug: "store-shop", name: "LRG Store Shop" },
-    ...brandList
-      .filter((item) => item.slug !== "store-shop")
-      .map((item) => ({
-        slug: item.slug,
-        name: item.name,
-      })),
+    { slug: "store-shop" as const, name: "LRG Store Shop" },
+    ...brandList.map((item) => ({
+      slug: item.slug,
+      name: item.name,
+    })),
   ];
 
   const isAdmin = userRole === "admin";
   const userRoleLabel = isAdmin ? "Administrador" : "Cliente";
   const userInitials =
     [userName, userFamilyName]
-      .filter((value) => value && value !== user?.email)
-      .map((value) => value!.trim().charAt(0))
+      .filter((value): value is string => Boolean(value && value !== user?.email))
+      .map((value) => value.trim().charAt(0))
       .join("")
       .toUpperCase()
       .slice(0, 2) || "U";
@@ -274,16 +272,16 @@ function BrandHeaderContent({
                       href={l.href}
                       onClick={(e) => {
                         e.preventDefault();
-                        if (typeof window !== "undefined") {
+                        const anchorSelector = l.href;
+                        if (typeof window !== "undefined" && anchorSelector) {
                           if (window.location.pathname !== "/") {
                             navigate({ to: "/" });
-                            // delay scroll slightly to allow route change
                             setTimeout(() => {
-                              const el = document.querySelector(l.href);
+                              const el = document.querySelector(anchorSelector);
                               if (el) el.scrollIntoView({ behavior: "smooth" });
                             }, 80);
                           } else {
-                            const el = document.querySelector(l.href);
+                            const el = document.querySelector(anchorSelector);
                             if (el) el.scrollIntoView({ behavior: "smooth" });
                           }
                         }
@@ -535,7 +533,14 @@ function BrandHeaderContent({
                   <DropdownMenuItem
                     key={item.slug}
                     onSelect={() => {
-                      handleBrandClick(item.slug)();
+                      const nextHref = item.slug === "store-shop" ? "/productos" : `/${item.slug}`;
+                      if (typeof window !== "undefined" && window.location.pathname === nextHref) {
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      } else if (item.slug === "store-shop") {
+                        navigate({ to: "/productos" });
+                      } else {
+                        navigate({ to: "/$brand", params: { brand: item.slug } });
+                      }
                       setOpenMenu(false);
                     }}
                     className="whitespace-nowrap"
@@ -558,7 +563,7 @@ function BrandHeaderContent({
         cancelLabel="No"
         onConfirm={async () => {
           await logout();
-          await kindeLogout({ redirectURL: getKindeRedirectUri("/") ?? "/" });
+          await kindeLogout({ redirectUrl: getKindeRedirectUri("/") ?? "/" });
           navigate({ to: "/" });
         }}
       />

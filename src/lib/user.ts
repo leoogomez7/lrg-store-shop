@@ -277,18 +277,20 @@ export const getUserAddresses = createServerFn({ method: "GET" })
       });
 
       return result.rows.map((row) => ({
-        id: typeof row.id === "string" ? row.id : undefined,
-        label: String(row.label ?? ""),
-        value: String(row.value ?? ""),
-        references: typeof row.addressReferences === "string" ? row.addressReferences : undefined,
-        city: typeof row.city === "string" ? row.city : undefined,
-        street: typeof row.street === "string" ? row.street : undefined,
-        streetNumber: typeof row.streetNumber === "string" ? row.streetNumber : undefined,
-        floor: typeof row.floor === "string" ? row.floor : undefined,
-        apartment: typeof row.apartment === "string" ? row.apartment : undefined,
-        province: typeof row.province === "string" ? row.province : undefined,
-        postalCode: typeof row.postalCode === "string" ? row.postalCode : undefined,
-        isPrimary: Boolean(row.isPrimary),
+        id: typeof row["id"] === "string" ? row["id"] : undefined,
+        label: String(row["label"] ?? ""),
+        value: String(row["value"] ?? ""),
+        references:
+          typeof row["addressReferences"] === "string" ? row["addressReferences"] : undefined,
+        city: typeof row["city"] === "string" ? row["city"] : undefined,
+        street: typeof row["street"] === "string" ? row["street"] : undefined,
+        streetNumber:
+          typeof row["streetNumber"] === "string" ? row["streetNumber"] : undefined,
+        floor: typeof row["floor"] === "string" ? row["floor"] : undefined,
+        apartment: typeof row["apartment"] === "string" ? row["apartment"] : undefined,
+        province: typeof row["province"] === "string" ? row["province"] : undefined,
+        postalCode: typeof row["postalCode"] === "string" ? row["postalCode"] : undefined,
+        isPrimary: Boolean(row["isPrimary"]),
       })) as UserAddress[];
     } catch (error) {
       console.error("Error obteniendo direcciones:", error);

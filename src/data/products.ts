@@ -37,6 +37,8 @@ export type ProductSupplier = {
 
 export type Product = {
   id: string;
+  parentId?: string;
+  variantId?: string;
   slug: string;
   brand: BrandSlug;
   /** When true the product should be hidden from public listings */

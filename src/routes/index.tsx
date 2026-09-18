@@ -162,9 +162,14 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     };
 
     const parts = dateStr.split(" de ");
-    const day = parseInt(parts[0]);
-    const month = months[parts[1].toLowerCase()];
-    const year = parseInt(parts[2]);
+    const day = Number.parseInt(parts[0] ?? "0", 10);
+    const monthName = (parts[1] ?? "").toLowerCase();
+    const month = months[monthName];
+    const year = Number.parseInt(parts[2] ?? "0", 10);
+
+    if (!Number.isFinite(day) || !month || !Number.isFinite(year)) {
+      return new Date(NaN);
+    }
 
     return new Date(year, month - 1, day);
   }

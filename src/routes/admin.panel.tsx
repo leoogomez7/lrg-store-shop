@@ -7,11 +7,13 @@ import {
   CreditCard,
   DollarSign,
   Package,
+  RotateCcw,
   Search,
   ShoppingCart,
   TrendingUp,
   Users,
   Eye,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -422,7 +424,11 @@ function AdminDashboard() {
                         <ChevronDown className="h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-88 p-4">
+                    <PopoverContent
+                      align="end"
+                      sideOffset={8}
+                      className="w-[min(calc(100vw-1.5rem),30rem)] max-w-[calc(100vw-1.5rem)] p-4"
+                    >
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
                           <label className="text-xs font-medium text-muted-foreground">
@@ -439,7 +445,7 @@ function AdminDashboard() {
                                 : undefined;
                               setDraftRange((current) => ({ from, to: current?.to }));
                             }}
-                            className="[&::-webkit-calendar-picker-indicator]:invert"
+                            className="w-full bg-background text-foreground [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100"
                           />
                         </div>
                         <div className="space-y-1.5">
@@ -460,28 +466,43 @@ function AdminDashboard() {
                                 : undefined;
                               setDraftRange((current) => ({ from: current?.from, to }));
                             }}
-                            className="[&::-webkit-calendar-picker-indicator]:invert"
+                            className="w-full bg-background text-foreground [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100"
                           />
                         </div>
                       </div>
-                      <div className="flex flex-col items-center justify-center gap-1.5 border-t border-border/60 p-3">
+                      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-3">
                         <Button
-                          variant="ghost"
-                          className="w-auto px-4"
-                          onClick={() => setDraftRange(undefined)}
-                        >
-                          Limpiar
-                        </Button>
-                        <Button
-                          className="w-auto px-4"
+                          className="h-9 px-3 text-sm"
                           onClick={() => {
                             setRange(draftRange);
                             setSelectedMonth("todos");
                             setRangePopoverOpen(false);
                           }}
                         >
+                          <Check className="mr-2 h-4 w-4" />
                           Aplicar
                         </Button>
+                        <div className="ml-auto flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            className="h-9 px-3 text-sm"
+                            onClick={() => {
+                              setDraftRange(range ?? undefined);
+                              setRangePopoverOpen(false);
+                            }}
+                          >
+                            <X className="mr-2 h-4 w-4" />
+                            Cancelar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="h-9 px-3 text-sm"
+                            onClick={() => setDraftRange(undefined)}
+                          >
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Limpiar
+                          </Button>
+                        </div>
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -528,7 +549,7 @@ function AdminDashboard() {
           <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
             <Table
               className="w-full min-w-fit text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
-              containerClassName="touch-pan-x overflow-x-auto overflow-y-visible"
+              containerClassName="overflow-x-auto overflow-y-visible overscroll-x-contain touch-pan-y [-webkit-overflow-scrolling:touch]"
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
@@ -659,11 +680,11 @@ function AdminDashboard() {
                 }}
                 placeholder="Buscar productos..."
                 aria-label="Buscar productos en stock"
-                className="pl-9"
+                className="w-full pl-9"
               />
             </div>
           </div>
-          <div className="glass-panel mt-4 touch-pan-x overflow-x-auto overflow-y-hidden rounded-2xl">
+          <div className="glass-panel mt-4 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-2xl touch-pan-y [-webkit-overflow-scrolling:touch]">
             <ul className="min-w-md divide-y divide-border/60">
               {currentStockItems.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-2 px-5 py-2">

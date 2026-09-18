@@ -237,6 +237,8 @@ input[type="password"]::-webkit-textfield-decoration-container {
     -webkit-font-smoothing: antialiased;
     overflow-x: clip;
     scroll-behavior: smooth;
+    height: 100%;
+    min-height: 100%;
   }
 
   body {
@@ -244,6 +246,14 @@ input[type="password"]::-webkit-textfield-decoration-container {
     color: var(--color-foreground);
     font-family: var(--font-sans);
     overflow-x: clip;
+    min-height: 100dvh;
+    min-height: 100vh;
+  }
+
+  @supports (height: 100dvh) {
+    body {
+      min-height: 100dvh;
+    }
   }
 
   button,

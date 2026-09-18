@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/mercadopago/webhook")({
         const accessToken =
           import.meta.env["MERCADOPAGO_ACCESS_TOKEN"]?.trim() ??
           (typeof process !== "undefined"
-            ? process.env.MERCADOPAGO_ACCESS_TOKEN?.trim()
+            ? process.env["MERCADOPAGO_ACCESS_TOKEN"]?.trim()
             : undefined);
         if (!accessToken)
           return new Response("Payment provider is not configured", { status: 500 });
@@ -41,7 +41,9 @@ export const Route = createFileRoute("/api/mercadopago/webhook")({
         const intent = await loadPaymentIntent({ data: { id: payment.external_reference } });
         if (!intent || intent.status === "approved") return new Response(null, { status: 204 });
 
-        const payload = JSON.parse(intent.data) as Omit<PaymentIntentData, "id">;
+        const payload = JSON.parse(intent.data) as Omit<PaymentIntentData, "id"> & {
+          orderId?: string;
+        };
         const id = payload.orderId ?? `LRG-${Math.floor(10000 + Math.random() * 89999)}`;
         const order: Order = {
           ...payload,

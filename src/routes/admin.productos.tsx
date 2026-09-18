@@ -108,6 +108,20 @@ type ProductFormState = {
   supplier: ProductSupplier;
 };
 
+const fileToDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(new Error("No se pudo convertir la imagen seleccionada a datos persistibles."));
+      }
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("No se pudo leer la imagen."));
+    reader.readAsDataURL(file);
+  });
+
 const getSupplierKey = (supplier: ProductSupplier) =>
   `${supplier.name}|${supplier.phone}|${supplier.social}`;
 
@@ -334,8 +348,11 @@ function AdminProducts() {
         if (!lineValue || lineValue.length < 3) continue;
 
         const priceMatch = [...lineValue.matchAll(/(\d{1,3}(?:[.,]\d{1,2})?)/g)]
-          .map((match) => match[1])
-          .find((value) => Number(value.replace(",", ".")) > 0);
+          .map((match) => match[1] ?? "")
+          .find((value) => {
+            const normalizedValue = value.trim();
+            return normalizedValue.length > 0 && Number(normalizedValue.replace(",", ".")) > 0;
+          });
 
         if (!priceMatch) continue;
 
@@ -368,11 +385,12 @@ function AdminProducts() {
           /([A-Za-zÁÉÍÓÚáéíóúñÑ0-9][^\n]{2,100})\s*(?:[:-]|\s)(\d{1,3}(?:[.,]\d{1,2})?)/,
         );
         if (!fallbackMatch) return [];
-        const candidateName = fallbackMatch[1]
+        const candidateName = (fallbackMatch[1] ?? "")
           .replace(/(?:precio|price|valor|total|importe|ars|usd|\$|€)\s*[:=-]*/gi, "")
           .replace(/^[\s|\-:;,.]+|[\s|\-:;,.]+$/g, "")
           .trim();
-        const candidatePrice = Number(fallbackMatch[2].replace(",", "."));
+        const candidatePriceText = fallbackMatch[2] ?? "";
+        const candidatePrice = Number(candidatePriceText.replace(",", "."));
         if (!candidateName || !Number.isFinite(candidatePrice) || candidatePrice <= 0) return [];
         return [{ name: candidateName, price: candidatePrice }];
       }
@@ -394,6 +412,7 @@ function AdminProducts() {
 
       workbook.SheetNames.forEach((sheetName) => {
         const sheet = workbook.Sheets[sheetName];
+        if (!sheet) return;
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false }) as unknown[][];
         rows.forEach((row) => {
           const normalizedRow = row
@@ -432,10 +451,12 @@ function AdminProducts() {
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)/g, "") || `producto-importado-${Date.now()}-${index + 1}`;
 
+      const importedBrand: BrandSlug = defaultBrand;
+
       return {
         id: `import-text-${Date.now()}-${index + 1}`,
         slug: `${slugBase}-${index + 1}`,
-        brand: defaultBrand,
+        brand: importedBrand,
         name,
         category: defaultCategory,
         price,
@@ -920,13 +941,16 @@ function AdminProducts() {
 
     let savedProductId = productForm.id;
 
+    const normalizedBrand: BrandSlug = productForm.brand || "arcade";
+    const normalizedDeliveryUnit: DeliveryUnit = productForm.deliveryUnit || "inmediata";
+
     setEditableProducts((current) => {
       const updated = current.map((item) =>
         item.id === productForm.id
           ? {
               ...item,
               name: productForm.name,
-              brand: productForm.brand,
+              brand: normalizedBrand,
               category: productForm.category,
               subcategory: productForm.subcategory || undefined,
               price: productForm.price,
@@ -943,7 +967,7 @@ function AdminProducts() {
               images: processedImages,
               variants: productForm.variants,
               supplier: productForm.supplier,
-              deliveryUnit: productForm.deliveryUnit || "inmediata",
+              deliveryUnit: normalizedDeliveryUnit,
               deliveryAmount: productForm.deliveryAmount,
             }
           : item,
@@ -957,7 +981,7 @@ function AdminProducts() {
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/(^-|-$)/g, ""),
-          brand: productForm.brand,
+          brand: normalizedBrand,
           name: productForm.name,
           category: productForm.category,
           subcategory: productForm.subcategory || undefined,
@@ -979,7 +1003,7 @@ function AdminProducts() {
           images: processedImages,
           variants: productForm.variants,
           supplier: productForm.supplier,
-          deliveryUnit: productForm.deliveryUnit || "inmediata",
+          deliveryUnit: normalizedDeliveryUnit,
           deliveryAmount: productForm.deliveryAmount,
           createdAt: new Date().toISOString().slice(0, 10),
         } as Product;
@@ -994,7 +1018,7 @@ function AdminProducts() {
       if (existingIndex !== -1) {
         const existing = (productsData as Product[])[existingIndex] as Product;
         existing.name = productForm.name;
-        existing.brand = productForm.brand;
+        existing.brand = normalizedBrand;
         existing.category = productForm.category;
         existing.subcategory = productForm.subcategory || undefined;
         existing.price = productForm.price;
@@ -1012,7 +1036,7 @@ function AdminProducts() {
         existing.images = processedImages;
         existing.variants = productForm.variants;
         existing.supplier = productForm.supplier;
-        existing.deliveryUnit = productForm.deliveryUnit || "inmediata";
+        existing.deliveryUnit = normalizedDeliveryUnit;
         existing.deliveryAmount = productForm.deliveryAmount;
       }
 
@@ -1184,15 +1208,16 @@ function AdminProducts() {
     if (!pageSize || pageSize <= 0) return [] as typeof results;
     return results.slice(page * pageSize, page * pageSize + pageSize);
   }, [results, page, pageSize]);
-  const displayRows = useMemo(
-    () =>
-      visibleResults.flatMap((product) =>
-        product.variants && product.variants.length > 0
-          ? product.variants.map((variant) => ({ product, variant }))
-          : [{ product, variant: undefined }],
-      ),
-    [visibleResults],
-  );
+  type DisplayRow = { product: Product; variant: ProductVariant | undefined };
+
+  const displayRows = useMemo<DisplayRow[]>(() => {
+    return visibleResults.flatMap((product): DisplayRow[] => {
+      if (product.variants && product.variants.length > 0) {
+        return product.variants.map((variant) => ({ product, variant }));
+      }
+      return [{ product, variant: undefined }];
+    });
+  }, [visibleResults]);
   const visibleProductSelectionKeys = displayRows.map(({ product, variant }) =>
     getProductSelectionKey(product, variant),
   );
@@ -1309,18 +1334,6 @@ function AdminProducts() {
           </div>
 
           <div className="flex w-full flex-nowrap items-center justify-start gap-1 sm:contents sm:gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 min-w-0 shrink gap-1 border-amber-500/50 bg-amber-500/10 px-2 text-xs text-amber-600 hover:bg-amber-500/20 hover:text-amber-700 sm:gap-2 sm:px-3 sm:text-sm"
-              onClick={() => {
-                setUsdRatePromptValue(usdRate > 0 ? String(usdRate) : "");
-                setUsdRatePromptOpen(true);
-              }}
-            >
-              Seleccionar USD
-            </Button>
-
             <Dialog open={sortMenuOpen} onOpenChange={setSortMenuOpen}>
               <DialogTrigger asChild>
                 <Button
@@ -1663,6 +1676,18 @@ function AdminProducts() {
                 </div>
               </DialogContent>
             </Dialog>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 min-w-0 shrink gap-1 border-amber-500/50 bg-amber-500/10 px-2 text-xs text-amber-600 hover:bg-amber-500/20 hover:text-amber-700 sm:gap-2 sm:px-3 sm:text-sm"
+              onClick={() => {
+                setUsdRatePromptValue(usdRate > 0 ? String(usdRate) : "");
+                setUsdRatePromptOpen(true);
+              }}
+            >
+              Seleccionar USD
+            </Button>
           </div>
 
           <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
@@ -1776,48 +1801,52 @@ function AdminProducts() {
       </div>
 
       <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
-        <button
-          type="button"
-          className="text-sm font-medium text-foreground"
-          onClick={() => {
-            setSelectionMode((current) => {
-              if (current) setSelectedProductIds([]);
-              return !current;
-            });
-          }}
-        >
-          Seleccionar
-        </button>
-        <Checkbox
-          className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-          checked={
-            allVisibleProductsSelected
-              ? true
-              : someVisibleProductsSelected
-                ? "indeterminate"
-                : false
-          }
-          onCheckedChange={(checked) => {
-            if (checked === false) {
-              setSelectionMode(false);
-              setSelectedProductIds([]);
-              return;
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="text-sm font-medium text-foreground"
+            onClick={() => {
+              setSelectionMode((current) => {
+                if (current) setSelectedProductIds([]);
+                return !current;
+              });
+            }}
+          >
+            Seleccionar
+          </button>
+          <Checkbox
+            className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+            checked={
+              allVisibleProductsSelected
+                ? true
+                : someVisibleProductsSelected
+                  ? "indeterminate"
+                  : false
             }
-            setSelectionMode(true);
-            const shouldSelect = checked === true || checked === "indeterminate";
-            setSelectedProductIds((current) =>
-              shouldSelect
-                ? [...new Set([...current, ...visibleProductSelectionKeys])]
-                : current.filter((key) => !visibleProductSelectionKeys.includes(key)),
-            );
-          }}
-          aria-label="Seleccionar productos visibles"
-        />
-        {selectedProductIds.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2">
+            onCheckedChange={(checked) => {
+              if (checked === false) {
+                setSelectionMode(false);
+                setSelectedProductIds([]);
+                return;
+              }
+              setSelectionMode(true);
+              const shouldSelect = checked === true || checked === "indeterminate";
+              setSelectedProductIds((current) =>
+                shouldSelect
+                  ? [...new Set([...current, ...visibleProductSelectionKeys])]
+                  : current.filter((key) => !visibleProductSelectionKeys.includes(key)),
+              );
+            }}
+            aria-label="Seleccionar productos visibles"
+          />
+          {selectedProductIds.length > 0 ? (
             <span className="text-xs text-muted-foreground">
               {selectedProductIds.length} seleccionados
             </span>
+          ) : null}
+        </div>
+        {selectedProductIds.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="outline" onClick={handleBulkEditProducts}>
               <Pencil className="size-4" /> Editar
             </Button>
@@ -3087,7 +3116,7 @@ function ProductEditDialog({
       stock: productForm.stock,
       features: productForm.features,
       includes: productForm.includes,
-      deliveryUnit: productForm.deliveryUnit,
+      deliveryUnit: productForm.deliveryUnit === "" ? undefined : productForm.deliveryUnit,
       deliveryAmount: productForm.deliveryAmount,
       discount: productForm.discount,
     };
@@ -3183,6 +3212,8 @@ function ProductEditDialog({
     toast.success("Características aplicadas a todas las variantes");
   };
 
+  if (!productForm) return null;
+
   const canApplyDescription =
     Boolean(activeVariant) &&
     productForm.variants.length >= 2 &&
@@ -3204,18 +3235,17 @@ function ProductEditDialog({
     descriptionInitialRef.current = descriptionDraft;
   };
 
-  if (!productForm) return null;
-
   const isNewProduct = mode === "create";
   const modeTitle = isNewProduct ? "Nuevo producto" : "Editar producto";
   const modeDescription = isNewProduct
     ? "Agregá un producto completo con nombre, stock, precio y categoría."
     : "Actualizá los datos del producto sin afectar el flujo de alta.";
+  const safeBrandForForm = productForm.brand || "arcade";
   const availableCategories = productForm.brand
-    ? brands[productForm.brand].categories.map((category) => ({
+    ? brands[safeBrandForForm as BrandSlug].categories.map((category) => ({
         ...category,
-        brandSlug: productForm.brand,
-        brandName: brands[productForm.brand].name,
+        brandSlug: safeBrandForForm as BrandSlug,
+        brandName: brands[safeBrandForForm as BrandSlug].name,
       }))
     : brandList.flatMap((brand) =>
         brand.categories.map((category) => ({

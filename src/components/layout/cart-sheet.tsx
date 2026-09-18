@@ -101,7 +101,7 @@ export function CartSheet({
     };
   }, [handleOpenChange, open]);
 
-  const triggerElement = children as ReactElement;
+  const triggerElement = children as ReactElement<{ onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void }>;
   const triggerProps = {
     ref: triggerRef,
     "aria-expanded": open,

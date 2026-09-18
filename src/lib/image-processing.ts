@@ -11,12 +11,22 @@ function getBackgroundMode(data: Uint8ClampedArray, width: number, height: numbe
     (height - 1) * width * 4,
     ((height - 1) * width + width - 1) * 4,
   ];
-  const lightCorners = corners.filter(
-    (offset) => data[offset] >= 220 && data[offset + 1] >= 220 && data[offset + 2] >= 220,
-  ).length;
-  const darkCorners = corners.filter(
-    (offset) => data[offset] <= 40 && data[offset + 1] <= 40 && data[offset + 2] <= 40,
-  ).length;
+  const lightCorners = corners.filter((offset) => {
+    const red = data[offset];
+    const green = data[offset + 1];
+    const blue = data[offset + 2];
+    return red !== undefined && green !== undefined && blue !== undefined
+      ? red >= 220 && green >= 220 && blue >= 220
+      : false;
+  }).length;
+  const darkCorners = corners.filter((offset) => {
+    const red = data[offset];
+    const green = data[offset + 1];
+    const blue = data[offset + 2];
+    return red !== undefined && green !== undefined && blue !== undefined
+      ? red <= 40 && green <= 40 && blue <= 40
+      : false;
+  }).length;
 
   if (lightCorners >= 3) return "light";
   if (darkCorners >= 3) return "dark";
@@ -44,9 +54,17 @@ function cropUniformBorders(source: HTMLImageElement) {
     let backgroundPixels = 0;
     for (let column = 0; column < canvas.width; column += 1) {
       const offset = (row * canvas.width + column) * 4;
+      const red = pixels[offset];
+      const green = pixels[offset + 1];
+      const blue = pixels[offset + 2];
+      const alpha = pixels[offset + 3];
       if (
-        pixels[offset + 3] < 16 ||
-        isBackgroundPixel(pixels[offset], pixels[offset + 1], pixels[offset + 2], mode)
+        alpha === undefined ||
+        red === undefined ||
+        green === undefined ||
+        blue === undefined ||
+        alpha < 16 ||
+        isBackgroundPixel(red, green, blue, mode)
       ) {
         backgroundPixels += 1;
       }
@@ -57,9 +75,17 @@ function cropUniformBorders(source: HTMLImageElement) {
     let backgroundPixels = 0;
     for (let row = 0; row < canvas.height; row += 1) {
       const offset = (row * canvas.width + column) * 4;
+      const red = pixels[offset];
+      const green = pixels[offset + 1];
+      const blue = pixels[offset + 2];
+      const alpha = pixels[offset + 3];
       if (
-        pixels[offset + 3] < 16 ||
-        isBackgroundPixel(pixels[offset], pixels[offset + 1], pixels[offset + 2], mode)
+        alpha === undefined ||
+        red === undefined ||
+        green === undefined ||
+        blue === undefined ||
+        alpha < 16 ||
+        isBackgroundPixel(red, green, blue, mode)
       ) {
         backgroundPixels += 1;
       }

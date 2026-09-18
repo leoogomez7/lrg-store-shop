@@ -42,6 +42,7 @@ export default defineConfig({
               return "vendor-ui";
             return "vendor-other";
           }
+          return undefined;
         },
       },
     },

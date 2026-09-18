@@ -20,8 +20,10 @@ import {
   setBrandContactPresentation,
   setStoreShopContact,
   storeShopListing,
-  type StoreShopContactItem,
+  type BrandSlug,
   type BrandContactPresentation,
+  type StoreShopContact,
+  type StoreShopContactItem,
 } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { catalogQueries } from "@/services/catalog.service";
@@ -82,26 +84,24 @@ function AdminBrands() {
 
   const saveEditingStoreField = () => {
     if (!editingStoreField || !storeDraft || !storeDraft.text.trim()) return;
-    const [group, key] = editingStoreField.split(".") as [
-      "contact" | "socials",
-      (
-        | "email"
-        | "phone"
-        | "location"
-        | "instagram"
-        | "whatsapp"
-        | "tiktok"
-        | "facebook"
-        | "trustpilot"
-        | "google"
-      ),
-    ];
-    const next =
-      group === "contact"
-        ? setStoreShopContact({ [key]: { ...storeDraft, text: storeDraft.text.trim() } })
-        : setStoreShopContact({
-            socials: { [key]: { ...storeDraft, text: storeDraft.text.trim() } },
-          });
+    const [group, key] = editingStoreField.split(".") as ["contact" | "socials", string];
+
+    const normalizedItem = { ...storeDraft, text: storeDraft.text.trim() };
+
+    const nextStoreContact: StoreShopContact = {
+      ...storeContact,
+      socials: { ...storeContact.socials },
+    };
+
+    if (group === "contact") {
+      const contactKey = key as keyof Omit<StoreShopContact, "socials">;
+      nextStoreContact[contactKey] = normalizedItem as StoreShopContact[typeof contactKey];
+    } else {
+      const socialKey = key as keyof StoreShopContact["socials"];
+      nextStoreContact.socials[socialKey] = normalizedItem;
+    }
+
+    const next = setStoreShopContact(nextStoreContact);
     setStoreContact(next);
     closeEditor();
   };
@@ -118,20 +118,34 @@ function AdminBrands() {
 
   const saveEditingBrandPresentation = () => {
     if (!editingBrandPresentation || !brandPresentationDraft) return;
-    const [slug, group, key] = editingBrandPresentation.split(".") as [
-      "arcade" | "scents" | "web-design",
+    const [slugValue, group, key] = editingBrandPresentation.split(".") as [
+      string,
       "contact" | "socials",
-      keyof StoreShopContact | keyof StoreShopContact["socials"],
+      string,
     ];
-    const next =
-      group === "contact"
-        ? setBrandContactPresentation(slug, { [key]: brandPresentationDraft })
-        : setBrandContactPresentation(slug, { socials: { [key]: brandPresentationDraft } });
+    const slug = slugValue as BrandSlug;
+    const currentPresentation = brandPresentations[slug] ?? getBrandContactPresentation(slug);
+    const nextPresentation: BrandContactPresentation = {
+      ...currentPresentation,
+      socials: { ...currentPresentation.socials },
+    };
+
+    const normalizedItem = { ...brandPresentationDraft, text: brandPresentationDraft.text.trim() };
+
+    if (group === "contact") {
+      const contactKey = key as keyof Omit<BrandContactPresentation, "socials">;
+      nextPresentation[contactKey] = normalizedItem as BrandContactPresentation[typeof contactKey];
+    } else {
+      const socialKey = key as keyof BrandContactPresentation["socials"];
+      nextPresentation.socials[socialKey] = normalizedItem;
+    }
+
+    const next = setBrandContactPresentation(slug, nextPresentation);
     setBrandPresentations((current) => ({ ...current, [slug]: next }));
     closeEditor();
   };
 
-  const storeContactFields = [
+  const storeContactFields: Array<{ key: string; label: string; item: StoreShopContactItem }> = [
     { key: "contact.email", label: "Correo", item: storeContact.email },
     { key: "contact.phone", label: "Celular", item: storeContact.phone },
     { key: "contact.location", label: "Ubicación", item: storeContact.location },
@@ -144,18 +158,24 @@ function AdminBrands() {
   ];
 
   const activeDraft = storeDraft ?? brandPresentationDraft;
-  const activeOriginal = editingStoreField
-    ? storeContactFields.find((field) => field.key === editingStoreField)?.item
+  const activeOriginal: StoreShopContactItem | null = editingStoreField
+    ? storeContactFields.find((field) => field.key === editingStoreField)?.item ?? null
     : editingBrandPresentation
       ? (() => {
-          const [slug, group, key] = editingBrandPresentation.split(".") as [
-            keyof typeof brandPresentations,
+          const [slugValue, group, key] = editingBrandPresentation.split(".") as [
+            string,
             "contact" | "socials",
             string,
           ];
-          return group === "contact"
-            ? brandPresentations[slug][key as keyof BrandContactPresentation]
-            : brandPresentations[slug].socials[key as keyof BrandContactPresentation["socials"]];
+          const slug = slugValue as BrandSlug;
+          const current: BrandContactPresentation =
+            brandPresentations[slug] ?? getBrandContactPresentation(slug);
+
+          if (group === "contact") {
+            return current[key as keyof Omit<BrandContactPresentation, "socials">] as StoreShopContactItem;
+          }
+
+          return current.socials[key as keyof BrandContactPresentation["socials"]] as StoreShopContactItem;
         })()
       : null;
   const hasActiveChanges =
@@ -170,22 +190,24 @@ function AdminBrands() {
   };
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const syncFromStorage = () => {
-        setStoreContact(getStoreShopContact());
-        setBrandPresentations(
-          Object.fromEntries(
-            brandList.map((brand) => [brand.slug, getBrandContactPresentation(brand.slug)]),
-          ),
-        );
-      };
-
-      syncFromStorage();
-      window.addEventListener("lrg-brand-data-updated", syncFromStorage);
-      return () => {
-        window.removeEventListener("lrg-brand-data-updated", syncFromStorage);
-      };
+    if (typeof window === "undefined") {
+      return undefined;
     }
+
+    const syncFromStorage = () => {
+      setStoreContact(getStoreShopContact());
+      setBrandPresentations(
+        Object.fromEntries(
+          brandList.map((brand) => [brand.slug, getBrandContactPresentation(brand.slug)]),
+        ),
+      );
+    };
+
+    syncFromStorage();
+    window.addEventListener("lrg-brand-data-updated", syncFromStorage);
+    return () => {
+      window.removeEventListener("lrg-brand-data-updated", syncFromStorage);
+    };
   }, []);
 
   return (
@@ -253,55 +275,57 @@ function AdminBrands() {
                 </div>
 
                 <div className="mt-3 space-y-2 border-t border-border/60 pt-4 text-xs text-muted-foreground">
-                  {(
-                    [
+                  {(() => {
+                    const brandPresentation =
+                      brandPresentations[brand.slug] ?? getBrandContactPresentation(brand.slug);
+                    return [
                       {
                         key: "contact.email",
                         label: "Correo",
-                        item: brandPresentations[brand.slug].email,
+                        item: brandPresentation.email,
                       },
                       {
                         key: "contact.phone",
                         label: "Celular",
-                        item: brandPresentations[brand.slug].phone,
+                        item: brandPresentation.phone,
                       },
                       {
                         key: "contact.location",
                         label: "Ubicación",
-                        item: brandPresentations[brand.slug].location,
+                        item: brandPresentation.location,
                       },
                       {
                         key: "socials.instagram",
                         label: "Instagram",
-                        item: brandPresentations[brand.slug].socials.instagram,
+                        item: brandPresentation.socials.instagram,
                       },
                       {
                         key: "socials.whatsapp",
                         label: "WhatsApp",
-                        item: brandPresentations[brand.slug].socials.whatsapp,
+                        item: brandPresentation.socials.whatsapp,
                       },
                       {
                         key: "socials.tiktok",
                         label: "TikTok",
-                        item: brandPresentations[brand.slug].socials.tiktok,
+                        item: brandPresentation.socials.tiktok,
                       },
                       {
                         key: "socials.facebook",
                         label: "Facebook",
-                        item: brandPresentations[brand.slug].socials.facebook,
+                        item: brandPresentation.socials.facebook,
                       },
                       {
                         key: "socials.trustpilot",
                         label: "Trustpilot",
-                        item: brandPresentations[brand.slug].socials.trustpilot,
+                        item: brandPresentation.socials.trustpilot,
                       },
                       {
                         key: "socials.google",
                         label: "Google",
-                        item: brandPresentations[brand.slug].socials.google,
+                        item: brandPresentation.socials.google,
                       },
-                    ] as const
-                  ).map((field) => {
+                    ] as const;
+                  })().map((field) => {
                     return (
                       <div key={field.key} className="flex items-center justify-between gap-2">
                         <p className="truncate">{field.label}</p>

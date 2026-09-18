@@ -40,7 +40,9 @@ export type PaymentIntentData = {
 function getAccessToken() {
   const token =
     import.meta.env["MERCADOPAGO_ACCESS_TOKEN"]?.trim() ??
-    (typeof process !== "undefined" ? process.env.MERCADOPAGO_ACCESS_TOKEN?.trim() : undefined);
+    (typeof process !== "undefined"
+      ? process.env["MERCADOPAGO_ACCESS_TOKEN"]?.trim()
+      : undefined);
   if (!token) throw new Error("Falta configurar MERCADOPAGO_ACCESS_TOKEN.");
   return token;
 }
@@ -102,7 +104,7 @@ export const createMercadoPagoPreference = createServerFn({ method: "POST" })
 export const getMercadoPagoIntentStatus = createServerFn({ method: "POST" })
   .validator((data: { intentId: string }) => data)
   .handler(async ({ data }) => {
-    const intent = await loadPaymentIntent({ data });
+    const intent = await loadPaymentIntent({ data: { id: data.intentId } });
     return {
       status: intent?.status ?? "unknown",
       orderId: intent?.orderId ?? null,

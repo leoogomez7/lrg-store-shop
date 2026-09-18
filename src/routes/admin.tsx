@@ -573,7 +573,44 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
         <div className="min-w-0 flex-1">
           <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:hidden">
-            <AdminUserMenu />
+            <DropdownMenu open={adminUserMenuOpen} onOpenChange={setAdminUserMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Menú de Administrador"
+                  className="inline-flex min-w-0 items-center gap-2 text-left text-sm text-muted-foreground"
+                >
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-amber-600 text-xs font-bold uppercase text-white">
+                    {adminUserInitials}
+                  </span>
+                  <span className="truncate font-medium text-foreground">{adminUserName}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="min-w-56 w-auto p-1">
+                <div className="border-b px-3 py-2">
+                  <div className="truncate text-sm font-semibold">{adminUserName}</div>
+                  <div className="text-xs text-muted-foreground">{adminUserRole}</div>
+                </div>
+                {navigation.slice(1).map(({ label, to, icon: Icon }) => (
+                  <DropdownMenuItem key={to} asChild>
+                    <Link to={to} onClick={() => setAdminUserMenuOpen(false)} className="whitespace-nowrap">
+                      <Icon className="size-4" />
+                      {label}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuItem
+                  className="whitespace-nowrap bg-red-50 font-semibold text-red-600 hover:bg-red-100 hover:text-red-700 focus:bg-red-100 focus:text-red-700"
+                  onSelect={() => {
+                    setAdminUserMenuOpen(false);
+                    setLogoutOpen(true);
+                  }}
+                >
+                  <LogOut className="size-4" />
+                  Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <div className="flex items-center gap-2">
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
@@ -602,7 +639,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                           to={item.to}
                           aria-current={active ? "page" : undefined}
                           className={cn(
-                            "group relative overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:before:opacity-100",
+                            "group relative flex items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:before:opacity-100",
                             active
                               ? "border-white/10 bg-surface-2 text-foreground font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
                               : "text-muted-foreground",
