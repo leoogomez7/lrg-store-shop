@@ -592,22 +592,20 @@ function AdminSuppliers() {
   };
 
   return (
-    <main className="min-h-screen bg-[#020d1a] px-4 py-6 text-[#edf5ff] sm:px-6">
-      <div className="mx-auto w-full max-w-[1280px]">
-        <div className="mb-2 flex flex-wrap items-center gap-3">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+      <div className="w-full">
+        <div className="mb-6 flex flex-wrap items-center gap-2">
           <div className="order-1 basis-full shrink-0">
-            <p className="text-[11px] tracking-[0.25em] text-slate-400 uppercase">Listado</p>
-            <h1 className="mt-2 text-[2.1rem] font-semibold leading-none tracking-[-0.04em] text-white">
-              Proveedores
-            </h1>
+            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Listado</p>
+            <h1 className="mt-2 text-3xl font-semibold">Proveedores</h1>
           </div>
           <div className="order-2 relative min-w-0 basis-full flex-1 sm:basis-auto">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Buscar proveedor"
-              className="h-11 rounded-xl border border-[#2a3646] bg-[#0d1724] pl-10 text-sm text-white placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-[#4b9ef7]"
+              className="h-9 pl-9"
             />
           </div>
           <Button
@@ -616,19 +614,15 @@ function AdminSuppliers() {
               setNewSupplier({ name: "", phone: "", social: "" });
               setNewSupplierOpen(true);
             }}
-            className="order-2 h-11 basis-full rounded-xl border border-[#4ca2ff] bg-[#0a72ff] text-sm font-medium text-white shadow-[0_0_0_1px_rgba(76,162,255,0.4)] hover:bg-[#0b66e8] sm:basis-auto"
+            className="order-2 h-9 basis-full sm:basis-auto"
           >
             <Plus className="size-4" />
             Nuevo proveedor
           </Button>
-          <div className="order-3 flex basis-full flex-wrap items-center justify-start gap-2 sm:basis-auto sm:shrink-0">
+          <div className="order-3 flex basis-full flex-col gap-2 sm:basis-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 sm:shrink-0">
             <Dialog open={sortOpen} onOpenChange={setSortOpen}>
               <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-11 gap-1.5 rounded-xl border border-[#2d3b4d] bg-[#0d1724] px-3 text-sm text-white hover:bg-[#111f2d]"
-                >
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
                   <ArrowUpDown className="size-4" /> Ordenar por
                 </Button>
               </DialogTrigger>
@@ -661,7 +655,7 @@ function AdminSuppliers() {
                   <Filter className="size-4" /> Filtros
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-h-[min(92vh,48rem)] max-w-2xl overflow-y-auto">
+              <DialogContent className="max-h-[min(92vh,48rem)] max-w-2xl overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
                 <DialogHeader>
                   <DialogTitle>Filtros</DialogTitle>
                 </DialogHeader>
@@ -862,17 +856,11 @@ function AdminSuppliers() {
               </DialogContent>
             </Dialog>
 
-            <Button
-              onClick={exportExcel}
-              className="h-11 gap-2 rounded-xl bg-[#1bbf72] text-sm font-medium text-white hover:bg-[#17a967]"
-            >
+            <Button onClick={exportExcel} className="h-9 gap-2">
               <Sheet className="size-4" />
               Exportar Excel
             </Button>
-            <Button
-              onClick={exportPdf}
-              className="h-11 gap-2 rounded-xl bg-[#e5484d] text-sm font-medium text-white hover:bg-[#d93c42]"
-            >
+            <Button variant="secondary" onClick={exportPdf} className="h-9 gap-2">
               <FileText className="size-4" />
               Exportar PDF
             </Button>
@@ -1037,10 +1025,10 @@ function AdminSuppliers() {
 
         <div className="min-w-0 flex-1">
           <Table
-            containerClassName="overflow-x-auto overflow-y-visible rounded-2xl border border-[#2a3748] bg-[#0a111a]"
-            className="w-full text-sm text-[#edf6ff]"
+            containerClassName="overflow-x-auto overflow-y-visible rounded-2xl border border-border/60 bg-background"
+            className="w-full text-sm text-foreground"
           >
-            <TableHeader className="bg-[#1b2430] text-[#edf6ff] [&_th]:border-b [&_th]:border-[#2c3948] [&_th]:py-4 [&_th]:text-left [&_th]:text-[13px] [&_th]:font-semibold [&_th]:text-white">
+            <TableHeader className="bg-muted/50 text-foreground [&_th]:border-b [&_th]:border-border [&_th]:py-4 [&_th]:text-left [&_th]:text-[13px] [&_th]:font-semibold">
               <TableRow>
                 <TableHead className="w-[24%] pl-5">Nombre</TableHead>
                 <TableHead className="w-[18%]">Celular</TableHead>
@@ -1050,7 +1038,7 @@ function AdminSuppliers() {
                 <TableHead className={cn("w-[12%] text-right pr-5", selectionMode && "hidden")}>Acciones</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="bg-[#0a111a]">
+            <TableBody className="bg-background">
               {visibleRows.map((row) => {
                 const isExpanded = expandedSupplierKey === row.key;
                 const isQuickEditing = quickEditSupplierKey === row.key;
@@ -1061,59 +1049,59 @@ function AdminSuppliers() {
                 };
                 return (
                   <React.Fragment key={row.key}>
-                    <TableRow className="border-b border-[#2a3748] bg-[#0a111a] hover:bg-[#101b28]">
-                      <TableCell className="pl-5 text-left text-[15px] font-medium text-white">
+                    <TableRow className="border-b border-border bg-background hover:bg-muted/30">
+                      <TableCell className="pl-5 text-left text-[15px] font-medium text-foreground">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.name}
                             onChange={(event) =>
                               setQuickEditSupplier({ ...quickSupplier, name: event.target.value })
                             }
-                            className="h-9 border-[#2d3d4f] bg-[#101c2b] text-white"
+                            className="h-9"
                           />
                         ) : (
                           row.name
                         )}
                       </TableCell>
-                      <TableCell className="text-left text-[15px] text-white">
+                      <TableCell className="text-left text-[15px] text-foreground">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.phone}
                             onChange={(event) =>
                               setQuickEditSupplier({ ...quickSupplier, phone: event.target.value })
                             }
-                            className="h-9 border-[#2d3d4f] bg-[#101c2b] text-white"
+                            className="h-9"
                           />
                         ) : (
                           row.phone
                         )}
                       </TableCell>
-                      <TableCell className="text-left text-[15px] text-white">
+                      <TableCell className="text-left text-[15px] text-foreground">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.social}
                             onChange={(event) =>
                               setQuickEditSupplier({ ...quickSupplier, social: event.target.value })
                             }
-                            className="h-9 border-[#2d3d4f] bg-[#101c2b] text-white"
+                            className="h-9"
                           />
                         ) : (
                           row.social
                         )}
                       </TableCell>
                       <TableCell className="min-w-32 text-left">
-                        <div className="flex flex-col items-start justify-center gap-1 leading-none text-white">
+                        <div className="flex flex-col items-start justify-center gap-1 leading-none text-foreground">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-medium text-slate-400">$</span>
+                            <span className="text-[11px] font-medium text-muted-foreground">$</span>
                             <span className="text-[15px]">{formatNumber(row.salesByCurrency.ARS)}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-medium text-slate-400">USD</span>
+                            <span className="text-[11px] font-medium text-muted-foreground">USD</span>
                             <span className="text-[15px]">{formatNumber(row.salesByCurrency.USD)}</span>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-left text-[15px] text-white">
+                      <TableCell className="text-left text-[15px] text-foreground">
                         {row.soldQuantity}
                       </TableCell>
                       <TableCell
@@ -1126,7 +1114,7 @@ function AdminSuppliers() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => saveSupplierChanges(row.key, quickSupplier)}
-                                className="h-7 gap-1 px-2 text-xs text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+                                className="h-7 gap-1 px-2 text-xs text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
                               >
                                 <Check className="size-3.5" /> Guardar
                               </Button>
@@ -1134,7 +1122,7 @@ function AdminSuppliers() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={cancelQuickEditSupplier}
-                                className="h-7 gap-1 px-2 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                                className="h-7 gap-1 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
                               >
                                 <X className="size-3.5" /> Cancelar
                               </Button>
@@ -1145,7 +1133,7 @@ function AdminSuppliers() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setExpandedSupplierKey(isExpanded ? null : row.key)}
-                                className="h-7 gap-1.5 px-2 text-xs text-slate-200 hover:bg-slate-700/70"
+                                className="h-7 gap-1.5 px-2 text-xs text-foreground hover:bg-muted"
                               >
                                 {isExpanded ? (
                                   <EyeOff className="size-4" />
@@ -1158,7 +1146,7 @@ function AdminSuppliers() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => startQuickEditSupplier(row)}
-                                className="h-7 gap-1 px-2 text-xs text-slate-200 hover:bg-slate-700/70"
+                                className="h-7 gap-1 px-2 text-xs text-foreground hover:bg-muted"
                               >
                                 <Edit3 className="size-3.5" /> Editar rápido
                               </Button>
@@ -1166,7 +1154,7 @@ function AdminSuppliers() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => openSupplierEditor(row)}
-                                className="h-7 gap-1 px-2 text-xs text-slate-200 hover:bg-slate-700/70"
+                                className="h-7 gap-1 px-2 text-xs text-foreground hover:bg-muted"
                               >
                                 <Pencil className="size-3.5" /> Editar
                               </Button>
@@ -1178,7 +1166,7 @@ function AdminSuppliers() {
                                     deleteSupplier(row.key);
                                   }
                                 }}
-                                className="h-7 gap-1 px-2 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                                className="h-7 gap-1 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
                               >
                                 <Trash2 className="size-3.5" /> Eliminar
                               </Button>
@@ -1189,14 +1177,11 @@ function AdminSuppliers() {
                     </TableRow>
                     {isExpanded ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="bg-surface-2/70 p-4 text-left">
+                        <TableCell colSpan={5} className="bg-muted/30 p-4 text-left">
                           <p className="mb-2 font-medium">Productos</p>
                           <div className="flex flex-wrap gap-2">
                             {row.products.map((product) => (
-                              <span
-                                key={product}
-                                className="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary"
-                              >
+                              <span key={product} className="rounded-md bg-muted px-2 py-1 text-xs text-foreground">
                                 {product}
                               </span>
                             ))}
@@ -1214,7 +1199,7 @@ function AdminSuppliers() {
               })}
               {filteredRows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-16 text-slate-400">
+                  <TableCell colSpan={5} className="py-16 text-muted-foreground">
                     No se encontraron proveedores.
                   </TableCell>
                 </TableRow>
@@ -1225,14 +1210,7 @@ function AdminSuppliers() {
       </div>
       <div className="mt-4 flex flex-col gap-3 pb-20">
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setPage(0)}
-            disabled={!hasPreviousPage}
-            className="h-9 rounded-xl border border-input bg-[#1f2937] px-4 text-sm text-white shadow-none hover:bg-[#111827]"
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={() => setPage(0)} disabled={!hasPreviousPage} className="h-9 px-4">
             Principio
           </Button>
           <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
@@ -1240,21 +1218,16 @@ function AdminSuppliers() {
               <button
                 key={index}
                 type="button"
-                className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#1f2937] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${
+                  index === page ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"
+                }`}
                 onClick={() => setPage(index)}
               >
                 {index + 1}
               </button>
             ))}
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setPage(totalPages - 1)}
-            disabled={!hasNextPage}
-            className="h-9 rounded-xl border border-input bg-[#1f2937] px-4 text-sm text-white shadow-none hover:bg-[#111827]"
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={() => setPage(totalPages - 1)} disabled={!hasNextPage} className="h-9 px-4">
             Último
           </Button>
         </div>
@@ -1299,6 +1272,7 @@ function AdminSuppliers() {
         </p>
       </div>
     </div>
+</div>
   </main>
   );
 }
