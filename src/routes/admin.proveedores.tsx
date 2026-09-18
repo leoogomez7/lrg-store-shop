@@ -856,11 +856,17 @@ function AdminSuppliers() {
               </DialogContent>
             </Dialog>
 
-            <Button onClick={exportExcel} className="h-9 gap-2">
+            <Button
+              onClick={exportExcel}
+              className="h-9 gap-2 rounded-xl border border-blue-500/60 bg-blue-500 px-3 text-white shadow-none hover:bg-blue-600 hover:text-white"
+            >
               <Sheet className="size-4" />
               Exportar Excel
             </Button>
-            <Button variant="secondary" onClick={exportPdf} className="h-9 gap-2">
+            <Button
+              onClick={exportPdf}
+              className="h-9 gap-2 rounded-xl border border-red-500/60 bg-red-500 px-3 text-white shadow-none hover:bg-red-600 hover:text-white"
+            >
               <FileText className="size-4" />
               Exportar PDF
             </Button>

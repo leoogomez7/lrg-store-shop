@@ -1146,7 +1146,7 @@ function AdminConfiguration() {
                   onChange={(event) => setNewSubcategoryName(event.target.value)}
                   placeholder={
                     newSubcategoryParentSlugs.length
-                      ? "Nueva subcategoría anidada"
+                      ? "Nueva subcategoría"
                       : "Nueva subcategoría"
                   }
                   className="h-9 min-w-0"
@@ -1487,9 +1487,9 @@ function AdminConfiguration() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setEditingCategoryName(category.name);
-                                setEditingCategorySubtitle(category.description ?? "");
-                                setEditingCategoryId(category.id);
+                                setEditingCategoryId(null);
+                                setEditingCategoryName("");
+                                setEditingCategorySubtitle("");
                                 setSubcategoryDialogCategoryId(category.id);
                                 setNewSubcategoryName("");
                                 setNewSubcategoryParentSlugs([]);

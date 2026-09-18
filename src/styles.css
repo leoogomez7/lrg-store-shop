@@ -236,9 +236,11 @@ input[type="password"]::-webkit-textfield-decoration-container {
   html {
     -webkit-font-smoothing: antialiased;
     overflow-x: clip;
+    overflow-y: scroll;
     scroll-behavior: smooth;
     height: 100%;
     min-height: 100%;
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -248,6 +250,7 @@ input[type="password"]::-webkit-textfield-decoration-container {
     overflow-x: clip;
     min-height: 100dvh;
     min-height: 100vh;
+    scrollbar-gutter: stable;
   }
 
   @supports (height: 100dvh) {
