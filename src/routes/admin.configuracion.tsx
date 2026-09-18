@@ -658,6 +658,15 @@ function AdminConfiguration() {
   const saveEditedCategory = (id: string) => {
     const trimmed = editingCategoryName.trim();
     if (!trimmed) return;
+    const currentCategory = categories.find((category) => category.id === id);
+    if (!currentCategory) return;
+    const hasChanged = trimmed !== currentCategory.name.trim();
+    if (!hasChanged) {
+      setEditingCategoryId(null);
+      setEditingCategoryName("");
+      setEditingCategorySubtitle("");
+      return;
+    }
     const next = categories.map((category) =>
       category.id === id
         ? { ...category, name: trimmed, description: editingCategorySubtitle.trim() }
@@ -687,6 +696,9 @@ function AdminConfiguration() {
   const subcategoryDialogCategory = categories.find(
     (category) => category.id === subcategoryDialogCategoryId,
   );
+  const getSubcategorySelectionKey = (categoryId: string, slug: string) => `${categoryId}:${slug}`;
+  const normalizeSubcategorySelectionKey = (selectionKey: string) =>
+    selectionKey.split(":").slice(1).join(":");
 
   const renderSubcategoryNode = (
     node: SubcategoryNode,
@@ -755,16 +767,17 @@ function AdminConfiguration() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
+                  const selectionKey = getSubcategorySelectionKey(categoryId, node.slug);
                   setNewSubcategoryParentSlugs((current) =>
-                    current.includes(node.slug)
-                      ? current.filter((slug) => slug !== node.slug)
-                      : [...current, node.slug],
+                    current.includes(selectionKey)
+                      ? current.filter((key) => key !== selectionKey)
+                      : [...current, selectionKey],
                   );
                   setNewSubcategoryName("");
                 }}
                 className={cn(
                   "h-8 gap-1 px-2 text-sm",
-                  newSubcategoryParentSlugs.includes(node.slug) &&
+                  newSubcategoryParentSlugs.includes(getSubcategorySelectionKey(categoryId, node.slug)) &&
                     "border-primary bg-primary/10 text-primary",
                 )}
               >
@@ -1073,22 +1086,29 @@ function AdminConfiguration() {
             </DialogHeader>
             <div className="space-y-3 py-2">
               {subcategoryDialogCategory && editingCategoryId === subcategoryDialogCategory.id && (
-                <div className="space-y-3 rounded-xl border border-border/60 bg-surface/50 p-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="modal-category-name">Nombre</Label>
-                    <Input
-                      id="modal-category-name"
-                      value={editingCategoryName}
-                      onChange={(event) => setEditingCategoryName(event.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="modal-category-description">Descripción</Label>
-                    <Input
-                      id="modal-category-description"
-                      value={editingCategorySubtitle}
-                      onChange={(event) => setEditingCategorySubtitle(event.target.value)}
-                    />
+                <div className="rounded-xl border border-border/60 bg-surface/50 p-3">
+                  <div className="flex items-end gap-2">
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <Label htmlFor="modal-category-name">Nombre</Label>
+                      <Input
+                        id="modal-category-name"
+                        value={editingCategoryName}
+                        onChange={(event) => setEditingCategoryName(event.target.value)}
+                        className="h-9 w-full"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => saveEditedCategory(subcategoryDialogCategory.id)}
+                      disabled={
+                        !editingCategoryName.trim() ||
+                        editingCategoryName.trim() === subcategoryDialogCategory.name.trim()
+                      }
+                      className="h-9 shrink-0 gap-2"
+                    >
+                      <Check className="size-4" />
+                      Confirmar
+                    </Button>
                   </div>
                 </div>
               )}
@@ -1115,7 +1135,10 @@ function AdminConfiguration() {
                   type="button"
                   onClick={() =>
                     subcategoryDialogCategoryId &&
-                    addSubcategory(subcategoryDialogCategoryId, newSubcategoryParentSlugs)
+                    addSubcategory(
+                      subcategoryDialogCategoryId,
+                      newSubcategoryParentSlugs.map(normalizeSubcategorySelectionKey),
+                    )
                   }
                   disabled={!newSubcategoryName.trim()}
                   className="h-9 shrink-0 gap-2"
@@ -1128,23 +1151,10 @@ function AdminConfiguration() {
                   type="button"
                   variant="outline"
                   onClick={() => setSubcategoryDialogCategoryId(null)}
+                  className="gap-2"
                 >
+                  <X className="size-4" />
                   Cancelar
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (
-                      subcategoryDialogCategory &&
-                      editingCategoryId === subcategoryDialogCategory.id
-                    ) {
-                      saveEditedCategory(subcategoryDialogCategory.id);
-                    }
-                    setSubcategoryDialogCategoryId(null);
-                  }}
-                  disabled={!editingCategoryName.trim()}
-                >
-                  <Check className="size-4" /> Guardar cambios
                 </Button>
               </div>
             </div>
@@ -1378,26 +1388,29 @@ function AdminConfiguration() {
                 >
                   <div className="min-w-0 flex-1 text-sm font-semibold text-foreground">
                     {editingCategoryId === category.id ? (
-                      <div className="grid w-full gap-2 sm:grid-cols-2">
-                        <div className="space-y-1">
-                          <Label htmlFor={`category-name-${category.id}`}>Nombre categoría</Label>
+                      <div className="flex w-full items-end gap-2">
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <Label htmlFor={`category-name-${category.id}`}>Nombre</Label>
                           <Input
                             id={`category-name-${category.id}`}
                             value={editingCategoryName}
                             onChange={(event) => setEditingCategoryName(event.target.value)}
-                            className="min-w-35 w-full"
+                            className="h-9 min-w-0 w-full"
                           />
                         </div>
-                        <div className="space-y-1">
-                          <Label htmlFor={`category-description-${category.id}`}>Descripción</Label>
-                          <Input
-                            id={`category-description-${category.id}`}
-                            value={editingCategorySubtitle}
-                            onChange={(event) => setEditingCategorySubtitle(event.target.value)}
-                            aria-label={`Descripción de ${category.name}`}
-                            className="min-w-35 w-full"
-                          />
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => saveEditedCategory(category.id)}
+                          disabled={
+                            !editingCategoryName.trim() ||
+                            editingCategoryName.trim() === category.name.trim()
+                          }
+                          className="h-9 shrink-0 gap-1 rounded-md border border-transparent bg-transparent px-2 text-sm text-green-600 shadow-none hover:bg-green-100/80 hover:text-green-700 hover:shadow-none disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40 disabled:opacity-100"
+                        >
+                          <Check className="h-4 w-4" />
+                          Confirmar
+                        </Button>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -1421,21 +1434,6 @@ function AdminConfiguration() {
                   <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
                     {editingCategoryId === category.id ? (
                       <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => saveEditedCategory(category.id)}
-                          disabled={
-                            !editingCategoryName.trim() ||
-                            (editingCategoryName.trim() === category.name &&
-                              editingCategorySubtitle.trim() ===
-                                (category.description ?? "").trim())
-                          }
-                          className="h-8 gap-1 rounded-md border border-transparent bg-transparent px-2 text-sm text-green-600 shadow-none hover:bg-green-100/80 hover:text-green-700 hover:shadow-none disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40 disabled:opacity-100"
-                        >
-                          <Check className="h-4 w-4" />
-                          Guardar
-                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1471,7 +1469,7 @@ function AdminConfiguration() {
                               onClick={() => {
                                 setEditingCategoryName(category.name);
                                 setEditingCategorySubtitle(category.description ?? "");
-                                setEditingCategoryId(null);
+                                setEditingCategoryId(category.id);
                                 setSubcategoryDialogCategoryId(category.id);
                                 setNewSubcategoryName("");
                                 setNewSubcategoryParentSlugs([]);

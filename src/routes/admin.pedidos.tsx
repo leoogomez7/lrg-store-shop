@@ -497,7 +497,7 @@ function AdminOrders() {
   const search = Route.useSearch();
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const { data: allProducts } = useSuspenseQuery(catalogQueries.all());
-  const [editableOrders, setEditableOrders] = useState<typeof orders>([]);
+  const [editableOrders, setEditableOrders] = useState<typeof orders>(() => orders);
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryStatus[]>([]);
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus[]>([]);
   const [shippingMethodFilter, setShippingMethodFilter] = useState<string[]>([]);
