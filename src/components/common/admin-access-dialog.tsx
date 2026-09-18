@@ -74,41 +74,41 @@ export function AdminAccessDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="flex items-end gap-2">
-            <label className="min-w-0 flex-1 text-sm font-medium" htmlFor="admin-access-password">
-              Contraseña
+          <div>
+            <span className="text-sm font-medium">Contraseña</span>
+            <div className="mt-2 flex items-center gap-2">
               <input
                 id="admin-access-password"
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="mt-2 h-11 w-full rounded-md border border-border bg-background px-3"
+                className="h-11 min-w-0 flex-1 rounded-md border border-border bg-background px-3"
                 autoComplete="current-password"
                 required
               />
-            </label>
-            <button
-              type="button"
-              className="mb-0 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:text-foreground"
-              onClick={() => setShowPassword((visible) => !visible)}
-              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-            >
-              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            </button>
+              <button
+                type="button"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+              <Button type="submit" className="w-auto min-w-32 shrink-0" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <LoaderCircle className="size-4 animate-spin" /> Cargando...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="size-4" /> Continuar
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
           {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
-          <Button type="submit" className="w-auto min-w-32" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <LoaderCircle className="size-4 animate-spin" /> Cargando...
-              </>
-            ) : (
-              <>
-                <ArrowRight className="size-4" /> Continuar
-              </>
-            )}
-          </Button>
         </form>
       </DialogContent>
     </Dialog>
