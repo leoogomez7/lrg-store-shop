@@ -1862,7 +1862,7 @@ function AdminProducts() {
       <div className="glass-panel mt-4 rounded-2xl">
         <Table
           containerClassName="overflow-x-auto overflow-y-visible"
-          selectionGutter
+          selectionGutter={selectionMode}
           className="w-full min-w-max text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -1876,7 +1876,12 @@ function AdminProducts() {
               <TableHead className="w-20 text-center">Descuento</TableHead>
               <TableHead className="w-24 text-center">Precio tienda</TableHead>
               <TableHead className="w-24 text-center">Ganancias</TableHead>
-              <TableHead className={cn("w-72 min-w-72 text-center", selectionMode && "hidden")}>
+              <TableHead
+                className={cn(
+                  "sticky right-0 z-10 w-72 min-w-72 bg-surface-2 text-center",
+                  selectionMode && "hidden",
+                )}
+              >
                 Acciones
               </TableHead>
             </TableRow>
@@ -2234,7 +2239,12 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell>{formatPrice(Math.max(0, discountedPrice))}</TableCell>
                       <TableCell>{formatPrice(displayProfit, displayProfitCurrency)}</TableCell>
-                      <TableCell className={cn("min-w-72", selectionMode && "hidden")}>
+                      <TableCell
+                        className={cn(
+                          "sticky right-0 z-10 min-w-72 bg-background",
+                          selectionMode && "hidden",
+                        )}
+                      >
                         <div className="flex flex-col items-center justify-center gap-1.5">
                           <div className="flex flex-nowrap items-center justify-center gap-1.5">
                             <label className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">

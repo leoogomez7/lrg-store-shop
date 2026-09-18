@@ -1890,7 +1890,7 @@ function AdminOrders() {
       <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
         <Table
           containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
-          selectionGutter
+          selectionGutter={selectionMode}
           className="w-full min-w-[140rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -1904,7 +1904,14 @@ function AdminOrders() {
               <TableHead className="w-20">Gastos</TableHead>
               <TableHead className="w-24">Precio total</TableHead>
               <TableHead className="w-20">Ganancias</TableHead>
-              <TableHead className={selectionMode ? "hidden" : "w-72 min-w-72"}>Acciones</TableHead>
+              <TableHead
+                className={cn(
+                  "sticky right-0 z-10 w-72 min-w-72 bg-surface-2",
+                  selectionMode && "hidden",
+                )}
+              >
+                Acciones
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -2098,7 +2105,7 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.profit)}</TableCell>
                     <TableCell
                       className={cn(
-                        "w-xl min-w-xl max-w-none overflow-visible",
+                        "sticky right-0 z-10 w-xl min-w-xl max-w-none overflow-visible bg-background",
                         selectionMode && "hidden",
                       )}
                     >
