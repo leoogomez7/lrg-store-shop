@@ -1859,9 +1859,9 @@ function AdminProducts() {
       </div>
 
       <FilterChipList chips={adminFilterChips} />
-      <div className="glass-panel mt-4 rounded-2xl">
+      <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
         <Table
-          containerClassName="overflow-x-auto overflow-y-visible"
+          containerClassName="overflow-x-auto overflow-y-hidden"
           selectionGutter={selectionMode}
           className="w-full min-w-max text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
         >
@@ -1876,14 +1876,7 @@ function AdminProducts() {
               <TableHead className="w-20 text-center">Descuento</TableHead>
               <TableHead className="w-24 text-center">Precio tienda</TableHead>
               <TableHead className="w-24 text-center">Ganancias</TableHead>
-              <TableHead
-                className={cn(
-                  "sticky right-0 z-10 w-72 min-w-72 bg-surface-2 text-center",
-                  selectionMode && "hidden",
-                )}
-              >
-                Acciones
-              </TableHead>
+              <TableHead className={cn("w-72 min-w-72 text-center", selectionMode && "hidden")}>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -2239,12 +2232,7 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell className="text-center">{formatPrice(Math.max(0, discountedPrice))}</TableCell>
                       <TableCell className="text-center">{formatPrice(displayProfit, displayProfitCurrency)}</TableCell>
-                      <TableCell
-                        className={cn(
-                          "sticky right-0 z-10 min-w-72 bg-background text-center",
-                          selectionMode && "hidden",
-                        )}
-                      >
+                      <TableCell className={cn("min-w-72 text-center", selectionMode && "hidden")}>
                         <div className="flex flex-col items-center justify-center gap-1.5">
                           <div className="flex flex-nowrap items-center justify-center gap-1.5">
                             <label className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">

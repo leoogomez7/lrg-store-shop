@@ -1024,19 +1024,19 @@ function AdminSuppliers() {
           </div>
         ) : null}
 
-        <div className="min-w-0 flex-1">
+        <div className="glass-panel mt-4 min-w-0 overflow-hidden rounded-2xl">
           <Table
-            containerClassName="overflow-x-auto overflow-y-visible rounded-2xl border border-border/60 bg-background"
-            className="w-full text-sm text-foreground"
+            containerClassName="overflow-x-auto overflow-y-hidden"
+            className="w-full min-w-max text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
           >
-            <TableHeader className="bg-muted/50 text-foreground [&_th]:border-b [&_th]:border-border [&_th]:py-4 [&_th]:text-left [&_th]:text-[13px] [&_th]:font-semibold">
+            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-left [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
                 <TableHead className="w-[24%] pl-5">Nombre</TableHead>
                 <TableHead className="w-[18%]">Celular</TableHead>
                 <TableHead className="w-[18%]">Red social</TableHead>
                 <TableHead className="w-[20%]">Total vendido</TableHead>
                 <TableHead className="w-[20%]">Cantidad vendida</TableHead>
-                <TableHead className={cn("w-[12%] text-right pr-5", selectionMode && "hidden")}>Acciones</TableHead>
+                <TableHead className={cn("w-[12%] pr-5 text-right", selectionMode && "hidden")}>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="bg-background">
