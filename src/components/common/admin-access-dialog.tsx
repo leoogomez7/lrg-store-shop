@@ -67,9 +67,11 @@ export function AdminAccessDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <ShieldCheck className="mx-auto size-8 text-primary sm:mx-0" />
-          <DialogTitle>Acceso restringido</DialogTitle>
-          <DialogDescription>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="size-8 shrink-0 text-primary" />
+            <DialogTitle>Acceso restringido</DialogTitle>
+          </div>
+          <DialogDescription className="pl-10">
             Ingresá la contraseña de administrador para continuar.
           </DialogDescription>
         </DialogHeader>
@@ -82,7 +84,7 @@ export function AdminAccessDialog({
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="h-11 min-w-0 flex-1 rounded-md border border-border bg-background px-3"
+                className="h-11 min-w-0 flex-1 rounded-md border border-border bg-background px-3 [&::-ms-clear]:hidden [&::-ms-reveal]:hidden"
                 autoComplete="current-password"
                 required
               />
