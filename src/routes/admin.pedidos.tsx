@@ -1911,7 +1911,7 @@ function AdminOrders() {
         <div className="glass-panel min-w-0 flex-1 overflow-hidden rounded-2xl">
           <Table
             containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
-            className="w-full min-w-[140rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
+            className="w-full min-w-[120rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
@@ -1926,7 +1926,7 @@ function AdminOrders() {
                 <TableHead className="w-20">Ganancias</TableHead>
                 <TableHead
                   className={cn(
-                    "sticky right-0 z-20 w-52 min-w-52 bg-surface-2 pr-2 text-right shadow-[1px_0_0_var(--border)]",
+                    "sticky right-0 z-20 w-40 min-w-40 bg-surface-2 pr-1 text-right shadow-[1px_0_0_var(--border)]",
                     selectionMode && "hidden",
                   )}
                 >
@@ -2115,11 +2115,11 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.profit)}</TableCell>
                     <TableCell
                       className={cn(
-                        "sticky right-0 z-20 w-52 min-w-52 max-w-none overflow-visible bg-background pr-2 text-right shadow-[1px_0_0_var(--border)]",
+                        "sticky right-0 z-20 w-40 min-w-40 max-w-none overflow-visible bg-background pr-1 text-right shadow-[1px_0_0_var(--border)]",
                         selectionMode && "hidden",
                       )}
                     >
-                      <div className="flex w-full min-w-0 flex-nowrap items-center justify-end gap-1 overflow-hidden">
+                      <div className="flex w-full min-w-0 flex-nowrap items-center justify-end gap-0.5 overflow-hidden">
                         {isQuickEditing ? (
                           <>
                             <Button
@@ -2149,7 +2149,7 @@ function AdminOrders() {
                               size="sm"
                               onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
                               title={isExpanded ? "Ocultar detalles" : "Mostrar detalles"}
-                              className="h-8 shrink-0 gap-1.5 whitespace-nowrap bg-transparent px-2 text-xs font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
+                              className="h-7 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[11px] font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
                             >
                               {isExpanded ? (
                                 <EyeOff className="size-4" />
@@ -2167,7 +2167,7 @@ function AdminOrders() {
                                 setDocumentsOrder(order);
                                 setPendingAttachments([]);
                               }}
-                              className="h-8 shrink-0 gap-1.5 whitespace-nowrap px-2 text-xs"
+                              className="h-7 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[11px]"
                             >
                               <Paperclip className="size-4" />
                               <span className="hidden sm:inline">Documentos</span>
@@ -2177,7 +2177,7 @@ function AdminOrders() {
                               size="sm"
                               onClick={() => setReceiptsOrder(order)}
                               disabled={!order.paymentReceipts?.length}
-                              className="h-8 shrink-0 gap-1.5 whitespace-nowrap px-2 text-xs"
+                              className="h-7 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[11px]"
                               title="Ver comprobantes de pago"
                             >
                               <FileText className="size-4" />
@@ -2187,7 +2187,7 @@ function AdminOrders() {
                               variant="ghost"
                               size="sm"
                               onClick={() => startQuickEditOrder(order)}
-                              className="h-8 shrink-0 gap-1.5 whitespace-nowrap px-2 text-xs"
+                              className="h-7 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[11px]"
                             >
                               <Edit3 className="size-4" />
                               <span className="hidden sm:inline">Editar rápido</span>
@@ -2196,7 +2196,7 @@ function AdminOrders() {
                               variant="ghost"
                               size="sm"
                               onClick={() => openEditOrderDialog(order)}
-                              className="h-8 shrink-0 gap-1.5 whitespace-nowrap px-2 text-xs"
+                              className="h-7 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[11px]"
                             >
                               <Pencil className="size-4" />
                               <span className="hidden sm:inline">Editar</span>
@@ -2212,7 +2212,7 @@ function AdminOrders() {
                                   onConfirm: () => handleDeleteOrder(order),
                                 })
                               }
-                              className="h-8 shrink-0 gap-1.5 whitespace-nowrap px-2 text-xs text-destructive hover:bg-destructive/10"
+                              className="h-7 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[11px] text-destructive hover:bg-destructive/10"
                             >
                               <Trash2 className="size-4" />
                               <span className="hidden sm:inline">Eliminar</span>
