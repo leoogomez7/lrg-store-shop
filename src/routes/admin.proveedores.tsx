@@ -92,8 +92,6 @@ function AdminSuppliers() {
   const [salesMax, setSalesMax] = React.useState(0);
   const [quantityMin, setQuantityMin] = React.useState(0);
   const [quantityMax, setQuantityMax] = React.useState(0);
-  const effectiveSalesMax = salesMax || salesLimit;
-  const effectiveQuantityMax = quantityMax || quantityLimit;
   const [sortOpen, setSortOpen] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [storeOpen, setStoreOpen] = React.useState(false);
@@ -254,6 +252,8 @@ function AdminSuppliers() {
     ),
   );
   const quantityLimit = Math.max(1, ...rows.map((row) => row.soldQuantity));
+  const effectiveSalesMax = salesMax || salesLimit;
+  const effectiveQuantityMax = quantityMax || quantityLimit;
 
   React.useEffect(() => {
     setSalesMax(salesLimit);

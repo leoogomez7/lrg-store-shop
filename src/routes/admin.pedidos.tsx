@@ -1896,7 +1896,7 @@ function AdminOrders() {
           <div className="flex w-10 shrink-0 flex-col items-center bg-transparent py-3">
             <div className="mb-3 h-6" />
             {visibleResults.map((order) => (
-              <div key={order.id} className="flex h-[72px] w-full items-center justify-center">
+              <div key={order.id} className="flex h-[56px] w-full items-center justify-center">
                 <Checkbox
                   className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                   checked={selectedOrderIds.includes(order.id)}
@@ -1911,20 +1911,20 @@ function AdminOrders() {
         <div className="glass-panel min-w-0 flex-1 overflow-hidden rounded-2xl">
           <Table
             containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
-            className="w-full min-w-[140rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center"
+            className="w-full min-w-[92rem] table-fixed text-[12px] [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1 [&_th]:py-1 [&_td]:text-center [&_th]:text-center"
           >
-            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-[11px] [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
-                <TableHead className="w-32">Pedido</TableHead>
-                <TableHead className="w-24">Fecha de venta</TableHead>
+                <TableHead className="w-24">Pedido</TableHead>
+                <TableHead className="w-20">Fecha</TableHead>
                 <TableHead className="w-24">Estado de pago</TableHead>
-                <TableHead className="w-28">Número de envío</TableHead>
-                <TableHead className="w-28">Estado de envío</TableHead>
-                <TableHead className="w-24">Fecha de envío</TableHead>
-                <TableHead className="w-20">Gastos</TableHead>
-                <TableHead className="w-24">Precio total</TableHead>
-                <TableHead className="w-20">Ganancias</TableHead>
-                <TableHead className={cn("w-80 min-w-80 text-right", selectionMode && "hidden")}>Acciones</TableHead>
+                <TableHead className="w-24">Núm. envío</TableHead>
+                <TableHead className="w-24">Estado de envío</TableHead>
+                <TableHead className="w-20">Fecha envío</TableHead>
+                <TableHead className="w-18">Gastos</TableHead>
+                <TableHead className="w-20">Total</TableHead>
+                <TableHead className="w-18">Ganancias</TableHead>
+                <TableHead className={cn("w-72 min-w-72 text-right", selectionMode && "hidden")}>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1965,19 +1965,19 @@ function AdminOrders() {
                         : undefined
                     }
                   >
-                    <TableCell className="w-32 text-center font-medium">
-                      <div className="flex min-w-0 items-center justify-center gap-2 text-center">
-                        <div className="flex min-w-0 flex-col items-start gap-1">
-                          <span className="min-w-0 break-all">{order.id}</span>
+                    <TableCell className="w-24 text-center font-medium">
+                      <div className="flex min-w-0 items-center justify-center gap-1 text-center">
+                        <div className="flex min-w-0 flex-col items-center gap-1">
+                          <span className="min-w-0 break-all text-[11px] leading-tight">{order.id}</span>
                           {order.isGuest && (
-                            <Badge variant="warning" className="shrink-0 text-[10px]">
+                            <Badge variant="warning" className="shrink-0 px-1.5 py-0.5 text-[9px]">
                               Invitado
                             </Badge>
                           )}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{formatDate(order.date)}</TableCell>
+                    <TableCell className="text-[11px]">{formatDate(order.date)}</TableCell>
                     <TableCell>
                       {isQuickEditing ? (
                         <Select
@@ -2107,7 +2107,7 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.total)}</TableCell>
                     <TableCell>{formatPrice(order.profit)}</TableCell>
                     <TableCell
-                      className={cn("w-80 min-w-80 text-right", selectionMode && "hidden")}
+                      className={cn("w-72 min-w-72 text-right", selectionMode && "hidden")}
                     >
                       <div className="flex w-full min-w-0 flex-nowrap items-center justify-end gap-0.5 overflow-hidden">
                         {isQuickEditing ? (
@@ -2117,7 +2117,7 @@ function AdminOrders() {
                               size="sm"
                               onClick={() => saveQuickEditOrder(order)}
                               disabled={!quickEditHasChanges}
-                              className="h-8 shrink-0 gap-2 bg-transparent px-3 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40 disabled:opacity-100"
+                              className="h-7 shrink-0 gap-1 bg-transparent px-2 text-[10px] text-green-600 hover:bg-green-100/80 hover:text-green-700 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40 disabled:opacity-100"
                             >
                               <Check className="h-4 w-4" />
                               Guardar
@@ -2126,7 +2126,7 @@ function AdminOrders() {
                               variant="ghost"
                               size="sm"
                               onClick={cancelQuickEditOrder}
-                              className="h-8 shrink-0 gap-2 bg-transparent px-3 text-xs text-destructive shadow-none hover:bg-destructive/10"
+                              className="h-7 shrink-0 gap-1 bg-transparent px-2 text-[10px] text-destructive shadow-none hover:bg-destructive/10"
                             >
                               <X className="size-4" />
                               Cancelar
@@ -2139,7 +2139,7 @@ function AdminOrders() {
                               size="sm"
                               onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
                               title={isExpanded ? "Ocultar detalles" : "Mostrar detalles"}
-                              className="h-7 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[11px] font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
+                              className="h-6 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[10px] font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
                             >
                               {isExpanded ? (
                                 <EyeOff className="size-4" />
@@ -2157,7 +2157,7 @@ function AdminOrders() {
                                 setDocumentsOrder(order);
                                 setPendingAttachments([]);
                               }}
-                              className="h-7 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[11px]"
+                              className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
                             >
                               <Paperclip className="size-4" />
                               <span className="hidden sm:inline">Documentos</span>
@@ -2167,7 +2167,7 @@ function AdminOrders() {
                               size="sm"
                               onClick={() => setReceiptsOrder(order)}
                               disabled={!order.paymentReceipts?.length}
-                              className="h-7 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[11px]"
+                              className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
                               title="Ver comprobantes de pago"
                             >
                               <FileText className="size-4" />
@@ -2177,7 +2177,7 @@ function AdminOrders() {
                               variant="ghost"
                               size="sm"
                               onClick={() => startQuickEditOrder(order)}
-                              className="h-7 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[11px]"
+                              className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
                             >
                               <Edit3 className="size-4" />
                               <span className="hidden sm:inline">Editar rápido</span>
@@ -2186,7 +2186,7 @@ function AdminOrders() {
                               variant="ghost"
                               size="sm"
                               onClick={() => openEditOrderDialog(order)}
-                              className="h-7 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[11px]"
+                              className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
                             >
                               <Pencil className="size-4" />
                               <span className="hidden sm:inline">Editar</span>
@@ -2202,7 +2202,7 @@ function AdminOrders() {
                                   onConfirm: () => handleDeleteOrder(order),
                                 })
                               }
-                              className="h-7 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[11px] text-destructive hover:bg-destructive/10"
+                              className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px] text-destructive hover:bg-destructive/10"
                             >
                               <Trash2 className="size-4" />
                               <span className="hidden sm:inline">Eliminar</span>
