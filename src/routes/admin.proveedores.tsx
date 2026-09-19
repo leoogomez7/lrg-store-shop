@@ -1041,17 +1041,17 @@ function AdminSuppliers() {
             hideScrollbarOnMobile
             alwaysShowScrollbarOnDesktop
             containerClassName="overflow-x-auto overflow-y-hidden"
-            className="w-full min-w-[72rem] table-fixed text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1.5 [&_th]:py-1.5"
+            className="w-full min-w-[110rem] table-fixed text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1.5 [&_th]:py-1.5"
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-left [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
-                <TableHead className="w-[18%] pl-5">Nombre</TableHead>
-                <TableHead className="w-[15%]">Celular</TableHead>
-                <TableHead className="w-[15%]">Red social</TableHead>
-                <TableHead className="w-[18%]">Total vendido</TableHead>
-                <TableHead className="w-[18%]">Cantidad vendida</TableHead>
+                <TableHead className="w-[18rem] min-w-[18rem] pl-5">Nombre</TableHead>
+                <TableHead className="w-[14rem] min-w-[14rem]">Celular</TableHead>
+                <TableHead className="w-[14rem] min-w-[14rem]">Red social</TableHead>
+                <TableHead className="w-[16rem] min-w-[16rem]">Total vendido</TableHead>
+                <TableHead className="w-[14rem] min-w-[14rem]">Cantidad vendida</TableHead>
                 {!selectionMode && (
-                  <TableHead className="w-[16%] pr-5 text-right">Acciones</TableHead>
+                  <TableHead className="w-[34rem] min-w-[34rem] pr-5 text-right">Acciones</TableHead>
                 )}
               </TableRow>
             </TableHeader>
@@ -1080,7 +1080,7 @@ function AdminSuppliers() {
                           row.name
                         )}
                       </TableCell>
-                      <TableCell className="text-left text-[15px] text-foreground">
+                      <TableCell className="w-[14rem] min-w-[14rem] text-left text-[15px] text-foreground">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.phone}
@@ -1122,8 +1122,8 @@ function AdminSuppliers() {
                         {row.soldQuantity}
                       </TableCell>
                       {!selectionMode && (
-                        <TableCell className="w-[12%] pr-5 text-right">
-                          <div className="flex flex-nowrap items-center justify-end gap-1.5">
+                        <TableCell className="w-[34rem] min-w-[34rem] whitespace-nowrap pr-5 text-right">
+                          <div className="flex min-w-max flex-nowrap items-center justify-end gap-1.5">
                           {isQuickEditing ? (
                             <>
                               <Button
