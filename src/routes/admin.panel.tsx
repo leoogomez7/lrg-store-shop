@@ -353,6 +353,7 @@ function AdminDashboard() {
                   Tipo
                 </label>
                 <Select
+                  modal={false}
                   value={reportMetric}
                   onValueChange={(value) => {
                     setReportMetric(value as typeof reportMetric);
@@ -377,6 +378,7 @@ function AdminDashboard() {
                   Mes
                 </label>
                 <Select
+                  modal={false}
                   value={selectedMonth}
                   onValueChange={(value) => {
                     setSelectedMonth(value);
@@ -668,9 +670,9 @@ function AdminDashboard() {
         <div>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <h2 className="font-display font-semibold">Stock total</h2>
+              <h2 className="font-display font-semibold">Total de unidades</h2>
               <span className="rounded-full bg-linear-to-r from-blue-600 to-blue-500 px-3 py-1 text-sm font-medium text-white shadow-lg">
-                {formatNumber(totalStockUnits)} total
+                {formatNumber(totalStockUnits)}
               </span>
             </div>
             <div className="relative w-full sm:w-64">
