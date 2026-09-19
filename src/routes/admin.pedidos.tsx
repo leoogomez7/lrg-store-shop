@@ -1926,7 +1926,11 @@ function AdminOrders() {
                 <TableHead className="w-18">Gastos</TableHead>
                 <TableHead className="w-20">Total</TableHead>
                 <TableHead className="w-18">Ganancias</TableHead>
-                <TableHead className={cn("w-72 min-w-72 text-right", selectionMode && "hidden")}>Acciones</TableHead>
+                <TableHead
+                  className={cn("w-[34rem] min-w-[34rem] text-right", selectionMode && "hidden")}
+                >
+                  Acciones
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

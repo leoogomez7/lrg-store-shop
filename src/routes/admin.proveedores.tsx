@@ -860,14 +860,14 @@ function AdminSuppliers() {
 
             <Button
               onClick={exportExcel}
-              className="h-9 gap-2 rounded-xl border border-emerald-500/60 bg-emerald-600 px-3 text-white shadow-none hover:bg-emerald-700 hover:text-white"
+              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             >
               <Sheet className="size-4" />
               Exportar Excel
             </Button>
             <Button
               onClick={exportPdf}
-              className="h-9 gap-2 rounded-xl border border-red-500/60 bg-red-500 px-3 text-white shadow-none hover:bg-red-600 hover:text-white"
+              className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
             >
               <FileText className="size-4" />
               Exportar PDF
