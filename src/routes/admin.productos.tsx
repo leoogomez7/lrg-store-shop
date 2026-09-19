@@ -1930,7 +1930,7 @@ function AdminProducts() {
                 <TableHead className="w-20 text-center">Descuento</TableHead>
                 <TableHead className="w-24 text-center">Precio tienda</TableHead>
                 <TableHead className="w-24 text-center">Ganancias</TableHead>
-                <TableHead className={cn("w-52 min-w-52 text-center", selectionMode && "hidden")}>Acciones</TableHead>
+                <TableHead className={cn("w-52 min-w-52 text-center", selectionMode && "invisible")}>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2256,7 +2256,7 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell className="text-center">{formatPrice(Math.max(0, discountedPrice))}</TableCell>
                       <TableCell className="text-center">{formatPrice(displayProfit, displayProfitCurrency)}</TableCell>
-                      <TableCell className={cn("min-w-52 text-center", selectionMode && "hidden")}>
+                      <TableCell className={cn("min-w-52 text-center", selectionMode && "invisible")}>
                         <div className="flex flex-nowrap items-center justify-center gap-1 overflow-hidden">
                           <label className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
                             <span>{product.hidden ? "No disponible" : "Disponible"}</span>

@@ -1932,7 +1932,7 @@ function AdminOrders() {
                 <TableHead className="w-20">Total</TableHead>
                 <TableHead className="w-18">Ganancias</TableHead>
                 <TableHead
-                  className={cn("w-[34rem] min-w-[34rem] text-right", selectionMode && "hidden")}
+                  className={cn("w-[34rem] min-w-[34rem] text-right", selectionMode && "invisible")}
                 >
                   Acciones
                 </TableHead>
@@ -2118,7 +2118,7 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.total)}</TableCell>
                     <TableCell>{formatPrice(order.profit)}</TableCell>
                     <TableCell
-                      className={cn("w-[34rem] min-w-[34rem] text-right", selectionMode && "hidden")}
+                      className={cn("w-[34rem] min-w-[34rem] text-right", selectionMode && "invisible")}
                     >
                       <div className="flex w-full min-w-max flex-nowrap items-center justify-end gap-0.5 overflow-visible">
                         {isQuickEditing ? (

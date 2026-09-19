@@ -1055,9 +1055,14 @@ function AdminSuppliers() {
                 <TableHead className="w-[10rem] min-w-[10rem]">Red social</TableHead>
                 <TableHead className="w-[10rem] min-w-[10rem]">Total vendido</TableHead>
                 <TableHead className="w-[9rem] min-w-[9rem]">Cantidad vendida</TableHead>
-                {!selectionMode && (
-                  <TableHead className="w-[27rem] min-w-[27rem] pr-5">Acciones</TableHead>
-                )}
+                <TableHead
+                  className={cn(
+                    "w-[27rem] min-w-[27rem] pr-5",
+                    selectionMode && "invisible",
+                  )}
+                >
+                  Acciones
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1126,8 +1131,12 @@ function AdminSuppliers() {
                       <TableCell className="text-center text-sm text-foreground">
                         {row.soldQuantity}
                       </TableCell>
-                      {!selectionMode && (
-                        <TableCell className="w-[27rem] min-w-[27rem] whitespace-nowrap pr-5 text-center">
+                      <TableCell
+                        className={cn(
+                          "w-[27rem] min-w-[27rem] whitespace-nowrap pr-5 text-center",
+                          selectionMode && "invisible",
+                        )}
+                      >
                           <div className="flex min-w-max flex-nowrap items-center justify-center gap-1.5">
                           {isQuickEditing ? (
                             <>
@@ -1194,12 +1203,11 @@ function AdminSuppliers() {
                             </>
                           )}
                         </div>
-                        </TableCell>
-                      )}
+                      </TableCell>
                     </TableRow>
                     {isExpanded ? (
                       <TableRow>
-                        <TableCell colSpan={selectionMode ? 5 : 6} className="bg-muted/30 p-4 text-left">
+                        <TableCell colSpan={6} className="bg-muted/30 p-4 text-left">
                           <p className="mb-2 font-medium">Productos</p>
                           <div className="flex flex-wrap gap-2">
                             {row.products.map((product) => (
