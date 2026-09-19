@@ -30,6 +30,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
   ) => {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const scrollbarTrackRef = React.useRef<HTMLDivElement | null>(null);
+    const [stickyHeaderOffset, setStickyHeaderOffset] = React.useState(0);
     const [scrollbarState, setScrollbarState] = React.useState<{
       visible: boolean;
       width: number;
@@ -98,6 +99,38 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
       };
     }, [updateScrollbar]);
 
+    React.useEffect(() => {
+      if (!stickyHeader) return;
+
+      const updateStickyHeader = () => {
+        const container = containerRef.current;
+        const table = container?.querySelector("table");
+        const header = table?.tHead;
+        if (!table || !header) return;
+
+        const tableRect = table.getBoundingClientRect();
+        const headerHeight = header.getBoundingClientRect().height;
+        const maxOffset = Math.max(tableRect.height - headerHeight, 0);
+        const nextOffset = Math.min(Math.max(-tableRect.top, 0), maxOffset);
+        setStickyHeaderOffset((current) =>
+          Math.abs(current - nextOffset) > 0.5 ? nextOffset : current,
+        );
+      };
+
+      window.addEventListener("scroll", updateStickyHeader, { passive: true });
+      window.addEventListener("resize", updateStickyHeader);
+      const observer = new ResizeObserver(updateStickyHeader);
+      const table = containerRef.current?.querySelector("table");
+      if (table) observer.observe(table);
+      updateStickyHeader();
+
+      return () => {
+        window.removeEventListener("scroll", updateStickyHeader);
+        window.removeEventListener("resize", updateStickyHeader);
+        observer.disconnect();
+      };
+    }, [stickyHeader]);
+
     const thumbWidth =
       scrollbarState.maxScrollLeft <= 0 || scrollbarState.width <= 0
         ? 100
@@ -121,9 +154,14 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
             ref={ref}
             className={cn(
               "w-full caption-bottom text-sm text-foreground",
-              stickyHeader && "[&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10",
+              stickyHeader && "table-sticky-header",
               className,
             )}
+            style={
+              stickyHeader
+                ? ({ "--table-sticky-header-offset": `${stickyHeaderOffset}px` } as React.CSSProperties)
+                : undefined
+            }
             {...props}
           />
         </div>

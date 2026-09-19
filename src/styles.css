@@ -304,6 +304,12 @@ input[type="password"]::-webkit-textfield-decoration-container {
 }
 
 @layer components {
+  .table-sticky-header thead {
+    position: relative;
+    z-index: 10;
+    transform: translateY(var(--table-sticky-header-offset, 0px));
+  }
+
   .aurora-bg {
     position: fixed;
     inset: 0;
