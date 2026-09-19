@@ -1916,7 +1916,7 @@ function AdminProducts() {
             alwaysShowScrollbarOnDesktop
             stickyHeader
             stickyScrollbar
-            containerClassName="overflow-x-auto overflow-y-hidden"
+            containerClassName="overflow-x-auto overflow-y-visible"
             className={cn(
               "w-full text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2",
               selectionMode ? "min-w-[52rem]" : "min-w-max",
