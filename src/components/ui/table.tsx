@@ -54,7 +54,10 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
       if (!container) return;
 
       const step = Math.max(container.clientWidth * 0.35, 120);
-      container.scrollBy({ left: direction * step, behavior: "smooth" });
+      container.scrollTo({
+        left: container.scrollLeft + direction * step,
+        behavior: "smooth",
+      });
     }, []);
 
     const handleTrackPointer = React.useCallback((clientX: number) => {
@@ -65,7 +68,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
       const rect = track.getBoundingClientRect();
       const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
       const nextScrollLeft = ratio * scrollbarState.maxScrollLeft;
-      container.scrollLeft = nextScrollLeft;
+      container.scrollTo({ left: nextScrollLeft, behavior: "auto" });
       updateScrollbar();
     }, [scrollbarState.maxScrollLeft, updateScrollbar]);
 
@@ -117,7 +120,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
         {scrollbarState.visible && !hideScrollbar && (
           <div
             className={cn(
-              "mt-2 flex w-full items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1 shadow-lg backdrop-blur",
+              "mt-2 flex w-full items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1 shadow-[0_8px_18px_rgba(0,0,0,0.08)] backdrop-blur",
               hideScrollbarOnMobile && "max-lg:hidden",
             )}
             style={{ width: scrollbarState.width }}
@@ -134,7 +137,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
             </button>
             <div
               ref={scrollbarTrackRef}
-              className="relative min-w-0 flex-1 h-2.5 cursor-grab touch-none overflow-hidden rounded-full border border-border/60 bg-muted/80 active:cursor-grabbing"
+              className="relative h-2.5 min-w-0 flex-1 cursor-default touch-none select-none overflow-hidden rounded-full border border-border/60 bg-muted/80"
               onPointerDown={(event) => {
                 handleTrackPointer(event.clientX);
 
