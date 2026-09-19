@@ -1910,6 +1910,8 @@ function AdminOrders() {
 
         <div className="glass-panel min-w-0 flex-1 overflow-hidden rounded-2xl">
           <Table
+            hideScrollbarOnMobile
+            alwaysShowScrollbarOnDesktop
             containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
             className="w-full min-w-[92rem] table-fixed text-[12px] [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1 [&_th]:py-1 [&_td]:text-center [&_th]:text-center"
           >

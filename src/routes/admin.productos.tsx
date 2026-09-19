@@ -1909,6 +1909,8 @@ function AdminProducts() {
 
         <div className="glass-panel min-w-0 flex-1 overflow-hidden rounded-2xl">
           <Table
+            hideScrollbarOnMobile
+            alwaysShowScrollbarOnDesktop
             containerClassName="overflow-x-auto overflow-y-hidden"
             className="w-full min-w-max text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2"
           >

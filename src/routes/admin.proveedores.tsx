@@ -1038,6 +1038,8 @@ function AdminSuppliers() {
 
         <div className="glass-panel mt-4 min-w-0 overflow-hidden rounded-2xl">
           <Table
+            hideScrollbarOnMobile
+            alwaysShowScrollbarOnDesktop
             containerClassName="overflow-x-auto overflow-y-hidden"
             className="w-full min-w-max text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1.5 [&_th]:py-1.5"
           >

@@ -7,6 +7,7 @@ type TableProps = React.HTMLAttributes<HTMLTableElement> & {
   containerClassName?: string;
   hideScrollbarOnMobile?: boolean;
   hideScrollbar?: boolean;
+  alwaysShowScrollbarOnDesktop?: boolean;
   selectionGutter?: boolean;
 };
 
@@ -17,6 +18,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
       containerClassName,
       hideScrollbarOnMobile = false,
       hideScrollbar = false,
+      alwaysShowScrollbarOnDesktop = false,
       selectionGutter = false,
       ...props
     },
@@ -117,11 +119,12 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
             {...props}
           />
         </div>
-        {scrollbarState.visible && !hideScrollbar && (
+        {!hideScrollbar &&
+          (scrollbarState.visible || (alwaysShowScrollbarOnDesktop && !hideScrollbarOnMobile)) && (
           <div
             className={cn(
               "mt-2 flex w-full items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1 shadow-[0_8px_18px_rgba(0,0,0,0.08)] backdrop-blur",
-              hideScrollbarOnMobile && "max-lg:hidden",
+              hideScrollbarOnMobile && "max-md:hidden",
             )}
             style={{ width: scrollbarState.width }}
             aria-label="Controles de desplazamiento horizontal de la tabla"

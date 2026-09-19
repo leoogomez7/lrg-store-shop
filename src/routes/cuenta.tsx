@@ -1456,6 +1456,8 @@ function AccountPageContent({
           <FilterChipList chips={orderFilterChips} />
           <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
             <Table
+              hideScrollbarOnMobile
+              alwaysShowScrollbarOnDesktop
               containerClassName="touch-pan-x touch-pan-y overflow-x-auto overflow-y-visible"
               className="w-full text-sm [&_td]:text-center [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2"
             >
