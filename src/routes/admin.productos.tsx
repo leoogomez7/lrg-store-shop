@@ -1888,28 +1888,46 @@ function AdminProducts() {
       </div>
 
       <FilterChipList chips={adminFilterChips} />
-      <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
-        <Table
-          containerClassName="overflow-x-auto overflow-y-hidden"
-          selectionGutter={selectionMode}
-          className="w-full min-w-max text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
-        >
-          <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
-            <TableRow>
-              <TableHead className="w-40 text-center">Producto</TableHead>
-              <TableHead className="w-20 text-center">Tienda</TableHead>
-              <TableHead className="w-16 text-center">Stock</TableHead>
-              <TableHead className="w-24 text-center">Mi comisión</TableHead>
-              <TableHead className="w-20 text-center">Gastos</TableHead>
-              <TableHead className="w-20 text-center">Precio</TableHead>
-              <TableHead className="w-20 text-center">Descuento</TableHead>
-              <TableHead className="w-24 text-center">Precio tienda</TableHead>
-              <TableHead className="w-24 text-center">Ganancias</TableHead>
-              <TableHead className={cn("w-72 min-w-72 text-center", selectionMode && "hidden")}>Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {displayRows.map(({ product, variant }) => {
+      <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
+        {selectionMode ? (
+          <div className="flex w-10 shrink-0 flex-col items-center bg-transparent py-3">
+            <div className="mb-3 h-6" />
+            {displayRows.map(({ product, variant }) => (
+              <div key={`${product.id}-${variant?.id ?? "base"}`} className="flex h-[62px] w-full items-center justify-center">
+                <Checkbox
+                  className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                  checked={selectedProductIds.includes(getProductSelectionKey(product, variant))}
+                  onCheckedChange={(checked) =>
+                    toggleProductSelection(getProductSelectionKey(product, variant), checked === true)
+                  }
+                  aria-label={`Seleccionar ${product.name}`}
+                />
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="glass-panel min-w-0 flex-1 overflow-hidden rounded-2xl">
+          <Table
+            containerClassName="overflow-x-auto overflow-y-hidden"
+            className="w-full min-w-max text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2"
+          >
+            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+              <TableRow>
+                <TableHead className="w-40 text-center">Producto</TableHead>
+                <TableHead className="w-20 text-center">Tienda</TableHead>
+                <TableHead className="w-16 text-center">Stock</TableHead>
+                <TableHead className="w-24 text-center">Mi comisión</TableHead>
+                <TableHead className="w-20 text-center">Gastos</TableHead>
+                <TableHead className="w-20 text-center">Precio</TableHead>
+                <TableHead className="w-20 text-center">Descuento</TableHead>
+                <TableHead className="w-24 text-center">Precio tienda</TableHead>
+                <TableHead className="w-24 text-center">Ganancias</TableHead>
+                <TableHead className={cn("w-72 min-w-72 text-center", selectionMode && "hidden")}>Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {displayRows.map(({ product, variant }) => {
               const discount = variant?.discount ?? discounts[product.id] ?? 0;
               const displayPrice = variant?.price ?? product.price;
               const isUnlimitedStock = variant?.stockUnlimited ?? product.stockUnlimited ?? false;
@@ -1958,21 +1976,6 @@ function AdminProducts() {
                       <TableCell className="min-w-64 align-middle text-center">
                         <div className="flex min-w-60 flex-col gap-2 text-left">
                           <div className="flex items-center gap-2">
-                            {selectionMode && (
-                              <Checkbox
-                                className="relative -left-8 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                                checked={selectedProductIds.includes(
-                                  getProductSelectionKey(product, variant),
-                                )}
-                                onCheckedChange={(checked) =>
-                                  toggleProductSelection(
-                                    getProductSelectionKey(product, variant),
-                                    checked === true,
-                                  )
-                                }
-                                aria-label={`Seleccionar ${product.name}`}
-                              />
-                            )}
                             <Input
                               value={quickDraft.name}
                               onChange={(event) =>
@@ -2194,21 +2197,6 @@ function AdminProducts() {
                     <>
                       <TableCell className="min-w-64 text-center">
                         <div className="flex min-w-0 flex-wrap items-center justify-center gap-2 text-left">
-                          {selectionMode && (
-                            <Checkbox
-                              className="relative -left-8 shrink-0 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                              checked={selectedProductIds.includes(
-                                getProductSelectionKey(product, variant),
-                              )}
-                              onCheckedChange={(checked) =>
-                                toggleProductSelection(
-                                  getProductSelectionKey(product, variant),
-                                  checked === true,
-                                )
-                              }
-                              aria-label={`Seleccionar ${product.name}`}
-                            />
-                          )}
                           <span className="min-w-0 wrap-break-word font-medium">
                             {product.name}
                           </span>
@@ -2345,6 +2333,7 @@ function AdminProducts() {
             ) : null}
           </TableBody>
         </Table>
+      </div>
       </div>
       <div className="mt-4 flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-center gap-2">

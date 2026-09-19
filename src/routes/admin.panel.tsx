@@ -548,7 +548,7 @@ function AdminDashboard() {
           <h2 className="mb-3 font-display text-xl font-semibold">Últimos pedidos</h2>
           <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
             <Table
-              className="w-full min-w-fit text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
+              className="w-full min-w-fit text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
               containerClassName="overflow-x-auto overflow-y-visible overscroll-x-contain touch-pan-y [-webkit-overflow-scrolling:touch]"
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">

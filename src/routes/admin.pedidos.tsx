@@ -1891,35 +1891,51 @@ function AdminOrders() {
         ) : null}
       </div>
 
-      <div className="glass-panel mt-4 overflow-hidden rounded-2xl">
-        <Table
-          containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
-          selectionGutter={selectionMode}
-          className="w-full min-w-[140rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
-        >
-          <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
-            <TableRow>
-              <TableHead className="w-32">Pedido</TableHead>
-              <TableHead className="w-24">Fecha de venta</TableHead>
-              <TableHead className="w-24">Estado de pago</TableHead>
-              <TableHead className="w-28">Número de envío</TableHead>
-              <TableHead className="w-28">Estado de envío</TableHead>
-              <TableHead className="w-24">Fecha de envío</TableHead>
-              <TableHead className="w-20">Gastos</TableHead>
-              <TableHead className="w-24">Precio total</TableHead>
-              <TableHead className="w-20">Ganancias</TableHead>
-              <TableHead
-                className={cn(
-                  "sticky right-0 z-10 w-72 min-w-72 bg-surface-2",
-                  selectionMode && "hidden",
-                )}
-              >
-                Acciones
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visibleResults.map((order) => {
+      <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
+        {selectionMode ? (
+          <div className="flex w-10 shrink-0 flex-col items-center bg-transparent py-3">
+            <div className="mb-3 h-6" />
+            {visibleResults.map((order) => (
+              <div key={order.id} className="flex h-[72px] w-full items-center justify-center">
+                <Checkbox
+                  className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                  checked={selectedOrderIds.includes(order.id)}
+                  onCheckedChange={(checked) => toggleOrderSelection(order.id, checked === true)}
+                  aria-label={`Seleccionar pedido ${order.id}`}
+                />
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="glass-panel min-w-0 flex-1 overflow-hidden rounded-2xl">
+          <Table
+            containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
+            className="w-full min-w-[140rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
+          >
+            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+              <TableRow>
+                <TableHead className="w-32">Pedido</TableHead>
+                <TableHead className="w-24">Fecha de venta</TableHead>
+                <TableHead className="w-24">Estado de pago</TableHead>
+                <TableHead className="w-28">Número de envío</TableHead>
+                <TableHead className="w-28">Estado de envío</TableHead>
+                <TableHead className="w-24">Fecha de envío</TableHead>
+                <TableHead className="w-20">Gastos</TableHead>
+                <TableHead className="w-24">Precio total</TableHead>
+                <TableHead className="w-20">Ganancias</TableHead>
+                <TableHead
+                  className={cn(
+                    "sticky right-0 z-10 w-72 min-w-72 bg-surface-2",
+                    selectionMode && "hidden",
+                  )}
+                >
+                  Acciones
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visibleResults.map((order) => {
               const isExpanded = expandedOrderId === order.id;
               const nameParts = order.customer.split(" ");
               const displayCustomer =
@@ -1958,16 +1974,6 @@ function AdminOrders() {
                   >
                     <TableCell className="w-32 text-center font-medium">
                       <div className="flex min-w-0 items-center justify-center gap-2 text-center">
-                        {selectionMode && (
-                          <Checkbox
-                            className="relative -left-8 shrink-0 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                            checked={selectedOrderIds.includes(order.id)}
-                            onCheckedChange={(checked) =>
-                              toggleOrderSelection(order.id, checked === true)
-                            }
-                            aria-label={`Seleccionar pedido ${order.id}`}
-                          />
-                        )}
                         <div className="flex min-w-0 flex-col items-start gap-1">
                           <span className="min-w-0 break-all">{order.id}</span>
                           {order.isGuest && (
@@ -2307,6 +2313,7 @@ function AdminOrders() {
             ) : null}
           </TableBody>
         </Table>
+      </div>
       </div>
 
       <div className="mt-4 flex flex-col gap-3 pb-20">
