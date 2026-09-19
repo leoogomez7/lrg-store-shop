@@ -4,6 +4,8 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { z } from "zod";
 import { toast } from "sonner";
 import {
+  ArrowLeft,
+  ArrowRight,
   ArrowUpDown,
   Check,
   ChevronDown,
@@ -520,6 +522,7 @@ function AdminOrders() {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [bulkOrderEditQueue, setBulkOrderEditQueue] = useState<string[]>([]);
+  const [bulkOrderEditPosition, setBulkOrderEditPosition] = useState(0);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<OrderAttachment[]>([]);
@@ -1420,8 +1423,18 @@ function AdminOrders() {
     const order = editableOrders.find((item) => item.id === selectedOrderIds[0]);
     if (order) {
       setBulkOrderEditQueue(selectedOrderIds);
+      setBulkOrderEditPosition(0);
       openEditOrderDialog(order);
     }
+  };
+
+  const navigateBulkEditOrder = (direction: -1 | 1) => {
+    const nextPosition = bulkOrderEditPosition + direction;
+    const nextOrderId = bulkOrderEditQueue[nextPosition];
+    const nextOrder = editableOrders.find((order) => order.id === nextOrderId);
+    if (!nextOrder) return;
+    setBulkOrderEditPosition(nextPosition);
+    openEditOrderDialog(nextOrder);
   };
 
   const getSupplierForItem = (itemName: string) => {
@@ -2394,7 +2407,32 @@ function AdminOrders() {
           className="shadow-none"
         >
           <DialogHeader>
-            <DialogTitle>{isCreatingOrder ? "Nuevo pedido" : "Editar pedido"}</DialogTitle>
+            <div className="flex items-center justify-between gap-3">
+              <DialogTitle>{isCreatingOrder ? "Nuevo pedido" : "Editar pedido"}</DialogTitle>
+              {!isCreatingOrder && bulkOrderEditQueue.length > 1 ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateBulkEditOrder(-1)}
+                    disabled={bulkOrderEditPosition === 0}
+                  >
+                    <ArrowLeft className="size-4" /> Anterior
+                  </Button>
+                  <span>{bulkOrderEditPosition + 1} / {bulkOrderEditQueue.length}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateBulkEditOrder(1)}
+                    disabled={bulkOrderEditPosition >= bulkOrderEditQueue.length - 1}
+                  >
+                    Siguiente <ArrowRight className="size-4" />
+                  </Button>
+                </div>
+              ) : null}
+            </div>
           </DialogHeader>
           {orderForm ? (
             <div className="space-y-4">
@@ -2792,7 +2830,30 @@ function AdminOrders() {
           ) : null}
 
           <DialogFooter>
-            <div className="flex gap-2">
+            <div className="flex w-full items-center justify-between gap-2">
+              {!isCreatingOrder && bulkOrderEditQueue.length > 1 ? (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateBulkEditOrder(-1)}
+                    disabled={bulkOrderEditPosition === 0}
+                  >
+                    <ArrowLeft className="size-4" /> Anterior
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateBulkEditOrder(1)}
+                    disabled={bulkOrderEditPosition >= bulkOrderEditQueue.length - 1}
+                  >
+                    Siguiente <ArrowRight className="size-4" />
+                  </Button>
+                </div>
+              ) : <span />}
+              <div className="flex gap-2">
               <Button
                 variant="secondary"
                 onClick={() => setDialogOpen(false)}
@@ -2810,6 +2871,7 @@ function AdminOrders() {
               >
                 <Save className="h-4 w-4 mr-2" /> Guardar pedido
               </Button>
+              </div>
             </div>
           </DialogFooter>
         </DialogContent>
