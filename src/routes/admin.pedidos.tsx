@@ -1926,7 +1926,7 @@ function AdminOrders() {
                 <TableHead className="w-20">Ganancias</TableHead>
                 <TableHead
                   className={cn(
-                    "sticky right-0 z-10 w-72 min-w-72 bg-surface-2",
+                    "sticky right-0 z-20 w-72 min-w-72 bg-surface-2 pr-4 text-right shadow-[1px_0_0_var(--border)]",
                     selectionMode && "hidden",
                   )}
                 >
@@ -2115,7 +2115,7 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.profit)}</TableCell>
                     <TableCell
                       className={cn(
-                        "sticky right-0 z-10 w-72 min-w-72 max-w-none overflow-visible bg-background text-center",
+                        "sticky right-0 z-20 w-72 min-w-72 max-w-none overflow-visible bg-background pr-4 text-right shadow-[1px_0_0_var(--border)]",
                         selectionMode && "hidden",
                       )}
                     >

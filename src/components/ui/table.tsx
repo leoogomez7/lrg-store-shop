@@ -23,35 +23,57 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
     ref,
   ) => {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
-    const scrollbarRef = React.useRef<HTMLDivElement | null>(null);
+    const scrollbarTrackRef = React.useRef<HTMLDivElement | null>(null);
     const [scrollbarState, setScrollbarState] = React.useState<{
       visible: boolean;
       width: number;
       scrollWidth: number;
-    }>({ visible: false, width: 0, scrollWidth: 0 });
+      scrollLeft: number;
+      maxScrollLeft: number;
+    }>({ visible: false, width: 0, scrollWidth: 0, scrollLeft: 0, maxScrollLeft: 0 });
 
     const updateScrollbar = React.useCallback(() => {
       const container = containerRef.current;
       if (!container) return;
 
       const scrollWidth = container.scrollWidth;
+      const maxScrollLeft = Math.max(scrollWidth - container.clientWidth, 0);
       const hasHorizontalOverflow = scrollWidth > container.clientWidth + 1;
 
       setScrollbarState({
         visible: hasHorizontalOverflow,
         width: container.clientWidth,
         scrollWidth,
+        scrollLeft: container.scrollLeft,
+        maxScrollLeft,
       });
     }, []);
+
+    const scrollByAmount = React.useCallback((direction: 1 | -1) => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const step = Math.max(container.clientWidth * 0.35, 120);
+      container.scrollBy({ left: direction * step, behavior: "smooth" });
+    }, []);
+
+    const handleTrackPointer = React.useCallback((clientX: number) => {
+      const container = containerRef.current;
+      const track = scrollbarTrackRef.current;
+      if (!container || !track) return;
+
+      const rect = track.getBoundingClientRect();
+      const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+      const nextScrollLeft = ratio * scrollbarState.maxScrollLeft;
+      container.scrollLeft = nextScrollLeft;
+      updateScrollbar();
+    }, [scrollbarState.maxScrollLeft, updateScrollbar]);
 
     React.useEffect(() => {
       const container = containerRef.current;
       if (!container) return;
 
-      const handleScroll = () => {
-        if (scrollbarRef.current) scrollbarRef.current.scrollLeft = container.scrollLeft;
-        updateScrollbar();
-      };
+      const handleScroll = () => updateScrollbar();
       const handleWindowChange = () => updateScrollbar();
 
       container.addEventListener("scroll", handleScroll, { passive: true });
@@ -66,6 +88,15 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
         observer.disconnect();
       };
     }, [updateScrollbar]);
+
+    const thumbWidth =
+      scrollbarState.maxScrollLeft <= 0 || scrollbarState.width <= 0
+        ? 100
+        : (scrollbarState.width / (scrollbarState.scrollWidth || scrollbarState.width)) * 100;
+    const thumbLeft =
+      scrollbarState.maxScrollLeft <= 0
+        ? 0
+        : (scrollbarState.scrollLeft / scrollbarState.maxScrollLeft) * (100 - thumbWidth);
 
     return (
       <>
@@ -95,35 +126,41 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
             <button
               type="button"
               className="grid size-7 shrink-0 place-items-center rounded-full border border-border/70 text-foreground transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
-              onClick={() => {
-                const container = containerRef.current;
-                if (!container) return;
-                container.scrollBy({ left: -container.clientWidth * 0.95, behavior: "smooth" });
-              }}
+              onClick={() => scrollByAmount(-1)}
               aria-label="Desplazar tabla hacia la izquierda"
               title="Desplazar hacia la izquierda"
             >
               <ChevronLeft className="size-4" />
             </button>
             <div
-              ref={scrollbarRef}
-              className="min-w-0 flex-1 overflow-x-auto rounded-full"
-              onScroll={(event) => {
-                const container = containerRef.current;
-                if (container) container.scrollLeft = event.currentTarget.scrollLeft;
+              ref={scrollbarTrackRef}
+              className="relative min-w-0 flex-1 h-2.5 cursor-grab touch-none overflow-hidden rounded-full border border-border/60 bg-muted/80 active:cursor-grabbing"
+              onPointerDown={(event) => {
+                handleTrackPointer(event.clientX);
+
+                const handleMove = (moveEvent: PointerEvent) => handleTrackPointer(moveEvent.clientX);
+                const handleUp = () => {
+                  window.removeEventListener("pointermove", handleMove);
+                  window.removeEventListener("pointerup", handleUp);
+                };
+
+                window.addEventListener("pointermove", handleMove);
+                window.addEventListener("pointerup", handleUp);
               }}
               aria-label="Barra de desplazamiento horizontal de la tabla"
             >
-              <div className="h-1.25" style={{ width: scrollbarState.scrollWidth }} />
+              <div
+                className="absolute inset-y-0 rounded-full bg-foreground/40 transition-[left,width] duration-150"
+                style={{
+                  width: `${Math.max(thumbWidth, 18)}%`,
+                  left: `${thumbLeft}%`,
+                }}
+              />
             </div>
             <button
               type="button"
               className="grid size-7 shrink-0 place-items-center rounded-full border border-border/70 text-foreground transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
-              onClick={() => {
-                const container = containerRef.current;
-                if (!container) return;
-                container.scrollBy({ left: container.clientWidth * 0.95, behavior: "smooth" });
-              }}
+              onClick={() => scrollByAmount(1)}
               aria-label="Desplazar tabla hacia la derecha"
               title="Desplazar hacia la derecha"
             >
