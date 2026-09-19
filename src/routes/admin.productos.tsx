@@ -1889,8 +1889,12 @@ function AdminProducts() {
 
       <FilterChipList chips={adminFilterChips} />
       <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
-        {selectionMode ? (
-          <div className="flex w-10 shrink-0 flex-col items-center bg-transparent py-3">
+        <div
+          className={cn(
+            "flex w-10 shrink-0 flex-col items-center bg-transparent py-3",
+            !selectionMode && "pointer-events-none opacity-0",
+          )}
+        >
             <div className="mb-3 h-6" />
             {displayRows.map(({ product, variant }) => (
               <div key={`${product.id}-${variant?.id ?? "base"}`} className="flex h-[62px] w-full items-center justify-center">
@@ -1904,8 +1908,7 @@ function AdminProducts() {
                 />
               </div>
             ))}
-          </div>
-        ) : null}
+        </div>
 
         <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
           <Table

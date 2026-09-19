@@ -1020,8 +1020,12 @@ function AdminSuppliers() {
       </div>
 
       <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
-        {selectionMode ? (
-          <div className="flex w-10 shrink-0 flex-col items-center bg-transparent py-3">
+        <div
+          className={cn(
+            "flex w-10 shrink-0 flex-col items-center bg-transparent py-3",
+            !selectionMode && "pointer-events-none opacity-0",
+          )}
+        >
             <div className="mb-3 h-6" />
             {visibleRows.map((row) => (
               <div key={row.key} className="flex h-[52px] w-full items-center justify-center">
@@ -1033,8 +1037,7 @@ function AdminSuppliers() {
                 />
               </div>
             ))}
-          </div>
-        ) : null}
+        </div>
 
         <div className="glass-panel mt-4 min-w-0 overflow-visible rounded-2xl">
           <Table
