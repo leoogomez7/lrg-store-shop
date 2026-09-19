@@ -2250,73 +2250,69 @@ function AdminProducts() {
                       <TableCell className="text-center">{formatPrice(Math.max(0, discountedPrice))}</TableCell>
                       <TableCell className="text-center">{formatPrice(displayProfit, displayProfitCurrency)}</TableCell>
                       <TableCell className={cn("min-w-72 text-center", selectionMode && "hidden")}>
-                        <div className="flex flex-col items-center justify-center gap-1.5">
-                          <div className="flex flex-nowrap items-center justify-center gap-1.5">
-                            <label className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
-                              <span>{product.hidden ? "No disponible" : "Disponible"}</span>
-                              <Switch
-                                checked={!product.hidden}
-                                onCheckedChange={() =>
-                                  setConfirmState({
-                                    open: true,
-                                    title: `${product.hidden ? "Mostrar" : "Ocultar"} "${product.name}"?`,
-                                    description: undefined,
-                                    onConfirm: () => handleToggleHidden(product.id),
-                                  })
-                                }
-                              />
-                            </label>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDuplicateProduct(product)}
-                              className="h-7 gap-1 px-2 text-xs"
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                              <span>Duplicar</span>
-                            </Button>
-                          </div>
-                          <div className="flex flex-nowrap items-center justify-center gap-1.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startQuickEdit(product, variant)}
-                              className="h-7 gap-1 px-2 text-xs"
-                            >
-                              <Edit3 className="h-3.5 w-3.5" />
-                              <span>Editar rápido</span>
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditProductDialog(product, variant)}
-                              className="h-7 gap-1 px-2 text-xs"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                              <span>Editar</span>
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
+                        <div className="flex flex-nowrap items-center justify-center gap-1.5 overflow-hidden">
+                          <label className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
+                            <span>{product.hidden ? "No disponible" : "Disponible"}</span>
+                            <Switch
+                              checked={!product.hidden}
+                              onCheckedChange={() =>
                                 setConfirmState({
                                   open: true,
-                                  title: variant
-                                    ? `Eliminar variante "${variant.name}"?`
-                                    : `Eliminar "${product.name}"?`,
-                                  description: "Esta acción no se puede deshacer.",
-                                  onConfirm: () => handleDeleteProduct(product.id, variant?.id),
+                                  title: `${product.hidden ? "Mostrar" : "Ocultar"} "${product.name}"?`,
+                                  description: undefined,
+                                  onConfirm: () => handleToggleHidden(product.id),
                                 })
                               }
-                              aria-label={`Eliminar ${product.name}`}
-                              className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              <span>Eliminar</span>
-                            </Button>
-                          </div>
+                            />
+                          </label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDuplicateProduct(product)}
+                            className="h-7 shrink-0 gap-1 px-2 text-xs"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            <span>Duplicar</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startQuickEdit(product, variant)}
+                            className="h-7 shrink-0 gap-1 px-2 text-xs"
+                          >
+                            <Edit3 className="h-3.5 w-3.5" />
+                            <span>Editar rápido</span>
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditProductDialog(product, variant)}
+                            className="h-7 shrink-0 gap-1 px-2 text-xs"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            <span>Editar</span>
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setConfirmState({
+                                open: true,
+                                title: variant
+                                  ? `Eliminar variante "${variant.name}"?`
+                                  : `Eliminar "${product.name}"?`,
+                                description: "Esta acción no se puede deshacer.",
+                                onConfirm: () => handleDeleteProduct(product.id, variant?.id),
+                              })
+                            }
+                            aria-label={`Eliminar ${product.name}`}
+                            className="h-7 shrink-0 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Eliminar</span>
+                          </Button>
                         </div>
                       </TableCell>
                     </>
