@@ -623,7 +623,7 @@ function AdminSuppliers() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <div className="w-full">
-        <div className="mb-6 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="order-1 basis-full shrink-0">
             <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Listado</p>
             <h1 className="mt-2 text-3xl font-semibold">Proveedores</h1>
