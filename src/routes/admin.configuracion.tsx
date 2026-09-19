@@ -1166,17 +1166,6 @@ function AdminConfiguration() {
                   <Plus className="size-4" /> Agregar
                 </Button>
               </div>
-              <div className="flex justify-end gap-2 border-t border-border/60 pt-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setSubcategoryDialogCategoryId(null)}
-                  className="gap-2"
-                >
-                  <X className="size-4" />
-                  Cancelar
-                </Button>
-              </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -1407,48 +1396,21 @@ function AdminConfiguration() {
                   className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/80 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                 >
                   <div className="min-w-0 flex-1 text-sm font-semibold text-foreground">
-                    {editingCategoryId === category.id ? (
-                      <div className="flex w-full items-end gap-2">
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <Label htmlFor={`category-name-${category.id}`}>Nombre</Label>
-                          <Input
-                            id={`category-name-${category.id}`}
-                            value={editingCategoryName}
-                            onChange={(event) => setEditingCategoryName(event.target.value)}
-                            className="h-9 min-w-0 w-full"
-                          />
+                    <div className="space-y-3">
+                      <div>{category.name}</div>
+                      {(category.subcategories ?? []).length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {(category.subcategories ?? []).map((subcategory) => (
+                            <span
+                              key={subcategory.slug}
+                              className="rounded-md bg-primary/10 px-2 py-1 text-xs font-normal text-primary"
+                            >
+                              {subcategory.name}
+                            </span>
+                          ))}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => saveEditedCategory(category.id)}
-                          disabled={
-                            !editingCategoryName.trim() ||
-                            editingCategoryName.trim() === category.name.trim()
-                          }
-                          className="h-9 shrink-0 gap-1 rounded-md border border-transparent bg-transparent px-2 text-sm text-green-600 shadow-none hover:bg-green-100/80 hover:text-green-700 hover:shadow-none disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40 disabled:opacity-100"
-                        >
-                          <Check className="h-4 w-4" />
-                          Confirmar
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div>{category.name}</div>
-                        {(category.subcategories ?? []).length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {(category.subcategories ?? []).map((subcategory) => (
-                              <span
-                                key={subcategory.slug}
-                                className="rounded-md bg-primary/10 px-2 py-1 text-xs font-normal text-primary"
-                              >
-                                {subcategory.name}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
@@ -1487,9 +1449,9 @@ function AdminConfiguration() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setEditingCategoryId(null);
-                                setEditingCategoryName("");
-                                setEditingCategorySubtitle("");
+                                setEditingCategoryName(category.name);
+                                setEditingCategorySubtitle(category.description ?? "");
+                                setEditingCategoryId(category.id);
                                 setSubcategoryDialogCategoryId(category.id);
                                 setNewSubcategoryName("");
                                 setNewSubcategoryParentSlugs([]);
