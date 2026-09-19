@@ -944,7 +944,7 @@ function AdminSuppliers() {
         </DialogContent>
       </Dialog>
       <FilterChipList chips={filterChips} />
-      <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
+      <div className="mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
         <div className="flex flex-wrap items-center gap-2 leading-none">
           <button
             type="button"
@@ -1046,17 +1046,17 @@ function AdminSuppliers() {
             stickyHeader
             stickyScrollbar
             containerClassName="overflow-x-auto overflow-y-hidden"
-            className="w-full min-w-[110rem] table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1"
+            className="w-full min-w-[90rem] table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1"
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
-                <TableHead className="w-[18rem] min-w-[18rem] pl-5">Nombre</TableHead>
-                <TableHead className="w-[14rem] min-w-[14rem]">Celular</TableHead>
-                <TableHead className="w-[14rem] min-w-[14rem]">Red social</TableHead>
-                <TableHead className="w-[16rem] min-w-[16rem]">Total vendido</TableHead>
-                <TableHead className="w-[14rem] min-w-[14rem]">Cantidad vendida</TableHead>
+                <TableHead className="w-[14rem] min-w-[14rem] pl-5">Nombre</TableHead>
+                <TableHead className="w-[11rem] min-w-[11rem]">Celular</TableHead>
+                <TableHead className="w-[12rem] min-w-[12rem]">Red social</TableHead>
+                <TableHead className="w-[13rem] min-w-[13rem]">Total vendido</TableHead>
+                <TableHead className="w-[12rem] min-w-[12rem]">Cantidad vendida</TableHead>
                 {!selectionMode && (
-                  <TableHead className="w-[34rem] min-w-[34rem] pr-5">Acciones</TableHead>
+                  <TableHead className="w-[28rem] min-w-[28rem] pr-5">Acciones</TableHead>
                 )}
               </TableRow>
             </TableHeader>
@@ -1127,7 +1127,7 @@ function AdminSuppliers() {
                         {row.soldQuantity}
                       </TableCell>
                       {!selectionMode && (
-                        <TableCell className="w-[34rem] min-w-[34rem] whitespace-nowrap pr-5 text-center">
+                        <TableCell className="w-[28rem] min-w-[28rem] whitespace-nowrap pr-5 text-center">
                           <div className="flex min-w-max flex-nowrap items-center justify-center gap-1.5">
                           {isQuickEditing ? (
                             <>

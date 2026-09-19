@@ -1800,7 +1800,7 @@ function AdminProducts() {
         </div>
       </div>
 
-      <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
+      <div className="mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
