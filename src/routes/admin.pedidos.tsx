@@ -1911,7 +1911,7 @@ function AdminOrders() {
         <div className="glass-panel min-w-0 flex-1 overflow-hidden rounded-2xl">
           <Table
             containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
-            className="w-full min-w-[120rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center"
+            className="w-full min-w-[140rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center"
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
@@ -1924,7 +1924,7 @@ function AdminOrders() {
                 <TableHead className="w-20">Gastos</TableHead>
                 <TableHead className="w-24">Precio total</TableHead>
                 <TableHead className="w-20">Ganancias</TableHead>
-                <TableHead className={cn("w-52 min-w-52 text-right", selectionMode && "hidden")}>Acciones</TableHead>
+                <TableHead className={cn("w-80 min-w-80 text-right", selectionMode && "hidden")}>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2107,7 +2107,7 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.total)}</TableCell>
                     <TableCell>{formatPrice(order.profit)}</TableCell>
                     <TableCell
-                      className={cn("w-52 min-w-52 text-right", selectionMode && "hidden")}
+                      className={cn("w-80 min-w-80 text-right", selectionMode && "hidden")}
                     >
                       <div className="flex w-full min-w-0 flex-nowrap items-center justify-end gap-0.5 overflow-hidden">
                         {isQuickEditing ? (
