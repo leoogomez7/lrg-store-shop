@@ -1067,7 +1067,7 @@ function AdminSuppliers() {
                 return (
                   <React.Fragment key={row.key}>
                     <TableRow>
-                      <TableCell className="pl-5 text-left text-[15px] font-medium text-foreground">
+                      <TableCell className="pl-5 text-left text-sm font-medium text-foreground">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.name}
@@ -1080,7 +1080,7 @@ function AdminSuppliers() {
                           row.name
                         )}
                       </TableCell>
-                      <TableCell className="w-[14rem] min-w-[14rem] text-left text-[15px] text-foreground">
+                      <TableCell className="w-[14rem] min-w-[14rem] text-left text-sm text-foreground">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.phone}
@@ -1093,7 +1093,7 @@ function AdminSuppliers() {
                           row.phone
                         )}
                       </TableCell>
-                      <TableCell className="text-left text-[15px] text-foreground">
+                      <TableCell className="text-left text-sm text-foreground">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.social}
@@ -1110,15 +1110,15 @@ function AdminSuppliers() {
                         <div className="flex flex-col items-start justify-center gap-1 leading-none text-foreground">
                           <div className="flex items-center gap-1.5">
                             <span className="text-[11px] font-medium text-muted-foreground">$</span>
-                            <span className="text-[15px]">{formatNumber(row.salesByCurrency.ARS)}</span>
+                            <span className="text-sm">{formatNumber(row.salesByCurrency.ARS)}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-[11px] font-medium text-muted-foreground">USD</span>
-                            <span className="text-[15px]">{formatNumber(row.salesByCurrency.USD)}</span>
+                            <span className="text-sm">{formatNumber(row.salesByCurrency.USD)}</span>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-left text-[15px] text-foreground">
+                      <TableCell className="text-left text-sm text-foreground">
                         {row.soldQuantity}
                       </TableCell>
                       {!selectionMode && (
