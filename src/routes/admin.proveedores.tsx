@@ -92,6 +92,8 @@ function AdminSuppliers() {
   const [salesMax, setSalesMax] = React.useState(0);
   const [quantityMin, setQuantityMin] = React.useState(0);
   const [quantityMax, setQuantityMax] = React.useState(0);
+  const effectiveSalesMax = salesMax || salesLimit;
+  const effectiveQuantityMax = quantityMax || quantityLimit;
   const [sortOpen, setSortOpen] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [storeOpen, setStoreOpen] = React.useState(false);
@@ -451,9 +453,9 @@ function AdminSuppliers() {
         ) &&
         (!storeFilter.length || row.stores.some((store) => storeFilter.includes(store))) &&
         selectedSales >= salesMin &&
-        selectedSales <= salesMax &&
+        selectedSales <= effectiveSalesMax &&
         row.soldQuantity >= quantityMin &&
-        row.soldQuantity <= quantityMax
+        row.soldQuantity <= effectiveQuantityMax
       );
     })
     .sort((a, b) => {
@@ -478,9 +480,9 @@ function AdminSuppliers() {
     storeFilter.length +
     (currencyFilter.length === 1 ? 1 : 0) +
     (salesMin > 0 ? 1 : 0) +
-    (salesMax < salesLimit ? 1 : 0) +
+    (effectiveSalesMax < salesLimit ? 1 : 0) +
     (quantityMin > 0 ? 1 : 0) +
-    (quantityMax < quantityLimit ? 1 : 0);
+    (effectiveQuantityMax < quantityLimit ? 1 : 0);
   const resetFilters = () => {
     setStoreFilter([]);
     setCurrencyFilter(["ARS", "USD"]);
@@ -520,11 +522,11 @@ function AdminSuppliers() {
     ...(salesMin > 0
       ? [{ key: "sales-min", label: `Vendido desde ${salesMin}`, onRemove: () => setSalesMin(0) }]
       : []),
-    ...(salesMax < salesLimit
+    ...(effectiveSalesMax < salesLimit
       ? [
           {
             key: "sales-max",
-            label: `Vendido hasta ${salesMax}`,
+            label: `Vendido hasta ${effectiveSalesMax}`,
             onRemove: () => setSalesMax(salesLimit),
           },
         ]
@@ -538,11 +540,11 @@ function AdminSuppliers() {
           },
         ]
       : []),
-    ...(quantityMax < quantityLimit
+    ...(effectiveQuantityMax < quantityLimit
       ? [
           {
             key: "quantity-max",
-            label: `Cantidad hasta ${quantityMax}`,
+            label: `Cantidad hasta ${effectiveQuantityMax}`,
             onRemove: () => setQuantityMax(quantityLimit),
           },
         ]
@@ -1046,7 +1048,9 @@ function AdminSuppliers() {
                 <TableHead className="w-[18%]">Red social</TableHead>
                 <TableHead className="w-[20%]">Total vendido</TableHead>
                 <TableHead className="w-[20%]">Cantidad vendida</TableHead>
-                <TableHead className={cn("w-[12%] pr-5 text-right", selectionMode && "hidden")}>Acciones</TableHead>
+                {!selectionMode && (
+                  <TableHead className="w-[12%] pr-5 text-right">Acciones</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1115,10 +1119,9 @@ function AdminSuppliers() {
                       <TableCell className="text-left text-[15px] text-foreground">
                         {row.soldQuantity}
                       </TableCell>
-                      <TableCell
-                        className={cn("w-[12%] pr-5 text-right", selectionMode && "hidden")}
-                      >
-                        <div className="flex flex-nowrap items-center justify-end gap-1.5">
+                      {!selectionMode && (
+                        <TableCell className="w-[12%] pr-5 text-right">
+                          <div className="flex flex-nowrap items-center justify-end gap-1.5">
                           {isQuickEditing ? (
                             <>
                               <Button
@@ -1184,11 +1187,12 @@ function AdminSuppliers() {
                             </>
                           )}
                         </div>
-                      </TableCell>
+                        </TableCell>
+                      )}
                     </TableRow>
                     {isExpanded ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="bg-muted/30 p-4 text-left">
+                        <TableCell colSpan={selectionMode ? 5 : 6} className="bg-muted/30 p-4 text-left">
                           <p className="mb-2 font-medium">Productos</p>
                           <div className="flex flex-wrap gap-2">
                             {row.products.map((product) => (
