@@ -596,8 +596,8 @@ function AdminSuppliers() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <div className="w-full">
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          <div className="order-1 basis-full shrink-0">
+        <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
+          <div className="order-1 basis-full shrink-0 text-center">
             <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Listado</p>
             <h1 className="mt-2 text-3xl font-semibold">Proveedores</h1>
           </div>
@@ -944,7 +944,7 @@ function AdminSuppliers() {
         </DialogContent>
       </Dialog>
       <FilterChipList chips={filterChips} />
-      <div className="mt-2 flex basis-full flex-wrap items-center gap-3">
+      <div className="mt-2 flex basis-full flex-wrap items-center justify-center gap-3">
         <div className="flex flex-wrap items-center gap-2 leading-none">
           <button
             type="button"
@@ -1036,14 +1036,16 @@ function AdminSuppliers() {
           </div>
         ) : null}
 
-        <div className="glass-panel mt-4 min-w-0 overflow-hidden rounded-2xl">
+        <div className="glass-panel mt-4 min-w-0 overflow-visible rounded-2xl">
           <Table
             hideScrollbarOnMobile
             alwaysShowScrollbarOnDesktop
+            stickyHeader
+            stickyScrollbar
             containerClassName="overflow-x-auto overflow-y-hidden"
-            className="w-full min-w-[110rem] table-fixed text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1.5 [&_th]:py-1.5"
+            className="w-full min-w-[110rem] table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1"
           >
-            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-left [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
                 <TableHead className="w-[18rem] min-w-[18rem] pl-5">Nombre</TableHead>
                 <TableHead className="w-[14rem] min-w-[14rem]">Celular</TableHead>
@@ -1051,7 +1053,7 @@ function AdminSuppliers() {
                 <TableHead className="w-[16rem] min-w-[16rem]">Total vendido</TableHead>
                 <TableHead className="w-[14rem] min-w-[14rem]">Cantidad vendida</TableHead>
                 {!selectionMode && (
-                  <TableHead className="w-[34rem] min-w-[34rem] pr-5 text-right">Acciones</TableHead>
+                  <TableHead className="w-[34rem] min-w-[34rem] pr-5">Acciones</TableHead>
                 )}
               </TableRow>
             </TableHeader>
@@ -1067,7 +1069,7 @@ function AdminSuppliers() {
                 return (
                   <React.Fragment key={row.key}>
                     <TableRow>
-                      <TableCell className="pl-5 text-left text-sm font-medium text-foreground">
+                      <TableCell className="pl-5 text-center text-sm font-medium text-foreground">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.name}
@@ -1080,7 +1082,7 @@ function AdminSuppliers() {
                           row.name
                         )}
                       </TableCell>
-                      <TableCell className="w-[14rem] min-w-[14rem] text-left text-sm text-foreground">
+                      <TableCell className="w-[14rem] min-w-[14rem] text-center text-sm text-foreground">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.phone}
@@ -1093,7 +1095,7 @@ function AdminSuppliers() {
                           row.phone
                         )}
                       </TableCell>
-                      <TableCell className="text-left text-sm text-foreground">
+                      <TableCell className="text-center text-sm text-foreground">
                         {isQuickEditing ? (
                           <Input
                             value={quickSupplier.social}
@@ -1106,24 +1108,24 @@ function AdminSuppliers() {
                           row.social
                         )}
                       </TableCell>
-                      <TableCell className="min-w-32 text-left">
-                        <div className="flex flex-col items-start justify-center gap-1 leading-none text-foreground">
-                          <div className="flex items-center gap-1.5">
+                      <TableCell className="min-w-32 text-center">
+                        <div className="flex flex-col items-center justify-center gap-1 leading-none text-foreground">
+                          <div className="flex items-center justify-center gap-1.5">
                             <span className="text-[11px] font-medium text-muted-foreground">$</span>
                             <span className="text-sm">{formatNumber(row.salesByCurrency.ARS)}</span>
                           </div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center justify-center gap-1.5">
                             <span className="text-[11px] font-medium text-muted-foreground">USD</span>
                             <span className="text-sm">{formatNumber(row.salesByCurrency.USD)}</span>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-left text-sm text-foreground">
+                      <TableCell className="text-center text-sm text-foreground">
                         {row.soldQuantity}
                       </TableCell>
                       {!selectionMode && (
-                        <TableCell className="w-[34rem] min-w-[34rem] whitespace-nowrap pr-5 text-right">
-                          <div className="flex min-w-max flex-nowrap items-center justify-end gap-1.5">
+                        <TableCell className="w-[34rem] min-w-[34rem] whitespace-nowrap pr-5 text-center">
+                          <div className="flex min-w-max flex-nowrap items-center justify-center gap-1.5">
                           {isQuickEditing ? (
                             <>
                               <Button

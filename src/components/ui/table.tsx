@@ -8,6 +8,8 @@ type TableProps = React.HTMLAttributes<HTMLTableElement> & {
   hideScrollbarOnMobile?: boolean;
   hideScrollbar?: boolean;
   alwaysShowScrollbarOnDesktop?: boolean;
+  stickyHeader?: boolean;
+  stickyScrollbar?: boolean;
   selectionGutter?: boolean;
 };
 
@@ -19,6 +21,8 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
       hideScrollbarOnMobile = false,
       hideScrollbar = false,
       alwaysShowScrollbarOnDesktop = false,
+      stickyHeader = false,
+      stickyScrollbar = false,
       selectionGutter = false,
       ...props
     },
@@ -115,7 +119,11 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
         >
           <table
             ref={ref}
-            className={cn("w-full caption-bottom text-sm text-foreground", className)}
+            className={cn(
+              "w-full caption-bottom text-sm text-foreground",
+              stickyHeader && "[&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10",
+              className,
+            )}
             {...props}
           />
         </div>
@@ -124,6 +132,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
           <div
             className={cn(
               "mt-2 flex w-full items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1 shadow-[0_8px_18px_rgba(0,0,0,0.08)] backdrop-blur",
+              stickyScrollbar && "sticky bottom-2 z-20",
               hideScrollbarOnMobile && "max-md:hidden",
             )}
             style={{ width: scrollbarState.width }}

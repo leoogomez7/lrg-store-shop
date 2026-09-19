@@ -1908,10 +1908,12 @@ function AdminOrders() {
           </div>
         ) : null}
 
-        <div className="glass-panel min-w-0 flex-1 overflow-hidden rounded-2xl">
+        <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
           <Table
             hideScrollbarOnMobile
             alwaysShowScrollbarOnDesktop
+            stickyHeader
+            stickyScrollbar
             containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
             className="w-full min-w-[98rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center"
           >

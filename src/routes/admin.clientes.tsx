@@ -696,8 +696,12 @@ function AdminClients() {
       </div>
 
       <FilterChipList chips={filterChips} />
-      <div className="glass-panel mt-4 w-full max-w-full rounded-2xl">
+      <div className="glass-panel mt-4 w-full max-w-full overflow-visible rounded-2xl">
         <Table
+          hideScrollbarOnMobile
+          alwaysShowScrollbarOnDesktop
+          stickyHeader
+          stickyScrollbar
           containerClassName="overflow-x-auto overflow-y-visible"
           className="w-full text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
         >
