@@ -1022,7 +1022,7 @@ function AdminSuppliers() {
           <div className="flex w-10 shrink-0 flex-col items-center bg-transparent py-3">
             <div className="mb-3 h-6" />
             {visibleRows.map((row) => (
-              <div key={row.key} className="flex h-14 w-full items-center justify-center">
+              <div key={row.key} className="flex h-[52px] w-full items-center justify-center">
                 <Checkbox
                   className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                   checked={selectedSupplierKeys.includes(row.key)}
@@ -1037,7 +1037,7 @@ function AdminSuppliers() {
         <div className="glass-panel mt-4 min-w-0 overflow-hidden rounded-2xl">
           <Table
             containerClassName="overflow-x-auto overflow-y-hidden"
-            className="w-full min-w-max text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2"
+            className="w-full min-w-max text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1.5 [&_th]:py-1.5"
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-left [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
@@ -1049,7 +1049,7 @@ function AdminSuppliers() {
                 <TableHead className={cn("w-[12%] pr-5 text-right", selectionMode && "hidden")}>Acciones</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="bg-background">
+            <TableBody>
               {visibleRows.map((row) => {
                 const isExpanded = expandedSupplierKey === row.key;
                 const isQuickEditing = quickEditSupplierKey === row.key;
@@ -1060,7 +1060,7 @@ function AdminSuppliers() {
                 };
                 return (
                   <React.Fragment key={row.key}>
-                    <TableRow className="border-b border-border bg-background hover:bg-muted/30">
+                    <TableRow>
                       <TableCell className="pl-5 text-left text-[15px] font-medium text-foreground">
                         {isQuickEditing ? (
                           <Input
@@ -1188,7 +1188,7 @@ function AdminSuppliers() {
                     </TableRow>
                     {isExpanded ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="bg-muted/30 p-4 text-left">
+                        <TableCell colSpan={6} className="bg-muted/30 p-4 text-left">
                           <p className="mb-2 font-medium">Productos</p>
                           <div className="flex flex-wrap gap-2">
                             {row.products.map((product) => (
@@ -1210,7 +1210,7 @@ function AdminSuppliers() {
               })}
               {filteredRows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-16 text-muted-foreground">
+                  <TableCell colSpan={6} className="py-16 text-muted-foreground">
                     No se encontraron proveedores.
                   </TableCell>
                 </TableRow>
