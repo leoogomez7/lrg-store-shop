@@ -154,7 +154,7 @@ function exportOrdersPdf(ordersList: Order[]) {
 }
 
 // Insert UI buttons into the page header for exporting (Excel + PDF)
-if (typeof window !== "undefined") {
+if (false && typeof window !== "undefined") {
   window.addEventListener("load", () => {
     try {
       // Only inject on pedidos route
@@ -218,7 +218,7 @@ if (typeof window !== "undefined") {
 }
 
 // Ensure buttons appear on SPA navigation: observe DOM and inject when header is added
-if (typeof window !== "undefined") {
+if (false && typeof window !== "undefined") {
   const ensureExportButtons = () => {
     try {
       // Only inject on the pedidos admin route to avoid duplicating buttons on other pages
@@ -1913,9 +1913,9 @@ function AdminOrders() {
             hideScrollbarOnMobile
             alwaysShowScrollbarOnDesktop
             containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
-            className="w-full min-w-[92rem] table-fixed text-[12px] [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1 [&_th]:py-1 [&_td]:text-center [&_th]:text-center"
+            className="w-full min-w-[98rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center"
           >
-            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-[11px] [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
                 <TableHead className="w-24">Pedido</TableHead>
                 <TableHead className="w-20">Fecha</TableHead>
@@ -1967,10 +1967,10 @@ function AdminOrders() {
                         : undefined
                     }
                   >
-                    <TableCell className="w-24 text-center font-medium">
+                    <TableCell className="w-24 text-center text-sm font-medium">
                       <div className="flex min-w-0 items-center justify-center gap-1 text-center">
                         <div className="flex min-w-0 flex-col items-center gap-1">
-                          <span className="min-w-0 break-all text-[11px] leading-tight">{order.id}</span>
+                          <span className="min-w-0 break-all text-sm leading-tight">{order.id}</span>
                           {order.isGuest && (
                             <Badge variant="warning" className="shrink-0 px-1.5 py-0.5 text-[9px]">
                               Invitado
@@ -1979,7 +1979,7 @@ function AdminOrders() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-[11px]">{formatDate(order.date)}</TableCell>
+                    <TableCell className="text-sm">{formatDate(order.date)}</TableCell>
                     <TableCell>
                       {isQuickEditing ? (
                         <Select
@@ -2109,9 +2109,9 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.total)}</TableCell>
                     <TableCell>{formatPrice(order.profit)}</TableCell>
                     <TableCell
-                      className={cn("w-72 min-w-72 text-right", selectionMode && "hidden")}
+                      className={cn("w-[34rem] min-w-[34rem] text-right", selectionMode && "hidden")}
                     >
-                      <div className="flex w-full min-w-0 flex-nowrap items-center justify-end gap-0.5 overflow-hidden">
+                      <div className="flex w-full min-w-max flex-nowrap items-center justify-end gap-0.5 overflow-visible">
                         {isQuickEditing ? (
                           <>
                             <Button

@@ -829,9 +829,9 @@ function CustomerRow({
           <div className="flex items-center justify-center gap-2">
             {customer.name}
             {customer.isGuest && (
-              <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+              <Badge variant="warning" className="shrink-0 px-1.5 py-0.5 text-[10px]">
                 Invitado
-              </span>
+              </Badge>
             )}
           </div>
         </TableCell>
