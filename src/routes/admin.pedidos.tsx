@@ -1918,7 +1918,10 @@ function AdminOrders() {
             stickyHeader
             stickyScrollbar
             containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
-            className="w-full min-w-[98rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center"
+            className={cn(
+              "w-full table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
+              selectionMode ? "min-w-[50rem]" : "min-w-[98rem]",
+            )}
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
@@ -1931,11 +1934,9 @@ function AdminOrders() {
                 <TableHead className="w-18">Gastos</TableHead>
                 <TableHead className="w-20">Total</TableHead>
                 <TableHead className="w-18">Ganancias</TableHead>
-                <TableHead
-                  className={cn("w-[34rem] min-w-[34rem] text-right", selectionMode && "invisible")}
-                >
-                  Acciones
-                </TableHead>
+                {!selectionMode && (
+                  <TableHead className="w-[34rem] min-w-[34rem] text-right">Acciones</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2117,9 +2118,7 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.expenses)}</TableCell>
                     <TableCell>{formatPrice(order.total)}</TableCell>
                     <TableCell>{formatPrice(order.profit)}</TableCell>
-                    <TableCell
-                      className={cn("w-[34rem] min-w-[34rem] text-right", selectionMode && "invisible")}
-                    >
+                    {!selectionMode && <TableCell className="w-[34rem] min-w-[34rem] text-right">
                       <div className="flex w-full min-w-max flex-nowrap items-center justify-end gap-0.5 overflow-visible">
                         {isQuickEditing ? (
                           <>
@@ -2221,7 +2220,7 @@ function AdminOrders() {
                           </>
                         )}
                       </div>
-                    </TableCell>
+                    </TableCell>}
                   </TableRow>
 
                   {isExpanded && (

@@ -2,6 +2,8 @@ import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-quer
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 import {
+  ArrowLeft,
+  ArrowRight,
   ArrowUpDown,
   Check,
   ChevronDown,
@@ -125,6 +127,8 @@ function AdminSuppliers() {
   const [pageSize, setPageSize] = React.useState(10);
   const [pageSizeInput, setPageSizeInput] = React.useState("10");
   const [selectedSupplierKeys, setSelectedSupplierKeys] = React.useState<string[]>([]);
+  const [bulkSupplierEditQueue, setBulkSupplierEditQueue] = React.useState<string[]>([]);
+  const [bulkSupplierEditPosition, setBulkSupplierEditPosition] = React.useState(0);
   const [selectionMode, setSelectionMode] = React.useState(false);
   const [quickEditSupplierKey, setQuickEditSupplierKey] = React.useState<string | null>(null);
   const [quickEditSupplier, setQuickEditSupplier] = React.useState<StandaloneSupplier | null>(null);
@@ -269,6 +273,16 @@ function AdminSuppliers() {
     if (!supplier.name || !supplier.phone || !supplier.social) return;
     if (editingSupplierKey) {
       saveSupplierChanges(editingSupplierKey, supplier);
+      const nextPosition = bulkSupplierEditPosition + 1;
+      const nextKey = bulkSupplierEditQueue[nextPosition];
+      const nextRow = rows.find((row) => row.key === nextKey);
+      if (nextRow) {
+        setBulkSupplierEditPosition(nextPosition);
+        openSupplierEditor(nextRow);
+        return;
+      }
+      setBulkSupplierEditQueue([]);
+      setBulkSupplierEditPosition(0);
       setNewSupplierOpen(false);
       return;
     }
@@ -394,7 +408,20 @@ function AdminSuppliers() {
 
   const editSelectedSupplier = () => {
     const selectedRow = rows.find((row) => selectedSupplierKeys.includes(row.key));
-    if (selectedRow) openSupplierEditor(selectedRow);
+    if (selectedRow) {
+      const queue = selectedSupplierKeys.filter((key) => rows.some((row) => row.key === key));
+      setBulkSupplierEditQueue(queue);
+      setBulkSupplierEditPosition(0);
+      openSupplierEditor(selectedRow);
+    }
+  };
+
+  const navigateBulkEditSupplier = (direction: -1 | 1) => {
+    const nextPosition = bulkSupplierEditPosition + direction;
+    const nextRow = rows.find((row) => row.key === bulkSupplierEditQueue[nextPosition]);
+    if (!nextRow) return;
+    setBulkSupplierEditPosition(nextPosition);
+    openSupplierEditor(nextRow);
   };
 
   const deleteSelectedSuppliers = () => {
@@ -613,6 +640,8 @@ function AdminSuppliers() {
           <Button
             onClick={() => {
               setEditingSupplierKey(null);
+              setBulkSupplierEditQueue([]);
+              setBulkSupplierEditPosition(0);
               setNewSupplier({ name: "", phone: "", social: "" });
               setNewSupplierOpen(true);
             }}
@@ -884,7 +913,32 @@ function AdminSuppliers() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingSupplierKey ? "Editar proveedor" : "Nuevo proveedor"}</DialogTitle>
+            <div className="flex items-center justify-between gap-3">
+              <DialogTitle>{editingSupplierKey ? "Editar proveedor" : "Nuevo proveedor"}</DialogTitle>
+              {editingSupplierKey && bulkSupplierEditQueue.length > 1 ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateBulkEditSupplier(-1)}
+                    disabled={bulkSupplierEditPosition === 0}
+                  >
+                    <ArrowLeft className="size-4" /> Anterior
+                  </Button>
+                  <span>{bulkSupplierEditPosition + 1} / {bulkSupplierEditQueue.length}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateBulkEditSupplier(1)}
+                    disabled={bulkSupplierEditPosition >= bulkSupplierEditQueue.length - 1}
+                  >
+                    Siguiente <ArrowRight className="size-4" />
+                  </Button>
+                </div>
+              ) : null}
+            </div>
             <DialogDescription>
               {editingSupplierKey
                 ? "Actualizá el nombre, celular y red social del proveedor."
@@ -930,16 +984,40 @@ function AdminSuppliers() {
             </div>
           </div>
           <DialogFooter>
-            <Button
-              type="button"
-              onClick={addSupplier}
-              disabled={
-                !newSupplier.name.trim() || !newSupplier.phone.trim() || !newSupplier.social.trim()
-              }
-            >
-              <Save className="size-4" />
-              {editingSupplierKey ? "Guardar cambios" : "Guardar proveedor"}
-            </Button>
+            <div className="flex w-full items-center justify-between gap-2">
+              {editingSupplierKey && bulkSupplierEditQueue.length > 1 ? (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateBulkEditSupplier(-1)}
+                    disabled={bulkSupplierEditPosition === 0}
+                  >
+                    <ArrowLeft className="size-4" /> Anterior
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateBulkEditSupplier(1)}
+                    disabled={bulkSupplierEditPosition >= bulkSupplierEditQueue.length - 1}
+                  >
+                    Siguiente <ArrowRight className="size-4" />
+                  </Button>
+                </div>
+              ) : <span />}
+              <Button
+                type="button"
+                onClick={addSupplier}
+                disabled={
+                  !newSupplier.name.trim() || !newSupplier.phone.trim() || !newSupplier.social.trim()
+                }
+              >
+                <Save className="size-4" />
+                {editingSupplierKey ? "Guardar cambios" : "Guardar proveedor"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1046,7 +1124,10 @@ function AdminSuppliers() {
             stickyHeader
             stickyScrollbar
             containerClassName="overflow-x-auto overflow-y-hidden"
-            className="w-full min-w-[78rem] table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1"
+            className={cn(
+              "w-full table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1",
+              selectionMode ? "min-w-[50rem]" : "min-w-[78rem]",
+            )}
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
@@ -1055,14 +1136,9 @@ function AdminSuppliers() {
                 <TableHead className="w-[10rem] min-w-[10rem]">Red social</TableHead>
                 <TableHead className="w-[10rem] min-w-[10rem]">Total vendido</TableHead>
                 <TableHead className="w-[9rem] min-w-[9rem]">Cantidad vendida</TableHead>
-                <TableHead
-                  className={cn(
-                    "w-[27rem] min-w-[27rem] pr-5",
-                    selectionMode && "invisible",
-                  )}
-                >
-                  Acciones
-                </TableHead>
+                {!selectionMode && (
+                  <TableHead className="w-[27rem] min-w-[27rem] pr-5">Acciones</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1131,12 +1207,7 @@ function AdminSuppliers() {
                       <TableCell className="text-center text-sm text-foreground">
                         {row.soldQuantity}
                       </TableCell>
-                      <TableCell
-                        className={cn(
-                          "w-[27rem] min-w-[27rem] whitespace-nowrap pr-5 text-center",
-                          selectionMode && "invisible",
-                        )}
-                      >
+                      {!selectionMode && <TableCell className="w-[27rem] min-w-[27rem] whitespace-nowrap pr-5 text-center">
                           <div className="flex min-w-max flex-nowrap items-center justify-center gap-1.5">
                           {isQuickEditing ? (
                             <>
@@ -1203,7 +1274,7 @@ function AdminSuppliers() {
                             </>
                           )}
                         </div>
-                      </TableCell>
+                      </TableCell>}
                     </TableRow>
                     {isExpanded ? (
                       <TableRow>

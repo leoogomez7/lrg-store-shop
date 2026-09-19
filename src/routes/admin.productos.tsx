@@ -1917,7 +1917,10 @@ function AdminProducts() {
             stickyHeader
             stickyScrollbar
             containerClassName="overflow-x-auto overflow-y-hidden"
-            className="w-full min-w-max text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2"
+            className={cn(
+              "w-full text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2",
+              selectionMode ? "min-w-[52rem]" : "min-w-max",
+            )}
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
@@ -1930,7 +1933,9 @@ function AdminProducts() {
                 <TableHead className="w-20 text-center">Descuento</TableHead>
                 <TableHead className="w-24 text-center">Precio tienda</TableHead>
                 <TableHead className="w-24 text-center">Ganancias</TableHead>
-                <TableHead className={cn("w-52 min-w-52 text-center", selectionMode && "invisible")}>Acciones</TableHead>
+                {!selectionMode && (
+                  <TableHead className="w-52 min-w-52 text-center">Acciones</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2256,7 +2261,7 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell className="text-center">{formatPrice(Math.max(0, discountedPrice))}</TableCell>
                       <TableCell className="text-center">{formatPrice(displayProfit, displayProfitCurrency)}</TableCell>
-                      <TableCell className={cn("min-w-52 text-center", selectionMode && "invisible")}>
+                      {!selectionMode && <TableCell className="min-w-52 text-center">
                         <div className="flex flex-nowrap items-center justify-center gap-1 overflow-hidden">
                           <label className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
                             <span>{product.hidden ? "No disponible" : "Disponible"}</span>
@@ -2321,7 +2326,7 @@ function AdminProducts() {
                             <span>Eliminar</span>
                           </Button>
                         </div>
-                      </TableCell>
+                      </TableCell>}
                     </>
                   )}
                 </TableRow>
