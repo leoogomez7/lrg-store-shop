@@ -132,7 +132,7 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
           <div
             className={cn(
               "mt-2 flex w-full items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1 shadow-[0_8px_18px_rgba(0,0,0,0.08)] backdrop-blur",
-              stickyScrollbar && "sticky bottom-2 z-20",
+              stickyScrollbar && "sticky bottom-0 z-20",
               hideScrollbarOnMobile && "max-md:hidden",
             )}
             style={{ width: scrollbarState.width }}

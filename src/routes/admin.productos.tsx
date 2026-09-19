@@ -2213,7 +2213,7 @@ function AdminProducts() {
                             {product.name}
                           </span>
                           {variant ? (
-                            <span className="flex basis-full items-center justify-center pl-6 text-[10px] uppercase tracking-wider">
+                            <span className="flex basis-full items-center justify-center text-[10px] uppercase tracking-wider">
                               <span className="rounded-full border border-border px-1.5 py-0.5 text-muted-foreground">
                                 {variant.name}
                               </span>
