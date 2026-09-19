@@ -1926,7 +1926,7 @@ function AdminOrders() {
                 <TableHead className="w-20">Ganancias</TableHead>
                 <TableHead
                   className={cn(
-                    "sticky right-0 z-20 w-72 min-w-72 bg-surface-2 pr-4 text-right shadow-[1px_0_0_var(--border)]",
+                    "sticky right-0 z-20 w-52 min-w-52 bg-surface-2 pr-2 text-right shadow-[1px_0_0_var(--border)]",
                     selectionMode && "hidden",
                   )}
                 >
@@ -2115,11 +2115,11 @@ function AdminOrders() {
                     <TableCell>{formatPrice(order.profit)}</TableCell>
                     <TableCell
                       className={cn(
-                        "sticky right-0 z-20 w-72 min-w-72 max-w-none overflow-visible bg-background pr-4 text-right shadow-[1px_0_0_var(--border)]",
+                        "sticky right-0 z-20 w-52 min-w-52 max-w-none overflow-visible bg-background pr-2 text-right shadow-[1px_0_0_var(--border)]",
                         selectionMode && "hidden",
                       )}
                     >
-                      <div className="flex w-full min-w-0 flex-nowrap items-center justify-center gap-1.5 overflow-hidden">
+                      <div className="flex w-full min-w-0 flex-nowrap items-center justify-end gap-1 overflow-hidden">
                         {isQuickEditing ? (
                           <>
                             <Button
