@@ -191,7 +191,7 @@ function BrandHeaderContent({
     if (!panel || !userName) return null;
 
     return (
-      <DropdownMenu open={openUserMenu} onOpenChange={setOpenUserMenu}>
+      <DropdownMenu modal={false} open={openUserMenu} onOpenChange={setOpenUserMenu}>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
@@ -327,7 +327,7 @@ function BrandHeaderContent({
               ) : null}
             </nav>
 
-            <DropdownMenu open={openCart} onOpenChange={setOpenCart}>
+            <DropdownMenu modal={false} open={openCart} onOpenChange={setOpenCart}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
@@ -516,7 +516,7 @@ function BrandHeaderContent({
               </Link>
             </Button>
 
-            <DropdownMenu open={openMenu} onOpenChange={setOpenMenu}>
+            <DropdownMenu modal={false} open={openMenu} onOpenChange={setOpenMenu}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"

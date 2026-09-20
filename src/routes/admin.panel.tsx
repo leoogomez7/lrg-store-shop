@@ -353,7 +353,6 @@ function AdminDashboard() {
                   Tipo
                 </label>
                 <Select
-                  modal={false}
                   value={reportMetric}
                   onValueChange={(value) => {
                     setReportMetric(value as typeof reportMetric);
@@ -378,7 +377,6 @@ function AdminDashboard() {
                   Mes
                 </label>
                 <Select
-                  modal={false}
                   value={selectedMonth}
                   onValueChange={(value) => {
                     setSelectedMonth(value);

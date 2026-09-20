@@ -253,6 +253,10 @@ input[type="password"]::-webkit-textfield-decoration-container {
     scrollbar-gutter: stable;
   }
 
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
+  }
+
   @supports (height: 100dvh) {
     body {
       min-height: 100dvh;

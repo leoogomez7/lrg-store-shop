@@ -764,16 +764,16 @@ function CheckoutPage() {
                             value={String(value)}
                             onChange={(event) => {
                               (setter as (next: string) => void)(event.target.value);
-                              if (synced) setSelectedSavedAddress("");
+                              setSelectedSavedAddress("");
                             }}
                             readOnly={Boolean(synced)}
-                            className={synced ? "h-10 bg-muted/40" : "h-10 bg-background"}
+                            className={synced ? "h-10 bg-muted/40" : "h-10"}
                           />
                         </label>
                       ))}
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.1fr_2fr_2fr_3fr]">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(7rem,1.1fr)_2fr_2fr_3fr]">
                       {(
                         [
                           ["Código Postal", postalCode, setPostalCode, false],
@@ -788,10 +788,10 @@ function CheckoutPage() {
                             value={String(value)}
                             onChange={(event) => {
                               (setter as (next: string) => void)(event.target.value);
-                              if (synced) setSelectedSavedAddress("");
+                              setSelectedSavedAddress("");
                             }}
                             readOnly={Boolean(synced)}
-                            className={synced ? "h-10 bg-muted/40" : "h-10 bg-background"}
+                            className={synced ? "h-10 bg-muted/40" : "h-10"}
                             placeholder={
                               label === "Referencias"
                                 ? "Entre calles, color de la casa, etc."
