@@ -1,4 +1,4 @@
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -136,11 +136,6 @@ function toggleOrderFilterOption(
 }
 
 export const Route = createFileRoute("/cuenta")({
-  loader: ({ context }) =>
-    Promise.all([
-      context.queryClient.ensureQueryData(orderQueries.list()),
-      context.queryClient.ensureQueryData(catalogQueries.all()),
-    ]),
   beforeLoad: ({ location }) => {
     if (location.pathname === "/cuenta") {
       throw redirect({ to: "/cuenta/panel" });
@@ -248,8 +243,8 @@ function AccountPageContent({
   auth: ReturnType<typeof useKindeAuth> | null;
   initialTab?: AccountTab;
 }) {
-  const { data: orders } = useSuspenseQuery(orderQueries.list());
-  const { data: products } = useSuspenseQuery(catalogQueries.all());
+  const { data: orders = [] } = useQuery({ ...orderQueries.list(), staleTime: 60_000 });
+  const { data: products = [] } = useQuery({ ...catalogQueries.all(), staleTime: 60_000 });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
