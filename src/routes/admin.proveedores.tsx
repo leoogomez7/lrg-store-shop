@@ -409,7 +409,8 @@ function AdminSuppliers() {
   const editSelectedSupplier = () => {
     const selectedRow = rows.find((row) => selectedSupplierKeys.includes(row.key));
     if (selectedRow) {
-      const queue = selectedSupplierKeys.filter((key) => rows.some((row) => row.key === key));
+      const selectedKeys = new Set(selectedSupplierKeys);
+      const queue = rows.filter((row) => selectedKeys.has(row.key)).map((row) => row.key);
       setBulkSupplierEditQueue(queue);
       setBulkSupplierEditPosition(0);
       openSupplierEditor(selectedRow);
@@ -702,14 +703,25 @@ function AdminSuppliers() {
                       {storeFilter.length > 0 && (
                         <Badge variant="secondary">{storeFilter.length}</Badge>
                       )}
-                      {storeOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                      {storeOpen ? (
+                        <ChevronUp className="size-4" />
+                      ) : (
+                        <ChevronDown className="size-4" />
+                      )}
                     </button>
                     {storeOpen && (
                       <div className="space-y-2.5">
                         {[["all", "Todos"] as const, ...storeOptions].map(([value, label]) => (
-                          <label key={value} className="flex cursor-pointer items-start gap-3 text-sm">
+                          <label
+                            key={value}
+                            className="flex cursor-pointer items-start gap-3 text-sm"
+                          >
                             <Checkbox
-                              checked={value === "all" ? storeFilter.length === 0 : storeFilter.includes(value)}
+                              checked={
+                                value === "all"
+                                  ? storeFilter.length === 0
+                                  : storeFilter.includes(value)
+                              }
                               onCheckedChange={(checked) =>
                                 setStoreFilter((current) =>
                                   toggleFilterSelection(
@@ -736,7 +748,11 @@ function AdminSuppliers() {
                       aria-expanded={salesOpen}
                     >
                       <span>Total vendido</span>
-                      {salesOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                      {salesOpen ? (
+                        <ChevronUp className="size-4" />
+                      ) : (
+                        <ChevronDown className="size-4" />
+                      )}
                     </button>
                     {salesOpen && (
                       <div className="space-y-3">
@@ -816,7 +832,11 @@ function AdminSuppliers() {
                       aria-expanded={quantityOpen}
                     >
                       <span>Total de cantidad vendida</span>
-                      {quantityOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                      {quantityOpen ? (
+                        <ChevronUp className="size-4" />
+                      ) : (
+                        <ChevronDown className="size-4" />
+                      )}
                     </button>
                     {quantityOpen && (
                       <div className="space-y-3">
@@ -830,7 +850,10 @@ function AdminSuppliers() {
                               value={quantityMin}
                               onChange={(event) =>
                                 setQuantityMin(
-                                  Math.min(Math.max(0, Number(event.target.value) || 0), quantityMax),
+                                  Math.min(
+                                    Math.max(0, Number(event.target.value) || 0),
+                                    quantityMax,
+                                  ),
                                 )
                               }
                               className="h-8 w-24"
@@ -904,206 +927,214 @@ function AdminSuppliers() {
           </div>
         </div>
 
-      <Dialog
-        open={newSupplierOpen}
-        onOpenChange={(open) => {
-          setNewSupplierOpen(open);
-          if (!open) setEditingSupplierKey(null);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <div className="flex items-center justify-between gap-3">
-              <DialogTitle>{editingSupplierKey ? "Editar proveedor" : "Nuevo proveedor"}</DialogTitle>
-              {editingSupplierKey && bulkSupplierEditQueue.length > 1 ? (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigateBulkEditSupplier(-1)}
-                    disabled={bulkSupplierEditPosition === 0}
-                  >
-                    <ArrowLeft className="size-4" /> Anterior
-                  </Button>
-                  <span>{bulkSupplierEditPosition + 1} / {bulkSupplierEditQueue.length}</span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigateBulkEditSupplier(1)}
-                    disabled={bulkSupplierEditPosition >= bulkSupplierEditQueue.length - 1}
-                  >
-                    Siguiente <ArrowRight className="size-4" />
-                  </Button>
-                </div>
-              ) : null}
+        <Dialog
+          open={newSupplierOpen}
+          onOpenChange={(open) => {
+            setNewSupplierOpen(open);
+            if (!open) setEditingSupplierKey(null);
+          }}
+        >
+          <DialogContent key={editingSupplierKey ?? "new-supplier"}>
+            <DialogHeader>
+              <div className="flex items-center justify-between gap-3">
+                <DialogTitle>
+                  {editingSupplierKey ? "Editar proveedor" : "Nuevo proveedor"}
+                </DialogTitle>
+                {editingSupplierKey && bulkSupplierEditQueue.length > 1 ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateBulkEditSupplier(-1)}
+                      disabled={bulkSupplierEditPosition === 0}
+                    >
+                      <ArrowLeft className="size-4" /> Anterior
+                    </Button>
+                    <span>
+                      {bulkSupplierEditPosition + 1} / {bulkSupplierEditQueue.length}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateBulkEditSupplier(1)}
+                      disabled={bulkSupplierEditPosition >= bulkSupplierEditQueue.length - 1}
+                    >
+                      Siguiente <ArrowRight className="size-4" />
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+              <DialogDescription>
+                {editingSupplierKey
+                  ? "Actualizá el nombre, celular y red social del proveedor."
+                  : "Ingresá los datos del nuevo proveedor."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="supplier-name">Nombre</Label>
+                <Input
+                  id="supplier-name"
+                  name="new-supplier-name"
+                  autoComplete="off"
+                  value={newSupplier.name}
+                  onChange={(event) =>
+                    setNewSupplier((current) => ({ ...current, name: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplier-phone">Celular</Label>
+                <Input
+                  id="supplier-phone"
+                  name="new-supplier-phone"
+                  autoComplete="off"
+                  value={newSupplier.phone}
+                  onChange={(event) =>
+                    setNewSupplier((current) => ({ ...current, phone: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplier-social">Red social</Label>
+                <Input
+                  id="supplier-social"
+                  name="new-supplier-social"
+                  autoComplete="off"
+                  value={newSupplier.social}
+                  onChange={(event) =>
+                    setNewSupplier((current) => ({ ...current, social: event.target.value }))
+                  }
+                />
+              </div>
             </div>
-            <DialogDescription>
-              {editingSupplierKey
-                ? "Actualizá el nombre, celular y red social del proveedor."
-                : "Ingresá los datos del nuevo proveedor."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="supplier-name">Nombre</Label>
-              <Input
-                id="supplier-name"
-                name="new-supplier-name"
-                autoComplete="off"
-                value={newSupplier.name}
-                onChange={(event) =>
-                  setNewSupplier((current) => ({ ...current, name: event.target.value }))
+            <DialogFooter>
+              <div className="flex w-full items-center justify-between gap-2">
+                {editingSupplierKey && bulkSupplierEditQueue.length > 1 ? (
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateBulkEditSupplier(-1)}
+                      disabled={bulkSupplierEditPosition === 0}
+                    >
+                      <ArrowLeft className="size-4" /> Anterior
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateBulkEditSupplier(1)}
+                      disabled={bulkSupplierEditPosition >= bulkSupplierEditQueue.length - 1}
+                    >
+                      Siguiente <ArrowRight className="size-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <span />
+                )}
+                <Button
+                  type="button"
+                  onClick={addSupplier}
+                  disabled={
+                    !newSupplier.name.trim() ||
+                    !newSupplier.phone.trim() ||
+                    !newSupplier.social.trim()
+                  }
+                >
+                  <Save className="size-4" />
+                  {editingSupplierKey ? "Guardar cambios" : "Guardar proveedor"}
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <FilterChipList chips={filterChips} />
+        <div className="mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 leading-none">
+            <button
+              type="button"
+              className="text-sm font-medium text-foreground leading-none"
+              onClick={() => {
+                setSelectionMode((current) => {
+                  if (current) setSelectedSupplierKeys([]);
+                  return !current;
+                });
+              }}
+            >
+              Seleccionar
+            </button>
+            <Checkbox
+              className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+              checked={
+                allVisibleSuppliersSelected
+                  ? true
+                  : someVisibleSuppliersSelected
+                    ? "indeterminate"
+                    : false
+              }
+              onCheckedChange={(checked) => {
+                if (checked === false) {
+                  setSelectionMode(false);
+                  setSelectedSupplierKeys([]);
+                  return;
                 }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="supplier-phone">Celular</Label>
-              <Input
-                id="supplier-phone"
-                name="new-supplier-phone"
-                autoComplete="off"
-                value={newSupplier.phone}
-                onChange={(event) =>
-                  setNewSupplier((current) => ({ ...current, phone: event.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="supplier-social">Red social</Label>
-              <Input
-                id="supplier-social"
-                name="new-supplier-social"
-                autoComplete="off"
-                value={newSupplier.social}
-                onChange={(event) =>
-                  setNewSupplier((current) => ({ ...current, social: event.target.value }))
-                }
-              />
-            </div>
+                setSelectionMode(true);
+                const shouldSelect = checked === true || checked === "indeterminate";
+                setSelectedSupplierKeys((current) =>
+                  shouldSelect
+                    ? [...new Set([...current, ...visibleSupplierKeys])]
+                    : current.filter((key) => !visibleSupplierKeys.includes(key)),
+                );
+              }}
+              aria-label="Seleccionar proveedores visibles"
+            />
+            {selectedSupplierKeys.length > 0 ? (
+              <span className="text-xs text-muted-foreground">
+                {selectedSupplierKeys.length} seleccionados
+              </span>
+            ) : null}
           </div>
-          <DialogFooter>
-            <div className="flex w-full items-center justify-between gap-2">
-              {editingSupplierKey && bulkSupplierEditQueue.length > 1 ? (
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigateBulkEditSupplier(-1)}
-                    disabled={bulkSupplierEditPosition === 0}
-                  >
-                    <ArrowLeft className="size-4" /> Anterior
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigateBulkEditSupplier(1)}
-                    disabled={bulkSupplierEditPosition >= bulkSupplierEditQueue.length - 1}
-                  >
-                    Siguiente <ArrowRight className="size-4" />
-                  </Button>
-                </div>
-              ) : <span />}
+          {selectedSupplierKeys.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={editSelectedSupplier}>
+                <Pencil className="size-4" /> Editar
+              </Button>
               <Button
-                type="button"
-                onClick={addSupplier}
-                disabled={
-                  !newSupplier.name.trim() || !newSupplier.phone.trim() || !newSupplier.social.trim()
-                }
+                size="sm"
+                variant="destructive"
+                onClick={() => {
+                  if (window.confirm("¿Eliminar proveedores seleccionados?")) {
+                    deleteSelectedSuppliers();
+                  }
+                }}
               >
-                <Save className="size-4" />
-                {editingSupplierKey ? "Guardar cambios" : "Guardar proveedor"}
+                <Trash2 className="size-4" /> Eliminar
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setSelectionMode(false);
+                  setSelectedSupplierKeys([]);
+                }}
+              >
+                <X className="size-4" /> Cancelar
               </Button>
             </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <FilterChipList chips={filterChips} />
-      <div className="mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
-        <div className="flex flex-wrap items-center gap-2 leading-none">
-          <button
-            type="button"
-            className="text-sm font-medium text-foreground leading-none"
-            onClick={() => {
-              setSelectionMode((current) => {
-                if (current) setSelectedSupplierKeys([]);
-                return !current;
-              });
-            }}
-          >
-            Seleccionar
-          </button>
-          <Checkbox
-            className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-            checked={
-              allVisibleSuppliersSelected
-                ? true
-                : someVisibleSuppliersSelected
-                  ? "indeterminate"
-                  : false
-            }
-            onCheckedChange={(checked) => {
-              if (checked === false) {
-                setSelectionMode(false);
-                setSelectedSupplierKeys([]);
-                return;
-              }
-              setSelectionMode(true);
-              const shouldSelect = checked === true || checked === "indeterminate";
-              setSelectedSupplierKeys((current) =>
-                shouldSelect
-                  ? [...new Set([...current, ...visibleSupplierKeys])]
-                  : current.filter((key) => !visibleSupplierKeys.includes(key)),
-              );
-            }}
-            aria-label="Seleccionar proveedores visibles"
-          />
-          {selectedSupplierKeys.length > 0 ? (
-            <span className="text-xs text-muted-foreground">
-              {selectedSupplierKeys.length} seleccionados
-            </span>
           ) : null}
         </div>
-        {selectedSupplierKeys.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={editSelectedSupplier}>
-              <Pencil className="size-4" /> Editar
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => {
-                if (window.confirm("¿Eliminar proveedores seleccionados?")) {
-                  deleteSelectedSuppliers();
-                }
-              }}
-            >
-              <Trash2 className="size-4" /> Eliminar
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setSelectionMode(false);
-                setSelectedSupplierKeys([]);
-              }}
-            >
-              <X className="size-4" /> Cancelar
-            </Button>
-          </div>
-        ) : null}
-      </div>
 
-      <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
-        <div
-          className={cn(
-            "flex w-10 shrink-0 flex-col items-center bg-transparent py-3",
-            !selectionMode && "pointer-events-none opacity-0",
-          )}
-        >
+        <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
+          <div
+            className={cn(
+              "flex w-10 shrink-0 flex-col items-center bg-transparent py-3",
+              !selectionMode && "pointer-events-none opacity-0",
+            )}
+          >
             <div className="mb-3 h-6" />
             {visibleRows.map((row) => (
               <div key={row.key} className="flex h-[52px] w-full items-center justify-center">
@@ -1115,264 +1146,301 @@ function AdminSuppliers() {
                 />
               </div>
             ))}
-        </div>
+          </div>
 
-        <div className="glass-panel min-w-0 overflow-visible rounded-2xl">
-          <Table
-            hideScrollbarOnMobile
-            alwaysShowScrollbarOnDesktop
-            stickyHeader
-            stickyScrollbar
-            containerClassName="overflow-x-auto overflow-y-visible"
-            className={cn(
-              "w-full table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1",
-              selectionMode ? "min-w-[50rem]" : "min-w-[78rem]",
-            )}
-          >
-            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
-              <TableRow>
-                <TableHead className="w-[12rem] min-w-[12rem] pl-5">Nombre</TableHead>
-                <TableHead className="w-[9rem] min-w-[9rem]">Celular</TableHead>
-                <TableHead className="w-[10rem] min-w-[10rem]">Red social</TableHead>
-                <TableHead className="w-[10rem] min-w-[10rem]">Total vendido</TableHead>
-                <TableHead className="w-[9rem] min-w-[9rem]">Cantidad vendida</TableHead>
-                {!selectionMode && (
-                  <TableHead className="w-[27rem] min-w-[27rem] pr-5">Acciones</TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleRows.map((row) => {
-                const isExpanded = expandedSupplierKey === row.key;
-                const isQuickEditing = quickEditSupplierKey === row.key;
-                const quickSupplier = quickEditSupplier ?? {
-                  name: row.name,
-                  phone: row.phone,
-                  social: row.social,
-                };
-                return (
-                  <React.Fragment key={row.key}>
-                    <TableRow>
-                      <TableCell className="pl-5 text-center text-sm font-medium text-foreground">
-                        {isQuickEditing ? (
-                          <Input
-                            value={quickSupplier.name}
-                            onChange={(event) =>
-                              setQuickEditSupplier({ ...quickSupplier, name: event.target.value })
-                            }
-                            className="h-9"
-                          />
-                        ) : (
-                          row.name
-                        )}
-                      </TableCell>
-                      <TableCell className="w-[9rem] min-w-[9rem] text-center text-sm text-foreground">
-                        {isQuickEditing ? (
-                          <Input
-                            value={quickSupplier.phone}
-                            onChange={(event) =>
-                              setQuickEditSupplier({ ...quickSupplier, phone: event.target.value })
-                            }
-                            className="h-9"
-                          />
-                        ) : (
-                          row.phone
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center text-sm text-foreground">
-                        {isQuickEditing ? (
-                          <Input
-                            value={quickSupplier.social}
-                            onChange={(event) =>
-                              setQuickEditSupplier({ ...quickSupplier, social: event.target.value })
-                            }
-                            className="h-9"
-                          />
-                        ) : (
-                          row.social
-                        )}
-                      </TableCell>
-                      <TableCell className="min-w-32 text-center">
-                        <div className="flex flex-col items-center justify-center gap-1 leading-none text-foreground">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <span className="text-[11px] font-medium text-muted-foreground">$</span>
-                            <span className="text-sm">{formatNumber(row.salesByCurrency.ARS)}</span>
-                          </div>
-                          <div className="flex items-center justify-center gap-1.5">
-                            <span className="text-[11px] font-medium text-muted-foreground">USD</span>
-                            <span className="text-sm">{formatNumber(row.salesByCurrency.USD)}</span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center text-sm text-foreground">
-                        {row.soldQuantity}
-                      </TableCell>
-                      {!selectionMode && <TableCell className="w-[27rem] min-w-[27rem] whitespace-nowrap pr-5 text-center">
-                          <div className="flex min-w-max flex-nowrap items-center justify-center gap-1.5">
-                          {isQuickEditing ? (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => saveSupplierChanges(row.key, quickSupplier)}
-                                className="h-7 gap-1 px-2 text-xs text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-                              >
-                                <Check className="size-3.5" /> Guardar
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={cancelQuickEditSupplier}
-                                className="h-7 gap-1 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-                              >
-                                <X className="size-3.5" /> Cancelar
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setExpandedSupplierKey(isExpanded ? null : row.key)}
-                                className="h-7 gap-1.5 px-2 text-xs text-foreground hover:bg-muted"
-                              >
-                                {isExpanded ? (
-                                  <EyeOff className="size-4" />
-                                ) : (
-                                  <Eye className="size-4" />
-                                )}
-                                {isExpanded ? "Ocultar" : "Detalles"}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => startQuickEditSupplier(row)}
-                                className="h-7 gap-1 px-2 text-xs text-foreground hover:bg-muted"
-                              >
-                                <Edit3 className="size-3.5" /> Editar rápido
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openSupplierEditor(row)}
-                                className="h-7 gap-1 px-2 text-xs text-foreground hover:bg-muted"
-                              >
-                                <Pencil className="size-3.5" /> Editar
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  if (window.confirm(`¿Eliminar el proveedor "${row.name}"?`)) {
-                                    deleteSupplier(row.key);
-                                  }
-                                }}
-                                className="h-7 gap-1 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-                              >
-                                <Trash2 className="size-3.5" /> Eliminar
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>}
-                    </TableRow>
-                    {isExpanded ? (
+          <div className="glass-panel min-w-0 overflow-visible rounded-2xl">
+            <Table
+              hideScrollbarOnMobile
+              alwaysShowScrollbarOnDesktop
+              stickyHeader
+              stickyScrollbar
+              containerClassName="overflow-x-auto overflow-y-visible"
+              className={cn(
+                "w-full table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1",
+                selectionMode ? "min-w-[50rem]" : "min-w-[78rem]",
+              )}
+            >
+              <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+                <TableRow>
+                  <TableHead className="w-[12rem] min-w-[12rem] pl-5">Nombre</TableHead>
+                  <TableHead className="w-[9rem] min-w-[9rem]">Celular</TableHead>
+                  <TableHead className="w-[10rem] min-w-[10rem]">Red social</TableHead>
+                  <TableHead className="w-[10rem] min-w-[10rem]">Total vendido</TableHead>
+                  <TableHead className="w-[9rem] min-w-[9rem]">Cantidad vendida</TableHead>
+                  {!selectionMode && (
+                    <TableHead className="w-[27rem] min-w-[27rem] pr-5">Acciones</TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleRows.map((row) => {
+                  const isExpanded = expandedSupplierKey === row.key;
+                  const isQuickEditing = quickEditSupplierKey === row.key;
+                  const quickSupplier = quickEditSupplier ?? {
+                    name: row.name,
+                    phone: row.phone,
+                    social: row.social,
+                  };
+                  return (
+                    <React.Fragment key={row.key}>
                       <TableRow>
-                        <TableCell colSpan={6} className="bg-muted/30 p-4 text-left">
-                          <p className="mb-2 font-medium">Productos</p>
-                          <div className="flex flex-wrap gap-2">
-                            {row.products.map((product) => (
-                              <span key={product} className="rounded-md bg-muted px-2 py-1 text-xs text-foreground">
-                                {product}
+                        <TableCell className="pl-5 text-center text-sm font-medium text-foreground">
+                          {isQuickEditing ? (
+                            <Input
+                              value={quickSupplier.name}
+                              onChange={(event) =>
+                                setQuickEditSupplier({ ...quickSupplier, name: event.target.value })
+                              }
+                              className="h-9"
+                            />
+                          ) : (
+                            row.name
+                          )}
+                        </TableCell>
+                        <TableCell className="w-[9rem] min-w-[9rem] text-center text-sm text-foreground">
+                          {isQuickEditing ? (
+                            <Input
+                              value={quickSupplier.phone}
+                              onChange={(event) =>
+                                setQuickEditSupplier({
+                                  ...quickSupplier,
+                                  phone: event.target.value,
+                                })
+                              }
+                              className="h-9"
+                            />
+                          ) : (
+                            row.phone
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center text-sm text-foreground">
+                          {isQuickEditing ? (
+                            <Input
+                              value={quickSupplier.social}
+                              onChange={(event) =>
+                                setQuickEditSupplier({
+                                  ...quickSupplier,
+                                  social: event.target.value,
+                                })
+                              }
+                              className="h-9"
+                            />
+                          ) : (
+                            row.social
+                          )}
+                        </TableCell>
+                        <TableCell className="min-w-32 text-center">
+                          <div className="flex flex-col items-center justify-center gap-1 leading-none text-foreground">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <span className="text-[11px] font-medium text-muted-foreground">
+                                $
                               </span>
-                            ))}
-                            {row.products.length === 0 && (
-                              <p className="text-sm text-muted-foreground">
-                                Este proveedor todavía no tiene productos asignados.
-                              </p>
-                            )}
+                              <span className="text-sm">
+                                {formatNumber(row.salesByCurrency.ARS)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <span className="text-[11px] font-medium text-muted-foreground">
+                                USD
+                              </span>
+                              <span className="text-sm">
+                                {formatNumber(row.salesByCurrency.USD)}
+                              </span>
+                            </div>
                           </div>
                         </TableCell>
+                        <TableCell className="text-center text-sm text-foreground">
+                          {row.soldQuantity}
+                        </TableCell>
+                        {!selectionMode && (
+                          <TableCell className="w-[27rem] min-w-[27rem] whitespace-nowrap pr-5 text-center">
+                            <div className="flex min-w-max flex-nowrap items-center justify-center gap-1.5">
+                              {isQuickEditing ? (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => saveSupplierChanges(row.key, quickSupplier)}
+                                    className="h-7 gap-1 px-2 text-xs text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                                  >
+                                    <Check className="size-3.5" /> Guardar
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={cancelQuickEditSupplier}
+                                    className="h-7 gap-1 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                                  >
+                                    <X className="size-3.5" /> Cancelar
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      setExpandedSupplierKey(isExpanded ? null : row.key)
+                                    }
+                                    className="h-7 gap-1.5 px-2 text-xs text-foreground hover:bg-muted"
+                                  >
+                                    {isExpanded ? (
+                                      <EyeOff className="size-4" />
+                                    ) : (
+                                      <Eye className="size-4" />
+                                    )}
+                                    {isExpanded ? "Ocultar" : "Detalles"}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => startQuickEditSupplier(row)}
+                                    className="h-7 gap-1 px-2 text-xs text-foreground hover:bg-muted"
+                                  >
+                                    <Edit3 className="size-3.5" /> Editar rápido
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => openSupplierEditor(row)}
+                                    className="h-7 gap-1 px-2 text-xs text-foreground hover:bg-muted"
+                                  >
+                                    <Pencil className="size-3.5" /> Editar
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      if (window.confirm(`¿Eliminar el proveedor "${row.name}"?`)) {
+                                        deleteSupplier(row.key);
+                                      }
+                                    }}
+                                    className="h-7 gap-1 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                                  >
+                                    <Trash2 className="size-3.5" /> Eliminar
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
-                    ) : null}
-                  </React.Fragment>
-                );
-              })}
-              {filteredRows.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-16 text-muted-foreground">
-                    No se encontraron proveedores.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-      <div className="mt-4 flex flex-col gap-3 pb-20">
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={() => setPage(0)} disabled={!hasPreviousPage} className="h-9 px-4">
-            Principio
-          </Button>
-          <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-            {Array.from({ length: totalPages }, (_, index) => (
-              <button
-                key={index}
-                type="button"
-                className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${
-                  index === page ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"
-                }`}
-                onClick={() => setPage(index)}
-              >
-                {index + 1}
-              </button>
-            ))}
+                      {isExpanded ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="bg-muted/30 p-4 text-left">
+                            <p className="mb-2 font-medium">Productos</p>
+                            <div className="flex flex-wrap gap-2">
+                              {row.products.map((product) => (
+                                <span
+                                  key={product}
+                                  className="rounded-md bg-muted px-2 py-1 text-xs text-foreground"
+                                >
+                                  {product}
+                                </span>
+                              ))}
+                              {row.products.length === 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                  Este proveedor todavía no tiene productos asignados.
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                    </React.Fragment>
+                  );
+                })}
+                {filteredRows.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-16 text-muted-foreground">
+                      No se encontraron proveedores.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
-          <Button type="button" variant="ghost" size="sm" onClick={() => setPage(totalPages - 1)} disabled={!hasNextPage} className="h-9 px-4">
-            Último
-          </Button>
         </div>
+        <div className="mt-4 flex flex-col gap-3 pb-20">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setPage(0)}
+              disabled={!hasPreviousPage}
+              className="h-9 px-4"
+            >
+              Principio
+            </Button>
+            <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+              {Array.from({ length: totalPages }, (_, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${
+                    index === page
+                      ? "bg-muted text-foreground"
+                      : "bg-transparent text-muted-foreground hover:bg-surface-2"
+                  }`}
+                  onClick={() => setPage(index)}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setPage(totalPages - 1)}
+              disabled={!hasNextPage}
+              className="h-9 px-4"
+            >
+              Último
+            </Button>
+          </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <div className="text-sm text-muted-foreground">Mostrar</div>
-          <Input
-            type="number"
-            min={1}
-            max={1000}
-            value={pageSizeInput}
-            placeholder="Cantidad"
-            onChange={(event) => setPageSizeInput(event.target.value)}
-            className="h-8 w-20 bg-background/50"
-          />
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="text-sm text-muted-foreground">Mostrar</div>
+            <Input
+              type="number"
+              min={1}
+              max={1000}
+              value={pageSizeInput}
+              placeholder="Cantidad"
+              onChange={(event) => setPageSizeInput(event.target.value)}
+              className="h-8 w-20 bg-background/50"
+            />
 
-          {(() => {
-            const v = Number(pageSizeInput);
-            const isValid = Number.isFinite(v) && v >= 1;
-            const isChanged = pageSizeInput !== "" && String(Math.floor(v)) !== String(pageSize);
-            return (
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (!isValid || !isChanged) return;
-                  const final = Math.min(1000, Math.floor(v));
-                  setPageSize(final);
-                  setPage(0);
-                }}
-                disabled={!isValid || !isChanged}
-                className="h-8 px-4"
-              >
-                <Check className="mr-2 h-4 w-4" />
-                Confirmar
-              </Button>
-            );
-          })()}
+            {(() => {
+              const v = Number(pageSizeInput);
+              const isValid = Number.isFinite(v) && v >= 1;
+              const isChanged = pageSizeInput !== "" && String(Math.floor(v)) !== String(pageSize);
+              return (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (!isValid || !isChanged) return;
+                    const final = Math.min(1000, Math.floor(v));
+                    setPageSize(final);
+                    setPage(0);
+                  }}
+                  disabled={!isValid || !isChanged}
+                  className="h-8 px-4"
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Confirmar
+                </Button>
+              );
+            })()}
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground">
+            {visibleRows.length} de {filteredRows.length} proveedores mostrados
+          </p>
         </div>
-
-        <p className="text-center text-xs text-muted-foreground">
-          {visibleRows.length} de {filteredRows.length} proveedores mostrados
-        </p>
       </div>
-    </div>
     </main>
   );
 }
