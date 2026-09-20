@@ -57,7 +57,7 @@ import { Badge } from "@/components/ui/badge";
 import { logout } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { webDesignConfig } from "@/config/brands/web-design.config";
-import { getKindeRedirectUri } from "@/lib/kinde";
+import { KINDE_LOGOUT_REDIRECT_URI, getKindeRedirectUri } from "@/lib/kinde";
 import { verifyAdminFinalPassword, verifyAdminPassword } from "@/server/admin-auth";
 import { loadAdminSettings } from "@/server/persistence";
 import { applyAdminSettings, refreshBrandData } from "@/config/brands";
@@ -561,7 +561,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                       window.sessionStorage.removeItem("lrg_admin_entry_notice_shown");
                     }
                     await kindeLogout({
-                      redirectUrl: getKindeRedirectUri("/") ?? "/",
+                      redirectUrl: KINDE_LOGOUT_REDIRECT_URI,
                     });
                     navigate({ to: "/", replace: true });
                   }}

@@ -59,7 +59,7 @@ function readStoredOrders(): Order[] {
 }
 
 export function saveOrders(orders: Order[]) {
-  void saveAdminOrders({ data: { orders } });
+  return saveAdminOrders({ data: { orders } });
 }
 
 const defaultOrders: Order[] = [];

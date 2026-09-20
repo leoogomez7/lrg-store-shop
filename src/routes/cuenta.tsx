@@ -73,7 +73,7 @@ import { brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
 import { extractStreetNumberFromResult, splitStreetAndNumber } from "@/lib/address";
 import { logout } from "@/lib/auth";
-import { getKindeRedirectUri } from "@/lib/kinde";
+import { KINDE_LOGOUT_REDIRECT_URI, getKindeRedirectUri } from "@/lib/kinde";
 import {
   saveKindeUserToTurso,
   getUserProfile,
@@ -362,7 +362,7 @@ function AccountPageContent({
       window.sessionStorage.removeItem("lrg_auth_role");
     }
     await kindeLogout({
-      redirectUrl: getKindeRedirectUri("/login") ?? "/login",
+      redirectUrl: KINDE_LOGOUT_REDIRECT_URI,
     });
     navigate({ to: "/login", replace: true });
   };
@@ -1692,16 +1692,18 @@ function AccountPageContent({
                 {attachmentsOrder?.attachments?.map((attachment) => (
                   <div
                     key={`${attachment.name}-${attachment.size}`}
-                    className="flex items-center gap-3 rounded-xl border border-border/60 p-3"
+                    className="flex min-w-0 items-start gap-3 rounded-xl border border-border/60 p-3"
                   >
                     <Paperclip className="size-4 shrink-0 text-muted-foreground" />
-                    <span className="min-w-0 flex-1 truncate text-sm">{attachment.name}</span>
+                    <span className="min-w-0 flex-1 break-all whitespace-normal text-sm">
+                      {attachment.name}
+                    </span>
                     <Button
                       asChild
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="gap-1.5 text-xs"
+                      className="shrink-0 gap-1.5 text-xs"
                     >
                       <a href={attachment.dataUrl} target="_blank" rel="noreferrer">
                         <Eye className="size-4" /> Ver
@@ -1712,7 +1714,7 @@ function AccountPageContent({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="gap-1.5 text-xs"
+                      className="shrink-0 gap-1.5 text-xs"
                     >
                       <a href={attachment.dataUrl} download={attachment.name}>
                         <Download className="size-4" /> Descargar
@@ -2919,8 +2921,8 @@ function AccountPageContent({
                   ? location.pathname === route
                   : location.pathname.startsWith(route);
                 return (
-                  <a
-                    href={route}
+                  <Link
+                    to={route}
                     key={key}
                     title={sidebarCollapsed ? label : undefined}
                     className={cn(
@@ -2933,7 +2935,7 @@ function AccountPageContent({
                   >
                     <Icon className="relative z-10 size-4 shrink-0" />
                     {!sidebarCollapsed && <span className="relative z-10">{label}</span>}
-                  </a>
+                  </Link>
                 );
               })}
               <a
@@ -3025,8 +3027,8 @@ function AccountPageContent({
                       ? location.pathname === route
                       : location.pathname.startsWith(route);
                     return (
-                      <a
-                        href={route}
+                      <Link
+                        to={route}
                         key={key}
                         className={cn(
                           "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
@@ -3037,7 +3039,7 @@ function AccountPageContent({
                       >
                         <Icon className="size-4 shrink-0" />
                         {label}
-                      </a>
+                      </Link>
                     );
                   })}
                   <a

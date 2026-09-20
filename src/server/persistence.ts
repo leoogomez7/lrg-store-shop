@@ -335,6 +335,32 @@ export const listAdminProducts = createServerFn({ method: "POST" })
     });
   });
 
+export const listAdminProductsByBrand = createServerFn({ method: "POST" })
+  .validator((data: { brand: BrandSlug }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return [];
+
+    try {
+      const result = await database.execute({
+        sql: "SELECT productData FROM products WHERE json_extract(productData, '$.brand') = ? ORDER BY updatedAt DESC",
+        args: [data.brand],
+      });
+      return result.rows.flatMap((row) => {
+        const value = row["productData"];
+        if (typeof value !== "string") return [];
+        try {
+          return [JSON.parse(value) as Product];
+        } catch {
+          return [];
+        }
+      });
+    } catch {
+      const productsData = await listAdminProducts({ data: {} });
+      return productsData.filter((product) => product.brand === data.brand);
+    }
+  });
+
 export const saveAdminProducts = createServerFn({ method: "POST" })
   .validator((data: { products: Product[] }) => data)
   .handler(async ({ data }) => {

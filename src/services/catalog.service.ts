@@ -7,6 +7,7 @@ import { orders } from "@/data/orders";
 import {
   listAdminOrders,
   listAdminProducts,
+  listAdminProductsByBrand,
   loadAdminSettings,
   saveAdminProducts,
   upsertAdminOrder,
@@ -95,7 +96,7 @@ export async function adjustProductStockForOrder(order: Order, direction: 1 | -1
 
 export const catalogService = {
   listByBrand: async (brand: BrandSlug, loaded?: Product[]) => {
-    const productsData = loaded ?? (await listAdminProducts({ data: {} }));
+    const productsData = loaded ?? (await listAdminProductsByBrand({ data: { brand } }));
     const filtered = productsData.filter((product) => product.brand === brand);
     const flattened = expandCatalogProducts(filtered);
     products.splice(0, products.length, ...productsData);
@@ -175,10 +176,7 @@ export const catalogQueries = {
   byBrand: (brand: BrandSlug) =>
     queryOptions({
       queryKey: ["products", brand],
-      queryFn: ({ client }) =>
-        client
-          .ensureQueryData(catalogQueries.all())
-          .then((loaded) => catalogService.listByBrand(brand, loaded)),
+      queryFn: () => catalogService.listByBrand(brand),
     }),
   detail: (brand: BrandSlug, slug: string) =>
     queryOptions({

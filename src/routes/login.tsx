@@ -5,7 +5,7 @@ import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
-import { AdminAccessDialog } from "@/components/common/admin-access-dialog";
+import { AdminAccessDialog, AdminFinalAccessDialog } from "@/components/common/admin-access-dialog";
 import { getKindeRedirectUri } from "@/lib/kinde";
 import {
   CircleArrowLeft,
@@ -40,11 +40,23 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
   const { role: requestedRole } = Route.useSearch();
   const [role, setRole] = useState<"client" | "admin" | null>(requestedRole ?? null);
   const [adminAccessOpen, setAdminAccessOpen] = useState(false);
+  const [adminFinalAccessOpen, setAdminFinalAccessOpen] = useState(false);
   const [adminAuthorized, setAdminAuthorized] = useState(false);
   const [isStartingLogin, setIsStartingLogin] = useState(false);
+  const isAdminLoginFlow =
+    role === "admin" ||
+    (typeof window !== "undefined" && window.sessionStorage.getItem("lrg_auth_role") === "admin");
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
+      if (
+        isAdminLoginFlow &&
+        typeof window !== "undefined" &&
+        window.sessionStorage.getItem("lrg_admin_final_verified") !== "true"
+      ) {
+        setAdminFinalAccessOpen(true);
+        return;
+      }
       toast.info("Ya hay un usuario logueado", {
         className: "!border-gray-200 !bg-white !text-gray-900",
       });
@@ -54,7 +66,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
           : "/cuenta/panel";
       navigate({ to: destination });
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAdminLoginFlow, isAuthenticated, isLoading, navigate]);
 
   useEffect(() => {
     const resetLoginState = () => setIsStartingLogin(false);
@@ -77,7 +89,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
     });
   };
 
-  if (isStartingLogin || isLoading || isAuthenticated) {
+  if (isStartingLogin || isLoading || (isAuthenticated && !adminFinalAccessOpen)) {
     return (
       <div className="theme-webdesign flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
         <div className="text-center">
@@ -178,6 +190,15 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
         onAuthorized={() => {
           setAdminAuthorized(true);
           startLogin();
+        }}
+      />
+      <AdminFinalAccessDialog
+        open={adminFinalAccessOpen}
+        onOpenChange={setAdminFinalAccessOpen}
+        onAuthorized={() => {
+          window.sessionStorage.setItem("lrg_admin_final_verified", "true");
+          setAdminFinalAccessOpen(false);
+          navigate({ to: "/admin/panel", replace: true });
         }}
       />
     </div>

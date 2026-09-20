@@ -234,6 +234,7 @@ function AdminDashboard() {
     category: string;
     brand: BrandSlug;
     stock: number;
+    stockUnlimited: boolean;
   };
 
   const stockItems: StockItem[] = filteredProducts
@@ -246,6 +247,7 @@ function AdminDashboard() {
           category: product.category,
           brand: product.brand,
           stock: variant.stock,
+          stockUnlimited: variant.stockUnlimited ?? product.stockUnlimited ?? false,
         }));
       }
 
@@ -256,9 +258,11 @@ function AdminDashboard() {
           category: product.category,
           brand: product.brand,
           stock: product.stock,
+          stockUnlimited: product.stockUnlimited ?? false,
         },
       ];
     })
+    .filter((item) => !item.stockUnlimited)
     .sort((a, b) => a.stock - b.stock);
 
   const totalStockUnits = stockItems.reduce((sum, item) => sum + item.stock, 0);

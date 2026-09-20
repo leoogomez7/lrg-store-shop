@@ -24,7 +24,12 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { formatDate } from "../lib/format";
-import { getKindeConfig, getKindeRedirectUri, hasKindeConfig } from "../lib/kinde";
+import {
+  KINDE_LOGOUT_REDIRECT_URI,
+  getKindeConfig,
+  getKindeRedirectUri,
+  hasKindeConfig,
+} from "../lib/kinde";
 import {
   applyAdminSettings,
   brandList,
@@ -38,7 +43,7 @@ import {
   loadAdminSettings,
   recordSiteVisit,
 } from "../server/persistence";
-import { catalogQueries, orderQueries } from "../services/catalog.service";
+import { orderQueries } from "../services/catalog.service";
 
 function NotFoundComponent() {
   return (
@@ -227,7 +232,6 @@ function AppDataPrefetch({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useKindeAuth();
 
   useEffect(() => {
-    void queryClient.prefetchQuery(catalogQueries.all());
     if (isAuthenticated) void queryClient.prefetchQuery(orderQueries.list());
   }, [isAuthenticated, queryClient]);
 
@@ -357,7 +361,6 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { clientId, domain } = getKindeConfig();
   const redirectUri = getKindeRedirectUri("/login");
-  const logoutUri = getKindeRedirectUri("/login");
   const hasKindConfig = hasKindeConfig();
 
   useEffect(() => {
@@ -440,7 +443,7 @@ function RootComponent() {
         clientId={clientId}
         domain={domain}
         redirectUri={redirectUri ?? "http://localhost:5174/login"}
-        logoutUri={logoutUri ?? "http://localhost:5174/"}
+        logoutUri={KINDE_LOGOUT_REDIRECT_URI}
       >
         {appContent}
       </KindeProvider>

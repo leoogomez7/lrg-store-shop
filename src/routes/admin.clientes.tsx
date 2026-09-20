@@ -24,6 +24,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  LoaderCircle,
   Paperclip,
   Search,
   Sheet,
@@ -824,6 +825,7 @@ function CustomerRow({
   const [open, setOpen] = useState(false);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<OrderAttachment[]>([]);
+  const [isSavingDocuments, setIsSavingDocuments] = useState(false);
   const navigate = useNavigate();
 
   return (
@@ -914,6 +916,7 @@ function CustomerRow({
             <Button
               type="button"
               variant="outline"
+              disabled={isSavingDocuments}
               onClick={() => {
                 setDocumentsOrder(null);
                 setPendingAttachments([]);
@@ -923,35 +926,52 @@ function CustomerRow({
             </Button>
             <Button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 if (!documentsOrder || pendingAttachments.length === 0) return;
+                setIsSavingDocuments(true);
                 const updatedOrder = {
                   ...documentsOrder,
                   attachments: [...(documentsOrder.attachments ?? []), ...pendingAttachments],
                 };
-                saveOrders(
-                  ordersData.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)),
-                );
-                setDocumentsOrder(updatedOrder);
-                setPendingAttachments([]);
+                try {
+                  await saveOrders(
+                    ordersData.map((order) =>
+                      order.id === updatedOrder.id ? updatedOrder : order,
+                    ),
+                  );
+                  setDocumentsOrder(updatedOrder);
+                  setPendingAttachments([]);
+                } finally {
+                  setIsSavingDocuments(false);
+                }
               }}
-              disabled={pendingAttachments.length === 0}
+              disabled={pendingAttachments.length === 0 || isSavingDocuments}
             >
-              <Save className="size-4" /> Guardar
+              {isSavingDocuments ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" /> Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="size-4" /> Guardar
+                </>
+              )}
             </Button>
           </div>
           <div className="space-y-2">
             {[...(documentsOrder?.attachments ?? []), ...pendingAttachments].map((attachment) => (
               <div
                 key={`${attachment.name}-${attachment.size}`}
-                className="flex items-center justify-between gap-3 rounded-lg border p-2 text-sm"
+                className="flex min-w-0 items-start justify-between gap-3 rounded-lg border p-2 text-sm"
               >
-                <span className="min-w-0 truncate">{attachment.name}</span>
+                <span className="min-w-0 flex-1 break-all whitespace-normal">
+                  {attachment.name}
+                </span>
                 {attachment.dataUrl ? (
                   <a
                     href={attachment.dataUrl}
                     download={attachment.name}
-                    className="rounded p-1 hover:bg-accent"
+                    className="shrink-0 rounded p-1 hover:bg-accent"
                     title="Descargar"
                   >
                     <Download className="size-4" />

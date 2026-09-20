@@ -28,7 +28,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { logout } from "@/lib/auth";
-import { getKindeRedirectUri } from "@/lib/kinde";
+import { KINDE_LOGOUT_REDIRECT_URI, getKindeRedirectUri } from "@/lib/kinde";
 import { brandList, type BrandConfig } from "@/config/brands";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/store/cart-context";
@@ -563,7 +563,7 @@ function BrandHeaderContent({
         cancelLabel="No"
         onConfirm={async () => {
           await logout();
-          await kindeLogout({ redirectUrl: getKindeRedirectUri("/") ?? "/" });
+          await kindeLogout({ redirectUrl: KINDE_LOGOUT_REDIRECT_URI });
           navigate({ to: "/" });
         }}
       />
