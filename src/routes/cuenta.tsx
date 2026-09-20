@@ -243,8 +243,10 @@ function AccountPageContent({
   auth: ReturnType<typeof useKindeAuth> | null;
   initialTab?: AccountTab;
 }) {
-  const { data: orders = [] } = useQuery({ ...orderQueries.list(), staleTime: 60_000 });
-  const { data: products = [] } = useQuery({ ...catalogQueries.all(), staleTime: 60_000 });
+  const { data: orders = [], isPending: ordersLoading } = useQuery(orderQueries.list());
+  const { data: products = [], isPending: productsLoading } = useQuery({
+    ...catalogQueries.all(),
+  });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -278,10 +280,17 @@ function AccountPageContent({
     return userEmail ? orders.filter((order) => order.email.toLowerCase() === userEmail) : [];
   }, [orders, user?.email]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [favoritesLoading, setFavoritesLoading] = useState(true);
   const favoriteProducts = products.filter((product) => favoriteIds.includes(product.id));
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const primaryAddress = addresses.find((address) => address.isPrimary) ?? addresses[0] ?? null;
+  const primaryAddressValue = addressesLoading
+    ? "Cargando dirección..."
+    : primaryAddress
+      ? [primaryAddress.street, primaryAddress.streetNumber].filter(Boolean).join(" ") ||
+        primaryAddress.value
+      : "Sin dirección principal";
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
@@ -764,9 +773,20 @@ function AccountPageContent({
   }, [user, isAuthenticated]);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setFavoritesLoading(false);
+      return;
+    }
+    let active = true;
     const unsubscribe = subscribeToFavoriteChanges(user.id, setFavoriteIds);
-    void hydrateFavorites(user.id).then(setFavoriteIds);
+    setFavoritesLoading(true);
+    void hydrateFavorites(user.id)
+      .then((nextFavoriteIds) => {
+        if (active) setFavoriteIds(nextFavoriteIds);
+      })
+      .finally(() => {
+        if (active) setFavoritesLoading(false);
+      });
 
     // Cargar direcciones guardadas desde la BD
     setAddressesLoading(true);
@@ -789,7 +809,10 @@ function AccountPageContent({
         );
       })
       .finally(() => setAddressesLoading(false));
-    return unsubscribe;
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, [user?.id]);
 
   const getUserInitials = () => {
@@ -1470,7 +1493,16 @@ function AccountPageContent({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.length > 0 ? (
+                {ordersLoading ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={7}
+                      className="py-12 text-center text-sm text-muted-foreground"
+                    >
+                      Cargando compras...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredOrders.length > 0 ? (
                   paginatedOrders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.id}</TableCell>
@@ -2079,13 +2111,7 @@ function AccountPageContent({
                   </Label>
                   <Input
                     id="account-primary-address"
-                    value={
-                      primaryAddress
-                        ? [primaryAddress.street, primaryAddress.streetNumber]
-                            .filter(Boolean)
-                            .join(" ") || primaryAddress.value
-                        : "Sin dirección principal"
-                    }
+                    value={primaryAddressValue}
                     disabled
                     className="h-11 rounded-xl border-border/60 bg-muted/50 text-foreground opacity-80"
                   />
@@ -2766,7 +2792,9 @@ function AccountPageContent({
             <h1 className="mt-2 text-3xl font-semibold">Favoritos</h1>
           </div>
 
-          {favoriteProducts.length > 0 ? (
+          {favoritesLoading || productsLoading ? (
+            <LoadingState label="Cargando favoritos..." />
+          ) : favoriteProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {favoriteProducts.map((product, index) => (
                 <ProductCard

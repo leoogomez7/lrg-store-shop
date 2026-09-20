@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { KindeProvider, useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import {
   Outlet,
@@ -38,7 +38,7 @@ import {
   loadAdminSettings,
   recordSiteVisit,
 } from "../server/persistence";
-import { orderQueries } from "../services/catalog.service";
+import { catalogQueries, orderQueries } from "../services/catalog.service";
 
 function NotFoundComponent() {
   return (
@@ -216,10 +216,22 @@ function AuthenticatedCart({ children }: { children: ReactNode }) {
       isAuthenticated={isAuthenticated}
       isLoading={isLoading}
     >
-      {children}
+      <AppDataPrefetch>{children}</AppDataPrefetch>
       <CustomerOrderStatusNotice />
     </CartProvider>
   );
+}
+
+function AppDataPrefetch({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useKindeAuth();
+
+  useEffect(() => {
+    void queryClient.prefetchQuery(catalogQueries.all());
+    if (isAuthenticated) void queryClient.prefetchQuery(orderQueries.list());
+  }, [isAuthenticated, queryClient]);
+
+  return <>{children}</>;
 }
 
 type CustomerOrderStatusChange = {
