@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { AdminAccessDialog, AdminFinalAccessDialog } from "@/components/common/admin-access-dialog";
 import { getKindeRedirectUri } from "@/lib/kinde";
+import { getAuthRole, setAuthRole } from "@/lib/auth-role";
 import {
   CircleArrowLeft,
   House,
@@ -43,9 +44,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
   const [adminFinalAccessOpen, setAdminFinalAccessOpen] = useState(false);
   const [adminAuthorized, setAdminAuthorized] = useState(false);
   const [isStartingLogin, setIsStartingLogin] = useState(false);
-  const isAdminLoginFlow =
-    role === "admin" ||
-    (typeof window !== "undefined" && window.sessionStorage.getItem("lrg_auth_role") === "admin");
+  const isAdminLoginFlow = role === "admin" || getAuthRole() === "admin";
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -60,10 +59,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
       toast.info("Ya hay un usuario logueado", {
         className: "!border-gray-200 !bg-white !text-gray-900",
       });
-      const destination =
-        typeof window !== "undefined" && window.sessionStorage.getItem("lrg_auth_role") === "admin"
-          ? "/admin/panel"
-          : "/cuenta/panel";
+      const destination = getAuthRole() === "admin" ? "/admin/panel" : "/cuenta/panel";
       navigate({ to: destination });
     }
   }, [isAdminLoginFlow, isAuthenticated, isLoading, navigate]);
@@ -81,7 +77,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
   const startLogin = () => {
     setIsStartingLogin(true);
     if (typeof window !== "undefined") {
-      window.sessionStorage.setItem("lrg_auth_role", role ?? "client");
+      setAuthRole(role ?? "client");
     }
     const redirectURL = getKindeRedirectUri("/login");
     login({

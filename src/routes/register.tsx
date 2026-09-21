@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { AdminAccessDialog } from "@/components/common/admin-access-dialog";
 import { getKindeRedirectUri } from "@/lib/kinde";
+import { getAuthRole, setAuthRole } from "@/lib/auth-role";
 import { CircleArrowLeft, House, ShieldCheck, User, UserPlus, UsersRound, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/register")({
@@ -40,7 +41,7 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
       toast.info("Ya hay un usuario logueado", {
         className: "!border-gray-200 !bg-white !text-gray-900",
       });
-      navigate({ to: "/cuenta/panel" });
+      navigate({ to: getAuthRole() === "admin" ? "/login" : "/cuenta/panel" });
     }
   }, [isAuthenticated, isLoading, navigate]);
 
@@ -57,7 +58,7 @@ function RegisterPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> |
   const startRegister = () => {
     setIsStartingRegister(true);
     if (typeof window !== "undefined") {
-      window.sessionStorage.setItem("lrg_auth_role", role ?? "client");
+      setAuthRole(role ?? "client");
     }
     const redirectURL = getKindeRedirectUri("/login");
     register({

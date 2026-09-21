@@ -32,6 +32,7 @@ import { KINDE_LOGOUT_REDIRECT_URI, getKindeRedirectUri } from "@/lib/kinde";
 import { brandList, type BrandConfig } from "@/config/brands";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/store/cart-context";
+import { getAuthRole } from "@/lib/auth-role";
 
 export function BrandHeader({
   brand,
@@ -115,9 +116,7 @@ function BrandHeaderContent({
   useEffect(() => {
     setUserName(user ? user.givenName || user.email || null : null);
     setUserFamilyName(user?.familyName || null);
-    const storedRole =
-      typeof window !== "undefined" ? window.sessionStorage.getItem("lrg_auth_role") : null;
-    setUserRole(pathname.startsWith("/admin") || storedRole === "admin" ? "admin" : "client");
+    setUserRole(pathname.startsWith("/admin") || getAuthRole() === "admin" ? "admin" : "client");
     setPanel(user ? (pathname.startsWith("/admin") ? "admin" : "customer") : null);
   }, [pathname, user]);
 
@@ -147,10 +146,7 @@ function BrandHeaderContent({
   const brandHref = displayBrandName ? "/productos" : `/${brand.slug}`;
 
   const otherBrands = brandList.filter((item) => item.slug !== effectiveSlug);
-  const tiendaMenuItems = [
-    { slug: "store-shop" as const, name: "LRG Store Shop" },
-    ...brandList,
-  ];
+  const tiendaMenuItems = [{ slug: "store-shop" as const, name: "LRG Store Shop" }, ...brandList];
   const buyMenuItems = [
     { slug: "store-shop" as const, name: "LRG Store Shop" },
     ...brandList.map((item) => ({

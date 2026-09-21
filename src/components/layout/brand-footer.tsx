@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { getAuthRole } from "@/lib/auth-role";
 import {
   ContactRound,
   Facebook,
@@ -175,7 +176,7 @@ function BrandFooterContent({
   const isAdmin =
     isAuthenticated &&
     typeof window !== "undefined" &&
-    window.sessionStorage.getItem("lrg_auth_role") === "admin" &&
+    getAuthRole() === "admin" &&
     window.sessionStorage.getItem("lrg_admin_final_verified") === "true";
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const categories =

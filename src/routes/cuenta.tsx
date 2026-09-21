@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import {
@@ -87,6 +87,7 @@ import {
 import { catalogQueries, orderQueries, orderService } from "@/services/catalog.service";
 import type { Order, OrderAttachment } from "@/data/orders";
 import { hydrateFavorites, subscribeToFavoriteChanges } from "@/lib/favorites";
+import { clearAuthRole, getAuthRole } from "@/lib/auth-role";
 
 function getOrderStoreSummaries(order: Order) {
   const storeSlugs = Array.from(
@@ -215,11 +216,13 @@ function AccountAuthGuard({
   initialTab?: AccountTab;
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (
+      location.pathname.startsWith("/cuenta") &&
       typeof window !== "undefined" &&
-      window.sessionStorage.getItem("lrg_auth_role") === "admin"
+      getAuthRole() === "admin"
     ) {
       navigate({ to: "/admin/panel", replace: true });
       return;
@@ -227,7 +230,7 @@ function AccountAuthGuard({
     if (!auth.isLoading && !auth.isAuthenticated) {
       navigate({ to: "/login", replace: true });
     }
-  }, [auth.isAuthenticated, auth.isLoading, navigate]);
+  }, [auth.isAuthenticated, auth.isLoading, location.pathname, navigate]);
 
   if (auth.isLoading) {
     return <LoadingState label="Cargando tu cuenta..." />;
@@ -347,8 +350,7 @@ function AccountPageContent({
     userFamilyName !== savedProfileValues.current.familyName ||
     userPhone !== savedProfileValues.current.phone ||
     userDocument !== savedProfileValues.current.document;
-  const isAdminUser =
-    typeof window !== "undefined" && window.sessionStorage.getItem("lrg_auth_role") === "admin";
+  const isAdminUser = typeof window !== "undefined" && getAuthRole() === "admin";
   const accountDisplayName = profileLoaded
     ? [userGivenName, userFamilyName].filter(Boolean).join(" ").trim() ||
       [user?.givenName, user?.familyName].filter(Boolean).join(" ").trim() ||
@@ -362,12 +364,17 @@ function AccountPageContent({
     await new Promise((resolve) => window.setTimeout(resolve, 250));
     await logout();
     if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem("lrg_auth_role");
+      clearAuthRole();
     }
     await kindeLogout({
       redirectUrl: KINDE_LOGOUT_REDIRECT_URI,
     });
     navigate({ to: "/login", replace: true });
+  };
+  const handleBuyProducts = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    setMobileMenuOpen(false);
+    navigate({ to: "/productos", replace: true });
   };
 
   const accountNavItems = [
@@ -2887,6 +2894,7 @@ function AccountPageContent({
               <Link
                 to="/productos"
                 preload="intent"
+                onClick={handleBuyProducts}
                 title={sidebarCollapsed ? "Comprar productos" : undefined}
                 className={cn(
                   "group relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-left text-sm text-muted-foreground transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
@@ -2992,6 +3000,7 @@ function AccountPageContent({
                   <Link
                     to="/productos"
                     preload="intent"
+                    onClick={handleBuyProducts}
                     className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
                   >
                     <ShoppingBag className="size-4 shrink-0" />

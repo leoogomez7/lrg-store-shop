@@ -64,6 +64,7 @@ import { applyAdminSettings, refreshBrandData } from "@/config/brands";
 import { applyTrashEntries } from "@/data/trash";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 import { formatDate } from "@/lib/format";
+import { clearAuthRole, getAuthRole, setAuthRole } from "@/lib/auth-role";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: ({ location }) => {
@@ -187,7 +188,6 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
       setInitialPasswordVerified(false);
       if (typeof window !== "undefined") {
         window.sessionStorage.removeItem("lrg_admin_final_verified");
-        window.sessionStorage.removeItem("lrg_auth_role");
       }
       return;
     }
@@ -217,7 +217,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
   useEffect(() => {
     if (!isAuthenticated || typeof window === "undefined") return;
-    if (window.sessionStorage.getItem("lrg_auth_role") !== "admin") {
+    if (getAuthRole() !== "admin") {
       navigate({ to: "/cuenta/panel", replace: true });
     }
   }, [isAuthenticated, navigate]);
@@ -256,7 +256,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
   function startKindeFlow(flow: "login" | "register") {
     if (typeof window !== "undefined") {
-      window.sessionStorage.setItem("lrg_auth_role", "admin");
+      setAuthRole("admin");
     }
     const redirectURL = getKindeRedirectUri("/login");
     const options = { redirectURL: redirectURL ?? "http://localhost:5174/login" };
@@ -556,7 +556,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     setIsLoggingOut(true);
                     await logout();
                     if (typeof window !== "undefined") {
-                      window.sessionStorage.removeItem("lrg_auth_role");
+                      clearAuthRole();
                       window.sessionStorage.removeItem("lrg_admin_final_verified");
                       window.sessionStorage.removeItem("lrg_admin_entry_notice_shown");
                     }
@@ -593,7 +593,11 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 </div>
                 {navigation.slice(1).map(({ label, to, icon: Icon }) => (
                   <DropdownMenuItem key={to} asChild>
-                    <Link to={to} onClick={() => setAdminUserMenuOpen(false)} className="whitespace-nowrap">
+                    <Link
+                      to={to}
+                      onClick={() => setAdminUserMenuOpen(false)}
+                      className="whitespace-nowrap"
+                    >
                       <Icon className="size-4" />
                       {label}
                     </Link>

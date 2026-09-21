@@ -44,6 +44,7 @@ import {
   recordSiteVisit,
 } from "../server/persistence";
 import { orderQueries } from "../services/catalog.service";
+import { getAuthRole } from "../lib/auth-role";
 
 function NotFoundComponent() {
   return (
@@ -257,7 +258,7 @@ function CustomerOrderStatusNotice() {
 
   useEffect(() => {
     if (typeof window === "undefined" || !isAuthenticated || !user?.email) return;
-    if (window.sessionStorage.getItem("lrg_auth_role") === "admin") return;
+    if (getAuthRole() === "admin") return;
 
     const accountEmail = user.email.trim().toLowerCase();
     const noticeShownKey = `lrg_customer_order_status_notice_shown:${accountEmail}`;
