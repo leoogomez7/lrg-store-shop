@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, ArrowUpRight, Boxes, Layers, ShieldCheck, Star, Zap } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
@@ -128,7 +128,6 @@ function WelcomePage() {
 }
 
 function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
-  const navigate = useNavigate();
   const {
     isAuthenticated,
     user,
@@ -270,34 +269,40 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             }}
           >
             <Button
-              onClick={() => navigate({ to: "/$brand/productos", params: { brand: "arcade" } })}
+              asChild
               size="lg"
               className="gap-2"
             >
-              LRG Arcade <ArrowRight className="size-4" />
+              <Link to="/$brand/productos" params={{ brand: "arcade" }} preload="intent">
+                LRG Arcade <ArrowRight className="size-4" />
+              </Link>
             </Button>
             <Button
-              onClick={() => navigate({ to: "/$brand/productos", params: { brand: "scents" } })}
+              asChild
               size="lg"
               className="gap-2"
             >
-              LRG Scents <ArrowRight className="size-4" />
+              <Link to="/$brand/productos" params={{ brand: "scents" }} preload="intent">
+                LRG Scents <ArrowRight className="size-4" />
+              </Link>
             </Button>
             <Button
-              onClick={() =>
-                navigate({ to: "/$brand/productos", params: { brand: "web-design" } })
-              }
+              asChild
               size="lg"
               className="gap-2"
             >
-              LRG Web Design <ArrowRight className="size-4" />
+              <Link to="/$brand/productos" params={{ brand: "web-design" }} preload="intent">
+                LRG Web Design <ArrowRight className="size-4" />
+              </Link>
             </Button>
             <Button
-              onClick={() => navigate({ to: "/productos" })}
+              asChild
               size="lg"
               className="gap-2 bg-surface-2 text-foreground hover:bg-surface-3"
             >
-              Mostrar todos los productos <ArrowRight className="size-4" />
+              <Link to="/productos" preload="intent">
+                Mostrar todos los productos <ArrowRight className="size-4" />
+              </Link>
             </Button>
           </div>
 

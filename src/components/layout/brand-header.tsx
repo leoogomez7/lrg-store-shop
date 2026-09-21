@@ -529,27 +529,41 @@ function BrandHeaderContent({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-60 w-auto p-1">
-                {tiendaMenuItems.map((item) => (
-                  <DropdownMenuItem
-                    key={item.slug}
-                    onSelect={() => {
-                      const nextHref =
-                        item.slug === "store-shop" ? "/productos" : `/${item.slug}/productos`;
-                      if (typeof window !== "undefined" && window.location.pathname === nextHref) {
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      } else if (item.slug === "store-shop") {
-                        navigate({ to: "/productos" });
-                      } else {
-                        navigate({ to: "/$brand/productos", params: { brand: item.slug } });
-                      }
-                      setOpenMenu(false);
-                    }}
-                    className="whitespace-nowrap"
-                  >
-                    <BrandMark compact brandSlug={item.slug} className="shrink-0" />
-                    <span>{item.name}</span>
-                  </DropdownMenuItem>
-                ))}
+                {tiendaMenuItems.map((item) => {
+                  const content = (
+                    <>
+                      <BrandMark compact brandSlug={item.slug} className="shrink-0" />
+                      <span>{item.name}</span>
+                    </>
+                  );
+                  const handleClick = () => {
+                    const nextHref =
+                      item.slug === "store-shop" ? "/productos" : `/${item.slug}/productos`;
+                    if (typeof window !== "undefined" && window.location.pathname === nextHref) {
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                    setOpenMenu(false);
+                  };
+
+                  return item.slug === "store-shop" ? (
+                    <DropdownMenuItem key={item.slug} asChild className="whitespace-nowrap">
+                      <Link to="/productos" preload="intent" onClick={handleClick}>
+                        {content}
+                      </Link>
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem key={item.slug} asChild className="whitespace-nowrap">
+                      <Link
+                        to="/$brand/productos"
+                        params={{ brand: item.slug }}
+                        preload="intent"
+                        onClick={handleClick}
+                      >
+                        {content}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

@@ -176,7 +176,10 @@ export const catalogQueries = {
   byBrand: (brand: BrandSlug) =>
     queryOptions({
       queryKey: ["products", brand],
-      queryFn: () => catalogService.listByBrand(brand),
+      queryFn: ({ client }) =>
+        client
+          .ensureQueryData(catalogQueries.all())
+          .then((loaded) => catalogService.listByBrand(brand, loaded)),
     }),
   detail: (brand: BrandSlug, slug: string) =>
     queryOptions({
