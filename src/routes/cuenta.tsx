@@ -277,7 +277,6 @@ function AccountPageContent({
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
   const [pendingReceipts, setPendingReceipts] = useState<OrderAttachment[]>([]);
-  const [previewReceipt, setPreviewReceipt] = useState<OrderAttachment | null>(null);
   const [isSavingReceipts, setIsSavingReceipts] = useState(false);
   const receiptsInputRef = useRef<HTMLInputElement | null>(null);
   const visibleOrders = useMemo(() => {
@@ -1710,17 +1709,6 @@ function AccountPageContent({
                       size="sm"
                       className="shrink-0 gap-1.5 text-xs"
                     >
-                      <a href={attachment.dataUrl} target="_blank" rel="noreferrer">
-                        <Eye className="size-4" /> Ver
-                      </a>
-                    </Button>
-                    <Button
-                      asChild
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="shrink-0 gap-1.5 text-xs"
-                    >
                       <a href={attachment.dataUrl} download={attachment.name}>
                         <Download className="size-4" /> Descargar
                       </a>
@@ -1916,15 +1904,6 @@ function AccountPageContent({
                       <FileText className="size-4 shrink-0 text-muted-foreground" />
                       <span className="min-w-0 flex-1 wrap-break-word text-sm">{receipt.name}</span>
                       <div className="flex shrink-0 items-center gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1.5 px-2 text-xs"
-                          onClick={() => setPreviewReceipt(receipt)}
-                        >
-                          <Eye className="size-4" /> Ver
-                        </Button>
                         <Button
                           asChild
                           type="button"
@@ -2200,30 +2179,6 @@ function AccountPageContent({
             <div>
               <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Entregas</p>
               <h1 className="mt-2 text-3xl font-semibold">Direcciones</h1>
-
-              <Dialog
-                open={previewReceipt !== null}
-                onOpenChange={(open) => !open && setPreviewReceipt(null)}
-              >
-                <DialogContent className="max-w-4xl">
-                  <DialogHeader>
-                    <DialogTitle className="wrap-break-word">{previewReceipt?.name}</DialogTitle>
-                  </DialogHeader>
-                  {previewReceipt?.type === "application/pdf" ? (
-                    <iframe
-                      title={previewReceipt.name}
-                      src={previewReceipt.dataUrl}
-                      className="h-[70vh] w-full rounded-lg border border-border/60"
-                    />
-                  ) : previewReceipt ? (
-                    <img
-                      src={previewReceipt.dataUrl}
-                      alt={previewReceipt.name}
-                      className="max-h-[70vh] w-full rounded-lg object-contain"
-                    />
-                  ) : null}
-                </DialogContent>
-              </Dialog>
             </div>
           </div>
 
@@ -2943,8 +2898,9 @@ function AccountPageContent({
                   </Link>
                 );
               })}
-              <a
-                href="https://lrg-store-shop.vercel.app/productos"
+              <Link
+                to="/productos"
+                preload="intent"
                 title={sidebarCollapsed ? "Comprar productos" : undefined}
                 className={cn(
                   "group relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-left text-sm text-muted-foreground transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
@@ -2953,7 +2909,7 @@ function AccountPageContent({
               >
                 <ShoppingBag className="relative z-10 size-4 shrink-0" />
                 {!sidebarCollapsed && <span className="relative z-10">Comprar productos</span>}
-              </a>
+              </Link>
               <Link
                 to="/carrito"
                 title={sidebarCollapsed ? "Mi carrito" : undefined}
@@ -3047,13 +3003,14 @@ function AccountPageContent({
                       </Link>
                     );
                   })}
-                  <a
-                    href="https://lrg-store-shop.vercel.app/productos"
+                  <Link
+                    to="/productos"
+                    preload="intent"
                     className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
                   >
                     <ShoppingBag className="size-4 shrink-0" />
                     Comprar productos
-                  </a>
+                  </Link>
                   <Link
                     to="/carrito"
                     onClick={() => setMobileMenuOpen(false)}
