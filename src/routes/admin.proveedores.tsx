@@ -264,6 +264,15 @@ function AdminSuppliers() {
     setQuantityMax(quantityLimit);
   }, [salesLimit, quantityLimit]);
 
+  const closeSupplierEditor = () => {
+    setNewSupplierOpen(false);
+    setEditingSupplierKey(null);
+    setBulkSupplierEditQueue([]);
+    setBulkSupplierEditPosition(0);
+    setSelectedSupplierKeys([]);
+    setSelectionMode(false);
+  };
+
   const addSupplier = () => {
     const supplier = {
       name: newSupplier.name.trim(),
@@ -275,15 +284,13 @@ function AdminSuppliers() {
       saveSupplierChanges(editingSupplierKey, supplier);
       const nextPosition = bulkSupplierEditPosition + 1;
       const nextKey = bulkSupplierEditQueue[nextPosition];
-      const nextRow = rows.find((row) => row.key === nextKey);
+      const nextRow = filteredRows.find((row) => row.key === nextKey);
       if (nextRow) {
         setBulkSupplierEditPosition(nextPosition);
         openSupplierEditor(nextRow);
         return;
       }
-      setBulkSupplierEditQueue([]);
-      setBulkSupplierEditPosition(0);
-      setNewSupplierOpen(false);
+      closeSupplierEditor();
       return;
     }
     const nextSuppliers = [...standaloneSuppliers, supplier];
@@ -407,10 +414,10 @@ function AdminSuppliers() {
   };
 
   const editSelectedSupplier = () => {
-    const selectedRow = rows.find((row) => selectedSupplierKeys.includes(row.key));
+    const selectedRow = filteredRows.find((row) => selectedSupplierKeys.includes(row.key));
     if (selectedRow) {
       const selectedKeys = new Set(selectedSupplierKeys);
-      const queue = rows.filter((row) => selectedKeys.has(row.key)).map((row) => row.key);
+      const queue = filteredRows.filter((row) => selectedKeys.has(row.key)).map((row) => row.key);
       setBulkSupplierEditQueue(queue);
       setBulkSupplierEditPosition(0);
       openSupplierEditor(selectedRow);
@@ -419,7 +426,7 @@ function AdminSuppliers() {
 
   const navigateBulkEditSupplier = (direction: -1 | 1) => {
     const nextPosition = bulkSupplierEditPosition + direction;
-    const nextRow = rows.find((row) => row.key === bulkSupplierEditQueue[nextPosition]);
+    const nextRow = filteredRows.find((row) => row.key === bulkSupplierEditQueue[nextPosition]);
     if (!nextRow) return;
     setBulkSupplierEditPosition(nextPosition);
     openSupplierEditor(nextRow);
@@ -680,13 +687,7 @@ function AdminSuppliers() {
                 </div>
               </DialogContent>
             </Dialog>
-
             <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
-                  <Filter className="size-4" /> Filtros
-                </Button>
-              </DialogTrigger>
               <DialogContent className="max-h-[min(92vh,48rem)] max-w-2xl overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
                 <DialogHeader>
                   <DialogTitle>Filtros</DialogTitle>
@@ -927,14 +928,11 @@ function AdminSuppliers() {
           </div>
         </div>
 
-        <Dialog
-          open={newSupplierOpen}
-          onOpenChange={(open) => {
-            setNewSupplierOpen(open);
-            if (!open) setEditingSupplierKey(null);
-          }}
-        >
-          <DialogContent key={editingSupplierKey ?? "new-supplier"}>
+        <Dialog open={newSupplierOpen} onOpenChange={(open) => !open && closeSupplierEditor()}>
+          <DialogContent
+            key={editingSupplierKey ?? "new-supplier"}
+            className="w-[calc(100vw-1rem)] max-w-2xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto"
+          >
             <DialogHeader>
               <div className="flex items-center justify-between gap-3">
                 <DialogTitle>

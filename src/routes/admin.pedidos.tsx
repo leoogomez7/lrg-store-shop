@@ -1340,6 +1340,16 @@ function AdminOrders() {
     ? JSON.stringify(orderForm) !== initialOrderFormSnapshot.current
     : false;
 
+  const closeOrderEditor = () => {
+    setDialogOpen(false);
+    setOrderForm(null);
+    setIsCreatingOrder(false);
+    setBulkOrderEditQueue([]);
+    setBulkOrderEditPosition(0);
+    setSelectedOrderIds([]);
+    setSelectionMode(false);
+  };
+
   const handleSaveOrder = () => {
     if (!orderForm) return;
     if (isCreatingOrder && !orderForm.date.trim()) {
@@ -1365,9 +1375,7 @@ function AdminOrders() {
         return;
       }
     }
-    setBulkOrderEditQueue([]);
-    setDialogOpen(false);
-    setIsCreatingOrder(false);
+    closeOrderEditor();
   };
 
   const toggleOrderSelection = (orderId: string, checked: boolean) => {
@@ -1911,17 +1919,17 @@ function AdminOrders() {
             !selectionMode && "pointer-events-none opacity-0",
           )}
         >
-            <div className="mb-3 h-6" />
-            {visibleResults.map((order) => (
-              <div key={order.id} className="flex h-[56px] w-full items-center justify-center">
-                <Checkbox
-                  className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                  checked={selectedOrderIds.includes(order.id)}
-                  onCheckedChange={(checked) => toggleOrderSelection(order.id, checked === true)}
-                  aria-label={`Seleccionar pedido ${order.id}`}
-                />
-              </div>
-            ))}
+          <div className="mb-3 h-6" />
+          {visibleResults.map((order) => (
+            <div key={order.id} className="flex h-[56px] w-full items-center justify-center">
+              <Checkbox
+                className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                checked={selectedOrderIds.includes(order.id)}
+                onCheckedChange={(checked) => toggleOrderSelection(order.id, checked === true)}
+                aria-label={`Seleccionar pedido ${order.id}`}
+              />
+            </div>
+          ))}
         </div>
 
         <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
@@ -1954,375 +1962,431 @@ function AdminOrders() {
             </TableHeader>
             <TableBody>
               {visibleResults.map((order) => {
-              const isExpanded = expandedOrderId === order.id;
-              const nameParts = order.customer.split(" ");
-              const displayCustomer =
-                nameParts.length > 1
-                  ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}`
-                  : order.customer;
-              const displayDeliveryStatus =
-                (order as Order & { deliveryStatus?: DeliveryStatus }).deliveryStatus ??
-                getDeliveryStatus(order.status);
-              const displayPaymentStatus =
-                (order as Order & { paymentStatus?: PaymentStatus }).paymentStatus ??
-                getPaymentStatus(order.status);
+                const isExpanded = expandedOrderId === order.id;
+                const nameParts = order.customer.split(" ");
+                const displayCustomer =
+                  nameParts.length > 1
+                    ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}`
+                    : order.customer;
+                const displayDeliveryStatus =
+                  (order as Order & { deliveryStatus?: DeliveryStatus }).deliveryStatus ??
+                  getDeliveryStatus(order.status);
+                const displayPaymentStatus =
+                  (order as Order & { paymentStatus?: PaymentStatus }).paymentStatus ??
+                  getPaymentStatus(order.status);
 
-              const isQuickEditing = quickEditOrderId === order.id;
-              const quickDraft = quickEditOrderForm[order.id] ?? {
-                deliveryStatus: displayDeliveryStatus,
-                paymentStatus: displayPaymentStatus,
-                shippingMethod: order.shippingMethod ?? "",
-                shippingNumber: order.shippingNumber ?? "",
-                paymentMethod: order.paymentMethod,
-                deliveryDate: order.deliveryDate ?? "",
-              };
-              const quickEditHasChanges =
-                JSON.stringify(quickDraft) !== quickEditOriginalSnapshots.current[order.id];
+                const isQuickEditing = quickEditOrderId === order.id;
+                const quickDraft = quickEditOrderForm[order.id] ?? {
+                  deliveryStatus: displayDeliveryStatus,
+                  paymentStatus: displayPaymentStatus,
+                  shippingMethod: order.shippingMethod ?? "",
+                  shippingNumber: order.shippingNumber ?? "",
+                  paymentMethod: order.paymentMethod,
+                  deliveryDate: order.deliveryDate ?? "",
+                };
+                const quickEditHasChanges =
+                  JSON.stringify(quickDraft) !== quickEditOriginalSnapshots.current[order.id];
 
-              return (
-                <Fragment key={order.id}>
-                  <TableRow
-                    id={`pedido-${order.id}`}
-                    ref={isQuickEditing ? quickEditRowRef : undefined}
-                    className={
-                      highlightedOrderId === order.id
-                        ? "animate-pulse bg-amber-500/20 ring-2 ring-amber-400"
-                        : undefined
-                    }
-                  >
-                    <TableCell className="w-24 text-center text-sm font-medium">
-                      <div className="flex min-w-0 items-center justify-center gap-1 text-center">
-                        <div className="flex min-w-0 flex-col items-center gap-1">
-                          <span className="min-w-0 break-all text-sm leading-tight">{order.id}</span>
-                          {order.isGuest && (
-                            <Badge variant="warning" className="shrink-0 px-1.5 py-0.5 text-[9px]">
-                              Invitado
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">{formatDate(order.date)}</TableCell>
-                    <TableCell>
-                      {isQuickEditing ? (
-                        <Select
-                          value={quickDraft.paymentStatus}
-                          onValueChange={(value) =>
-                            setQuickEditOrderForm((current) => ({
-                              ...current,
-                              [order.id]: {
-                                ...quickDraft,
-                                paymentStatus: value as PaymentStatus,
-                              },
-                            }))
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map(
-                              (paymentOption) => (
-                                <SelectItem key={paymentOption} value={paymentOption}>
-                                  {paymentOption}
-                                </SelectItem>
-                              ),
-                            )}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge
-                          className="capitalize"
-                          variant={paymentVariant[displayPaymentStatus]}
-                        >
-                          {displayPaymentStatus}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {isQuickEditing ? (
-                        <Input
-                          value={quickDraft.shippingNumber}
-                          disabled={
-                            !isShippingCodeRequiredForBrand(order.brand, quickDraft.shippingMethod)
-                          }
-                          onChange={(event) =>
-                            setQuickEditOrderForm((current) => ({
-                              ...current,
-                              [order.id]: {
-                                ...quickDraft,
-                                shippingNumber: event.target.value,
-                              },
-                            }))
-                          }
-                          placeholder={
-                            isShippingCodeRequiredForBrand(order.brand, quickDraft.shippingMethod)
-                              ? "Número de envío"
-                              : "No necesita"
-                          }
-                          className="w-full"
-                        />
-                      ) : (
-                        <Input
-                          value={order.shippingNumber ?? ""}
-                          placeholder="-"
-                          disabled={!order.shippingNumber}
-                          readOnly
-                          className="w-full text-center"
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {isQuickEditing ? (
-                        <Select
-                          value={quickDraft.deliveryStatus}
-                          onValueChange={(value) =>
-                            setQuickEditOrderForm((current) => ({
-                              ...current,
-                              [order.id]: {
-                                ...quickDraft,
-                                deliveryStatus: value as DeliveryStatus,
-                              },
-                            }))
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(["Pendiente", "Enviado"] as DeliveryStatus[]).map((statusOption) => (
-                              <SelectItem key={statusOption} value={statusOption}>
-                                {statusOption}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge
-                          className="capitalize"
-                          variant={deliveryVariant[displayDeliveryStatus]}
-                        >
-                          {displayDeliveryStatus}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {isQuickEditing ? (
-                        <Input
-                          type="date"
-                          value={quickDraft.deliveryDate}
-                          onChange={(event) =>
-                            setQuickEditOrderForm((current) => ({
-                              ...current,
-                              [order.id]: {
-                                ...quickDraft,
-                                deliveryDate: event.target.value,
-                              },
-                            }))
-                          }
-                          className="w-full"
-                        />
-                      ) : order.deliveryDate ? (
-                        formatDate(order.deliveryDate)
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                    <TableCell>{formatPrice(order.expenses)}</TableCell>
-                    <TableCell>{formatPrice(order.total)}</TableCell>
-                    <TableCell>{formatPrice(order.profit)}</TableCell>
-                    {!selectionMode && <TableCell className="w-[34rem] min-w-[34rem] text-right">
-                      <div className="flex w-full min-w-max flex-nowrap items-center justify-end gap-0.5 overflow-visible">
-                        {isQuickEditing ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => saveQuickEditOrder(order)}
-                              disabled={!quickEditHasChanges}
-                              className="h-7 shrink-0 gap-1 bg-transparent px-2 text-[10px] text-green-600 hover:bg-green-100/80 hover:text-green-700 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40 disabled:opacity-100"
-                            >
-                              <Check className="h-4 w-4" />
-                              Guardar
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={cancelQuickEditOrder}
-                              className="h-7 shrink-0 gap-1 bg-transparent px-2 text-[10px] text-destructive shadow-none hover:bg-destructive/10"
-                            >
-                              <X className="size-4" />
-                              Cancelar
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                              title={isExpanded ? "Ocultar detalles" : "Mostrar detalles"}
-                              className="h-6 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[10px] font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
-                            >
-                              {isExpanded ? (
-                                <EyeOff className="size-4" />
-                              ) : (
-                                <Eye className="size-4" />
-                              )}
-                              <span className="hidden sm:inline">
-                                {isExpanded ? "Ocultar" : "Mostrar"}
-                              </span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setDocumentsOrder(order);
-                                setPendingAttachments([]);
-                              }}
-                              className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
-                            >
-                              <Paperclip className="size-4" />
-                              <span className="hidden sm:inline">Documentos</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setReceiptsOrder(order)}
-                              disabled={!order.paymentReceipts?.length}
-                              className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
-                              title="Ver comprobantes de pago"
-                            >
-                              <FileText className="size-4" />
-                              <span className="hidden sm:inline">Comprobantes</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startQuickEditOrder(order)}
-                              className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
-                            >
-                              <Edit3 className="size-4" />
-                              <span className="hidden sm:inline">Editar rápido</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditOrderDialog(order)}
-                              className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
-                            >
-                              <Pencil className="size-4" />
-                              <span className="hidden sm:inline">Editar</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                setConfirmState({
-                                  open: true,
-                                  title: `Eliminar pedido ${order.id}?`,
-                                  description: `Esta acción no se puede deshacer.`,
-                                  onConfirm: () => handleDeleteOrder(order),
-                                })
-                              }
-                              className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px] text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="size-4" />
-                              <span className="hidden sm:inline">Eliminar</span>
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>}
-                  </TableRow>
-
-                  {isExpanded && (
-                    <TableRow key={`${order.id}-details`}>
-                      <TableCell colSpan={11} className="bg-surface-2/70 p-5">
-                        <div className="space-y-3 text-sm">
-                          <p className="font-medium">Detalle del pedido</p>
-
-                          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">Cliente:</span>
-                              <span>{displayCustomer}</span>
-                              {order.isGuest && <Badge variant="warning">Invitado</Badge>}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">Sector:</span>
-                              <span>{brands[order.brand].shortName}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">Correo:</span>
-                              <span>{order.email}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">Celular:</span>
-                              <span>{order.phone}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">Método de pago:</span>
-                              <span>{order.paymentMethod}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">Método de envío:</span>
-                              <span>{order.shippingMethod ?? "—"}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-2 text-sm">
-                            <span className="text-muted-foreground">Proveedor:</span>
-                            <span>
-                              {Array.from(
-                                new Set(
-                                  order.items
-                                    .map((item) => getSupplierForItem(item.name)?.supplier?.name)
-                                    .filter((name): name is string => Boolean(name)),
-                                ),
-                              ).join(", ") || "Sin proveedor asignado"}
+                return (
+                  <Fragment key={order.id}>
+                    <TableRow
+                      id={`pedido-${order.id}`}
+                      ref={isQuickEditing ? quickEditRowRef : undefined}
+                      className={
+                        highlightedOrderId === order.id
+                          ? "animate-pulse bg-amber-500/20 ring-2 ring-amber-400"
+                          : undefined
+                      }
+                    >
+                      <TableCell className="w-24 text-center text-sm font-medium">
+                        <div className="flex min-w-0 items-center justify-center gap-1 text-center">
+                          <div className="flex min-w-0 flex-col items-center gap-1">
+                            <span className="min-w-0 break-all text-sm leading-tight">
+                              {order.id}
                             </span>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-2 text-sm">
-                            <span className="text-muted-foreground">Observaciones:</span>
-                            <span>{order.extraInfo}</span>
-                          </div>
-
-                          <ul className="space-y-2 text-sm">
-                            {order.items.map((item) => (
-                              <li
-                                key={item.name}
-                                className="flex items-center justify-between gap-4 rounded-xl bg-surface p-3"
+                            {order.isGuest && (
+                              <Badge
+                                variant="warning"
+                                className="shrink-0 px-1.5 py-0.5 text-[9px]"
                               >
-                                <div>
-                                  <p className="font-medium">{item.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {item.quantity} × {formatPrice(item.price)}
-                                  </p>
-                                </div>
-                                <span className="font-medium">
-                                  {formatPrice(item.price * item.quantity)}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
+                                Invitado
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
+                      <TableCell className="text-sm">{formatDate(order.date)}</TableCell>
+                      <TableCell>
+                        {isQuickEditing ? (
+                          <Select
+                            value={quickDraft.paymentStatus}
+                            onValueChange={(value) =>
+                              setQuickEditOrderForm((current) => ({
+                                ...current,
+                                [order.id]: {
+                                  ...quickDraft,
+                                  paymentStatus: value as PaymentStatus,
+                                },
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map(
+                                (paymentOption) => (
+                                  <SelectItem key={paymentOption} value={paymentOption}>
+                                    {paymentOption}
+                                  </SelectItem>
+                                ),
+                              )}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge
+                            className="capitalize"
+                            variant={paymentVariant[displayPaymentStatus]}
+                          >
+                            {displayPaymentStatus}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isQuickEditing ? (
+                          <Input
+                            value={quickDraft.shippingNumber}
+                            disabled={
+                              !isShippingCodeRequiredForBrand(
+                                order.brand,
+                                quickDraft.shippingMethod,
+                              )
+                            }
+                            onChange={(event) =>
+                              setQuickEditOrderForm((current) => ({
+                                ...current,
+                                [order.id]: {
+                                  ...quickDraft,
+                                  shippingNumber: event.target.value,
+                                },
+                              }))
+                            }
+                            placeholder={
+                              isShippingCodeRequiredForBrand(order.brand, quickDraft.shippingMethod)
+                                ? "Número de envío"
+                                : "No necesita"
+                            }
+                            className="w-full"
+                          />
+                        ) : (
+                          <Input
+                            value={order.shippingNumber ?? ""}
+                            placeholder="-"
+                            disabled={!order.shippingNumber}
+                            readOnly
+                            className="w-full text-center"
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isQuickEditing ? (
+                          <Select
+                            value={quickDraft.deliveryStatus}
+                            onValueChange={(value) =>
+                              setQuickEditOrderForm((current) => ({
+                                ...current,
+                                [order.id]: {
+                                  ...quickDraft,
+                                  deliveryStatus: value as DeliveryStatus,
+                                },
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(["Pendiente", "Enviado"] as DeliveryStatus[]).map(
+                                (statusOption) => (
+                                  <SelectItem key={statusOption} value={statusOption}>
+                                    {statusOption}
+                                  </SelectItem>
+                                ),
+                              )}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge
+                            className="capitalize"
+                            variant={deliveryVariant[displayDeliveryStatus]}
+                          >
+                            {displayDeliveryStatus}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isQuickEditing ? (
+                          <Input
+                            type="date"
+                            value={quickDraft.deliveryDate}
+                            onChange={(event) =>
+                              setQuickEditOrderForm((current) => ({
+                                ...current,
+                                [order.id]: {
+                                  ...quickDraft,
+                                  deliveryDate: event.target.value,
+                                },
+                              }))
+                            }
+                            className="w-full"
+                          />
+                        ) : order.deliveryDate ? (
+                          formatDate(order.deliveryDate)
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                      <TableCell>{formatPrice(order.expenses)}</TableCell>
+                      <TableCell>{formatPrice(order.total)}</TableCell>
+                      <TableCell>{formatPrice(order.profit)}</TableCell>
+                      {!selectionMode && (
+                        <TableCell className="w-[34rem] min-w-[34rem] text-right">
+                          <div className="flex w-full min-w-max flex-nowrap items-center justify-end gap-0.5 overflow-visible">
+                            {isQuickEditing ? (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => saveQuickEditOrder(order)}
+                                  disabled={!quickEditHasChanges}
+                                  className="h-7 shrink-0 gap-1 bg-transparent px-2 text-[10px] text-green-600 hover:bg-green-100/80 hover:text-green-700 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40 disabled:opacity-100"
+                                >
+                                  <Check className="h-4 w-4" />
+                                  Guardar
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={cancelQuickEditOrder}
+                                  className="h-7 shrink-0 gap-1 bg-transparent px-2 text-[10px] text-destructive shadow-none hover:bg-destructive/10"
+                                >
+                                  <X className="size-4" />
+                                  Cancelar
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                                  title={isExpanded ? "Ocultar detalles" : "Mostrar detalles"}
+                                  className="h-6 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[10px] font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
+                                >
+                                  {isExpanded ? (
+                                    <EyeOff className="size-4" />
+                                  ) : (
+                                    <Eye className="size-4" />
+                                  )}
+                                  <span className="hidden sm:inline">
+                                    {isExpanded ? "Ocultar" : "Mostrar"}
+                                  </span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setDocumentsOrder(order);
+                                    setPendingAttachments([]);
+                                  }}
+                                  className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
+                                >
+                                  <Paperclip className="size-4" />
+                                  <span className="hidden sm:inline">Documentos</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setReceiptsOrder(order)}
+                                  disabled={!order.paymentReceipts?.length}
+                                  className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
+                                  title="Ver comprobantes de pago"
+                                >
+                                  <FileText className="size-4" />
+                                  <span className="hidden sm:inline">Comprobantes</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => startQuickEditOrder(order)}
+                                  className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
+                                >
+                                  <Edit3 className="size-4" />
+                                  <span className="hidden sm:inline">Editar rápido</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openEditOrderDialog(order)}
+                                  className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
+                                >
+                                  <Pencil className="size-4" />
+                                  <span className="hidden sm:inline">Editar</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setConfirmState({
+                                      open: true,
+                                      title: `Eliminar pedido ${order.id}?`,
+                                      description: `Esta acción no se puede deshacer.`,
+                                      onConfirm: () => handleDeleteOrder(order),
+                                    })
+                                  }
+                                  className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px] text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="size-4" />
+                                  <span className="hidden sm:inline">Eliminar</span>
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
-                  )}
-                </Fragment>
-              );
-            })}
-            {results.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={11} className="py-16 text-center text-sm text-muted-foreground">
-                  No se encontraron pedidos.
-                </TableCell>
-              </TableRow>
-            ) : null}
-          </TableBody>
-        </Table>
-      </div>
+
+                    {isExpanded && (
+                      <TableRow key={`${order.id}-details`}>
+                        <TableCell
+                          colSpan={selectionMode ? 9 : 10}
+                          className="bg-surface-2/70 p-3 sm:p-5"
+                        >
+                          <div className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] min-w-0 space-y-4 overflow-hidden text-sm sm:w-[calc(100vw-3rem)] sm:max-w-[calc(100vw-3rem)]">
+                            <p className="font-medium">Detalle del pedido</p>
+
+                            <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                              <div className="min-w-0">
+                                <span className="block text-xs text-muted-foreground">Cliente</span>
+                                <span className="block wrap-break-word">{displayCustomer}</span>
+                                {order.isGuest && <Badge variant="warning">Invitado</Badge>}
+                              </div>
+                              <div className="min-w-0">
+                                <span className="block text-xs text-muted-foreground">Sector</span>
+                                <span className="block wrap-break-word">
+                                  {brands[order.brand].shortName}
+                                </span>
+                              </div>
+                              <div className="min-w-0">
+                                <span className="block text-xs text-muted-foreground">Correo</span>
+                                <span className="block break-all">{order.email || "—"}</span>
+                              </div>
+                              <div className="min-w-0">
+                                <span className="block text-xs text-muted-foreground">Celular</span>
+                                <span className="block wrap-break-word">{order.phone || "—"}</span>
+                              </div>
+                              <div className="min-w-0">
+                                <span className="block text-xs text-muted-foreground">
+                                  Método de pago
+                                </span>
+                                <span className="block wrap-break-word">
+                                  {order.paymentMethod || "—"}
+                                </span>
+                              </div>
+                              <div className="min-w-0">
+                                <span className="block text-xs text-muted-foreground">
+                                  Método de envío
+                                </span>
+                                <span className="block wrap-break-word">
+                                  {order.shippingMethod ?? "—"}
+                                </span>
+                              </div>
+                              <div className="min-w-0 sm:col-span-2 lg:col-span-3">
+                                <span className="block text-xs text-muted-foreground">
+                                  Proveedor
+                                </span>
+                                <span className="block wrap-break-word">
+                                  {Array.from(
+                                    new Set(
+                                      order.items
+                                        .map(
+                                          (item) => getSupplierForItem(item.name)?.supplier?.name,
+                                        )
+                                        .filter((name): name is string => Boolean(name)),
+                                    ),
+                                  ).join(", ") || "Sin proveedor asignado"}
+                                </span>
+                              </div>
+                              <div className="min-w-0 sm:col-span-2 lg:col-span-3">
+                                <span className="block text-xs text-muted-foreground">
+                                  Observaciones
+                                </span>
+                                <span className="block wrap-break-word">
+                                  {order.extraInfo || "—"}
+                                </span>
+                              </div>
+                            </div>
+
+                            <ul className="grid min-w-0 gap-2 sm:grid-cols-2 text-sm">
+                              {order.items.map((item) => (
+                                <li
+                                  key={item.name}
+                                  className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-surface p-3"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="wrap-break-word font-medium">{item.name}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {item.quantity} × {formatPrice(item.price)}
+                                    </p>
+                                  </div>
+                                  <span className="shrink-0 font-medium">
+                                    {formatPrice(item.price * item.quantity)}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+
+                            <div className="flex flex-wrap gap-2 border-t border-border/60 pt-4">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setReceiptsOrder(order)}
+                              >
+                                <FileText className="size-4" /> Comprobantes de pago del cliente
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setDocumentsOrder(order);
+                                  setPendingAttachments([]);
+                                }}
+                              >
+                                <Paperclip className="size-4" /> Subir archivos para el cliente
+                              </Button>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                );
+              })}
+              {results.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={11}
+                    className="py-16 text-center text-sm text-muted-foreground"
+                  >
+                    No se encontraron pedidos.
+                  </TableCell>
+                </TableRow>
+              ) : null}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-col gap-3 pb-20">
@@ -2401,10 +2465,10 @@ function AdminOrders() {
         </p>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeOrderEditor()}>
         <DialogContent
           key={isCreatingOrder ? "new-order-dialog" : "edit-order-dialog"}
-          className="shadow-none"
+          className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto p-4 shadow-none sm:w-[calc(100vw-2rem)] sm:p-6"
         >
           <DialogHeader>
             <div className="flex items-center justify-between gap-3">
@@ -2420,7 +2484,9 @@ function AdminOrders() {
                   >
                     <ArrowLeft className="size-4" /> Anterior
                   </Button>
-                  <span>{bulkOrderEditPosition + 1} / {bulkOrderEditQueue.length}</span>
+                  <span>
+                    {bulkOrderEditPosition + 1} / {bulkOrderEditQueue.length}
+                  </span>
                   <Button
                     type="button"
                     variant="outline"
@@ -2435,8 +2501,8 @@ function AdminOrders() {
             </div>
           </DialogHeader>
           {orderForm ? (
-            <div className="space-y-4">
-              <div className="grid items-start gap-3 sm:grid-cols-2">
+            <div className="min-w-0 space-y-4">
+              <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                 <div className="flex min-w-0 flex-col gap-0">
                   <Label className="min-h-5">Pedido</Label>
                   <Input value={orderForm.id} disabled />
@@ -2452,7 +2518,7 @@ function AdminOrders() {
                 </div>
               </div>
 
-              <div className="grid items-start gap-3 sm:grid-cols-2">
+              <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                 <div className="flex min-w-0 flex-col gap-0">
                   <Label className="min-h-5">Fecha de compra</Label>
                   <Input
@@ -2475,7 +2541,7 @@ function AdminOrders() {
                 </div>
               </div>
 
-              <div className="grid items-start gap-3 sm:grid-cols-2">
+              <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                 <div className="flex min-w-0 flex-col gap-0">
                   <Label className="min-h-5">Correo</Label>
                   <Input
@@ -2492,7 +2558,7 @@ function AdminOrders() {
                 </div>
               </div>
 
-              <div className="grid items-start gap-3 sm:grid-cols-2">
+              <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                 <div className="flex min-w-0 flex-col gap-0">
                   <Label className="min-h-5">Método de pago</Label>
                   <Select
@@ -2542,7 +2608,7 @@ function AdminOrders() {
                 </div>
               </div>
 
-              <div className="grid items-start gap-3 sm:grid-cols-3">
+              <div className="grid min-w-0 items-start gap-3 sm:grid-cols-3">
                 <div className="flex min-w-0 flex-col gap-0">
                   <Label className="min-h-5">Método de envío</Label>
                   <Select
@@ -2852,25 +2918,27 @@ function AdminOrders() {
                     Siguiente <ArrowRight className="size-4" />
                   </Button>
                 </div>
-              ) : <span />}
+              ) : (
+                <span />
+              )}
               <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => setDialogOpen(false)}
-                className="rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none"
-                style={{ boxShadow: "none" }}
-              >
-                <X className="h-4 w-4 mr-2" /> Cancelar
-              </Button>
-              <Button
-                variant="default"
-                onClick={handleSaveOrder}
-                disabled={!hasOrderChanges || !isOrderFormValid}
-                className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50"
-                style={{ boxShadow: "none" }}
-              >
-                <Save className="h-4 w-4 mr-2" /> Guardar pedido
-              </Button>
+                <Button
+                  variant="secondary"
+                  onClick={closeOrderEditor}
+                  className="rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none"
+                  style={{ boxShadow: "none" }}
+                >
+                  <X className="h-4 w-4 mr-2" /> Cancelar
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={handleSaveOrder}
+                  disabled={!hasOrderChanges || !isOrderFormValid}
+                  className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50"
+                  style={{ boxShadow: "none" }}
+                >
+                  <Save className="h-4 w-4 mr-2" /> Guardar pedido
+                </Button>
               </div>
             </div>
           </DialogFooter>

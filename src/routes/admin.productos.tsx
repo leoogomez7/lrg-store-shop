@@ -730,6 +730,18 @@ function AdminProducts() {
     setSelectedProductIds([]);
   };
 
+  const closeProductEditor = () => {
+    setProductForm(null);
+    setEditingProduct(null);
+    setInitialVariantId(null);
+    setBulkEditQueue([]);
+    setBulkEditPosition(0);
+    setSelectedProductIds([]);
+    setSelectionMode(false);
+    setCreateDialogOpen(false);
+    setEditDialogOpen(false);
+  };
+
   const handleBulkEditProducts = () => {
     const firstSelectionKey = selectedProductIds[0];
     const firstProductId = firstSelectionKey
@@ -1073,10 +1085,7 @@ function AdminProducts() {
         return;
       }
     }
-    setBulkEditQueue([]);
-    setBulkEditPosition(0);
-    setCreateDialogOpen(false);
-    setEditDialogOpen(false);
+    closeProductEditor();
   };
 
   useEffect(() => {
@@ -2630,7 +2639,7 @@ function AdminProducts() {
 
       <ProductEditDialog
         open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
+        onOpenChange={(open) => (open ? setCreateDialogOpen(true) : closeProductEditor())}
         mode="create"
         productForm={productForm}
         setProductForm={setProductForm}
@@ -2645,7 +2654,7 @@ function AdminProducts() {
       <ProductEditDialog
         key={`edit-${productForm?.id ?? "empty"}-${initialVariantId ?? "base"}`}
         open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
+        onOpenChange={(open) => (open ? setEditDialogOpen(true) : closeProductEditor())}
         mode="edit"
         productForm={productForm}
         setProductForm={setProductForm}
@@ -3364,7 +3373,7 @@ function ProductEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl sm:max-w-4xl">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-4 shadow-2xl sm:w-[calc(100vw-2rem)] sm:p-6">
         <DialogHeader className="space-y-2">
           <div className="flex items-center justify-between gap-3">
             <DialogTitle>{modeTitle}</DialogTitle>
@@ -3399,7 +3408,7 @@ function ProductEditDialog({
           <DialogDescription>{modeDescription}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           <div className="order-1 rounded-2xl border border-border/60 bg-surface/40 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
