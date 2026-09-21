@@ -273,7 +273,6 @@ function AccountPageContent({
   const [userDocument, setUserDocument] = useState<string>("");
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [attachmentsOrder, setAttachmentsOrder] = useState<Order | null>(null);
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
   const [pendingReceipts, setPendingReceipts] = useState<OrderAttachment[]>([]);
@@ -1493,7 +1492,7 @@ function AccountPageContent({
                   <TableHead>Estado de envío</TableHead>
                   <TableHead>Estado de pago</TableHead>
                   <TableHead className="text-center">Total</TableHead>
-                  <TableHead>Documentación</TableHead>
+                  <TableHead>Detalle compra</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1561,23 +1560,13 @@ function AccountPageContent({
                             type="button"
                             variant="ghost"
                             size="sm"
-                            disabled={!order.attachments?.length}
-                            onClick={() => setAttachmentsOrder(order)}
-                            className="gap-1.5 text-xs"
-                          >
-                            <Paperclip className="size-4" /> Adjuntos
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
                             onClick={() => {
                               setReceiptsOrder(order);
                               setPendingReceipts([]);
                             }}
                             className="gap-1.5 text-xs"
                           >
-                            <FileText className="size-4" /> Comprobantes
+                            <FileText className="size-4" /> Subir comprobantes
                           </Button>
                           <Button
                             type="button"
@@ -1586,7 +1575,7 @@ function AccountPageContent({
                             onClick={() => setDetailsOrder(order)}
                             className="gap-1.5 text-xs"
                           >
-                            <Eye className="size-4" /> Detalle compra
+                            <Eye className="size-4" /> Ver
                           </Button>
                         </div>
                       </TableCell>
@@ -1682,42 +1671,6 @@ function AccountPageContent({
               {paginatedOrders.length} de {filteredOrders.length} compras mostradas
             </p>
           </div>
-
-          <Dialog
-            open={attachmentsOrder !== null}
-            onOpenChange={(open) => !open && setAttachmentsOrder(null)}
-          >
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Archivos adjuntos</DialogTitle>
-                <DialogDescription>Documentos del pedido {attachmentsOrder?.id}.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-2">
-                {attachmentsOrder?.attachments?.map((attachment) => (
-                  <div
-                    key={`${attachment.name}-${attachment.size}`}
-                    className="flex min-w-0 items-start gap-3 rounded-xl border border-border/60 p-3"
-                  >
-                    <Paperclip className="size-4 shrink-0 text-muted-foreground" />
-                    <span className="min-w-0 flex-1 break-all whitespace-normal text-sm">
-                      {attachment.name}
-                    </span>
-                    <Button
-                      asChild
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="shrink-0 gap-1.5 text-xs"
-                    >
-                      <a href={attachment.dataUrl} download={attachment.name}>
-                        <Download className="size-4" /> Descargar
-                      </a>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </DialogContent>
-          </Dialog>
 
           <Dialog
             open={detailsOrder !== null}
@@ -1839,6 +1792,39 @@ function AccountPageContent({
                       </p>
                     </div>
                   )}
+                  <div>
+                    <h3 className="mb-2 font-semibold">Adjuntos</h3>
+                    {detailsOrder.attachments?.length ? (
+                      <div className="space-y-2">
+                        {detailsOrder.attachments.map((attachment) => (
+                          <div
+                            key={`${attachment.name}-${attachment.size}`}
+                            className="flex min-w-0 items-start gap-3 rounded-xl border border-border/60 p-3"
+                          >
+                            <Paperclip className="size-4 shrink-0 text-muted-foreground" />
+                            <span className="min-w-0 flex-1 break-all whitespace-normal text-sm">
+                              {attachment.name}
+                            </span>
+                            <Button
+                              asChild
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="shrink-0 gap-1.5 text-xs"
+                            >
+                              <a href={attachment.dataUrl} download={attachment.name}>
+                                <Download className="size-4" /> Descargar
+                              </a>
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="rounded-lg border border-border/60 p-3 text-muted-foreground">
+                        No hay adjuntos.
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </DialogContent>
