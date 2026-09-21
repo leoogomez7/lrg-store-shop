@@ -270,21 +270,23 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             }}
           >
             <Button
-              onClick={() => navigate({ to: "/$brand", params: { brand: "arcade" } })}
+              onClick={() => navigate({ to: "/$brand/productos", params: { brand: "arcade" } })}
               size="lg"
               className="gap-2"
             >
               LRG Arcade <ArrowRight className="size-4" />
             </Button>
             <Button
-              onClick={() => navigate({ to: "/$brand", params: { brand: "scents" } })}
+              onClick={() => navigate({ to: "/$brand/productos", params: { brand: "scents" } })}
               size="lg"
               className="gap-2"
             >
               LRG Scents <ArrowRight className="size-4" />
             </Button>
             <Button
-              onClick={() => navigate({ to: "/$brand", params: { brand: "web-design" } })}
+              onClick={() =>
+                navigate({ to: "/$brand/productos", params: { brand: "web-design" } })
+              }
               size="lg"
               className="gap-2"
             >

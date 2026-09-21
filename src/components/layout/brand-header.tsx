@@ -533,13 +533,14 @@ function BrandHeaderContent({
                   <DropdownMenuItem
                     key={item.slug}
                     onSelect={() => {
-                      const nextHref = item.slug === "store-shop" ? "/productos" : `/${item.slug}`;
+                      const nextHref =
+                        item.slug === "store-shop" ? "/productos" : `/${item.slug}/productos`;
                       if (typeof window !== "undefined" && window.location.pathname === nextHref) {
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       } else if (item.slug === "store-shop") {
                         navigate({ to: "/productos" });
                       } else {
-                        navigate({ to: "/$brand", params: { brand: item.slug } });
+                        navigate({ to: "/$brand/productos", params: { brand: item.slug } });
                       }
                       setOpenMenu(false);
                     }}
