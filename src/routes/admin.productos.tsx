@@ -2207,20 +2207,25 @@ function AdminProducts() {
                         </TableCell>
                         <TableCell className="align-middle">
                           <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={quickDraft.discount}
+                            type="text"
+                            inputMode="decimal"
+                            value={`${quickDraft.discount}%`}
                             onChange={(event) =>
                               setQuickEditForm((current) => ({
                                 ...current,
                                 [quickEditKey]: {
                                   ...quickDraft,
-                                  discount: Number(event.target.value),
+                                  discount: Math.max(
+                                    0,
+                                    Math.min(
+                                      100,
+                                      Number(event.target.value.replace(/[^0-9.]/g, "")) || 0,
+                                    ),
+                                  ),
                                 },
                               }))
                             }
-                            className="w-full min-w-28 text-center"
+                            className="w-24 border-0 bg-transparent px-0 text-center text-foreground shadow-none"
                           />
                         </TableCell>
                         <TableCell className="align-middle">
@@ -2314,12 +2319,8 @@ function AdminProducts() {
                           onClick={(event) => event.stopPropagation()}
                         >
                           <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={
-                              pendingDiscounts[product.id] ?? (discount ? String(discount) : "")
-                            }
+                            type="text"
+                            value={`${pendingDiscounts[product.id] || discount}%`}
                             placeholder="0%"
                             className="w-24 border-0 bg-transparent px-0 text-center shadow-none"
                             readOnly

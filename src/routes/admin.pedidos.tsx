@@ -1,4 +1,4 @@
-﻿import { useSuspenseQuery } from "@tanstack/react-query";
+﻿import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
@@ -524,6 +524,7 @@ function AdminOrders() {
   const search = Route.useSearch();
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const { data: allProducts } = useSuspenseQuery(catalogQueries.all());
+  const queryClient = useQueryClient();
   const [editableOrders, setEditableOrders] = useState<typeof orders>(() => orders);
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryStatus[]>([]);
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus[]>([]);
@@ -723,6 +724,7 @@ function AdminOrders() {
       );
       await saveOrders(next);
       setEditableOrders(next);
+      queryClient.setQueryData(orderQueries.list().queryKey, next);
       setDocumentsOrder(next.find((order) => order.id === documentsOrder.id) ?? null);
       setPendingAttachments([]);
       toast.success(
@@ -749,6 +751,7 @@ function AdminOrders() {
           : order,
       );
       saveOrders(next);
+      queryClient.setQueryData(orderQueries.list().queryKey, next);
       setDocumentsOrder(next.find((order) => order.id === documentsOrder.id) ?? null);
       return next;
     });
@@ -2048,7 +2051,7 @@ function AdminOrders() {
                 <TableHead className="w-20">Total</TableHead>
                 <TableHead className="w-18">Ganancias</TableHead>
                 {!selectionMode && !hasExpandedOrder && (
-                  <TableHead className="w-88 min-w-88 text-right">Acciones</TableHead>
+                  <TableHead className="w-80 min-w-80 text-left">Acciones</TableHead>
                 )}
               </TableRow>
             </TableHeader>
@@ -2232,8 +2235,8 @@ function AdminOrders() {
                       <TableCell>{formatPrice(order.total)}</TableCell>
                       <TableCell>{formatPrice(order.profit)}</TableCell>
                       {!selectionMode && !hasExpandedOrder && (
-                        <TableCell className="w-88 min-w-88 text-right">
-                          <div className="flex w-full min-w-max flex-nowrap items-center justify-end gap-0.5 overflow-visible">
+                        <TableCell className="w-80 min-w-80 text-left">
+                          <div className="flex min-w-max flex-nowrap items-center justify-start gap-0.5 overflow-visible">
                             {isQuickEditing ? (
                               <>
                                 <Button
