@@ -762,14 +762,18 @@ function AdminProducts() {
 
   const handleBulkEditProducts = () => {
     const firstSelectionKey = selectedProductIds[0];
-    const firstProductId = firstSelectionKey
-      ? getProductIdFromSelectionKey(firstSelectionKey)
-      : undefined;
-    const product = editableProducts.find((item) => item.id === firstProductId);
+    const selectedRow = displayRows.find(
+      ({ product, variant }) => getProductSelectionKey(product, variant) === firstSelectionKey,
+    );
+    const product =
+      selectedRow?.product ??
+      editableProducts.find(
+        (item) => item.id === getProductIdFromSelectionKey(firstSelectionKey ?? ""),
+      );
     if (!product) return;
     setBulkEditQueue(selectedProductIds);
     setBulkEditPosition(0);
-    const variantId = firstSelectionKey?.split(":")[1];
+    const variantId = selectedRow?.variant?.id ?? firstSelectionKey?.split(":")[1];
     openEditProductDialog(
       product,
       variantId && variantId !== "base"
@@ -1923,12 +1927,7 @@ function AdminProducts() {
 
       <FilterChipList chips={adminFilterChips} />
       <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
-        <div
-          className={cn(
-            "flex w-10 shrink-0 flex-col items-center bg-transparent py-3",
-            !selectionMode && "pointer-events-none opacity-0",
-          )}
-        >
+        <div className={cn("flex w-10 shrink-0 flex-col items-center bg-transparent py-3")}>
           <div className="mb-3 h-6" />
           {displayRows.map(({ product, variant }) => (
             <div

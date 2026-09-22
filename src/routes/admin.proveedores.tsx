@@ -952,10 +952,7 @@ function AdminSuppliers() {
         </div>
 
         <Dialog open={newSupplierOpen} onOpenChange={(open) => !open && closeSupplierEditor()}>
-          <DialogContent
-            key={editingSupplierKey ?? "new-supplier"}
-            className="w-[calc(100vw-1rem)] max-w-2xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto"
-          >
+          <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto">
             <DialogHeader>
               <div className="flex items-center justify-between gap-3">
                 <DialogTitle>
@@ -1151,12 +1148,7 @@ function AdminSuppliers() {
         </div>
 
         <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
-          <div
-            className={cn(
-              "flex w-10 shrink-0 flex-col items-center bg-transparent py-3",
-              !selectionMode && "pointer-events-none opacity-0",
-            )}
-          >
+          <div className={cn("flex w-10 shrink-0 flex-col items-center bg-transparent py-3")}>
             <div className="mb-3 h-6" />
             {visibleRows.map((row) => (
               <div key={row.key} className="flex h-13 w-full items-center justify-center">

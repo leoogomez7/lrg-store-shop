@@ -1165,7 +1165,11 @@ function AdminOrders() {
           ...item,
           originalName: item.name,
           originalQuantity: item.quantity,
-          stock: productMatch ? Math.max(productMatch.stock, item.quantity) : undefined,
+          stock: productMatch?.stockUnlimited
+            ? undefined
+            : productMatch
+              ? Math.max(productMatch.stock, item.quantity)
+              : undefined,
           confirmed: true,
           paymentStatus: item.paymentStatus ?? getPaymentStatus(order.status),
           deliveryStatus: item.deliveryStatus ?? getDeliveryStatus(order.status),
@@ -1281,13 +1285,15 @@ function AdminOrders() {
       ...currentItem,
       name,
       price: product?.price ?? 0,
-      stock: product?.stock,
+      stock: product?.stockUnlimited ? undefined : product?.stock,
       quantity: product
         ? Math.max(
             1,
             Math.min(
               currentItem.quantity || 1,
-              Math.max(product.stock, currentItem.originalQuantity ?? 0),
+              product.stockUnlimited
+                ? Number.MAX_SAFE_INTEGER
+                : Math.max(product.stock, currentItem.originalQuantity ?? 0),
             ),
           )
         : currentItem.quantity,
@@ -2000,12 +2006,7 @@ function AdminOrders() {
       </div>
 
       <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
-        <div
-          className={cn(
-            "flex shrink-0 flex-col items-center bg-transparent py-3",
-            selectionMode ? "w-10" : "w-0 overflow-hidden",
-          )}
-        >
+        <div className={cn("flex w-10 shrink-0 flex-col items-center bg-transparent py-3")}>
           <div className="mb-3 h-6" />
           {visibleResults.map((order) => (
             <div key={order.id} className="flex h-14 w-full items-center justify-center">
@@ -2906,8 +2907,11 @@ function AdminOrders() {
                       (product) => product.name.toLowerCase() === item.name.trim().toLowerCase(),
                     );
                     const canEditProductName = !item.confirmed;
+                    const hasUnlimitedStock = Boolean(selectedProduct?.stockUnlimited);
                     const exceedsStock = Boolean(
-                      selectedProduct && item.quantity > selectedProduct.stock,
+                      selectedProduct &&
+                      !hasUnlimitedStock &&
+                      item.quantity > selectedProduct.stock,
                     );
                     const itemHasChanges =
                       item.originalName === undefined ||
@@ -2918,8 +2922,9 @@ function AdminOrders() {
                       itemHasChanges &&
                       Boolean(selectedProduct) &&
                       item.quantity >= 1 &&
-                      item.quantity <=
-                        Math.max(selectedProduct?.stock ?? 0, item.originalQuantity ?? 0);
+                      (hasUnlimitedStock ||
+                        item.quantity <=
+                          Math.max(selectedProduct?.stock ?? 0, item.originalQuantity ?? 0));
 
                     return (
                       <div
@@ -2950,7 +2955,7 @@ function AdminOrders() {
                                   >
                                     <span className="min-w-0 truncate">{product.name}</span>
                                     <span className="shrink-0 text-xs text-muted-foreground">
-                                      Stock: {product.stock}
+                                      Stock: {product.stockUnlimited ? "Ilimitado" : product.stock}
                                     </span>
                                   </button>
                                 ))}
