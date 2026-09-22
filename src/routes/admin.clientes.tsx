@@ -830,7 +830,14 @@ function CustomerRow({
 
   return (
     <>
-      <TableRow key={customer.key}>
+      <TableRow
+        key={customer.key}
+        onClick={(event) => {
+          if ((event.target as HTMLElement).closest("button, input, [role=combobox], a")) return;
+          setOpen((value) => !value);
+        }}
+        className="cursor-pointer hover:bg-transparent"
+      >
         <TableCell>
           <div className="flex items-center justify-center gap-2">
             {customer.name}
@@ -850,8 +857,12 @@ function CustomerRow({
         </TableCell>
         <TableCell>
           <button
+            type="button"
             className="inline-flex items-center gap-2 rounded-md bg-transparent px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            onClick={() => setOpen((v) => !v)}
+            onClick={(event) => {
+              event.stopPropagation();
+              setOpen((v) => !v);
+            }}
           >
             {open ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             {open ? "Ocultar" : "Detalles"}

@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Check, Pencil } from "lucide-react";
+import { ArrowUpRight, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/common/brand-mark";
 import { Button } from "@/components/ui/button";
@@ -159,7 +159,7 @@ function AdminBrands() {
 
   const activeDraft = storeDraft ?? brandPresentationDraft;
   const activeOriginal: StoreShopContactItem | null = editingStoreField
-    ? storeContactFields.find((field) => field.key === editingStoreField)?.item ?? null
+    ? (storeContactFields.find((field) => field.key === editingStoreField)?.item ?? null)
     : editingBrandPresentation
       ? (() => {
           const [slugValue, group, key] = editingBrandPresentation.split(".") as [
@@ -172,10 +172,14 @@ function AdminBrands() {
             brandPresentations[slug] ?? getBrandContactPresentation(slug);
 
           if (group === "contact") {
-            return current[key as keyof Omit<BrandContactPresentation, "socials">] as StoreShopContactItem;
+            return current[
+              key as keyof Omit<BrandContactPresentation, "socials">
+            ] as StoreShopContactItem;
           }
 
-          return current.socials[key as keyof BrandContactPresentation["socials"]] as StoreShopContactItem;
+          return current.socials[
+            key as keyof BrandContactPresentation["socials"]
+          ] as StoreShopContactItem;
         })()
       : null;
   const hasActiveChanges =
@@ -214,34 +218,28 @@ function AdminBrands() {
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Sectores</p>
       <h1 className="mt-2 text-3xl font-semibold">Tiendas disponibles</h1>
+      <p className="mt-2 text-sm text-muted-foreground">Hacé click en cada ítem para editarlo.</p>
 
-      <div className="mt-10 grid grid-cols-1 items-stretch gap-4 pb-20 sm:grid-cols-2">
+      <div className="mt-8 grid grid-cols-1 items-stretch gap-4 pb-20 sm:grid-cols-2 lg:grid-cols-4">
         <article className="theme-webdesign glass-panel flex min-w-0 h-full flex-col justify-between rounded-2xl p-3">
           <div>
             <div className="flex items-start gap-3">
               <BrandMark compact brandSlug="store-shop" />
               <div>
                 <h2 className="font-display font-semibold">{storeShopListing.name}</h2>
-                <p className="text-xs text-primary">
-                  Productos gaming, streaming, perfumería árabe y diseño de páginas web
-                </p>
               </div>
             </div>
             <div className="mt-3 space-y-2 border-t border-border/60 pt-4 text-xs text-muted-foreground">
               {storeContactFields.map((field) => {
                 return (
-                  <div key={field.key} className="flex items-center justify-between gap-2">
-                    <p className="truncate">{field.label}</p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => startEditingStoreField(field.key, field.label, field.item)}
-                      className="h-8 shrink-0 gap-1 px-2 text-white hover:text-white"
-                    >
-                      <Pencil className="size-4 text-white" />{" "}
-                      <span className="text-[11px] text-white">Editar</span>
-                    </Button>
-                  </div>
+                  <button
+                    key={field.key}
+                    type="button"
+                    onClick={() => startEditingStoreField(field.key, field.label, field.item)}
+                    className="flex w-full cursor-pointer items-center justify-between gap-2 text-left"
+                  >
+                    <span className="truncate">{field.label}</span>
+                  </button>
                 );
               })}
             </div>
@@ -327,23 +325,20 @@ function AdminBrands() {
                     ] as const;
                   })().map((field) => {
                     return (
-                      <div key={field.key} className="flex items-center justify-between gap-2">
-                        <p className="truncate">{field.label}</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            startEditingBrandPresentation(
-                              `${brand.slug}.${field.key}`,
-                              field.label,
-                              field.item,
-                            )
-                          }
-                          className="h-8 shrink-0 gap-1 px-2 text-white hover:text-white"
-                        >
-                          <Pencil className="size-4 text-white" /> Editar
-                        </Button>
-                      </div>
+                      <button
+                        key={field.key}
+                        type="button"
+                        onClick={() =>
+                          startEditingBrandPresentation(
+                            `${brand.slug}.${field.key}`,
+                            field.label,
+                            field.item,
+                          )
+                        }
+                        className="flex w-full cursor-pointer items-center justify-between gap-2 text-left"
+                      >
+                        <span className="truncate">{field.label}</span>
+                      </button>
                     );
                   })}
                 </div>

@@ -1135,7 +1135,7 @@ function AdminSuppliers() {
           >
             <div className="mb-3 h-6" />
             {visibleRows.map((row) => (
-              <div key={row.key} className="flex h-[52px] w-full items-center justify-center">
+              <div key={row.key} className="flex h-13 w-full items-center justify-center">
                 <Checkbox
                   className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                   checked={selectedSupplierKeys.includes(row.key)}
@@ -1155,18 +1155,18 @@ function AdminSuppliers() {
               containerClassName="overflow-x-auto overflow-y-visible"
               className={cn(
                 "w-full table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1",
-                selectionMode ? "min-w-[50rem]" : "min-w-[78rem]",
+                selectionMode ? "min-w-200" : "min-w-312",
               )}
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
-                  <TableHead className="w-[12rem] min-w-[12rem] pl-5">Nombre</TableHead>
-                  <TableHead className="w-[9rem] min-w-[9rem]">Celular</TableHead>
-                  <TableHead className="w-[10rem] min-w-[10rem]">Red social</TableHead>
-                  <TableHead className="w-[10rem] min-w-[10rem]">Total vendido</TableHead>
-                  <TableHead className="w-[9rem] min-w-[9rem]">Cantidad vendida</TableHead>
+                  <TableHead className="w-48 min-w-48 pl-5">Nombre</TableHead>
+                  <TableHead className="w-36 min-w-36">Celular</TableHead>
+                  <TableHead className="w-40 min-w-40">Red social</TableHead>
+                  <TableHead className="w-40 min-w-40">Total vendido</TableHead>
+                  <TableHead className="w-36 min-w-36">Cantidad vendida</TableHead>
                   {!selectionMode && (
-                    <TableHead className="w-[27rem] min-w-[27rem] pr-5">Acciones</TableHead>
+                    <TableHead className="w-108 min-w-108 pr-5">Acciones</TableHead>
                   )}
                 </TableRow>
               </TableHeader>
@@ -1181,7 +1181,21 @@ function AdminSuppliers() {
                   };
                   return (
                     <React.Fragment key={row.key}>
-                      <TableRow>
+                      <TableRow
+                        onClick={(event) => {
+                          if (
+                            isQuickEditing ||
+                            (event.target as HTMLElement).closest(
+                              "button, input, [role=combobox], a",
+                            )
+                          )
+                            return;
+                          setExpandedSupplierKey(isExpanded ? null : row.key);
+                        }}
+                        className={
+                          !isQuickEditing ? "cursor-pointer hover:bg-transparent" : undefined
+                        }
+                      >
                         <TableCell className="pl-5 text-center text-sm font-medium text-foreground">
                           {isQuickEditing ? (
                             <Input
@@ -1195,7 +1209,7 @@ function AdminSuppliers() {
                             row.name
                           )}
                         </TableCell>
-                        <TableCell className="w-[9rem] min-w-[9rem] text-center text-sm text-foreground">
+                        <TableCell className="w-36 min-w-36 text-center text-sm text-foreground">
                           {isQuickEditing ? (
                             <Input
                               value={quickSupplier.phone}
@@ -1251,7 +1265,10 @@ function AdminSuppliers() {
                           {row.soldQuantity}
                         </TableCell>
                         {!selectionMode && (
-                          <TableCell className="w-[27rem] min-w-[27rem] whitespace-nowrap pr-5 text-center">
+                          <TableCell
+                            className="w-108 min-w-108 whitespace-nowrap pr-5 text-center"
+                            onClick={(event) => event.stopPropagation()}
+                          >
                             <div className="flex min-w-max flex-nowrap items-center justify-center gap-1.5">
                               {isQuickEditing ? (
                                 <>

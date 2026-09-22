@@ -1514,11 +1514,21 @@ function AccountPageContent({
                   </TableRow>
                 ) : filteredOrders.length > 0 ? (
                   paginatedOrders.map((order) => (
-                    <TableRow key={order.id}>
+                    <TableRow
+                      key={order.id}
+                      onClick={(event) => {
+                        if (
+                          (event.target as HTMLElement).closest("button, input, [role=combobox], a")
+                        )
+                          return;
+                        setDetailsOrder(order);
+                      }}
+                      className="cursor-pointer hover:bg-transparent"
+                    >
                       <TableCell className="font-medium">{order.id}</TableCell>
                       <TableCell>{getOrderStoreLabel(order)}</TableCell>
                       <TableCell>{formatDate(order.date)}</TableCell>
-                      <TableCell>
+                      <TableCell onClick={(event) => event.stopPropagation()}>
                         {(() => {
                           const deliveryStatus = (order.deliveryStatus ?? "Pendiente").trim();
                           const normalizedDeliveryStatus = deliveryStatus.toLowerCase();
@@ -1882,9 +1892,6 @@ function AccountPageContent({
                   event.target.value = "";
                 }}
               />
-              <Button type="button" onClick={() => receiptsInputRef.current?.click()}>
-                <FileText className="size-4" /> Adjuntar comprobantes
-              </Button>
               <div className="space-y-2">
                 {[...(receiptsOrder?.paymentReceipts ?? []), ...pendingReceipts].length === 0 ? (
                   <p className="text-sm text-muted-foreground">No hay comprobantes adjuntos.</p>
@@ -1950,11 +1957,10 @@ function AccountPageContent({
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    setReceiptsOrder(null);
-                    setPendingReceipts([]);
+                    receiptsInputRef.current?.click();
                   }}
                 >
-                  <X className="size-4" /> Cancelar
+                  <FileText className="size-4" /> Adjuntar comprobantes
                 </Button>
                 <Button
                   type="button"

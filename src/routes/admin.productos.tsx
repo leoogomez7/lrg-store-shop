@@ -1997,7 +1997,13 @@ function AdminProducts() {
                 const activeQuickBrand = quickDraft.brand ?? product.brand;
 
                 return (
-                  <TableRow key={`${product.id}-${variant?.id ?? "base"}`}>
+                  <TableRow
+                    key={`${product.id}-${variant?.id ?? "base"}`}
+                    onClick={() => {
+                      if (!isQuickEditing) openEditProductDialog(product, variant);
+                    }}
+                    className={cn(!isQuickEditing && "cursor-pointer hover:bg-transparent")}
+                  >
                     {isQuickEditing ? (
                       <>
                         <TableCell className="min-w-64 align-middle text-center">
@@ -2269,7 +2275,10 @@ function AdminProducts() {
                           {formatPrice(displayGastos, displayGastosCurrency)}
                         </TableCell>
                         <TableCell className="text-center">{formatPrice(displayPrice)}</TableCell>
-                        <TableCell className="text-center">
+                        <TableCell
+                          className="text-center"
+                          onClick={(event) => event.stopPropagation()}
+                        >
                           <Input
                             type="number"
                             min={0}
@@ -2292,7 +2301,10 @@ function AdminProducts() {
                           {formatPrice(displayProfit, displayProfitCurrency)}
                         </TableCell>
                         {!selectionMode && (
-                          <TableCell className="min-w-52 text-center">
+                          <TableCell
+                            className="min-w-52 text-center"
+                            onClick={(event) => event.stopPropagation()}
+                          >
                             <div className="flex flex-nowrap items-center justify-center gap-1 overflow-hidden">
                               <label className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
                                 <span>{product.hidden ? "No disponible" : "Disponible"}</span>

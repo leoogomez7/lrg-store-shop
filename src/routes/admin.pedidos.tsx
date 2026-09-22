@@ -156,7 +156,13 @@ function exportOrdersPdf(ordersList: Order[]) {
 }
 
 // Insert UI buttons into the page header for exporting (Excel + PDF)
-if (false && typeof window !== "undefined") {
+if (
+  typeof window !== "undefined" &&
+  Boolean(
+    (window as Window & { __lrg_enable_legacy_export_injection?: boolean })
+      .__lrg_enable_legacy_export_injection,
+  )
+) {
   window.addEventListener("load", () => {
     try {
       // Only inject on pedidos route
@@ -220,7 +226,13 @@ if (false && typeof window !== "undefined") {
 }
 
 // Ensure buttons appear on SPA navigation: observe DOM and inject when header is added
-if (false && typeof window !== "undefined") {
+if (
+  typeof window !== "undefined" &&
+  Boolean(
+    (window as Window & { __lrg_enable_legacy_export_injection?: boolean })
+      .__lrg_enable_legacy_export_injection,
+  )
+) {
   const ensureExportButtons = () => {
     try {
       // Only inject on the pedidos admin route to avoid duplicating buttons on other pages
@@ -1925,7 +1937,7 @@ function AdminOrders() {
         >
           <div className="mb-3 h-6" />
           {visibleResults.map((order) => (
-            <div key={order.id} className="flex h-[56px] w-full items-center justify-center">
+            <div key={order.id} className="flex h-14 w-full items-center justify-center">
               <Checkbox
                 className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={selectedOrderIds.includes(order.id)}
@@ -1948,7 +1960,7 @@ function AdminOrders() {
             )}
             className={cn(
               "w-full table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
-              hasExpandedOrder ? "min-w-0" : selectionMode ? "min-w-[50rem]" : "min-w-[98rem]",
+              hasExpandedOrder ? "min-w-0" : selectionMode ? "min-w-200" : "min-w-[98rem]",
             )}
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -1963,7 +1975,7 @@ function AdminOrders() {
                 <TableHead className="w-20">Total</TableHead>
                 <TableHead className="w-18">Ganancias</TableHead>
                 {!selectionMode && !hasExpandedOrder && (
-                  <TableHead className="w-100 min-w-100 text-right">Acciones</TableHead>
+                  <TableHead className="w-88 min-w-88 text-right">Acciones</TableHead>
                 )}
               </TableRow>
             </TableHeader>
@@ -1999,10 +2011,20 @@ function AdminOrders() {
                     <TableRow
                       id={`pedido-${order.id}`}
                       ref={isQuickEditing ? quickEditRowRef : undefined}
+                      onClick={(event) => {
+                        if (
+                          isQuickEditing ||
+                          (event.target as HTMLElement).closest("button, input, [role=combobox], a")
+                        )
+                          return;
+                        setExpandedOrderId(isExpanded ? null : order.id);
+                      }}
                       className={
                         highlightedOrderId === order.id
                           ? "animate-pulse bg-amber-500/20 ring-2 ring-amber-400"
-                          : undefined
+                          : !isQuickEditing
+                            ? "cursor-pointer hover:bg-transparent"
+                            : undefined
                       }
                     >
                       <TableCell className="w-24 text-center text-sm font-medium">
@@ -2157,7 +2179,7 @@ function AdminOrders() {
                       <TableCell>{formatPrice(order.total)}</TableCell>
                       <TableCell>{formatPrice(order.profit)}</TableCell>
                       {!selectionMode && !hasExpandedOrder && (
-                        <TableCell className="w-100 min-w-100 text-right">
+                        <TableCell className="w-88 min-w-88 text-right">
                           <div className="flex w-full min-w-max flex-nowrap items-center justify-end gap-0.5 overflow-visible">
                             {isQuickEditing ? (
                               <>
@@ -2969,13 +2991,6 @@ function AdminOrders() {
               event.target.value = "";
             }}
           />
-          <Button
-            type="button"
-            onClick={() => documentsInputRef.current?.click()}
-            className="w-full min-w-0"
-          >
-            <Paperclip className="size-4" /> Adjuntar archivos
-          </Button>
           <div className="space-y-2">
             {[...(documentsOrder?.attachments ?? []), ...pendingAttachments].length === 0 ? (
               <p className="text-sm text-muted-foreground">No hay documentos adjuntos.</p>
@@ -3010,8 +3025,12 @@ function AdminOrders() {
             )}
           </div>
           <div className="flex flex-wrap justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={cancelDocuments}>
-              <X className="size-4" /> Cancelar
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => documentsInputRef.current?.click()}
+            >
+              <Paperclip className="size-4" /> Adjuntar archivos
             </Button>
             <Button
               type="button"
