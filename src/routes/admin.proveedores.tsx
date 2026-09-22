@@ -219,9 +219,12 @@ function AdminSuppliers() {
           (item) => item.name === assignment.productName,
         );
         if (currentProduct) {
-          currentProduct.quantity += soldQuantity;
+          currentProduct.quantity += assignmentSummary.quantity;
         } else {
-          current.products.push({ name: assignment.productName, quantity: soldQuantity });
+          current.products.push({
+            name: assignment.productName,
+            quantity: assignmentSummary.quantity,
+          });
         }
         if (!current.stores.includes(product.brand)) current.stores.push(product.brand);
         current.sales += assignmentSummary.total;

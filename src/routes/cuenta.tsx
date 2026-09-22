@@ -1800,7 +1800,7 @@ function AccountPageContent({
                                 LRG {itemStore?.shortName ?? itemStoreSlug}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {item.quantity} × {formatPrice(item.price)} unitario
+                                {item.quantity} × {formatPrice(item.price)}
                               </p>
                             </div>
                             <p className="shrink-0 text-right font-medium">
