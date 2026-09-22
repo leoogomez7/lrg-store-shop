@@ -711,19 +711,19 @@ function AdminProducts() {
     setSelectedProductIds([]);
   };
 
-  const handleBulkToggleProducts = (hidden: boolean) => {
+  const handleBulkToggleProducts = async (hidden: boolean) => {
     const ids = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
     const nextProducts = (productsData as Product[]).map((product) =>
       ids.has(product.id) ? { ...product, hidden } : product,
     );
     productsData.splice(0, productsData.length, ...nextProducts);
-    setEditableProducts((current) =>
-      current.map((product) => (ids.has(product.id) ? { ...product, hidden } : product)),
-    );
-    saveProducts(productsData as Product[]);
+    setEditableProducts(nextProducts);
+    await saveProducts(nextProducts);
+    toast.success(hidden ? "Productos ocultos" : "Productos disponibles");
+    setSelectedProductIds([]);
   };
 
-  const handleBulkDuplicateProducts = () => {
+  const handleBulkDuplicateProducts = async () => {
     const selectedIds = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
     const selected = editableProducts.filter((product) => selectedIds.has(product.id));
     const duplicates = selected.map((product) => {
@@ -740,8 +740,9 @@ function AdminProducts() {
       };
     });
     productsData.push(...duplicates);
-    saveProducts(productsData as Product[]);
-    setEditableProducts((current) => [...current, ...duplicates]);
+    const nextProducts = [...productsData];
+    await saveProducts(nextProducts);
+    setEditableProducts(nextProducts);
     toast.success(
       `${duplicates.length} producto${duplicates.length === 1 ? "" : "s"} duplicado${duplicates.length === 1 ? "" : "s"}`,
     );
@@ -1096,10 +1097,10 @@ function AdminProducts() {
     const nextBulkSelectionKey = queue[nextBulkPosition];
     if (nextBulkSelectionKey) {
       const nextProduct =
-        editableProducts.find(
+        (productsData as Product[]).find(
           (product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey),
         ) ??
-        (productsData as Product[]).find(
+        editableProducts.find(
           (product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey),
         );
       if (nextProduct) {
