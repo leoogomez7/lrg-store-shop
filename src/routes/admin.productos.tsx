@@ -732,14 +732,16 @@ function AdminProducts() {
   const toggleProductSelection = (selectionKey: string, checked: boolean) => {
     const normalizedSelectionKey = getProductIdFromSelectionKey(selectionKey);
     setSelectedProductIds((current) => {
+      const normalizedCurrent = normalizeProductSelection(current);
       const next = checked
-        ? current.includes(normalizedSelectionKey)
-          ? current
-          : [...current, normalizedSelectionKey]
-        : current.filter((key) => key !== normalizedSelectionKey);
+        ? normalizedCurrent.includes(normalizedSelectionKey)
+          ? normalizedCurrent
+          : [...normalizedCurrent, normalizedSelectionKey]
+        : normalizedCurrent.filter((key) => key !== normalizedSelectionKey);
 
-      setSelectionMode(next.length > 0);
-      return next;
+      const normalizedNext = normalizeProductSelection(next);
+      setSelectionMode(normalizedNext.length > 0);
+      return normalizedNext;
     });
   };
 
@@ -1938,13 +1940,16 @@ function AdminProducts() {
                 clearBulkProductSelection();
                 return;
               }
-              setSelectionMode(true);
               const shouldSelect = checked === true || checked === "indeterminate";
               setSelectedProductIds((current) => {
+                const normalizedCurrent = normalizeProductSelection(current);
                 const next = shouldSelect
-                  ? [...new Set([...current, ...visibleProductSelectionKeys])]
-                  : current.filter((key) => !visibleProductSelectionKeys.includes(key));
-                return next;
+                  ? Array.from(new Set([...normalizedCurrent, ...visibleProductSelectionKeys]))
+                  : normalizedCurrent.filter((key) => !visibleProductSelectionKeys.includes(key));
+
+                const normalizedNext = normalizeProductSelection(next);
+                setSelectionMode(normalizedNext.length > 0);
+                return normalizedNext;
               });
             }}
             aria-label="Seleccionar productos visibles"
@@ -2009,7 +2014,6 @@ function AdminProducts() {
                 onCheckedChange={(checked) => {
                   const isChecked = checked === true;
                   toggleProductSelection(product.id, isChecked);
-                  setSelectionMode(isChecked || selectedProductIds.length > 1);
                 }}
                 aria-label={`Seleccionar ${product.name}`}
               />
