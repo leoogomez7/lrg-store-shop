@@ -727,6 +727,8 @@ function AdminProducts() {
     bulkEditPositionRef.current = 0;
   };
 
+  const getBulkProductQueue = () => normalizeProductSelection(selectedProductIds);
+
   const toggleProductSelection = (selectionKey: string, checked: boolean) => {
     const normalizedSelectionKey = getProductIdFromSelectionKey(selectionKey);
     setSelectedProductIds((current) => {
@@ -809,18 +811,13 @@ function AdminProducts() {
     setProductForm(null);
     setEditingProduct(null);
     setInitialVariantId(null);
-    setBulkEditQueue([]);
-    setBulkEditPosition(0);
-    bulkEditQueueRef.current = [];
-    bulkEditPositionRef.current = 0;
-    setSelectedProductIds([]);
-    setSelectionMode(false);
+    clearBulkProductSelection();
     setCreateDialogOpen(false);
     setEditDialogOpen(false);
   };
 
   const handleBulkEditProducts = () => {
-    const selectedProductIdsForBulk = normalizeProductSelection(selectedProductIds);
+    const selectedProductIdsForBulk = getBulkProductQueue();
     if (!selectedProductIdsForBulk.length) return;
 
     const firstProductId = selectedProductIdsForBulk[0];
@@ -842,7 +839,7 @@ function AdminProducts() {
   const navigateBulkEditProduct = (direction: -1 | 1) => {
     const queue = bulkEditQueueRef.current.length > 0
       ? bulkEditQueueRef.current
-      : normalizeProductSelection(selectedProductIds);
+      : getBulkProductQueue();
     const nextPosition = bulkEditPositionRef.current + direction;
     if (nextPosition < 0 || nextPosition >= queue.length) return;
 
@@ -1905,7 +1902,7 @@ function AdminProducts() {
             onClick={() => {
               setSelectionMode((current) => {
                 if (current) {
-                  clearBulkSelection();
+                  clearBulkProductSelection();
                   return false;
                 }
                 return true;
@@ -1925,16 +1922,17 @@ function AdminProducts() {
             }
             onCheckedChange={(checked) => {
               if (checked === false) {
-                clearBulkSelection();
+                clearBulkProductSelection();
                 return;
               }
               setSelectionMode(true);
               const shouldSelect = checked === true || checked === "indeterminate";
-              setSelectedProductIds((current) =>
-                shouldSelect
+              setSelectedProductIds((current) => {
+                const next = shouldSelect
                   ? [...new Set([...current, ...visibleProductSelectionKeys])]
-                  : current.filter((key) => !visibleProductSelectionKeys.includes(key)),
-              );
+                  : current.filter((key) => !visibleProductSelectionKeys.includes(key));
+                return next;
+              });
             }}
             aria-label="Seleccionar productos visibles"
           />
