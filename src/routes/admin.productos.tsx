@@ -1999,8 +1999,15 @@ function AdminProducts() {
                 return (
                   <TableRow
                     key={`${product.id}-${variant?.id ?? "base"}`}
-                    onClick={() => {
-                      if (!isQuickEditing) openEditProductDialog(product, variant);
+                    onClick={(event) => {
+                      if (
+                        isQuickEditing ||
+                        (event.target as HTMLElement).closest(
+                          "button, input, [role=checkbox], [role=combobox], a",
+                        )
+                      )
+                        return;
+                      openEditProductDialog(product, variant);
                     }}
                     className={cn(!isQuickEditing && "cursor-pointer hover:bg-transparent")}
                   >

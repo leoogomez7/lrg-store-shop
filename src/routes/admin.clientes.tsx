@@ -712,7 +712,7 @@ function AdminClients() {
               <TableHead>Email</TableHead>
               <TableHead>Total de pedidos</TableHead>
               <TableHead>Total gastado</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead>Detalles</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -865,7 +865,7 @@ function CustomerRow({
             }}
           >
             {open ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            {open ? "Ocultar" : "Detalles"}
+            {open ? "Ocultar" : "Ver"}
           </button>
         </TableCell>
       </TableRow>

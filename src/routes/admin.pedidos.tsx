@@ -1931,8 +1931,8 @@ function AdminOrders() {
       <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
         <div
           className={cn(
-            "flex w-10 shrink-0 flex-col items-center bg-transparent py-3",
-            !selectionMode && "pointer-events-none opacity-0",
+            "flex shrink-0 flex-col items-center bg-transparent py-3",
+            selectionMode ? "w-10" : "w-0 overflow-hidden",
           )}
         >
           <div className="mb-3 h-6" />
@@ -1941,6 +1941,7 @@ function AdminOrders() {
               <Checkbox
                 className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={selectedOrderIds.includes(order.id)}
+                onClick={(event) => event.stopPropagation()}
                 onCheckedChange={(checked) => toggleOrderSelection(order.id, checked === true)}
                 aria-label={`Seleccionar pedido ${order.id}`}
               />
@@ -2014,7 +2015,9 @@ function AdminOrders() {
                       onClick={(event) => {
                         if (
                           isQuickEditing ||
-                          (event.target as HTMLElement).closest("button, input, [role=combobox], a")
+                          (event.target as HTMLElement).closest(
+                            "button, input, [role=checkbox], [role=combobox], a",
+                          )
                         )
                           return;
                         setExpandedOrderId(isExpanded ? null : order.id);
