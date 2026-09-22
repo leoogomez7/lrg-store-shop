@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ContactRound, Package, RotateCcw, Search, ShoppingCart, Trash2 } from "lucide-react";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { orders, saveOrders } from "@/data/orders";
 import { products, saveProducts } from "@/data/products";
-import { readTrash, removeFromTrash, type TrashEntry } from "@/data/trash";
+import { applyTrashEntries, readTrash, removeFromTrash, type TrashEntry } from "@/data/trash";
 import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
 
 const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
@@ -22,9 +22,38 @@ const getRemainingDays = (expiresAt: string) =>
 
 function AdminTrash() {
   const queryClient = useQueryClient();
-  const [entries, setEntries] = useState<TrashEntry[]>(() => readTrash());
+  const [entries, setEntries] = useState<TrashEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [entryToDelete, setEntryToDelete] = useState<TrashEntry | null>(null);
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    void loadAdminSettings({ data: {} })
+      .then((settings) => {
+        const trashSetting = settings.find((setting) => setting.settingKey === "lrg:trash");
+        let loadedEntries: TrashEntry[] = [];
+        if (trashSetting) {
+          try {
+            loadedEntries = JSON.parse(trashSetting.settingValue) as TrashEntry[];
+          } catch {
+            loadedEntries = [];
+          }
+        }
+        applyTrashEntries(loadedEntries);
+        if (active) setEntries(readTrash());
+      })
+      .catch(() => {
+        if (active) setEntries([]);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredEntries = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -151,7 +180,11 @@ function AdminTrash() {
       </div>
 
       <div className="mt-6 space-y-3 pb-20">
-        {entries.length === 0 ? (
+        {isLoading ? (
+          <div className="glass-panel rounded-2xl p-8 text-center text-sm text-muted-foreground">
+            Cargando elementos eliminados...
+          </div>
+        ) : entries.length === 0 ? (
           <div className="glass-panel rounded-2xl p-8 text-center text-sm text-muted-foreground">
             La papelera está vacía.
           </div>

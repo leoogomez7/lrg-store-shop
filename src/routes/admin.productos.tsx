@@ -181,6 +181,8 @@ function AdminProducts() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [bulkEditQueue, setBulkEditQueue] = useState<string[]>([]);
   const [bulkEditPosition, setBulkEditPosition] = useState(0);
+  const bulkEditQueueRef = useRef<string[]>([]);
+  const bulkEditPositionRef = useRef(0);
   const [initialVariantId, setInitialVariantId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState | null>(null);
   const [usdRate, setUsdRate] = useState<number>(() => {
@@ -685,30 +687,21 @@ function AdminProducts() {
   };
 
   const handleBulkDeleteProducts = async () => {
-    const selectedKeys = new Set(selectedProductIds);
-    const nextProducts = (productsData as Product[]).flatMap((product) => {
-      const baseKey = getProductSelectionKey(product);
-      if (selectedKeys.has(baseKey)) {
+    const selectedIds = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
+    const selectedProducts = (productsData as Product[]).filter((product) =>
+      selectedIds.has(product.id),
+    );
+    selectedProducts.forEach((product) => {
         moveToTrash({ type: "producto", id: product.id, item: product });
-        return [];
-      }
-
-      const selectedVariantIds = new Set(
-        selectedProductIds
-          .filter((key) => key.startsWith(`${product.id}:`) && !key.endsWith(":base"))
-          .map((key) => key.slice(product.id.length + 1)),
-      );
-      if (!selectedVariantIds.size) return [product];
-
-      const remainingVariants = (product.variants ?? []).filter(
-        (variant) => !selectedVariantIds.has(variant.id),
-      );
-      return [{ ...product, variants: remainingVariants }];
     });
+    const nextProducts = (productsData as Product[]).filter(
+      (product) => !selectedIds.has(product.id),
+    );
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
     await saveProducts(productsData as Product[]);
     setSelectedProductIds([]);
+    setSelectionMode(false);
   };
 
   const handleBulkToggleProducts = async (hidden: boolean) => {
@@ -721,6 +714,7 @@ function AdminProducts() {
     await saveProducts(nextProducts);
     toast.success(hidden ? "Productos ocultos" : "Productos disponibles");
     setSelectedProductIds([]);
+    setSelectionMode(false);
   };
 
   const handleBulkDuplicateProducts = async () => {
@@ -747,6 +741,7 @@ function AdminProducts() {
       `${duplicates.length} producto${duplicates.length === 1 ? "" : "s"} duplicado${duplicates.length === 1 ? "" : "s"}`,
     );
     setSelectedProductIds([]);
+    setSelectionMode(false);
   };
 
   const closeProductEditor = () => {
@@ -755,6 +750,8 @@ function AdminProducts() {
     setInitialVariantId(null);
     setBulkEditQueue([]);
     setBulkEditPosition(0);
+    bulkEditQueueRef.current = [];
+    bulkEditPositionRef.current = 0;
     setSelectedProductIds([]);
     setSelectionMode(false);
     setCreateDialogOpen(false);
@@ -772,7 +769,9 @@ function AdminProducts() {
         (item) => item.id === getProductIdFromSelectionKey(firstSelectionKey ?? ""),
       );
     if (!product) return;
-    setBulkEditQueue(selectedProductIds);
+    bulkEditQueueRef.current = [...selectedProductIds];
+    bulkEditPositionRef.current = 0;
+    setBulkEditQueue([...selectedProductIds]);
     setBulkEditPosition(0);
     const variantId = selectedRow?.variant?.id ?? firstSelectionKey?.split(":")[1];
     openEditProductDialog(
@@ -784,8 +783,8 @@ function AdminProducts() {
   };
 
   const navigateBulkEditProduct = (direction: -1 | 1) => {
-    const queue = bulkEditQueue.length > 0 ? bulkEditQueue : selectedProductIds;
-    const nextPosition = bulkEditPosition + direction;
+    const queue = bulkEditQueueRef.current;
+    const nextPosition = bulkEditPositionRef.current + direction;
     const nextSelectionKey = queue[nextPosition];
     if (!nextSelectionKey) return;
     const nextProduct =
@@ -796,6 +795,7 @@ function AdminProducts() {
         (product) => product.id === getProductIdFromSelectionKey(nextSelectionKey),
       );
     if (!nextProduct) return;
+    bulkEditPositionRef.current = nextPosition;
     setBulkEditPosition(nextPosition);
     const variantId = nextSelectionKey.split(":")[1];
     openEditProductDialog(
@@ -1092,8 +1092,8 @@ function AdminProducts() {
 
     saveProducts(productsData as Product[]);
     toast.success("Producto guardado");
-    const nextBulkPosition = bulkEditPosition + 1;
-    const queue = bulkEditQueue.length > 0 ? bulkEditQueue : selectedProductIds;
+    const nextBulkPosition = bulkEditPositionRef.current + 1;
+    const queue = bulkEditQueueRef.current;
     const nextBulkSelectionKey = queue[nextBulkPosition];
     if (nextBulkSelectionKey) {
       const nextProduct =
@@ -1104,6 +1104,7 @@ function AdminProducts() {
           (product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey),
         );
       if (nextProduct) {
+        bulkEditPositionRef.current = nextBulkPosition;
         setBulkEditPosition(nextBulkPosition);
         const variantId = nextBulkSelectionKey.split(":")[1];
         openEditProductDialog(
@@ -2279,14 +2280,14 @@ function AdminProducts() {
                               {product.name}
                             </span>
                             {variant ? (
-                              <span className="flex basis-full items-center justify-center text-[10px] uppercase tracking-wider">
+                              <span className="inline-flex items-center text-[10px] uppercase tracking-wider">
                                 <span className="rounded-full border border-border px-1.5 py-0.5 text-muted-foreground">
                                   {variant.name}
                                 </span>
                               </span>
                             ) : null}
                             {product.hidden ? (
-                              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground">
+                              <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
                                 Oculto
                               </span>
                             ) : null}
