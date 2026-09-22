@@ -1889,7 +1889,19 @@ function AdminProducts() {
       </div>
 
       <div className="mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 leading-none">
+          <button
+            type="button"
+            className="text-sm font-medium text-foreground leading-none"
+            onClick={() => {
+              setSelectionMode((current) => {
+                if (current) setSelectedProductIds([]);
+                return !current;
+              });
+            }}
+          >
+            Seleccionar
+          </button>
           <Checkbox
             className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
             checked={
@@ -1915,7 +1927,52 @@ function AdminProducts() {
             }}
             aria-label="Seleccionar productos visibles"
           />
+          {selectedProductIds.length > 0 ? (
+            <span className="text-xs text-muted-foreground">
+              {selectedProductIds.length} seleccionados
+            </span>
+          ) : null}
         </div>
+        {selectedProductIds.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={handleBulkEditProducts}>
+              <Pencil className="size-4" /> Editar
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(false)}>
+              <Eye className="size-4" /> Disponible
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(true)}>
+              <EyeOff className="size-4" /> No disponible
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleBulkDuplicateProducts}>
+              <Copy className="size-4" /> Duplicar
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() =>
+                setConfirmState({
+                  open: true,
+                  title: "Eliminar productos seleccionados?",
+                  description: "Esta acción no se puede deshacer.",
+                  onConfirm: handleBulkDeleteProducts,
+                })
+              }
+            >
+              <Trash2 className="size-4" /> Eliminar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setSelectionMode(false);
+                setSelectedProductIds([]);
+              }}
+            >
+              <X className="size-4" /> Cancelar
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <FilterChipList chips={adminFilterChips} />
