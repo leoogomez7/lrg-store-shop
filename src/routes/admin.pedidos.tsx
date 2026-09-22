@@ -955,7 +955,10 @@ function AdminOrders() {
         block: "center",
       });
     });
-    const timeout = window.setTimeout(() => setHighlightedOrderId(null), 2600);
+    const timeout = window.setTimeout(() => {
+      setHighlightedOrderId(null);
+      setExpandedOrderId(search.pedido);
+    }, 2600);
     return () => {
       window.cancelAnimationFrame(frame);
       window.clearTimeout(timeout);
@@ -1960,7 +1963,7 @@ function AdminOrders() {
                 <TableHead className="w-20">Total</TableHead>
                 <TableHead className="w-18">Ganancias</TableHead>
                 {!selectionMode && !hasExpandedOrder && (
-                  <TableHead className="w-[34rem] min-w-[34rem] text-right">Acciones</TableHead>
+                  <TableHead className="w-100 min-w-100 text-right">Acciones</TableHead>
                 )}
               </TableRow>
             </TableHeader>
@@ -2154,7 +2157,7 @@ function AdminOrders() {
                       <TableCell>{formatPrice(order.total)}</TableCell>
                       <TableCell>{formatPrice(order.profit)}</TableCell>
                       {!selectionMode && !hasExpandedOrder && (
-                        <TableCell className="w-[34rem] min-w-[34rem] text-right">
+                        <TableCell className="w-100 min-w-100 text-right">
                           <div className="flex w-full min-w-max flex-nowrap items-center justify-end gap-0.5 overflow-visible">
                             {isQuickEditing ? (
                               <>
@@ -2246,88 +2249,104 @@ function AdminOrders() {
                           <div className="w-full max-w-none min-w-0 space-y-4 overflow-hidden text-sm">
                             <p className="font-medium">Detalle del pedido</p>
 
-                            <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                              <div className="min-w-0">
-                                <span className="block text-xs text-muted-foreground">Cliente</span>
-                                <span className="block wrap-break-word">{displayCustomer}</span>
-                                {order.isGuest && <Badge variant="warning">Invitado</Badge>}
+                            <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:items-start">
+                              <div className="min-w-0 space-y-3">
+                                <div>
+                                  <span className="block text-xs text-muted-foreground">
+                                    Cliente
+                                  </span>
+                                  <span className="block wrap-break-word">{displayCustomer}</span>
+                                  {order.isGuest && <Badge variant="warning">Invitado</Badge>}
+                                </div>
+                                <div>
+                                  <span className="block text-xs text-muted-foreground">
+                                    Correo
+                                  </span>
+                                  <span className="block break-all">{order.email || "—"}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-xs text-muted-foreground">
+                                    Celular
+                                  </span>
+                                  <span className="block wrap-break-word">
+                                    {order.phone || "—"}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="block text-xs text-muted-foreground">
+                                    Método de pago
+                                  </span>
+                                  <span className="block wrap-break-word">
+                                    {order.paymentMethod || "—"}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="block text-xs text-muted-foreground">
+                                    Método de envío
+                                  </span>
+                                  <span className="block wrap-break-word">
+                                    {order.shippingMethod ?? "—"}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="block text-xs text-muted-foreground">
+                                    Proveedor
+                                  </span>
+                                  <span className="block wrap-break-word">
+                                    {Array.from(
+                                      new Set(
+                                        order.items
+                                          .map(
+                                            (item) => getSupplierForItem(item.name)?.supplier?.name,
+                                          )
+                                          .filter((name): name is string => Boolean(name)),
+                                      ),
+                                    ).join(", ") || "Sin proveedor asignado"}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="block text-xs text-muted-foreground">
+                                    Observaciones
+                                  </span>
+                                  <span className="block wrap-break-word">
+                                    {order.extraInfo || "—"}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="min-w-0">
-                                <span className="block text-xs text-muted-foreground">Sector</span>
-                                <span className="block wrap-break-word">
-                                  {brands[order.brand].shortName}
-                                </span>
-                              </div>
-                              <div className="min-w-0">
-                                <span className="block text-xs text-muted-foreground">Correo</span>
-                                <span className="block break-all">{order.email || "—"}</span>
-                              </div>
-                              <div className="min-w-0">
-                                <span className="block text-xs text-muted-foreground">Celular</span>
-                                <span className="block wrap-break-word">{order.phone || "—"}</span>
-                              </div>
-                              <div className="min-w-0">
-                                <span className="block text-xs text-muted-foreground">
-                                  Método de pago
-                                </span>
-                                <span className="block wrap-break-word">
-                                  {order.paymentMethod || "—"}
-                                </span>
-                              </div>
-                              <div className="min-w-0">
-                                <span className="block text-xs text-muted-foreground">
-                                  Método de envío
-                                </span>
-                                <span className="block wrap-break-word">
-                                  {order.shippingMethod ?? "—"}
-                                </span>
-                              </div>
-                              <div className="min-w-0 sm:col-span-2 lg:col-span-3">
-                                <span className="block text-xs text-muted-foreground">
-                                  Proveedor
-                                </span>
-                                <span className="block wrap-break-word">
-                                  {Array.from(
-                                    new Set(
-                                      order.items
-                                        .map(
-                                          (item) => getSupplierForItem(item.name)?.supplier?.name,
-                                        )
-                                        .filter((name): name is string => Boolean(name)),
-                                    ),
-                                  ).join(", ") || "Sin proveedor asignado"}
-                                </span>
-                              </div>
-                              <div className="min-w-0 sm:col-span-2 lg:col-span-3">
-                                <span className="block text-xs text-muted-foreground">
-                                  Observaciones
-                                </span>
-                                <span className="block wrap-break-word">
-                                  {order.extraInfo || "—"}
-                                </span>
+                              <div className="min-w-0 space-y-3">
+                                <p className="font-medium">Productos comprados</p>
+                                <ul className="grid min-w-0 gap-2 text-sm">
+                                  {order.items.map((item, itemIndex) => {
+                                    const product = allProducts.find(
+                                      (candidate) =>
+                                        candidate.id === item.productId ||
+                                        candidate.name === item.name,
+                                    );
+                                    const itemBrand = item.brand ?? product?.brand ?? order.brand;
+                                    return (
+                                      <li
+                                        key={`${item.name}-${item.variantId ?? itemIndex}`}
+                                        className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-xl bg-surface p-3"
+                                      >
+                                        <div className="min-w-0">
+                                          <p className="wrap-break-word font-medium">{item.name}</p>
+                                          <p className="text-xs text-muted-foreground">
+                                            Tienda: {brands[itemBrand].shortName}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {item.quantity} × {formatPrice(item.price)} unitario
+                                          </p>
+                                        </div>
+                                        <span className="shrink-0 text-right font-medium">
+                                          {formatPrice(item.price * item.quantity)}
+                                        </span>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
                               </div>
                             </div>
-
-                            <ul className="grid min-w-0 gap-2 sm:grid-cols-2 text-sm">
-                              {order.items.map((item) => (
-                                <li
-                                  key={item.name}
-                                  className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-surface p-3"
-                                >
-                                  <div className="min-w-0">
-                                    <p className="wrap-break-word font-medium">{item.name}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {item.quantity} × {formatPrice(item.price)}
-                                    </p>
-                                  </div>
-                                  <span className="shrink-0 font-medium">
-                                    {formatPrice(item.price * item.quantity)}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-
-                            <div className="flex flex-wrap gap-2 border-t border-border/60 pt-4">
+                            <div className="flex flex-wrap justify-center gap-2 pt-2">
                               <Button
                                 type="button"
                                 variant="outline"
