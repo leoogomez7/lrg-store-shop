@@ -711,6 +711,11 @@ function AdminProducts() {
       ),
     );
 
+  const getSelectionKeyVariantId = (selectionKey: string) => {
+    const [, variantId] = selectionKey.split(":");
+    return variantId ?? "base";
+  };
+
   const toggleProductSelection = (selectionKey: string, checked: boolean) => {
     setSelectedProductIds((current) =>
       checked
@@ -794,53 +799,69 @@ function AdminProducts() {
   };
 
   const handleBulkEditProducts = () => {
-    const normalizedSelectionKeys = Array.from(new Set(selectedProductIds));
-    const firstSelectionKey = normalizedSelectionKeys[0];
+    const selectedProductIdsForBulk = getSelectedProductIdsFromKeys(selectedProductIds);
+    if (!selectedProductIdsForBulk.length) return;
+
+    const firstProductId = selectedProductIdsForBulk[0];
+    const firstSelectionKey = selectedProductIds.find(
+      (selectionKey) => getProductIdFromSelectionKey(selectionKey) === firstProductId,
+    );
     const selectedRow = displayRows.find(
-      ({ product, variant }) => getProductSelectionKey(product, variant) === firstSelectionKey,
+      ({ product, variant }) =>
+        product.id === firstProductId &&
+        getProductSelectionKey(product, variant) === firstSelectionKey,
     );
     const product =
       selectedRow?.product ??
-      editableProducts.find(
-        (item) => item.id === getProductIdFromSelectionKey(firstSelectionKey ?? ""),
-      );
+      editableProducts.find((item) => item.id === firstProductId) ??
+      (productsData as Product[]).find((item) => item.id === firstProductId);
+
     if (!product) return;
-    bulkEditQueueRef.current = normalizedSelectionKeys;
+
+    const firstVariantId =
+      firstSelectionKey && getSelectionKeyVariantId(firstSelectionKey) !== "base"
+        ? getSelectionKeyVariantId(firstSelectionKey)
+        : undefined;
+
+    bulkEditQueueRef.current = selectedProductIdsForBulk;
     bulkEditPositionRef.current = 0;
-    setBulkEditQueue(normalizedSelectionKeys);
+    setBulkEditQueue(selectedProductIdsForBulk);
     setBulkEditPosition(0);
-    const variantId = selectedRow?.variant?.id ?? firstSelectionKey?.split(":")[1];
+
     openEditProductDialog(
       product,
-      variantId && variantId !== "base"
-        ? product.variants?.find((variant) => variant.id === variantId)
-        : undefined,
+      firstVariantId ? product.variants?.find((variant) => variant.id === firstVariantId) : undefined,
     );
   };
 
   const navigateBulkEditProduct = (direction: -1 | 1) => {
-    const queue = Array.from(new Set(bulkEditQueueRef.current));
+    const queue = getSelectedProductIdsFromKeys(bulkEditQueueRef.current);
     const nextPosition = bulkEditPositionRef.current + direction;
     if (nextPosition < 0 || nextPosition >= queue.length) return;
-    const nextSelectionKey = queue[nextPosition];
-    if (!nextSelectionKey) return;
+
+    const nextProductId = queue[nextPosition];
+    if (!nextProductId) return;
+
     const nextProduct =
-      editableProducts.find(
-        (product) => product.id === getProductIdFromSelectionKey(nextSelectionKey),
-      ) ??
-      (productsData as Product[]).find(
-        (product) => product.id === getProductIdFromSelectionKey(nextSelectionKey),
-      );
+      editableProducts.find((product) => product.id === nextProductId) ??
+      (productsData as Product[]).find((product) => product.id === nextProductId);
     if (!nextProduct) return;
+
+    const nextSelectionKey = selectedProductIds.find(
+      (selectionKey) => getProductIdFromSelectionKey(selectionKey) === nextProductId,
+    );
+    const nextVariantId =
+      nextSelectionKey && getSelectionKeyVariantId(nextSelectionKey) !== "base"
+        ? getSelectionKeyVariantId(nextSelectionKey)
+        : undefined;
+
     bulkEditQueueRef.current = queue;
     bulkEditPositionRef.current = nextPosition;
     setBulkEditPosition(nextPosition);
-    const variantId = nextSelectionKey.split(":")[1];
+
     openEditProductDialog(
       nextProduct,
-      variantId && variantId !== "base"
-        ? nextProduct.variants?.find((variant) => variant.id === variantId)
-        : undefined,
+      nextVariantId ? nextProduct.variants?.find((variant) => variant.id === nextVariantId) : undefined,
     );
   };
 
