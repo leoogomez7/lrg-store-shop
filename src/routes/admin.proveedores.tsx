@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -68,7 +69,7 @@ type SupplierRow = {
   name: string;
   phone: string;
   social: string;
-  products: string[];
+  products: Array<{ name: string; quantity: number }>;
   stores: string[];
   sales: number;
   salesByCurrency: Record<"ARS" | "USD", number>;
@@ -100,6 +101,9 @@ function AdminSuppliers() {
   const [salesOpen, setSalesOpen] = React.useState(false);
   const [quantityOpen, setQuantityOpen] = React.useState(false);
   const [expandedSupplierKey, setExpandedSupplierKey] = React.useState<string | null>(null);
+  const [productsModalSupplier, setProductsModalSupplier] = React.useState<SupplierRow | null>(
+    null,
+  );
   const [standaloneSuppliers, setStandaloneSuppliers] = React.useState<StandaloneSupplier[]>([]);
 
   React.useEffect(() => {
@@ -146,6 +150,8 @@ function AdminSuppliers() {
       const assignments = product.variants?.length
         ? product.variants.map((variant) => ({
             supplier: variant.supplier ?? product.supplier,
+            productId: product.id,
+            variantId: variant.id,
             productName: `${product.name} · ${variant.name}`,
             variantName: variant.name,
             gastos: variant.gastos ?? product.gastos ?? 0,
@@ -159,6 +165,8 @@ function AdminSuppliers() {
         : [
             {
               supplier: product.supplier,
+              productId: product.id,
+              variantId: undefined,
               productName: product.name,
               variantName: product.name,
               gastos: product.gastos ?? 0,
@@ -172,33 +180,29 @@ function AdminSuppliers() {
         const social = supplier?.social ?? "";
         if (!name && !phone && !social) continue;
         const key = `${name}|${phone}|${social}`;
-        const sales = orders.reduce(
-          (sum, order) =>
-            sum +
-            order.items.reduce((itemSum, item) => {
+        const assignmentSummary = orders.reduce(
+          (summary, order) => {
+            for (const item of order.items) {
               const itemName = item.name.toLowerCase();
               const itemVariantName = item.variantName?.toLowerCase();
-              const matches =
-                itemName === assignment.productName.toLowerCase() ||
-                itemVariantName === assignment.variantName.toLowerCase() ||
-                (!product.variants?.length && itemName === product.name.toLowerCase());
-              return matches ? itemSum + assignment.gastos * item.quantity : itemSum;
-            }, 0),
-          0,
-        );
-        const soldQuantity = orders.reduce(
-          (sum, order) =>
-            sum +
-            order.items.reduce((itemSum, item) => {
-              const itemName = item.name.toLowerCase();
-              const itemVariantName = item.variantName?.toLowerCase();
-              const matches =
-                itemName === assignment.productName.toLowerCase() ||
-                itemVariantName === assignment.variantName.toLowerCase() ||
-                (!product.variants?.length && itemName === product.name.toLowerCase());
-              return matches ? itemSum + item.quantity : itemSum;
-            }, 0),
-          0,
+              const matchesById =
+                item.productId === assignment.productId && item.variantId === assignment.variantId;
+              const matchesLegacy =
+                !item.productId &&
+                (itemName === assignment.productName.toLowerCase() ||
+                  itemVariantName === assignment.variantName.toLowerCase() ||
+                  (!product.variants?.length && itemName === product.name.toLowerCase()));
+              if (!matchesById && !matchesLegacy) continue;
+
+              const itemGastos = item.gastos ?? assignment.gastos;
+              const itemCurrency = item.gastosCurrency ?? assignment.gastosCurrency;
+              summary.total += itemGastos * item.quantity;
+              summary.byCurrency[itemCurrency] += itemGastos * item.quantity;
+              summary.quantity += item.quantity;
+            }
+            return summary;
+          },
+          { total: 0, byCurrency: { ARS: 0, USD: 0 }, quantity: 0 },
         );
         const current = grouped.get(key) ?? {
           key,
@@ -211,12 +215,19 @@ function AdminSuppliers() {
           salesByCurrency: { ARS: 0, USD: 0 },
           soldQuantity: 0,
         };
-        if (!current.products.includes(assignment.productName))
-          current.products.push(assignment.productName);
+        const currentProduct = current.products.find(
+          (item) => item.name === assignment.productName,
+        );
+        if (currentProduct) {
+          currentProduct.quantity += soldQuantity;
+        } else {
+          current.products.push({ name: assignment.productName, quantity: soldQuantity });
+        }
         if (!current.stores.includes(product.brand)) current.stores.push(product.brand);
-        current.sales += sales;
-        current.salesByCurrency[assignment.gastosCurrency] += sales;
-        current.soldQuantity += soldQuantity;
+        current.sales += assignmentSummary.total;
+        current.salesByCurrency.ARS += assignmentSummary.byCurrency.ARS;
+        current.salesByCurrency.USD += assignmentSummary.byCurrency.USD;
+        current.soldQuantity += assignmentSummary.quantity;
         grouped.set(key, current);
       }
     }
@@ -281,7 +292,7 @@ function AdminSuppliers() {
     };
     if (!supplier.name || !supplier.phone || !supplier.social) return;
     if (editingSupplierKey) {
-      saveSupplierChanges(editingSupplierKey, supplier);
+      saveSupplierChanges(editingSupplierKey, supplier, bulkSupplierEditQueue.length === 0);
       const nextPosition = bulkSupplierEditPosition + 1;
       const nextKey = bulkSupplierEditQueue[nextPosition];
       const nextRow = filteredRows.find((row) => row.key === nextKey);
@@ -318,7 +329,11 @@ function AdminSuppliers() {
     setQuickEditSupplier(null);
   };
 
-  const saveSupplierChanges = (supplierKey: string, nextSupplier: StandaloneSupplier) => {
+  const saveSupplierChanges = (
+    supplierKey: string,
+    nextSupplier: StandaloneSupplier,
+    closeEditor = true,
+  ) => {
     const normalized = {
       name: nextSupplier.name.trim(),
       phone: nextSupplier.phone.trim(),
@@ -369,7 +384,8 @@ function AdminSuppliers() {
     queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
     setQuickEditSupplierKey(null);
     setQuickEditSupplier(null);
-    setEditingSupplierKey(null);
+    toast.success("Proveedor guardado");
+    if (closeEditor) setEditingSupplierKey(null);
   };
 
   const deleteSupplier = (supplierKey: string) => {
@@ -605,7 +621,7 @@ function AdminSuppliers() {
     row.name,
     row.phone,
     row.social,
-    row.products.join(", "),
+    row.products.map((product) => `${product.name} (${product.quantity})`).join(", "),
     row.sales,
     row.soldQuantity,
   ]);
@@ -1174,6 +1190,9 @@ function AdminSuppliers() {
                 {visibleRows.map((row) => {
                   const isExpanded = expandedSupplierKey === row.key;
                   const isQuickEditing = quickEditSupplierKey === row.key;
+                  const sortedProducts = [...row.products].sort((a, b) =>
+                    a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+                  );
                   const quickSupplier = quickEditSupplier ?? {
                     name: row.name,
                     phone: row.phone,
@@ -1184,6 +1203,7 @@ function AdminSuppliers() {
                       <TableRow
                         onClick={(event) => {
                           if (
+                            selectionMode ||
                             isQuickEditing ||
                             (event.target as HTMLElement).closest(
                               "button, input, [role=combobox], a",
@@ -1193,7 +1213,9 @@ function AdminSuppliers() {
                           setExpandedSupplierKey(isExpanded ? null : row.key);
                         }}
                         className={
-                          !isQuickEditing ? "cursor-pointer hover:bg-transparent" : undefined
+                          !selectionMode && !isQuickEditing
+                            ? "cursor-pointer hover:bg-transparent"
+                            : undefined
                         }
                       >
                         <TableCell className="pl-5 text-center text-sm font-medium text-foreground">
@@ -1344,19 +1366,33 @@ function AdminSuppliers() {
                         <TableRow>
                           <TableCell colSpan={6} className="bg-muted/30 p-4 text-left">
                             <p className="mb-2 font-medium">Productos</p>
-                            <div className="flex flex-wrap gap-2">
-                              {row.products.map((product) => (
-                                <span
-                                  key={product}
-                                  className="rounded-md bg-muted px-2 py-1 text-xs text-foreground"
+                            <div className="space-y-1.5">
+                              {sortedProducts.slice(0, 6).map((product) => (
+                                <div
+                                  key={product.name}
+                                  className="flex items-center justify-between gap-3 rounded-md bg-muted px-2.5 py-1.5 text-xs text-foreground"
                                 >
-                                  {product}
-                                </span>
+                                  <span className="min-w-0 wrap-break-word">{product.name}</span>
+                                  <span className="shrink-0 text-muted-foreground">
+                                    Cantidad: {product.quantity}
+                                  </span>
+                                </div>
                               ))}
                               {row.products.length === 0 && (
                                 <p className="text-sm text-muted-foreground">
                                   Este proveedor todavía no tiene productos asignados.
                                 </p>
+                              )}
+                              {sortedProducts.length > 6 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setProductsModalSupplier(row)}
+                                  className="px-2 text-xs"
+                                >
+                                  Ver más
+                                </Button>
                               )}
                             </div>
                           </TableCell>
@@ -1456,6 +1492,33 @@ function AdminSuppliers() {
           </p>
         </div>
       </div>
+
+      <Dialog
+        open={productsModalSupplier !== null}
+        onOpenChange={(open) => !open && setProductsModalSupplier(null)}
+      >
+        <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Productos de {productsModalSupplier?.name}</DialogTitle>
+            <DialogDescription>Listado completo de productos asignados.</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[min(70vh,32rem)] space-y-1.5 overflow-y-auto">
+            {[...(productsModalSupplier?.products ?? [])]
+              .sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }))
+              .map((product) => (
+                <div
+                  key={product.name}
+                  className="flex items-center justify-between gap-3 rounded-md bg-muted px-3 py-2 text-sm"
+                >
+                  <span className="min-w-0 wrap-break-word">{product.name}</span>
+                  <span className="shrink-0 text-muted-foreground">
+                    Cantidad: {product.quantity}
+                  </span>
+                </div>
+              ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

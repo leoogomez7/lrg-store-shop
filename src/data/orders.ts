@@ -48,6 +48,10 @@ export type Order = {
     name: string;
     quantity: number;
     price: number;
+    priceCurrency?: "ARS" | "USD";
+    gastos?: number;
+    gastosCurrency?: "ARS" | "USD";
+    usdRate?: number;
     brand?: BrandSlug;
     paymentMethod?: string;
     shippingMethod?: string;

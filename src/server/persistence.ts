@@ -15,6 +15,10 @@ export type CartItem = {
   cardCommission?: boolean;
   image?: string;
   price: number;
+  priceCurrency?: "ARS" | "USD";
+  gastos?: number;
+  gastosCurrency?: "ARS" | "USD";
+  usdRate?: number;
   quantity: number;
   stock: number;
   stockUnlimited?: boolean;

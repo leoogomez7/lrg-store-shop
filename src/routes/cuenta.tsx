@@ -351,12 +351,12 @@ function AccountPageContent({
     userPhone !== savedProfileValues.current.phone ||
     userDocument !== savedProfileValues.current.document;
   const isAdminUser = typeof window !== "undefined" && getAuthRole() === "admin";
-  const accountDisplayName = profileLoaded
-    ? [userGivenName, userFamilyName].filter(Boolean).join(" ").trim() ||
-      [user?.givenName, user?.familyName].filter(Boolean).join(" ").trim() ||
-      userName ||
-      "Cliente"
-    : "Cargando...";
+  const accountDisplayName =
+    [userGivenName, userFamilyName].filter(Boolean).join(" ").trim() ||
+    [user?.givenName, user?.familyName].filter(Boolean).join(" ").trim() ||
+    userName ||
+    user?.email ||
+    "Cliente";
   const handleLogout = async () => {
     setMobileMenuOpen(false);
     setLogoutOpen(false);
@@ -1783,22 +1783,32 @@ function AccountPageContent({
                   <div>
                     <h3 className="mb-2 font-semibold">Productos</h3>
                     <div className="space-y-2">
-                      {detailsOrder.items.map((item, index) => (
-                        <div
-                          key={`${item.productId ?? item.name}-${index}`}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-border/60 p-3"
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate font-medium">{item.name}</p>
-                            {item.variantName && (
-                              <p className="text-xs text-muted-foreground">{item.variantName}</p>
-                            )}
+                      {detailsOrder.items.map((item, index) => {
+                        const itemStoreSlug = item.brand ?? detailsOrder.brand;
+                        const itemStore = brands[itemStoreSlug as keyof typeof brands];
+                        return (
+                          <div
+                            key={`${item.productId ?? item.name}-${index}`}
+                            className="flex items-center justify-between gap-3 rounded-lg border border-border/60 p-3"
+                          >
+                            <div className="min-w-0 text-left">
+                              <p className="wrap-break-word font-medium">
+                                {item.name}
+                                {item.variantName ? ` · ${item.variantName}` : ""}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                LRG {itemStore?.shortName ?? itemStoreSlug}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {item.quantity} × {formatPrice(item.price)} unitario
+                              </p>
+                            </div>
+                            <p className="shrink-0 text-right font-medium">
+                              {formatPrice(item.price * item.quantity)}
+                            </p>
                           </div>
-                          <p className="shrink-0 text-muted-foreground">
-                            {item.quantity} × {formatPrice(item.price)}
-                          </p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                   {detailsOrder.extraInfo && (
@@ -1829,8 +1839,13 @@ function AccountPageContent({
                               size="sm"
                               className="shrink-0 gap-1.5 text-xs"
                             >
-                              <a href={attachment.dataUrl} download={attachment.name}>
-                                <Download className="size-4" /> Descargar
+                              <a
+                                href={attachment.dataUrl}
+                                download={attachment.name}
+                                aria-label={`Descargar ${attachment.name}`}
+                                title="Descargar"
+                              >
+                                <Download className="size-4" />
                               </a>
                             </Button>
                           </div>
@@ -1952,7 +1967,7 @@ function AccountPageContent({
                   ))
                 )}
               </div>
-              <div className="flex justify-end gap-2 border-t border-border/60 pt-4">
+              <div className="flex justify-end gap-2 pt-4">
                 <Button
                   type="button"
                   variant="outline"

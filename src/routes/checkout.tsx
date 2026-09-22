@@ -520,6 +520,10 @@ function CheckoutPage() {
         name: item.name,
         quantity: item.quantity,
         price: item.price,
+        ...(item.priceCurrency ? { priceCurrency: item.priceCurrency } : {}),
+        ...(item.gastos !== undefined ? { gastos: item.gastos } : {}),
+        ...(item.gastosCurrency ? { gastosCurrency: item.gastosCurrency } : {}),
+        ...(item.usdRate !== undefined ? { usdRate: item.usdRate } : {}),
         brand: item.brand,
         ...(paymentMethodsByBrand[item.brand]
           ? { paymentMethod: paymentMethodsByBrand[item.brand] }

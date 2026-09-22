@@ -411,6 +411,10 @@ type EditableOrderItem = {
   originalName: string | undefined;
   originalQuantity: number | undefined;
   price: number;
+  priceCurrency?: "ARS" | "USD";
+  gastos?: number;
+  gastosCurrency?: "ARS" | "USD";
+  usdRate?: number;
   stock: number | undefined;
   confirmed: boolean;
 };
@@ -538,6 +542,7 @@ function AdminOrders() {
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<OrderAttachment[]>([]);
+  const [isSavingDocuments, setIsSavingDocuments] = useState(false);
   const documentsInputRef = useRef<HTMLInputElement | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deliveryFilterOpen, setDeliveryFilterOpen] = useState(false);
@@ -698,19 +703,28 @@ function AdminOrders() {
     setDocumentsOrder(null);
   };
 
-  const saveDocuments = () => {
+  const saveDocuments = async () => {
     if (!documentsOrder || pendingAttachments.length === 0) return;
-    setEditableOrders((current) => {
-      const next = current.map((order) =>
+    const attachmentCount = pendingAttachments.length;
+    setIsSavingDocuments(true);
+    try {
+      const next = editableOrders.map((order) =>
         order.id === documentsOrder.id
           ? { ...order, attachments: [...(order.attachments ?? []), ...pendingAttachments] }
           : order,
       );
-      saveOrders(next);
+      await saveOrders(next);
+      setEditableOrders(next);
       setDocumentsOrder(next.find((order) => order.id === documentsOrder.id) ?? null);
-      return next;
-    });
-    setPendingAttachments([]);
+      setPendingAttachments([]);
+      toast.success(
+        `Se guardó ${attachmentCount} archivo adjunto${attachmentCount === 1 ? "" : "s"}.`,
+      );
+    } catch {
+      toast.error("No se pudieron guardar los archivos adjuntos.");
+    } finally {
+      setIsSavingDocuments(false);
+    }
   };
 
   const removeDocument = (attachmentName: string) => {
@@ -1317,6 +1331,10 @@ function AdminOrders() {
       name: item.name,
       quantity: item.quantity,
       price: item.price,
+      priceCurrency: item.priceCurrency,
+      gastos: item.gastos,
+      gastosCurrency: item.gastosCurrency,
+      usdRate: item.usdRate,
       stock: item.stock,
       confirmed: true,
       originalName: item.name,
@@ -1335,6 +1353,10 @@ function AdminOrders() {
       name: item.name,
       quantity: item.quantity,
       price: item.price,
+      priceCurrency: item.priceCurrency,
+      gastos: item.gastos,
+      gastosCurrency: item.gastosCurrency,
+      usdRate: item.usdRate,
       stock: item.stock,
       confirmed: false,
       originalName: item.originalName ?? "",
@@ -1380,6 +1402,7 @@ function AdminOrders() {
       saveOrders(nextOrders);
       return nextOrders;
     });
+    toast.success("Pedido guardado");
     const nextBulkOrderId = bulkOrderEditQueue
       .slice(1)
       .find((id) => editableOrders.some((order) => order.id === id));
@@ -2014,6 +2037,7 @@ function AdminOrders() {
                       ref={isQuickEditing ? quickEditRowRef : undefined}
                       onClick={(event) => {
                         if (
+                          selectionMode ||
                           isQuickEditing ||
                           (event.target as HTMLElement).closest(
                             "button, input, [role=checkbox], [role=combobox], a",
@@ -2025,7 +2049,7 @@ function AdminOrders() {
                       className={
                         highlightedOrderId === order.id
                           ? "animate-pulse bg-amber-500/20 ring-2 ring-amber-400"
-                          : !isQuickEditing
+                          : !selectionMode && !isQuickEditing
                             ? "cursor-pointer hover:bg-transparent"
                             : undefined
                       }
@@ -3018,6 +3042,7 @@ function AdminOrders() {
                       variant="ghost"
                       size="sm"
                       onClick={() => removeDocument(attachment.name)}
+                      disabled={isSavingDocuments}
                       className="text-destructive"
                     >
                       <Trash2 className="size-4" />
@@ -3032,15 +3057,24 @@ function AdminOrders() {
               type="button"
               variant="outline"
               onClick={() => documentsInputRef.current?.click()}
+              disabled={isSavingDocuments}
             >
               <Paperclip className="size-4" /> Adjuntar archivos
             </Button>
             <Button
               type="button"
               onClick={saveDocuments}
-              disabled={pendingAttachments.length === 0}
+              disabled={pendingAttachments.length === 0 || isSavingDocuments}
             >
-              <Save className="size-4" /> Guardar
+              {isSavingDocuments ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" /> Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="size-4" /> Guardar
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>

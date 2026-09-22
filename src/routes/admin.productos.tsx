@@ -761,12 +761,17 @@ function AdminProducts() {
   };
 
   const navigateBulkEditProduct = (direction: -1 | 1) => {
+    const queue = bulkEditQueue.length > 0 ? bulkEditQueue : selectedProductIds;
     const nextPosition = bulkEditPosition + direction;
-    const nextSelectionKey = bulkEditQueue[nextPosition];
+    const nextSelectionKey = queue[nextPosition];
     if (!nextSelectionKey) return;
-    const nextProduct = editableProducts.find(
-      (product) => product.id === getProductIdFromSelectionKey(nextSelectionKey),
-    );
+    const nextProduct =
+      editableProducts.find(
+        (product) => product.id === getProductIdFromSelectionKey(nextSelectionKey),
+      ) ??
+      (productsData as Product[]).find(
+        (product) => product.id === getProductIdFromSelectionKey(nextSelectionKey),
+      );
     if (!nextProduct) return;
     setBulkEditPosition(nextPosition);
     const variantId = nextSelectionKey.split(":")[1];
@@ -1063,15 +1068,20 @@ function AdminProducts() {
     }
 
     saveProducts(productsData as Product[]);
+    toast.success("Producto guardado");
     const currentBulkSelectionKey = bulkEditQueue[bulkEditPosition];
     const remainingBulkQueue = currentBulkSelectionKey
       ? bulkEditQueue.filter((selectionKey) => selectionKey !== currentBulkSelectionKey)
       : [];
     const nextBulkSelectionKey = remainingBulkQueue[0];
     if (nextBulkSelectionKey) {
-      const nextProduct = editableProducts.find(
-        (product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey),
-      );
+      const nextProduct =
+        editableProducts.find(
+          (product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey),
+        ) ??
+        (productsData as Product[]).find(
+          (product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey),
+        );
       if (nextProduct) {
         setBulkEditQueue(remainingBulkQueue);
         setBulkEditPosition(0);
@@ -2001,6 +2011,7 @@ function AdminProducts() {
                     key={`${product.id}-${variant?.id ?? "base"}`}
                     onClick={(event) => {
                       if (
+                        selectionMode ||
                         isQuickEditing ||
                         (event.target as HTMLElement).closest(
                           "button, input, [role=checkbox], [role=combobox], a",
@@ -2009,7 +2020,9 @@ function AdminProducts() {
                         return;
                       openEditProductDialog(product, variant);
                     }}
-                    className={cn(!isQuickEditing && "cursor-pointer hover:bg-transparent")}
+                    className={cn(
+                      !selectionMode && !isQuickEditing && "cursor-pointer hover:bg-transparent",
+                    )}
                   >
                     {isQuickEditing ? (
                       <>
@@ -3433,11 +3446,6 @@ function ProductEditDialog({
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                 {isNewProduct ? "Alta" : "Edición"}
               </span>
-              {productForm.id ? (
-                <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-primary">
-                  ID {productForm.id}
-                </span>
-              ) : null}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-4">
@@ -4273,15 +4281,19 @@ function ProductEditDialog({
                   <Button type="button" onClick={handleAddFeature} className="whitespace-nowrap">
                     <Plus className="h-4 w-4" /> Agregar
                   </Button>
-                  <Button
-                    type="button"
-                    variant="default"
-                    onClick={applyFeaturesToAllVariants}
-                    disabled={!canApplyFeatures}
-                    className="whitespace-nowrap"
-                  >
-                    <Check className="size-3.5" /> Aplicar a todos
-                  </Button>
+                  <label className="inline-flex h-9 w-44 shrink-0 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
+                    <span className="truncate text-xs sm:text-sm">
+                      Aplicar a todas las variantes
+                    </span>
+                    <Switch
+                      checked={false}
+                      onCheckedChange={(checked) => {
+                        if (checked) applyFeaturesToAllVariants();
+                      }}
+                      disabled={!canApplyFeatures}
+                      aria-label="Aplicar características a todas las variantes"
+                    />
+                  </label>
                 </div>
               </div>
 
@@ -4395,15 +4407,19 @@ function ProductEditDialog({
                     <Button type="button" onClick={handleAddInclude} className="whitespace-nowrap">
                       <Plus className="h-4 w-4" /> Agregar
                     </Button>
-                    <Button
-                      type="button"
-                      variant="default"
-                      onClick={applyIncludesToAllVariants}
-                      disabled={!canApplyIncludes}
-                      className="whitespace-nowrap disabled:cursor-default"
-                    >
-                      <Check className="size-3.5" /> Aplicar a todos
-                    </Button>
+                    <label className="inline-flex h-9 w-44 shrink-0 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
+                      <span className="truncate text-xs sm:text-sm">
+                        Aplicar a todas las variantes
+                      </span>
+                      <Switch
+                        checked={false}
+                        onCheckedChange={(checked) => {
+                          if (checked) applyIncludesToAllVariants();
+                        }}
+                        disabled={!canApplyIncludes}
+                        aria-label="Aplicar incluye a todas las variantes"
+                      />
+                    </label>
                   </div>
                 </div>
                 {activeIncludes.length > 0 && (
@@ -4501,17 +4517,19 @@ function ProductEditDialog({
                       <Check className="mr-2 size-3.5" />
                       Confirmar
                     </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="default"
-                      onClick={applyDescriptionToAllVariants}
-                      disabled={!canApplyDescription}
-                      className="text-sm"
-                    >
-                      <Check className="mr-2 size-3.5" />
-                      Aplicar a todos
-                    </Button>
+                    <label className="inline-flex h-9 w-full shrink-0 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
+                      <span className="truncate text-xs sm:text-sm">
+                        Aplicar a todas las variantes
+                      </span>
+                      <Switch
+                        checked={false}
+                        onCheckedChange={(checked) => {
+                          if (checked) applyDescriptionToAllVariants();
+                        }}
+                        disabled={!canApplyDescription}
+                        aria-label="Aplicar descripción a todas las variantes"
+                      />
+                    </label>
                   </div>
                 </div>
               </div>
