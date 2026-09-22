@@ -701,7 +701,7 @@ function AdminProducts() {
   const getProductIdFromSelectionKey = (selectionKey: string) =>
     selectionKey.split(":")[0] ?? selectionKey;
 
-  const getSelectedProductIdsFromKeys = (selectionKeys: string[]) =>
+  const normalizeProductSelection = (selectionKeys: string[]) =>
     Array.from(
       new Set(
         selectionKeys
@@ -710,24 +710,39 @@ function AdminProducts() {
       ),
     );
 
+  const getSelectedProductIdsFromKeys = (selectionKeys: string[]) =>
+    normalizeProductSelection(selectionKeys);
+
   const getSelectionKeyVariantId = (selectionKey: string) => {
     const [, variantId] = selectionKey.split(":");
     return variantId ?? "base";
   };
 
+  const clearBulkProductSelection = () => {
+    setSelectionMode(false);
+    setSelectedProductIds([]);
+    setBulkEditQueue([]);
+    setBulkEditPosition(0);
+    bulkEditQueueRef.current = [];
+    bulkEditPositionRef.current = 0;
+  };
+
   const toggleProductSelection = (selectionKey: string, checked: boolean) => {
     const normalizedSelectionKey = getProductIdFromSelectionKey(selectionKey);
-    setSelectedProductIds((current) =>
-      checked
+    setSelectedProductIds((current) => {
+      const next = checked
         ? current.includes(normalizedSelectionKey)
           ? current
           : [...current, normalizedSelectionKey]
-        : current.filter((key) => key !== normalizedSelectionKey),
-    );
+        : current.filter((key) => key !== normalizedSelectionKey);
+
+      setSelectionMode(next.length > 0);
+      return next;
+    });
   };
 
   const handleBulkDeleteProducts = async () => {
-    const selectedIds = new Set(getSelectedProductIdsFromKeys(selectedProductIds));
+    const selectedIds = new Set(normalizeProductSelection(selectedProductIds));
     const selectedProducts = (productsData as Product[]).filter((product) =>
       selectedIds.has(product.id),
     );
@@ -740,12 +755,11 @@ function AdminProducts() {
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
     await saveProducts(productsData as Product[]);
-    setSelectedProductIds([]);
-    setSelectionMode(false);
+    clearBulkProductSelection();
   };
 
   const handleBulkToggleProducts = async (hidden: boolean) => {
-    const ids = new Set(getSelectedProductIdsFromKeys(selectedProductIds));
+    const ids = new Set(normalizeProductSelection(selectedProductIds));
     const nextProducts = (productsData as Product[]).map((product) =>
       ids.has(product.id) ? { ...product, hidden } : product,
     );
@@ -753,12 +767,11 @@ function AdminProducts() {
     setEditableProducts(nextProducts);
     await saveProducts(nextProducts);
     toast.success(hidden ? "Productos ocultos" : "Productos disponibles");
-    setSelectedProductIds([]);
-    setSelectionMode(false);
+    clearBulkProductSelection();
   };
 
   const handleBulkDuplicateProducts = async () => {
-    const selectedIds = new Set(getSelectedProductIdsFromKeys(selectedProductIds));
+    const selectedIds = new Set(normalizeProductSelection(selectedProductIds));
     const selected = editableProducts.filter((product) => selectedIds.has(product.id));
     const duplicates = selected.map((product) => {
       const newId = `${product.id}-copy-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -780,8 +793,7 @@ function AdminProducts() {
     toast.success(
       `${duplicates.length} producto${duplicates.length === 1 ? "" : "s"} duplicado${duplicates.length === 1 ? "" : "s"}`,
     );
-    setSelectedProductIds([]);
-    setSelectionMode(false);
+    clearBulkProductSelection();
   };
 
   const closeProductEditor = () => {
@@ -799,7 +811,7 @@ function AdminProducts() {
   };
 
   const handleBulkEditProducts = () => {
-    const selectedProductIdsForBulk = getSelectedProductIdsFromKeys(selectedProductIds);
+    const selectedProductIdsForBulk = normalizeProductSelection(selectedProductIds);
     if (!selectedProductIdsForBulk.length) return;
 
     const firstProductId = selectedProductIdsForBulk[0];
@@ -819,7 +831,9 @@ function AdminProducts() {
   };
 
   const navigateBulkEditProduct = (direction: -1 | 1) => {
-    const queue = getSelectedProductIdsFromKeys(bulkEditQueueRef.current);
+    const queue = bulkEditQueueRef.current.length > 0
+      ? bulkEditQueueRef.current
+      : normalizeProductSelection(selectedProductIds);
     const nextPosition = bulkEditPositionRef.current + direction;
     if (nextPosition < 0 || nextPosition >= queue.length) return;
 
@@ -833,6 +847,7 @@ function AdminProducts() {
 
     bulkEditQueueRef.current = queue;
     bulkEditPositionRef.current = nextPosition;
+    setBulkEditQueue(queue);
     setBulkEditPosition(nextPosition);
 
     const nextVariant = nextProduct.variants?.[0];
