@@ -1259,7 +1259,7 @@ function AdminSuppliers() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => saveSupplierChanges(row.key, quickSupplier)}
-                                    className="h-7 gap-1 px-2 text-xs text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                                    className="h-7 shrink-0 gap-1 bg-transparent px-2 text-[10px] text-green-600 hover:bg-green-100/80 hover:text-green-700"
                                   >
                                     <Check className="size-3.5" /> Guardar
                                   </Button>
@@ -1267,7 +1267,7 @@ function AdminSuppliers() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={cancelQuickEditSupplier}
-                                    className="h-7 gap-1 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                                    className="h-7 shrink-0 gap-1 bg-transparent px-2 text-[10px] text-destructive shadow-none hover:bg-destructive/10"
                                   >
                                     <X className="size-3.5" /> Cancelar
                                   </Button>
@@ -1280,7 +1280,7 @@ function AdminSuppliers() {
                                     onClick={() =>
                                       setExpandedSupplierKey(isExpanded ? null : row.key)
                                     }
-                                    className="h-7 gap-1.5 px-2 text-xs text-foreground hover:bg-muted"
+                                    className="h-6 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[10px] font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
                                   >
                                     {isExpanded ? (
                                       <EyeOff className="size-4" />
@@ -1293,7 +1293,7 @@ function AdminSuppliers() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => startQuickEditSupplier(row)}
-                                    className="h-7 gap-1 px-2 text-xs text-foreground hover:bg-muted"
+                                    className="h-6 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[10px]"
                                   >
                                     <Edit3 className="size-3.5" /> Editar rápido
                                   </Button>
@@ -1301,7 +1301,7 @@ function AdminSuppliers() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => openSupplierEditor(row)}
-                                    className="h-7 gap-1 px-2 text-xs text-foreground hover:bg-muted"
+                                    className="h-6 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[10px]"
                                   >
                                     <Pencil className="size-3.5" /> Editar
                                   </Button>
@@ -1313,7 +1313,7 @@ function AdminSuppliers() {
                                         deleteSupplier(row.key);
                                       }
                                     }}
-                                    className="h-7 gap-1 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                                    className="h-6 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[10px] text-destructive hover:bg-destructive/10"
                                   >
                                     <Trash2 className="size-3.5" /> Eliminar
                                   </Button>
