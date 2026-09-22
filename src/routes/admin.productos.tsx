@@ -601,11 +601,37 @@ function AdminProducts() {
   const handleDeleteProduct = async (productId: string, variantId?: string) => {
     const product = (productsData as Product[]).find((item) => item.id === productId);
     if (product && variantId) {
-      product.variants = (product.variants ?? []).filter((variant) => variant.id !== variantId);
+      const remainingVariants = (product.variants ?? []).filter((variant) => variant.id !== variantId);
+      product.variants = remainingVariants;
+
+      if (remainingVariants.length === 0) {
+        if (product) moveToTrash({ type: "producto", id: product.id, item: product });
+        setEditableProducts((current) => current.filter((item) => item.id !== productId));
+        setDiscounts((current) => {
+          const next = { ...current };
+          delete next[productId];
+          return next;
+        });
+        setPendingDiscounts((current) => {
+          const next = { ...current };
+          delete next[productId];
+          return next;
+        });
+
+        const productIndex = (productsData as Product[]).findIndex(
+          (item) => item.id === productId,
+        );
+        if (productIndex !== -1) {
+          (productsData as Product[]).splice(productIndex, 1);
+          await saveProducts(productsData as Product[]);
+        }
+        return;
+      }
+
       setEditableProducts((current) =>
         current.map((currentProduct) =>
           currentProduct.id === productId
-            ? { ...currentProduct, variants: product.variants }
+            ? { ...currentProduct, variants: remainingVariants }
             : currentProduct,
         ),
       );
@@ -676,6 +702,15 @@ function AdminProducts() {
   const getProductIdFromSelectionKey = (selectionKey: string) =>
     selectionKey.split(":")[0] ?? selectionKey;
 
+  const getSelectedProductIdsFromKeys = (selectionKeys: string[]) =>
+    Array.from(
+      new Set(
+        selectionKeys
+          .map((selectionKey) => getProductIdFromSelectionKey(selectionKey))
+          .filter((productId): productId is string => Boolean(productId)),
+      ),
+    );
+
   const toggleProductSelection = (selectionKey: string, checked: boolean) => {
     setSelectedProductIds((current) =>
       checked
@@ -687,12 +722,12 @@ function AdminProducts() {
   };
 
   const handleBulkDeleteProducts = async () => {
-    const selectedIds = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
+    const selectedIds = new Set(getSelectedProductIdsFromKeys(selectedProductIds));
     const selectedProducts = (productsData as Product[]).filter((product) =>
       selectedIds.has(product.id),
     );
     selectedProducts.forEach((product) => {
-        moveToTrash({ type: "producto", id: product.id, item: product });
+      moveToTrash({ type: "producto", id: product.id, item: product });
     });
     const nextProducts = (productsData as Product[]).filter(
       (product) => !selectedIds.has(product.id),
@@ -705,7 +740,7 @@ function AdminProducts() {
   };
 
   const handleBulkToggleProducts = async (hidden: boolean) => {
-    const ids = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
+    const ids = new Set(getSelectedProductIdsFromKeys(selectedProductIds));
     const nextProducts = (productsData as Product[]).map((product) =>
       ids.has(product.id) ? { ...product, hidden } : product,
     );
@@ -718,7 +753,7 @@ function AdminProducts() {
   };
 
   const handleBulkDuplicateProducts = async () => {
-    const selectedIds = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
+    const selectedIds = new Set(getSelectedProductIdsFromKeys(selectedProductIds));
     const selected = editableProducts.filter((product) => selectedIds.has(product.id));
     const duplicates = selected.map((product) => {
       const newId = `${product.id}-copy-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -759,7 +794,8 @@ function AdminProducts() {
   };
 
   const handleBulkEditProducts = () => {
-    const firstSelectionKey = selectedProductIds[0];
+    const normalizedSelectionKeys = Array.from(new Set(selectedProductIds));
+    const firstSelectionKey = normalizedSelectionKeys[0];
     const selectedRow = displayRows.find(
       ({ product, variant }) => getProductSelectionKey(product, variant) === firstSelectionKey,
     );
@@ -769,9 +805,9 @@ function AdminProducts() {
         (item) => item.id === getProductIdFromSelectionKey(firstSelectionKey ?? ""),
       );
     if (!product) return;
-    bulkEditQueueRef.current = [...selectedProductIds];
+    bulkEditQueueRef.current = normalizedSelectionKeys;
     bulkEditPositionRef.current = 0;
-    setBulkEditQueue([...selectedProductIds]);
+    setBulkEditQueue(normalizedSelectionKeys);
     setBulkEditPosition(0);
     const variantId = selectedRow?.variant?.id ?? firstSelectionKey?.split(":")[1];
     openEditProductDialog(
@@ -783,8 +819,9 @@ function AdminProducts() {
   };
 
   const navigateBulkEditProduct = (direction: -1 | 1) => {
-    const queue = bulkEditQueueRef.current;
+    const queue = Array.from(new Set(bulkEditQueueRef.current));
     const nextPosition = bulkEditPositionRef.current + direction;
+    if (nextPosition < 0 || nextPosition >= queue.length) return;
     const nextSelectionKey = queue[nextPosition];
     if (!nextSelectionKey) return;
     const nextProduct =
@@ -795,6 +832,7 @@ function AdminProducts() {
         (product) => product.id === getProductIdFromSelectionKey(nextSelectionKey),
       );
     if (!nextProduct) return;
+    bulkEditQueueRef.current = queue;
     bulkEditPositionRef.current = nextPosition;
     setBulkEditPosition(nextPosition);
     const variantId = nextSelectionKey.split(":")[1];
