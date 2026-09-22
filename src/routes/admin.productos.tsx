@@ -796,6 +796,15 @@ function AdminProducts() {
     clearBulkProductSelection();
   };
 
+  const clearBulkSelection = () => {
+    setSelectionMode(false);
+    setSelectedProductIds([]);
+    setBulkEditQueue([]);
+    setBulkEditPosition(0);
+    bulkEditQueueRef.current = [];
+    bulkEditPositionRef.current = 0;
+  };
+
   const closeProductEditor = () => {
     setProductForm(null);
     setEditingProduct(null);
@@ -1895,8 +1904,11 @@ function AdminProducts() {
             className="text-sm font-medium text-foreground leading-none"
             onClick={() => {
               setSelectionMode((current) => {
-                if (current) setSelectedProductIds([]);
-                return !current;
+                if (current) {
+                  clearBulkSelection();
+                  return false;
+                }
+                return true;
               });
             }}
           >
@@ -1913,8 +1925,7 @@ function AdminProducts() {
             }
             onCheckedChange={(checked) => {
               if (checked === false) {
-                setSelectionMode(false);
-                setSelectedProductIds([]);
+                clearBulkSelection();
                 return;
               }
               setSelectionMode(true);
@@ -1964,10 +1975,7 @@ function AdminProducts() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => {
-                setSelectionMode(false);
-                setSelectedProductIds([]);
-              }}
+              onClick={clearBulkSelection}
             >
               <X className="size-4" /> Cancelar
             </Button>
