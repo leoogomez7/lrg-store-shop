@@ -1927,7 +1927,7 @@ function AccountPageContent({
                           className="gap-1.5 px-2 text-xs"
                         >
                           <a href={receipt.dataUrl} download={receipt.name}>
-                            <Download className="size-4" /> Descargar
+                            <Download className="size-4" />
                           </a>
                         </Button>
                         <Button
@@ -1960,7 +1960,7 @@ function AccountPageContent({
                             }
                           }}
                         >
-                          <Trash2 className="size-4" /> Eliminar
+                          <Trash2 className="size-4" />
                         </Button>
                       </div>
                     </div>
