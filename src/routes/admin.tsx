@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import {
   AlertTriangle,
@@ -99,6 +99,7 @@ function AdminLayout() {
 function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const {
     isAuthenticated,
     isLoading,
@@ -135,7 +136,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [adminUnlocked, setAdminUnlocked] = useState(
     () =>
       typeof window !== "undefined" &&
-      window.sessionStorage.getItem("lrg_admin_final_verified") === "true",
+      window.localStorage.getItem("lrg_admin_final_verified") === "true",
   );
   const [password, setPassword] = useState("");
   const [finalPassword, setFinalPassword] = useState("");
@@ -144,6 +145,12 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [passwordError, setPasswordError] = useState("");
   const [finalPasswordError, setFinalPasswordError] = useState("");
   const hasVerifiedAdminAccess = isAuthenticated && adminUnlocked;
+
+  useEffect(() => {
+    if (!hasVerifiedAdminAccess) return;
+    void queryClient.prefetchQuery(catalogQueries.allAdmin());
+  }, [hasVerifiedAdminAccess, queryClient]);
+
   const AdminUserMenu = () => (
     <DropdownMenu open={adminUserMenuOpen} onOpenChange={setAdminUserMenuOpen}>
       <DropdownMenuTrigger asChild>
@@ -187,7 +194,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
       setAdminUnlocked(false);
       setInitialPasswordVerified(false);
       if (typeof window !== "undefined") {
-        window.sessionStorage.removeItem("lrg_admin_final_verified");
+        window.localStorage.removeItem("lrg_admin_final_verified");
       }
       return;
     }
@@ -277,7 +284,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     }
     setAdminUnlocked(true);
     if (typeof window !== "undefined") {
-      window.sessionStorage.setItem("lrg_admin_final_verified", "true");
+      window.localStorage.setItem("lrg_admin_final_verified", "true");
     }
     setFinalPassword("");
     navigate({ to: "/admin/panel" });
@@ -557,7 +564,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     await logout();
                     if (typeof window !== "undefined") {
                       clearAuthRole();
-                      window.sessionStorage.removeItem("lrg_admin_final_verified");
+                      window.localStorage.removeItem("lrg_admin_final_verified");
                       window.sessionStorage.removeItem("lrg_admin_entry_notice_shown");
                     }
                     await kindeLogout({

@@ -177,7 +177,7 @@ function BrandFooterContent({
     isAuthenticated &&
     typeof window !== "undefined" &&
     getAuthRole() === "admin" &&
-    window.sessionStorage.getItem("lrg_admin_final_verified") === "true";
+    window.localStorage.getItem("lrg_admin_final_verified") === "true";
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const categories =
     section === "brand" && !pathname.includes("/producto/") ? brand.categories : [];

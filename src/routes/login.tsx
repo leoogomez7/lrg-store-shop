@@ -51,7 +51,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
       if (
         isAdminLoginFlow &&
         typeof window !== "undefined" &&
-        window.sessionStorage.getItem("lrg_admin_final_verified") !== "true"
+        window.localStorage.getItem("lrg_admin_final_verified") !== "true"
       ) {
         setAdminFinalAccessOpen(true);
         return;
@@ -192,7 +192,7 @@ function LoginPageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | nu
         open={adminFinalAccessOpen}
         onOpenChange={setAdminFinalAccessOpen}
         onAuthorized={() => {
-          window.sessionStorage.setItem("lrg_admin_final_verified", "true");
+          window.localStorage.setItem("lrg_admin_final_verified", "true");
           setAdminFinalAccessOpen(false);
           navigate({ to: "/admin/panel", replace: true });
         }}
