@@ -71,6 +71,7 @@ import { catalogQueries, orderQueries, type Product } from "@/services/catalog.s
 import { cn } from "@/lib/utils";
 import { saveOrders, type Order, type OrderAttachment, type OrderStatus } from "@/data/orders";
 import { moveToTrash } from "@/data/trash";
+import { loadAdminSettings } from "@/server/persistence";
 
 /* eslint-disable no-control-regex */
 
@@ -418,6 +419,13 @@ type EditableOrderItem = {
   usdRate?: number;
   stock: number | undefined;
   confirmed: boolean;
+  brand?: BrandSlug;
+  paymentMethod?: string;
+  shippingMethod?: string;
+  shippingNumber?: string;
+  paymentStatus?: PaymentStatus;
+  deliveryStatus?: DeliveryStatus;
+  supplier?: { name: string; phone: string; social: string };
 };
 
 type EditableOrder = Omit<Order, "items"> & {
@@ -657,7 +665,6 @@ function AdminOrders() {
               deliveryStatus: draft.deliveryStatus,
               paymentStatus: draft.paymentStatus,
               shippingMethod: draft.shippingMethod || undefined,
-              shippingNumber: draft.shippingNumber || undefined,
               paymentMethod: draft.paymentMethod,
               deliveryDate: draft.deliveryDate || undefined,
               status: nextStatus,
@@ -769,6 +776,42 @@ function AdminOrders() {
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
   const [availableShippingMethods, setAvailableShippingMethods] = useState<string[]>([]);
 
+  useEffect(() => {
+    void loadAdminSettings({ data: {} }).then((settings) => {
+      const readConfiguredMethods = (settingKey: string, fallback: string[]) => {
+        const setting = settings.find((item) => item.settingKey === settingKey);
+        if (!setting) return fallback;
+        try {
+          const parsed = JSON.parse(setting.settingValue) as unknown;
+          const values = Array.isArray(parsed)
+            ? parsed
+            : Object.values(parsed as Record<string, unknown>).flatMap((brandConfig) => {
+                if (Array.isArray(brandConfig)) return brandConfig;
+                if (brandConfig && typeof brandConfig === "object") {
+                  const methods = (brandConfig as { methods?: unknown }).methods;
+                  return Array.isArray(methods) ? methods : [];
+                }
+                return [];
+              });
+          const names = values
+            .filter((value) => value && typeof value === "object")
+            .filter((value) => (value as { enabled?: boolean }).enabled !== false)
+            .map((value) => String((value as { name?: unknown }).name ?? ""))
+            .filter(Boolean);
+          return names.length > 0 ? Array.from(new Set(names)) : fallback;
+        } catch {
+          return fallback;
+        }
+      };
+      setAvailablePaymentMethods(
+        readConfiguredMethods("lrg:paymentMethods", defaultPaymentMethods),
+      );
+      setAvailableShippingMethods(
+        readConfiguredMethods("lrg:shippingMethods", defaultShippingMethods),
+      );
+    });
+  }, []);
+
   const getQuickEditOptions = (available: string[], value?: string) => {
     const options = [...available];
     if (value && !options.includes(value)) {
@@ -788,15 +831,6 @@ function AdminOrders() {
   }, [availableShippingMethods, quickEditOrderForm, quickEditOrderId]);
 
   useEffect(() => {
-    setAvailablePaymentMethods(
-      getConfiguredMethodNames("lrg:paymentMethods", defaultPaymentMethods),
-    );
-    setAvailableShippingMethods(
-      getConfiguredMethodNames("lrg:shippingMethods", defaultShippingMethods),
-    );
-  }, []);
-
-  useEffect(() => {
     setEditableOrders(orders);
   }, [orders]);
 
@@ -807,6 +841,14 @@ function AdminOrders() {
     }
     return options;
   }, [availablePaymentMethods, orderForm?.paymentMethod]);
+
+  const orderStoreSlugs = useMemo(
+    () =>
+      orderForm
+        ? Array.from(new Set(orderForm.items.map((item) => item.brand ?? orderForm.brand)))
+        : [],
+    [orderForm],
+  );
 
   const shippingMethodOptions = useMemo(() => {
     const options = [...availableShippingMethods];
@@ -1123,8 +1165,17 @@ function AdminOrders() {
           ...item,
           originalName: item.name,
           originalQuantity: item.quantity,
-          stock: productMatch?.stock,
+          stock: productMatch ? Math.max(productMatch.stock, item.quantity) : undefined,
           confirmed: true,
+          paymentStatus: item.paymentStatus ?? getPaymentStatus(order.status),
+          deliveryStatus: item.deliveryStatus ?? getDeliveryStatus(order.status),
+          supplier: getSupplierForItem(item.name)?.supplier
+            ? {
+                name: getSupplierForItem(item.name)?.supplier?.name ?? "",
+                phone: getSupplierForItem(item.name)?.supplier?.phone ?? "",
+                social: getSupplierForItem(item.name)?.supplier?.social ?? "",
+              }
+            : undefined,
         };
       }),
       deliveryStatus:
@@ -1231,7 +1282,15 @@ function AdminOrders() {
       name,
       price: product?.price ?? 0,
       stock: product?.stock,
-      quantity: product ? Math.min(currentItem.quantity, product.stock) : currentItem.quantity,
+      quantity: product
+        ? Math.max(
+            1,
+            Math.min(
+              currentItem.quantity || 1,
+              Math.max(product.stock, currentItem.originalQuantity ?? 0),
+            ),
+          )
+        : currentItem.quantity,
     };
     updateOrderItemsOnly(nextItems);
   };
@@ -1329,14 +1388,7 @@ function AdminOrders() {
     )
       return;
     nextItems[index] = {
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      priceCurrency: item.priceCurrency,
-      gastos: item.gastos,
-      gastosCurrency: item.gastosCurrency,
-      usdRate: item.usdRate,
-      stock: item.stock,
+      ...item,
       confirmed: true,
       originalName: item.name,
       originalQuantity: item.quantity,
@@ -1351,14 +1403,7 @@ function AdminOrders() {
     const item = nextItems[index];
     if (!item) return;
     nextItems[index] = {
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      priceCurrency: item.priceCurrency,
-      gastos: item.gastos,
-      gastosCurrency: item.gastosCurrency,
-      usdRate: item.usdRate,
-      stock: item.stock,
+      ...item,
       confirmed: false,
       originalName: item.originalName ?? "",
       originalQuantity: item.originalQuantity ?? 0,
@@ -1372,7 +1417,9 @@ function AdminOrders() {
           item.name &&
           item.confirmed &&
           item.quantity >= 1 &&
-          (item.stock === undefined || item.quantity <= item.stock),
+          (item.originalName !== undefined ||
+            item.stock === undefined ||
+            item.quantity <= item.stock),
       )
     : true;
   const hasOrderChanges = orderForm
@@ -1984,7 +2031,7 @@ function AdminOrders() {
               hasExpandedOrder ? "overflow-x-hidden" : "overflow-x-auto",
             )}
             className={cn(
-              "w-full table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
+              "w-full table-fixed border-collapse text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
               hasExpandedOrder ? "min-w-0" : selectionMode ? "min-w-200" : "min-w-[98rem]",
             )}
           >
@@ -2111,30 +2158,7 @@ function AdminOrders() {
                       </TableCell>
                       <TableCell>
                         {isQuickEditing ? (
-                          <Input
-                            value={quickDraft.shippingNumber}
-                            disabled={
-                              !isShippingCodeRequiredForBrand(
-                                order.brand,
-                                quickDraft.shippingMethod,
-                              )
-                            }
-                            onChange={(event) =>
-                              setQuickEditOrderForm((current) => ({
-                                ...current,
-                                [order.id]: {
-                                  ...quickDraft,
-                                  shippingNumber: event.target.value,
-                                },
-                              }))
-                            }
-                            placeholder={
-                              isShippingCodeRequiredForBrand(order.brand, quickDraft.shippingMethod)
-                                ? "Número de envío"
-                                : "No necesita"
-                            }
-                            className="w-full"
-                          />
+                          <span className="text-muted-foreground">-</span>
                         ) : (
                           <Input
                             value={order.shippingNumber ?? ""}
@@ -2560,209 +2584,328 @@ function AdminOrders() {
           </DialogHeader>
           {orderForm ? (
             <div className="min-w-0 space-y-4">
-              <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-                <div className="flex min-w-0 flex-col gap-0">
-                  <Label className="min-h-5">Pedido</Label>
-                  <Input value={orderForm.id} disabled />
+              <div className="space-y-4 rounded-xl border border-border/60 bg-surface/40 p-4">
+                <p className="font-semibold">Pedido</p>
+                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Pedido</Label>
+                    <Input value={orderForm.id} disabled />
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Cliente</Label>
+                    <Input
+                      value={orderForm.customer}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, customer: event.target.value })
+                      }
+                    />
+                  </div>
                 </div>
-                <div className="flex min-w-0 flex-col gap-0">
-                  <Label className="min-h-5">Cliente</Label>
-                  <Input
-                    value={orderForm.customer}
+
+                <div
+                  className={cn(
+                    "grid min-w-0 items-start gap-3 sm:grid-cols-2",
+                    orderStoreSlugs.length > 1 && "hidden",
+                  )}
+                >
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Fecha de compra</Label>
+                    <Input
+                      type="date"
+                      value={orderForm.date}
+                      onChange={(event) => setOrderForm({ ...orderForm, date: event.target.value })}
+                      className="[&::-webkit-calendar-picker-indicator]:invert"
+                    />
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Fecha de entrega</Label>
+                    <Input
+                      type="date"
+                      value={orderForm.deliveryDate ?? ""}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, deliveryDate: event.target.value })
+                      }
+                      className="[&::-webkit-calendar-picker-indicator]:invert"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Correo</Label>
+                    <Input
+                      value={orderForm.email}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, email: event.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Celular</Label>
+                    <Input
+                      value={orderForm.phone}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, phone: event.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div
+                  className={cn(
+                    "grid min-w-0 items-start gap-3 sm:grid-cols-2",
+                    orderStoreSlugs.length > 1 && "hidden",
+                  )}
+                >
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Método de pago</Label>
+                    <Select
+                      value={orderForm.paymentMethod}
+                      onValueChange={(value) => {
+                        const nextInstruction = getPaymentInstruction(
+                          orderForm.paymentMethod,
+                          value,
+                        );
+                        setOrderForm({ ...orderForm, paymentMethod: value });
+                        setPaymentInstruction(nextInstruction);
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar método" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentMethodOptions.map((method) => (
+                          <SelectItem key={method} value={method}>
+                            {method}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Estado de pago</Label>
+                    <Select
+                      value={orderForm.paymentStatus}
+                      onValueChange={(value) => {
+                        const nextPaymentStatus = value as PaymentStatus;
+                        setOrderForm({
+                          ...orderForm,
+                          paymentStatus: nextPaymentStatus,
+                          status: mergeOrderStatus(orderForm.deliveryStatus, nextPaymentStatus),
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div
+                  className={cn(
+                    "grid min-w-0 items-start gap-3 sm:grid-cols-2",
+                    orderStoreSlugs.length > 1 && "hidden",
+                  )}
+                >
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Método de envío</Label>
+                    <Select
+                      value={orderForm.shippingMethod ?? ""}
+                      onValueChange={(value) =>
+                        setOrderForm({ ...orderForm, shippingMethod: value })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar método" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {shippingMethodOptions.map((method) => (
+                          <SelectItem key={method} value={method}>
+                            {method}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Estado de envío</Label>
+                    <Select
+                      value={orderForm.deliveryStatus}
+                      onValueChange={(value) => {
+                        const nextDeliveryStatus = value as DeliveryStatus;
+                        setOrderForm({
+                          ...orderForm,
+                          deliveryStatus: nextDeliveryStatus,
+                          status: mergeOrderStatus(nextDeliveryStatus, orderForm.paymentStatus),
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["Pendiente", "Enviado"].map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {orderStoreSlugs.length > 1 ? (
+                  <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
+                    <p className="font-semibold">Datos por tienda</p>
+                    {orderStoreSlugs.map((storeSlug) => {
+                      const storeItems = orderForm.items.filter(
+                        (item) => (item.brand ?? orderForm.brand) === storeSlug,
+                      );
+                      const firstItem = storeItems[0];
+                      if (!firstItem) return null;
+                      const updateStoreItems = (updates: Partial<EditableOrderItem>) =>
+                        setOrderForm({
+                          ...orderForm,
+                          items: orderForm.items.map((item) =>
+                            (item.brand ?? orderForm.brand) === storeSlug
+                              ? { ...item, ...updates }
+                              : item,
+                          ),
+                        });
+                      return (
+                        <div key={storeSlug} className="rounded-xl border border-border/60 p-3">
+                          <p className="mb-3 text-sm font-medium">
+                            {brands[storeSlug]?.name ?? storeSlug}
+                          </p>
+                          <div className="grid gap-3 sm:grid-cols-4">
+                            <div>
+                              <Label>Método de pago</Label>
+                              <Select
+                                value={firstItem.paymentMethod ?? ""}
+                                onValueChange={(value) =>
+                                  updateStoreItems({ paymentMethod: value })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Seleccionar método" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {paymentMethodOptions.map((method) => (
+                                    <SelectItem key={method} value={method}>
+                                      {method}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Estado de pago</Label>
+                              <Select
+                                value={firstItem.paymentStatus ?? orderForm.paymentStatus}
+                                onValueChange={(value) =>
+                                  updateStoreItems({ paymentStatus: value as PaymentStatus })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map(
+                                    (status) => (
+                                      <SelectItem key={status} value={status}>
+                                        {status}
+                                      </SelectItem>
+                                    ),
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Método de envío</Label>
+                              <Select
+                                value={firstItem.shippingMethod ?? ""}
+                                onValueChange={(value) =>
+                                  updateStoreItems({ shippingMethod: value })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Seleccionar método" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {shippingMethodOptions.map((method) => (
+                                    <SelectItem key={method} value={method}>
+                                      {method}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Estado de envío</Label>
+                              <Select
+                                value={firstItem.deliveryStatus ?? orderForm.deliveryStatus}
+                                onValueChange={(value) =>
+                                  updateStoreItems({ deliveryStatus: value as DeliveryStatus })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(["Pendiente", "Enviado"] as DeliveryStatus[]).map((status) => (
+                                    <SelectItem key={status} value={status}>
+                                      {status}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                <div>
+                  <Label>Observaciones</Label>
+                  <Textarea
+                    value={orderForm.extraInfo}
                     onChange={(event) =>
-                      setOrderForm({ ...orderForm, customer: event.target.value })
+                      setOrderForm({ ...orderForm, extraInfo: event.target.value })
                     }
                   />
                 </div>
+
+                {paymentInstruction ? (
+                  <div className="rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm text-foreground">
+                    <p className="font-semibold">Instrucción de pago</p>
+                    <p>{paymentInstruction}</p>
+                  </div>
+                ) : null}
               </div>
 
-              <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-                <div className="flex min-w-0 flex-col gap-0">
-                  <Label className="min-h-5">Fecha de compra</Label>
-                  <Input
-                    type="date"
-                    value={orderForm.date}
-                    onChange={(event) => setOrderForm({ ...orderForm, date: event.target.value })}
-                    className="[&::-webkit-calendar-picker-indicator]:invert"
-                  />
-                </div>
-                <div className="flex min-w-0 flex-col gap-0">
-                  <Label className="min-h-5">Fecha de entrega</Label>
-                  <Input
-                    type="date"
-                    value={orderForm.deliveryDate ?? ""}
-                    onChange={(event) =>
-                      setOrderForm({ ...orderForm, deliveryDate: event.target.value })
-                    }
-                    className="[&::-webkit-calendar-picker-indicator]:invert"
-                  />
-                </div>
-              </div>
-
-              <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-                <div className="flex min-w-0 flex-col gap-0">
-                  <Label className="min-h-5">Correo</Label>
-                  <Input
-                    value={orderForm.email}
-                    onChange={(event) => setOrderForm({ ...orderForm, email: event.target.value })}
-                  />
-                </div>
-                <div className="flex min-w-0 flex-col gap-0">
-                  <Label className="min-h-5">Celular</Label>
-                  <Input
-                    value={orderForm.phone}
-                    onChange={(event) => setOrderForm({ ...orderForm, phone: event.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-                <div className="flex min-w-0 flex-col gap-0">
-                  <Label className="min-h-5">Método de pago</Label>
-                  <Select
-                    value={orderForm.paymentMethod}
-                    onValueChange={(value) => {
-                      const nextInstruction = getPaymentInstruction(orderForm.paymentMethod, value);
-                      setOrderForm({ ...orderForm, paymentMethod: value });
-                      setPaymentInstruction(nextInstruction);
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar método" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {paymentMethodOptions.map((method) => (
-                        <SelectItem key={method} value={method}>
-                          {method}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex min-w-0 flex-col gap-0">
-                  <Label className="min-h-5">Estado de pago</Label>
-                  <Select
-                    value={orderForm.paymentStatus}
-                    onValueChange={(value) => {
-                      const nextPaymentStatus = value as PaymentStatus;
-                      setOrderForm({
-                        ...orderForm,
-                        paymentStatus: nextPaymentStatus,
-                        status: mergeOrderStatus(orderForm.deliveryStatus, nextPaymentStatus),
-                      });
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid min-w-0 items-start gap-3 sm:grid-cols-3">
-                <div className="flex min-w-0 flex-col gap-0">
-                  <Label className="min-h-5">Método de envío</Label>
-                  <Select
-                    value={orderForm.shippingMethod ?? ""}
-                    onValueChange={(value) => setOrderForm({ ...orderForm, shippingMethod: value })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar método" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {shippingMethodOptions.map((method) => (
-                        <SelectItem key={method} value={method}>
-                          {method}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex min-w-0 flex-col gap-0">
-                  <Label className="min-h-5">Estado de envío</Label>
-                  <Select
-                    value={orderForm.deliveryStatus}
-                    onValueChange={(value) => {
-                      const nextDeliveryStatus = value as DeliveryStatus;
-                      setOrderForm({
-                        ...orderForm,
-                        deliveryStatus: nextDeliveryStatus,
-                        status: mergeOrderStatus(nextDeliveryStatus, orderForm.paymentStatus),
-                      });
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["Pendiente", "Enviado"].map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex min-w-0 flex-col gap-0">
-                  <Label className="min-h-5">Número de envío</Label>
-                  <Input
-                    value={orderForm.shippingNumber ?? ""}
-                    onChange={(event) =>
-                      setOrderForm({ ...orderForm, shippingNumber: event.target.value })
-                    }
-                    disabled={
-                      !isShippingCodeRequiredForBrand(orderForm.brand, orderForm.shippingMethod)
-                    }
-                    placeholder={
-                      isShippingCodeRequiredForBrand(orderForm.brand, orderForm.shippingMethod)
-                        ? "Número de envío"
-                        : "No necesita"
-                    }
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label>Observaciones</Label>
-                <Textarea
-                  value={orderForm.extraInfo}
-                  onChange={(event) =>
-                    setOrderForm({ ...orderForm, extraInfo: event.target.value })
-                  }
-                />
-              </div>
-
-              {paymentInstruction ? (
-                <div className="rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm text-foreground">
-                  <p className="font-semibold">Instrucción de pago</p>
-                  <p>{paymentInstruction}</p>
-                </div>
-              ) : null}
-
-              <div className="space-y-3">
+              <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
                 <p className="font-semibold">Productos</p>
                 <div className="space-y-3">
                   {orderForm.items.map((item, itemIndex) => {
                     const productSuggestions = allProducts
-                      .filter(
-                        (product) =>
-                          product.stock > 0 &&
-                          product.name.toLowerCase().includes(item.name.trim().toLowerCase()),
+                      .filter((product) =>
+                        product.name.toLowerCase().includes(item.name.trim().toLowerCase()),
                       )
                       .slice(0, 6);
                     const selectedProduct = allProducts.find(
-                      (product) =>
-                        product.name.toLowerCase() === item.name.trim().toLowerCase() &&
-                        product.stock > 0,
+                      (product) => product.name.toLowerCase() === item.name.trim().toLowerCase(),
                     );
-                    const canEditProductName = !item.confirmed && !item.originalName;
+                    const canEditProductName = !item.confirmed;
                     const exceedsStock = Boolean(
                       selectedProduct && item.quantity > selectedProduct.stock,
                     );
@@ -2775,12 +2918,13 @@ function AdminOrders() {
                       itemHasChanges &&
                       Boolean(selectedProduct) &&
                       item.quantity >= 1 &&
-                      item.quantity <= (selectedProduct?.stock ?? 0);
+                      item.quantity <=
+                        Math.max(selectedProduct?.stock ?? 0, item.originalQuantity ?? 0);
 
                     return (
                       <div
                         key={`item-${itemIndex}`}
-                        className="relative grid gap-2 sm:grid-cols-[1.7fr_1fr_1fr_auto]"
+                        className="relative grid gap-2 rounded-xl border border-border/60 bg-surface/40 p-3 sm:grid-cols-[1.7fr_1fr_1fr_1.2fr_auto]"
                       >
                         <div className="relative">
                           <Label>Nombre</Label>
@@ -2837,7 +2981,28 @@ function AdminOrders() {
                         </div>
                         <div>
                           <Label>Precio</Label>
-                          <Input type="number" min={0} step={0.01} value={item.price} disabled />
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={item.price * item.quantity}
+                            disabled
+                          />
+                        </div>
+                        <div>
+                          <Label>Número de envío</Label>
+                          <Input
+                            value={item.shippingNumber ?? ""}
+                            onChange={(event) => {
+                              const nextItems = [...orderForm.items];
+                              nextItems[itemIndex] = {
+                                ...item,
+                                shippingNumber: event.target.value,
+                              };
+                              updateOrderItemsOnly(nextItems);
+                            }}
+                            placeholder="-"
+                          />
                         </div>
                         <div className="flex items-end gap-2">
                           {item.confirmed ? (
@@ -2931,22 +3096,58 @@ function AdminOrders() {
                   ).entries(),
                 ).map(([itemName, match]) => (
                   <div key={itemName} className="grid gap-3 sm:grid-cols-4">
-                    <div>
-                      <Label>Producto</Label>
-                      <Input value={itemName} disabled />
-                    </div>
-                    <div>
-                      <Label>Nombre</Label>
-                      <Input value={match?.supplier?.name ?? ""} disabled />
-                    </div>
-                    <div>
-                      <Label>Celular</Label>
-                      <Input value={match?.supplier?.phone ?? ""} disabled />
-                    </div>
-                    <div>
-                      <Label>Red social</Label>
-                      <Input value={match?.supplier?.social ?? ""} disabled />
-                    </div>
+                    {(() => {
+                      const item = orderForm.items.find((candidate) => candidate.name === itemName);
+                      const supplier = item?.supplier ?? match?.supplier;
+                      const updateSupplier = (field: "name" | "phone" | "social", value: string) =>
+                        setOrderForm({
+                          ...orderForm,
+                          items: orderForm.items.map((candidate) =>
+                            candidate.name === itemName
+                              ? {
+                                  ...candidate,
+                                  supplier: {
+                                    name: candidate.supplier?.name ?? match?.supplier?.name ?? "",
+                                    phone:
+                                      candidate.supplier?.phone ?? match?.supplier?.phone ?? "",
+                                    social:
+                                      candidate.supplier?.social ?? match?.supplier?.social ?? "",
+                                    [field]: value,
+                                  },
+                                }
+                              : candidate,
+                          ),
+                        });
+                      return (
+                        <>
+                          <div>
+                            <Label>Producto</Label>
+                            <Input value={itemName} disabled />
+                          </div>
+                          <div>
+                            <Label>Nombre</Label>
+                            <Input
+                              value={supplier?.name ?? ""}
+                              onChange={(event) => updateSupplier("name", event.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label>Celular</Label>
+                            <Input
+                              value={supplier?.phone ?? ""}
+                              onChange={(event) => updateSupplier("phone", event.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label>Red social</Label>
+                            <Input
+                              value={supplier?.social ?? ""}
+                              onChange={(event) => updateSupplier("social", event.target.value)}
+                            />
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

@@ -24,11 +24,9 @@ import {
   Eye,
   EyeOff,
   FileText,
-  LoaderCircle,
   Paperclip,
   Search,
   Sheet,
-  Save,
   X,
   Filter,
 } from "lucide-react";
@@ -824,9 +822,37 @@ function CustomerRow({
 }) {
   const [open, setOpen] = useState(false);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
-  const [pendingAttachments, setPendingAttachments] = useState<OrderAttachment[]>([]);
-  const [isSavingDocuments, setIsSavingDocuments] = useState(false);
+  const [allPurchasesOpen, setAllPurchasesOpen] = useState(false);
   const navigate = useNavigate();
+
+  const saveAdminAttachments = async (files: File[]) => {
+    if (!documentsOrder || files.length === 0) return;
+    const attachments = await Promise.all(
+      files.map(
+        (file) =>
+          new Promise<OrderAttachment>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              resolve({
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                dataUrl: String(reader.result ?? ""),
+              });
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          }),
+      ),
+    );
+    const updatedOrder = {
+      ...documentsOrder,
+      attachments: [...(documentsOrder.attachments ?? []), ...attachments],
+    };
+    await saveOrders(
+      ordersData.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)),
+    );
+    setDocumentsOrder(updatedOrder);
+  };
 
   return (
     <>
@@ -873,21 +899,21 @@ function CustomerRow({
       {open && (
         <TableRow>
           <TableCell colSpan={5} className="p-2">
-            <div className="mx-auto w-fit max-w-full space-y-2">
-              {customer.orders.map((o) => (
+            <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {customer.orders.slice(0, 9).map((o) => (
                 <div
                   key={o.id}
-                  className="flex w-fit max-w-full items-center justify-between rounded-md border p-2 text-sm"
+                  className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex min-w-0 w-full items-center gap-2">
                     <button
                       type="button"
-                      className="font-medium text-primary underline-offset-4 hover:underline"
+                      className="min-w-0 truncate font-medium text-primary underline-offset-4 hover:underline"
                       onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
                     >
                       {o.id}
                     </button>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="shrink-0 text-[11px] text-muted-foreground">
                       Fecha de compra: {formatPurchaseDate(o.date)}
                     </div>
                     <Button
@@ -896,87 +922,104 @@ function CustomerRow({
                       size="sm"
                       onClick={() => {
                         setDocumentsOrder(o);
-                        setPendingAttachments([]);
                       }}
                     >
-                      <Paperclip className="size-3.5" /> Documentos
+                      <Paperclip className="size-3.5" /> Archivos adjuntos
                     </Button>
                   </div>
                 </div>
               ))}
+              {customer.orders.length > 9 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-10 rounded-xl"
+                  onClick={() => setAllPurchasesOpen(true)}
+                >
+                  Ver más
+                </Button>
+              ) : null}
             </div>
           </TableCell>
         </TableRow>
       )}
+
+      <Dialog open={allPurchasesOpen} onOpenChange={setAllPurchasesOpen}>
+        <DialogContent className="max-w-5xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Todas las compras</DialogTitle>
+            <DialogDescription>{customer.name}</DialogDescription>
+          </DialogHeader>
+          <div className="grid max-h-[65vh] grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
+            {customer.orders.map((o) => (
+              <div
+                key={o.id}
+                className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
+              >
+                <div className="flex min-w-0 w-full items-center gap-2">
+                  <button
+                    type="button"
+                    className="min-w-0 truncate font-medium text-primary underline-offset-4 hover:underline"
+                    onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                  >
+                    {o.id}
+                  </button>
+                  <div className="shrink-0 text-[11px] text-muted-foreground">
+                    {formatPurchaseDate(o.date)}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 px-2"
+                    onClick={() => {
+                      setAllPurchasesOpen(false);
+                      setDocumentsOrder(o);
+                    }}
+                  >
+                    <Paperclip className="size-3.5" /> Archivos adjuntos
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={documentsOrder !== null}
         onOpenChange={(value) => {
           if (!value) {
             setDocumentsOrder(null);
-            setPendingAttachments([]);
           }
         }}
       >
         <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Documentos del pedido</DialogTitle>
+            <DialogTitle>Archivos adjuntos del pedido</DialogTitle>
             <DialogDescription>{documentsOrder?.id}</DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-2 border-b border-border/60 pb-4">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isSavingDocuments}
-              onClick={() => {
-                setDocumentsOrder(null);
-                setPendingAttachments([]);
-              }}
-            >
-              <X className="size-4" /> Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={async () => {
-                if (!documentsOrder || pendingAttachments.length === 0) return;
-                setIsSavingDocuments(true);
-                const updatedOrder = {
-                  ...documentsOrder,
-                  attachments: [...(documentsOrder.attachments ?? []), ...pendingAttachments],
-                };
-                try {
-                  await saveOrders(
-                    ordersData.map((order) =>
-                      order.id === updatedOrder.id ? updatedOrder : order,
-                    ),
-                  );
-                  setDocumentsOrder(updatedOrder);
-                  setPendingAttachments([]);
-                } finally {
-                  setIsSavingDocuments(false);
-                }
-              }}
-              disabled={pendingAttachments.length === 0 || isSavingDocuments}
-            >
-              {isSavingDocuments ? (
-                <>
-                  <LoaderCircle className="size-4 animate-spin" /> Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="size-4" /> Guardar
-                </>
-              )}
-            </Button>
-          </div>
           <div className="space-y-2">
-            {[...(documentsOrder?.attachments ?? []), ...pendingAttachments].map((attachment) => (
+            {[
+              ...(documentsOrder?.attachments ?? []).map((attachment) => ({
+                attachment,
+                label: "Para el cliente",
+              })),
+              ...(documentsOrder?.paymentReceipts ?? []).map((attachment) => ({
+                attachment,
+                label: "Para la tienda",
+              })),
+            ].map(({ attachment, label }) => (
               <div
-                key={`${attachment.name}-${attachment.size}`}
-                className="flex min-w-0 items-start justify-between gap-3 rounded-lg border p-2 text-sm"
+                key={`${label}-${attachment.name}-${attachment.size}`}
+                className="flex min-w-0 items-center gap-3 rounded-xl border border-border/60 p-3"
               >
-                <span className="min-w-0 flex-1 break-all whitespace-normal">
+                <Paperclip className="size-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 break-all whitespace-normal text-sm">
                   {attachment.name}
+                </span>
+                <span className="shrink-0 rounded-full border border-border/60 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  {label}
                 </span>
                 {attachment.dataUrl ? (
                   <a
@@ -991,29 +1034,15 @@ function CustomerRow({
               </div>
             ))}
             {(documentsOrder?.attachments ?? []).length === 0 &&
-              pendingAttachments.length === 0 && (
-                <p className="text-sm text-muted-foreground">No hay documentos adjuntos.</p>
+              (documentsOrder?.paymentReceipts ?? []).length === 0 && (
+                <p className="text-sm text-muted-foreground">No hay archivos adjuntos.</p>
               )}
           </div>
           <Input
             type="file"
             multiple
-            onChange={(event) => {
-              const files = Array.from(event.target.files ?? []);
-              files.forEach((file) => {
-                const reader = new FileReader();
-                reader.onload = () =>
-                  setPendingAttachments((current) => [
-                    ...current,
-                    {
-                      name: file.name,
-                      type: file.type,
-                      size: file.size,
-                      dataUrl: String(reader.result ?? ""),
-                    },
-                  ]);
-                reader.readAsDataURL(file);
-              });
+            onChange={async (event) => {
+              await saveAdminAttachments(Array.from(event.target.files ?? []));
               event.target.value = "";
             }}
           />

@@ -726,7 +726,25 @@ function AdminProducts() {
   const handleBulkDuplicateProducts = () => {
     const selectedIds = new Set(selectedProductIds.map(getProductIdFromSelectionKey));
     const selected = editableProducts.filter((product) => selectedIds.has(product.id));
-    selected.forEach(handleDuplicateProduct);
+    const duplicates = selected.map((product) => {
+      const newId = `${product.id}-copy-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const newSlug = `${product.slug}-copy-${Date.now()}`
+        .replace(/[^a-z0-9-]/g, "-")
+        .replace(/--+/g, "-");
+      return {
+        ...product,
+        id: newId,
+        slug: newSlug,
+        name: `${product.name} (Copia)`,
+        createdAt: new Date().toISOString().slice(0, 10),
+      };
+    });
+    productsData.push(...duplicates);
+    saveProducts(productsData as Product[]);
+    setEditableProducts((current) => [...current, ...duplicates]);
+    toast.success(
+      `${duplicates.length} producto${duplicates.length === 1 ? "" : "s"} duplicado${duplicates.length === 1 ? "" : "s"}`,
+    );
     setSelectedProductIds([]);
   };
 
@@ -1915,7 +1933,7 @@ function AdminProducts() {
           {displayRows.map(({ product, variant }) => (
             <div
               key={`${product.id}-${variant?.id ?? "base"}`}
-              className="flex h-[62px] w-full items-center justify-center"
+              className="flex h-15.5 w-full items-center justify-center"
             >
               <Checkbox
                 className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
@@ -1938,7 +1956,7 @@ function AdminProducts() {
             containerClassName="overflow-x-auto overflow-y-visible"
             className={cn(
               "w-full text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2",
-              selectionMode ? "min-w-[52rem]" : "min-w-max",
+              selectionMode ? "min-w-208" : "min-w-max",
             )}
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -2919,7 +2937,10 @@ function ProductEditDialog({
   }, [open, productForm?.id, selectedVariantId]);
 
   const hasChanges = useMemo(
-    () => (productForm ? JSON.stringify(productForm) !== initialFormRef.current : false),
+    () =>
+      productForm && initialFormRef.current !== null
+        ? JSON.stringify(productForm) !== initialFormRef.current
+        : false,
     [productForm],
   );
 
@@ -3297,6 +3318,7 @@ function ProductEditDialog({
   };
 
   const isNewProduct = mode === "create";
+  const canSave = isNewProduct || hasChanges;
   const modeTitle = isNewProduct ? "Nuevo producto" : "Editar producto";
   const modeDescription = isNewProduct
     ? "Agregá un producto completo con nombre, stock, precio y categoría."
@@ -4657,7 +4679,7 @@ function ProductEditDialog({
               </Button>
               <Button
                 variant="default"
-                disabled={!hasChanges}
+                disabled={!canSave}
                 onClick={() => setConfirmSaveOpen(true)}
                 className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50"
                 style={{ boxShadow: "none" }}

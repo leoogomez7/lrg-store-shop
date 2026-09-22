@@ -101,6 +101,7 @@ function AdminSuppliers() {
   const [salesOpen, setSalesOpen] = React.useState(false);
   const [quantityOpen, setQuantityOpen] = React.useState(false);
   const [expandedSupplierKey, setExpandedSupplierKey] = React.useState<string | null>(null);
+  const hasExpandedSupplier = expandedSupplierKey !== null;
   const [productsModalSupplier, setProductsModalSupplier] = React.useState<SupplierRow | null>(
     null,
   );
@@ -137,6 +138,8 @@ function AdminSuppliers() {
   const [quickEditSupplierKey, setQuickEditSupplierKey] = React.useState<string | null>(null);
   const [quickEditSupplier, setQuickEditSupplier] = React.useState<StandaloneSupplier | null>(null);
   const [editingSupplierKey, setEditingSupplierKey] = React.useState<string | null>(null);
+  const supplierFormKey = `${newSupplier.name.trim()}|${newSupplier.phone.trim()}|${newSupplier.social.trim()}`;
+  const supplierFormHasChanges = !editingSupplierKey || supplierFormKey !== editingSupplierKey;
 
   const toggleSupplierSelection = (key: string, checked: boolean) => {
     setSelectedSupplierKeys((current) =>
@@ -1060,11 +1063,12 @@ function AdminSuppliers() {
                   disabled={
                     !newSupplier.name.trim() ||
                     !newSupplier.phone.trim() ||
-                    !newSupplier.social.trim()
+                    !newSupplier.social.trim() ||
+                    !supplierFormHasChanges
                   }
                 >
                   <Save className="size-4" />
-                  {editingSupplierKey ? "Guardar cambios" : "Guardar proveedor"}
+                  Guardar
                 </Button>
               </div>
             </DialogFooter>
@@ -1172,10 +1176,13 @@ function AdminSuppliers() {
               alwaysShowScrollbarOnDesktop
               stickyHeader
               stickyScrollbar
-              containerClassName="overflow-x-auto overflow-y-visible"
+              containerClassName={cn(
+                "overflow-y-visible",
+                hasExpandedSupplier ? "overflow-x-hidden" : "overflow-x-auto",
+              )}
               className={cn(
                 "w-full table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1",
-                selectionMode ? "min-w-200" : "min-w-312",
+                hasExpandedSupplier ? "min-w-0" : selectionMode ? "min-w-200" : "min-w-312",
               )}
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -1185,7 +1192,7 @@ function AdminSuppliers() {
                   <TableHead className="w-40 min-w-40">Red social</TableHead>
                   <TableHead className="w-40 min-w-40">Total vendido</TableHead>
                   <TableHead className="w-36 min-w-36">Cantidad vendida</TableHead>
-                  {!selectionMode && (
+                  {!selectionMode && !hasExpandedSupplier && (
                     <TableHead className="w-108 min-w-108 pr-5">Acciones</TableHead>
                   )}
                 </TableRow>
@@ -1290,7 +1297,7 @@ function AdminSuppliers() {
                         <TableCell className="text-center text-sm text-foreground">
                           {row.soldQuantity}
                         </TableCell>
-                        {!selectionMode && (
+                        {!selectionMode && !hasExpandedSupplier && (
                           <TableCell
                             className="w-108 min-w-108 whitespace-nowrap pr-5 text-center"
                             onClick={(event) => event.stopPropagation()}
@@ -1368,13 +1375,16 @@ function AdminSuppliers() {
                       </TableRow>
                       {isExpanded ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="bg-muted/30 p-4 text-left">
+                          <TableCell
+                            colSpan={selectionMode || hasExpandedSupplier ? 5 : 6}
+                            className="bg-muted/30 p-4 text-left"
+                          >
                             <p className="mb-2 font-medium">Productos</p>
                             <div className="space-y-1.5">
                               {sortedProducts.slice(0, 6).map((product) => (
                                 <div
                                   key={product.name}
-                                  className="flex items-center justify-between gap-3 rounded-md bg-muted px-2.5 py-1.5 text-xs text-foreground"
+                                  className="flex items-center justify-start gap-4 rounded-md bg-muted px-2.5 py-1.5 text-xs text-foreground"
                                 >
                                   <span className="min-w-0 wrap-break-word">{product.name}</span>
                                   <span className="shrink-0 text-muted-foreground">
@@ -1398,6 +1408,16 @@ function AdminSuppliers() {
                                   Ver más
                                 </Button>
                               )}
+                            </div>
+                            <div className="flex justify-center pt-3">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setExpandedSupplierKey(null)}
+                              >
+                                <EyeOff className="size-4" /> Ocultar
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
