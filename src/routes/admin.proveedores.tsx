@@ -1178,7 +1178,11 @@ function AdminSuppliers() {
                 <Checkbox
                   className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                   checked={selectedSupplierKeys.includes(row.key)}
-                  onCheckedChange={(checked) => toggleSupplierSelection(row.key, checked === true)}
+                  onCheckedChange={(checked) => {
+                    const isChecked = checked === true;
+                    toggleSupplierSelection(row.key, isChecked);
+                    setSelectionMode(isChecked || selectedSupplierKeys.length > 1);
+                  }}
                   aria-label={`Seleccionar proveedor ${row.name}`}
                 />
               </div>

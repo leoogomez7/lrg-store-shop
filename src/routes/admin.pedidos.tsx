@@ -2017,7 +2017,11 @@ function AdminOrders() {
                 className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={selectedOrderIds.includes(order.id)}
                 onClick={(event) => event.stopPropagation()}
-                onCheckedChange={(checked) => toggleOrderSelection(order.id, checked === true)}
+                onCheckedChange={(checked) => {
+                  const isChecked = checked === true;
+                  toggleOrderSelection(order.id, isChecked);
+                  setSelectionMode(isChecked || selectedOrderIds.length > 1);
+                }}
                 aria-label={`Seleccionar pedido ${order.id}`}
               />
             </div>

@@ -1938,9 +1938,11 @@ function AdminProducts() {
               <Checkbox
                 className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={selectedProductIds.includes(getProductSelectionKey(product, variant))}
-                onCheckedChange={(checked) =>
-                  toggleProductSelection(getProductSelectionKey(product, variant), checked === true)
-                }
+                onCheckedChange={(checked) => {
+                  const isChecked = checked === true;
+                  toggleProductSelection(getProductSelectionKey(product, variant), isChecked);
+                  setSelectionMode(isChecked || selectedProductIds.length > 1);
+                }}
                 aria-label={`Seleccionar ${product.name}`}
               />
             </div>
