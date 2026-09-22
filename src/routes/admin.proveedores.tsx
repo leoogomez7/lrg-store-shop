@@ -298,7 +298,8 @@ function AdminSuppliers() {
       saveSupplierChanges(editingSupplierKey, supplier, bulkSupplierEditQueue.length === 0);
       const nextPosition = bulkSupplierEditPosition + 1;
       const nextKey = bulkSupplierEditQueue[nextPosition];
-      const nextRow = filteredRows.find((row) => row.key === nextKey);
+      const nextRow =
+        filteredRows.find((row) => row.key === nextKey) ?? rows.find((row) => row.key === nextKey);
       if (nextRow) {
         setBulkSupplierEditPosition(nextPosition);
         openSupplierEditor(nextRow);

@@ -1069,11 +1069,9 @@ function AdminProducts() {
 
     saveProducts(productsData as Product[]);
     toast.success("Producto guardado");
-    const currentBulkSelectionKey = bulkEditQueue[bulkEditPosition];
-    const remainingBulkQueue = currentBulkSelectionKey
-      ? bulkEditQueue.filter((selectionKey) => selectionKey !== currentBulkSelectionKey)
-      : [];
-    const nextBulkSelectionKey = remainingBulkQueue[0];
+    const nextBulkPosition = bulkEditPosition + 1;
+    const queue = bulkEditQueue.length > 0 ? bulkEditQueue : selectedProductIds;
+    const nextBulkSelectionKey = queue[nextBulkPosition];
     if (nextBulkSelectionKey) {
       const nextProduct =
         editableProducts.find(
@@ -1083,8 +1081,7 @@ function AdminProducts() {
           (product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey),
         );
       if (nextProduct) {
-        setBulkEditQueue(remainingBulkQueue);
-        setBulkEditPosition(0);
+        setBulkEditPosition(nextBulkPosition);
         const variantId = nextBulkSelectionKey.split(":")[1];
         openEditProductDialog(
           nextProduct,
@@ -2684,7 +2681,6 @@ function AdminProducts() {
         supplierProducts={products}
       />
       <ProductEditDialog
-        key={`edit-${productForm?.id ?? "empty"}-${initialVariantId ?? "base"}`}
         open={editDialogOpen}
         onOpenChange={(open) => (open ? setEditDialogOpen(true) : closeProductEditor())}
         mode="edit"

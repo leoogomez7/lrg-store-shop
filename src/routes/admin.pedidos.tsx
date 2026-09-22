@@ -1404,13 +1404,13 @@ function AdminOrders() {
       return nextOrders;
     });
     toast.success("Pedido guardado");
-    const nextBulkOrderId = bulkOrderEditQueue
-      .slice(1)
-      .find((id) => editableOrders.some((order) => order.id === id));
-    if (bulkOrderEditQueue.length > 1 && nextBulkOrderId) {
-      const nextOrder = editableOrders.find((order) => order.id === nextBulkOrderId);
+    const nextBulkOrderId = bulkOrderEditQueue[bulkOrderEditPosition + 1];
+    if (nextBulkOrderId) {
+      const nextOrder =
+        editableOrders.find((order) => order.id === nextBulkOrderId) ??
+        orders.find((order) => order.id === nextBulkOrderId);
       if (nextOrder) {
-        setBulkOrderEditQueue((current) => current.slice(1));
+        setBulkOrderEditPosition((current) => current + 1);
         openEditOrderDialog(nextOrder);
         return;
       }
