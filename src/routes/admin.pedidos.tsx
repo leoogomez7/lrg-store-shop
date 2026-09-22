@@ -2328,10 +2328,10 @@ function AdminOrders() {
                                         key={`${item.name}-${item.variantId ?? itemIndex}`}
                                         className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-xl bg-surface p-3"
                                       >
-                                        <div className="min-w-0">
+                                        <div className="min-w-0 text-left">
                                           <p className="wrap-break-word font-medium">{item.name}</p>
                                           <p className="text-xs text-muted-foreground">
-                                            Tienda: {brands[itemBrand].shortName}
+                                            LRG {brands[itemBrand].shortName}
                                           </p>
                                           <p className="text-xs text-muted-foreground">
                                             {item.quantity} × {formatPrice(item.price)} unitario
@@ -2954,7 +2954,7 @@ function AdminOrders() {
       </Dialog>
 
       <Dialog open={documentsOrder !== null} onOpenChange={(open) => !open && cancelDocuments()}>
-        <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-lg min-w-0 rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader>
             <DialogTitle>Documentos del pedido</DialogTitle>
             <DialogDescription>{documentsOrder?.id}</DialogDescription>
@@ -2969,7 +2969,11 @@ function AdminOrders() {
               event.target.value = "";
             }}
           />
-          <Button type="button" onClick={() => documentsInputRef.current?.click()}>
+          <Button
+            type="button"
+            onClick={() => documentsInputRef.current?.click()}
+            className="w-full min-w-0"
+          >
             <Paperclip className="size-4" /> Adjuntar archivos
           </Button>
           <div className="space-y-2">
@@ -2979,9 +2983,9 @@ function AdminOrders() {
               [...(documentsOrder?.attachments ?? []), ...pendingAttachments].map((attachment) => (
                 <div
                   key={`${attachment.name}-${attachment.size}`}
-                  className="flex items-center justify-between gap-3 rounded-lg border p-2 text-sm"
+                  className="flex min-w-0 items-start justify-between gap-3 rounded-lg border p-2 text-sm"
                 >
-                  <span className="min-w-0 truncate">{attachment.name}</span>
+                  <span className="min-w-0 flex-1 wrap-break-word">{attachment.name}</span>
                   <div className="flex shrink-0 items-center gap-1">
                     <a
                       href={attachment.dataUrl}
@@ -3005,7 +3009,7 @@ function AdminOrders() {
               ))
             )}
           </div>
-          <div className="flex justify-end gap-2 border-t border-border/60 pt-4">
+          <div className="flex flex-wrap justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={cancelDocuments}>
               <X className="size-4" /> Cancelar
             </Button>
