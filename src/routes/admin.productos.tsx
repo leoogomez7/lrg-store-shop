@@ -744,54 +744,67 @@ function AdminProducts() {
   };
 
   const handleBulkDeleteProducts = async () => {
-    const selectedIds = new Set(normalizeProductSelection(selectedProductIds));
+    const selectedIds = new Set(getBulkProductQueue());
+    if (!selectedIds.size) return;
+
     const selectedProducts = (productsData as Product[]).filter((product) =>
       selectedIds.has(product.id),
     );
+
     selectedProducts.forEach((product) => {
       moveToTrash({ type: "producto", id: product.id, item: product });
     });
-    const nextProducts = (productsData as Product[]).filter(
-      (product) => !selectedIds.has(product.id),
-    );
+
+    const nextProducts = (productsData as Product[]).filter((product) => !selectedIds.has(product.id));
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
-    await saveProducts(productsData as Product[]);
+    await saveProducts(nextProducts);
+    toast.success(`${selectedProducts.length} producto${selectedProducts.length === 1 ? "" : "s"} eliminado${selectedProducts.length === 1 ? "" : "s"}`);
     clearBulkProductSelection();
   };
 
   const handleBulkToggleProducts = async (hidden: boolean) => {
-    const ids = new Set(normalizeProductSelection(selectedProductIds));
+    const selectedIds = new Set(getBulkProductQueue());
+    if (!selectedIds.size) return;
+
     const nextProducts = (productsData as Product[]).map((product) =>
-      ids.has(product.id) ? { ...product, hidden } : product,
+      selectedIds.has(product.id) ? { ...product, hidden } : product,
     );
+
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
     await saveProducts(nextProducts);
-    toast.success(hidden ? "Productos ocultos" : "Productos disponibles");
+    toast.success(hidden ? "Productos ocultados" : "Productos disponibles");
     clearBulkProductSelection();
   };
 
   const handleBulkDuplicateProducts = async () => {
-    const selectedIds = new Set(normalizeProductSelection(selectedProductIds));
-    const selected = editableProducts.filter((product) => selectedIds.has(product.id));
+    const selectedIds = new Set(getBulkProductQueue());
+    if (!selectedIds.size) return;
+
+    const selected = [...(productsData as Product[])].filter((product) => selectedIds.has(product.id));
     const duplicates = selected.map((product) => {
-      const newId = `${product.id}-copy-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      const newSlug = `${product.slug}-copy-${Date.now()}`
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).slice(2, 7);
+      const newId = `${product.id}-copy-${timestamp}-${random}`;
+      const newSlug = `${product.slug}-copy-${timestamp}`
         .replace(/[^a-z0-9-]/g, "-")
         .replace(/--+/g, "-");
+
       return {
         ...product,
         id: newId,
         slug: newSlug,
         name: `${product.name} (Copia)`,
         createdAt: new Date().toISOString().slice(0, 10),
+        hidden: Boolean(product.hidden),
       };
     });
-    productsData.push(...duplicates);
-    const nextProducts = [...productsData];
-    await saveProducts(nextProducts);
+
+    const nextProducts = [...(productsData as Product[]), ...duplicates];
+    productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
+    await saveProducts(nextProducts);
     toast.success(
       `${duplicates.length} producto${duplicates.length === 1 ? "" : "s"} duplicado${duplicates.length === 1 ? "" : "s"}`,
     );
