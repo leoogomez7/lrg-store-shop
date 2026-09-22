@@ -931,6 +931,7 @@ function AdminOrders() {
     return results.slice(page * pageSize, page * pageSize + pageSize);
   }, [results, page, pageSize]);
   const visibleOrderIds = visibleResults.map((order) => order.id);
+  const hasExpandedOrder = expandedOrderId !== null;
   const selectedVisibleOrderIds = visibleOrderIds.filter((id) => selectedOrderIds.includes(id));
   const allVisibleOrdersSelected =
     visibleOrderIds.length > 0 && selectedVisibleOrderIds.length === visibleOrderIds.length;
@@ -1938,10 +1939,13 @@ function AdminOrders() {
             alwaysShowScrollbarOnDesktop
             stickyHeader
             stickyScrollbar
-            containerClassName="touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]"
+            containerClassName={cn(
+              "touch-pan-x overscroll-x-contain overflow-y-visible [-webkit-overflow-scrolling:touch]",
+              hasExpandedOrder ? "overflow-x-hidden" : "overflow-x-auto",
+            )}
             className={cn(
               "w-full table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
-              selectionMode ? "min-w-[50rem]" : "min-w-[98rem]",
+              hasExpandedOrder ? "min-w-0" : selectionMode ? "min-w-[50rem]" : "min-w-[98rem]",
             )}
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -1955,7 +1959,7 @@ function AdminOrders() {
                 <TableHead className="w-18">Gastos</TableHead>
                 <TableHead className="w-20">Total</TableHead>
                 <TableHead className="w-18">Ganancias</TableHead>
-                {!selectionMode && (
+                {!selectionMode && !hasExpandedOrder && (
                   <TableHead className="w-[34rem] min-w-[34rem] text-right">Acciones</TableHead>
                 )}
               </TableRow>
@@ -2149,7 +2153,7 @@ function AdminOrders() {
                       <TableCell>{formatPrice(order.expenses)}</TableCell>
                       <TableCell>{formatPrice(order.total)}</TableCell>
                       <TableCell>{formatPrice(order.profit)}</TableCell>
-                      {!selectionMode && (
+                      {!selectionMode && !hasExpandedOrder && (
                         <TableCell className="w-[34rem] min-w-[34rem] text-right">
                           <div className="flex w-full min-w-max flex-nowrap items-center justify-end gap-0.5 overflow-visible">
                             {isQuickEditing ? (
@@ -2195,29 +2199,6 @@ function AdminOrders() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => {
-                                    setDocumentsOrder(order);
-                                    setPendingAttachments([]);
-                                  }}
-                                  className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
-                                >
-                                  <Paperclip className="size-4" />
-                                  <span className="hidden sm:inline">Documentos</span>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setReceiptsOrder(order)}
-                                  disabled={!order.paymentReceipts?.length}
-                                  className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
-                                  title="Ver comprobantes de pago"
-                                >
-                                  <FileText className="size-4" />
-                                  <span className="hidden sm:inline">Comprobantes</span>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
                                   onClick={() => startQuickEditOrder(order)}
                                   className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
                                 >
@@ -2259,10 +2240,10 @@ function AdminOrders() {
                     {isExpanded && (
                       <TableRow key={`${order.id}-details`}>
                         <TableCell
-                          colSpan={selectionMode ? 9 : 10}
+                          colSpan={selectionMode || hasExpandedOrder ? 9 : 10}
                           className="bg-surface-2/70 p-3 sm:p-5"
                         >
-                          <div className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] min-w-0 space-y-4 overflow-hidden text-sm sm:w-[calc(100vw-3rem)] sm:max-w-[calc(100vw-3rem)]">
+                          <div className="w-full max-w-none min-w-0 space-y-4 overflow-hidden text-sm">
                             <p className="font-medium">Detalle del pedido</p>
 
                             <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -2365,6 +2346,14 @@ function AdminOrders() {
                                 }}
                               >
                                 <Paperclip className="size-4" /> Subir archivos para el cliente
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setExpandedOrderId(null)}
+                              >
+                                <EyeOff className="size-4" /> Ocultar
                               </Button>
                             </div>
                           </div>
