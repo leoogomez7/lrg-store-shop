@@ -696,8 +696,7 @@ function AdminProducts() {
     saveProducts(productsData as Product[]);
   };
 
-  const getProductSelectionKey = (product: Product, variant?: ProductVariant) =>
-    `${product.id}:${variant?.id ?? "base"}`;
+  const getProductSelectionKey = (product: Product, variant?: ProductVariant) => product.id;
 
   const getProductIdFromSelectionKey = (selectionKey: string) =>
     selectionKey.split(":")[0] ?? selectionKey;
@@ -717,12 +716,13 @@ function AdminProducts() {
   };
 
   const toggleProductSelection = (selectionKey: string, checked: boolean) => {
+    const normalizedSelectionKey = getProductIdFromSelectionKey(selectionKey);
     setSelectedProductIds((current) =>
       checked
-        ? current.includes(selectionKey)
+        ? current.includes(normalizedSelectionKey)
           ? current
-          : [...current, selectionKey]
-        : current.filter((key) => key !== selectionKey),
+          : [...current, normalizedSelectionKey]
+        : current.filter((key) => key !== normalizedSelectionKey),
     );
   };
 
@@ -803,35 +803,19 @@ function AdminProducts() {
     if (!selectedProductIdsForBulk.length) return;
 
     const firstProductId = selectedProductIdsForBulk[0];
-    const firstSelectionKey = selectedProductIds.find(
-      (selectionKey) => getProductIdFromSelectionKey(selectionKey) === firstProductId,
-    );
-    const selectedRow = displayRows.find(
-      ({ product, variant }) =>
-        product.id === firstProductId &&
-        getProductSelectionKey(product, variant) === firstSelectionKey,
-    );
     const product =
-      selectedRow?.product ??
       editableProducts.find((item) => item.id === firstProductId) ??
       (productsData as Product[]).find((item) => item.id === firstProductId);
 
     if (!product) return;
-
-    const firstVariantId =
-      firstSelectionKey && getSelectionKeyVariantId(firstSelectionKey) !== "base"
-        ? getSelectionKeyVariantId(firstSelectionKey)
-        : undefined;
 
     bulkEditQueueRef.current = selectedProductIdsForBulk;
     bulkEditPositionRef.current = 0;
     setBulkEditQueue(selectedProductIdsForBulk);
     setBulkEditPosition(0);
 
-    openEditProductDialog(
-      product,
-      firstVariantId ? product.variants?.find((variant) => variant.id === firstVariantId) : undefined,
-    );
+    const firstVariant = product.variants?.[0];
+    openEditProductDialog(product, firstVariant);
   };
 
   const navigateBulkEditProduct = (direction: -1 | 1) => {
@@ -847,22 +831,12 @@ function AdminProducts() {
       (productsData as Product[]).find((product) => product.id === nextProductId);
     if (!nextProduct) return;
 
-    const nextSelectionKey = selectedProductIds.find(
-      (selectionKey) => getProductIdFromSelectionKey(selectionKey) === nextProductId,
-    );
-    const nextVariantId =
-      nextSelectionKey && getSelectionKeyVariantId(nextSelectionKey) !== "base"
-        ? getSelectionKeyVariantId(nextSelectionKey)
-        : undefined;
-
     bulkEditQueueRef.current = queue;
     bulkEditPositionRef.current = nextPosition;
     setBulkEditPosition(nextPosition);
 
-    openEditProductDialog(
-      nextProduct,
-      nextVariantId ? nextProduct.variants?.find((variant) => variant.id === nextVariantId) : undefined,
-    );
+    const nextVariant = nextProduct.variants?.[0];
+    openEditProductDialog(nextProduct, nextVariant);
   };
 
   const getQuickEditKey = (product: Product, variant?: ProductVariant) =>
@@ -1317,8 +1291,8 @@ function AdminProducts() {
       return [{ product, variant: undefined }];
     });
   }, [visibleResults]);
-  const visibleProductSelectionKeys = displayRows.map(({ product, variant }) =>
-    getProductSelectionKey(product, variant),
+  const visibleProductSelectionKeys = Array.from(
+    new Set(displayRows.map(({ product }) => getProductSelectionKey(product))),
   );
   const selectedVisibleProductKeys = visibleProductSelectionKeys.filter((key) =>
     selectedProductIds.includes(key),
@@ -1997,10 +1971,10 @@ function AdminProducts() {
             >
               <Checkbox
                 className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                checked={selectedProductIds.includes(getProductSelectionKey(product, variant))}
+                checked={selectedProductIds.includes(product.id)}
                 onCheckedChange={(checked) => {
                   const isChecked = checked === true;
-                  toggleProductSelection(getProductSelectionKey(product, variant), isChecked);
+                  toggleProductSelection(product.id, isChecked);
                   setSelectionMode(isChecked || selectedProductIds.length > 1);
                 }}
                 aria-label={`Seleccionar ${product.name}`}
