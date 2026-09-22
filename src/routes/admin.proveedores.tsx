@@ -6,6 +6,7 @@ import {
   ArrowRight,
   ArrowUpDown,
   Check,
+  ContactRound,
   ChevronDown,
   ChevronUp,
   Edit3,
@@ -52,6 +53,7 @@ import {
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 import { formatNumber } from "@/lib/format";
 import { saveProducts, type Product } from "@/data/products";
+import { moveToTrash } from "@/data/trash";
 
 export const Route = createFileRoute("/admin/proveedores")({
   loader: async ({ context }) => {
@@ -396,6 +398,18 @@ function AdminSuppliers() {
   };
 
   const deleteSupplier = (supplierKey: string) => {
+    const supplierRow = rows.find((row) => row.key === supplierKey);
+    if (supplierRow) {
+      moveToTrash({
+        type: "proveedor",
+        id: supplierKey,
+        item: {
+          name: supplierRow.name,
+          phone: supplierRow.phone,
+          social: supplierRow.social,
+        },
+      });
+    }
     const nextStandaloneSuppliers = standaloneSuppliers.filter(
       (supplier) => `${supplier.name}|${supplier.phone}|${supplier.social}` !== supplierKey,
     );
@@ -457,6 +471,15 @@ function AdminSuppliers() {
 
   const deleteSelectedSuppliers = () => {
     const selectedKeys = new Set(selectedSupplierKeys);
+    filteredRows
+      .filter((row) => selectedKeys.has(row.key))
+      .forEach((row) =>
+        moveToTrash({
+          type: "proveedor",
+          id: row.key,
+          item: { name: row.name, phone: row.phone, social: row.social },
+        }),
+      );
     const nextStandaloneSuppliers = standaloneSuppliers.filter(
       (supplier) => !selectedKeys.has(`${supplier.name}|${supplier.phone}|${supplier.social}`),
     );

@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Package, RotateCcw, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { ContactRound, Package, RotateCcw, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { orders, saveOrders } from "@/data/orders";
 import { products, saveProducts } from "@/data/products";
 import { readTrash, removeFromTrash, type TrashEntry } from "@/data/trash";
+import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
+
+const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
 
 export const Route = createFileRoute("/admin/papelera")({
   head: () => ({ meta: [{ title: "Administrador" }] }),
@@ -27,27 +30,64 @@ function AdminTrash() {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return entries;
     return entries.filter((entry) => {
-      const name = entry.type === "producto" ? entry.item.name : entry.item.customer;
-      return [entry.id, entry.type, name, entry.item.id].some((value) =>
+      const name =
+        entry.type === "producto"
+          ? entry.item.name
+          : entry.type === "pedido"
+            ? entry.item.customer
+            : entry.item.name;
+      const itemId = entry.type === "proveedor" ? entry.id : entry.item.id;
+      return [entry.id, entry.type, name, itemId].some((value) =>
         String(value).toLowerCase().includes(normalizedQuery),
       );
     });
   }, [entries, query]);
 
-  const restoreEntry = (entry: TrashEntry) => {
+  const restoreEntry = async (entry: TrashEntry) => {
     if (entry.type === "producto") {
       if (products.some((product) => product.id === entry.item.id)) return;
       products.push(entry.item);
       saveProducts(products);
-    } else {
+    } else if (entry.type === "pedido") {
       if (!orders.some((order) => order.id === entry.item.id)) {
         orders.push(entry.item);
         saveOrders(orders);
       }
+    } else {
+      const settings = await loadAdminSettings({ data: {} });
+      const setting = settings.find((item) => item.settingKey === SUPPLIERS_STORAGE_KEY);
+      let suppliers: Array<{ name: string; phone: string; social: string }> = [];
+      if (setting) {
+        try {
+          const parsed = JSON.parse(setting.settingValue) as unknown;
+          suppliers = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          suppliers = [];
+        }
+      }
+      const exists = suppliers.some(
+        (supplier) =>
+          supplier.name === entry.item.name &&
+          supplier.phone === entry.item.phone &&
+          supplier.social === entry.item.social,
+      );
+      if (!exists) {
+        await saveAdminSetting({
+          data: {
+            settingKey: SUPPLIERS_STORAGE_KEY,
+            settingValue: JSON.stringify([...suppliers, entry.item]),
+          },
+        });
+      }
     }
     removeFromTrash(entry);
     void queryClient.invalidateQueries({
-      queryKey: entry.type === "producto" ? ["products"] : ["orders"],
+      queryKey:
+        entry.type === "producto"
+          ? ["products"]
+          : entry.type === "pedido"
+            ? ["orders"]
+            : ["admin-settings"],
     });
     setEntries((current) =>
       current.filter((item) => item.id !== entry.id || item.type !== entry.type),
@@ -63,7 +103,7 @@ function AdminTrash() {
         products.splice(productIndex, 1);
         saveProducts(products);
       }
-    } else {
+    } else if (entryToDelete.type === "pedido") {
       const orderIndex = orders.findIndex((order) => order.id === entryToDelete.item.id);
       if (orderIndex >= 0) {
         orders.splice(orderIndex, 1);
@@ -73,7 +113,12 @@ function AdminTrash() {
 
     removeFromTrash(entryToDelete);
     void queryClient.invalidateQueries({
-      queryKey: entryToDelete.type === "producto" ? ["products"] : ["orders"],
+      queryKey:
+        entryToDelete.type === "producto"
+          ? ["products"]
+          : entryToDelete.type === "pedido"
+            ? ["orders"]
+            : ["admin-settings"],
     });
     setEntries((current) =>
       current.filter((item) => item.id !== entryToDelete.id || item.type !== entryToDelete.type),
@@ -117,7 +162,12 @@ function AdminTrash() {
         ) : (
           filteredEntries.map((entry) => {
             const isProduct = entry.type === "producto";
-            const name = isProduct ? entry.item.name : `${entry.item.id} · ${entry.item.customer}`;
+            const isOrder = entry.type === "pedido";
+            const name = isProduct
+              ? entry.item.name
+              : isOrder
+                ? `${entry.item.id} · ${entry.item.customer}`
+                : entry.item.name;
             return (
               <div
                 key={`${entry.type}-${entry.id}`}
@@ -127,14 +177,16 @@ function AdminTrash() {
                   <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2">
                     {isProduct ? (
                       <Package className="size-4" />
-                    ) : (
+                    ) : isOrder ? (
                       <ShoppingCart className="size-4" />
+                    ) : (
+                      <ContactRound className="size-4" />
                     )}
                   </span>
                   <div className="min-w-0">
                     <p className="truncate font-medium">{name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {isProduct ? "Producto" : "Pedido"} · Se elimina en{" "}
+                      {isProduct ? "Producto" : isOrder ? "Pedido" : "Proveedor"} · Se elimina en{" "}
                       {getRemainingDays(entry.expiresAt)} días
                     </p>
                   </div>
