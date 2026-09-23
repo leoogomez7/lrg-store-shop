@@ -2198,7 +2198,7 @@ function AdminOrders() {
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
                 <TableHead className="w-10 px-1"> </TableHead>
-                <TableHead className="w-24">Pedido</TableHead>
+                <TableHead className={cn(hasExpandedOrder ? "w-40" : "w-24")}>Pedido</TableHead>
                 <TableHead className="w-20">Fecha</TableHead>
                 <TableHead className="w-24">Estado de pago</TableHead>
                 <TableHead className="w-24">Núm. envío</TableHead>
