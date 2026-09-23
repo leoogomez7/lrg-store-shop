@@ -2420,7 +2420,7 @@ function AdminOrders() {
                         <TableCell
                           className={cn(
                             "w-0 min-w-0 max-w-0 overflow-visible px-0 text-left",
-                            hasExpandedOrder && !isQuickEditing && "hidden",
+                            hasExpandedOrder && "hidden",
                           )}
                         >
                           <div className="relative left-96 flex w-96 min-w-max flex-nowrap items-center justify-start gap-0.5 overflow-visible">
@@ -2626,6 +2626,30 @@ function AdminOrders() {
                               </div>
                             </div>
                             <div className="flex flex-wrap justify-center gap-2 border-t border-border/50 pt-3">
+                              {isQuickEditing ? (
+                                <>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => saveQuickEditOrder(order)}
+                                    disabled={!quickEditHasChanges}
+                                    className="h-7 gap-1 bg-transparent px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40"
+                                  >
+                                    <Check className="size-3.5" /> Guardar
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={cancelQuickEditOrder}
+                                    className="h-7 gap-1 bg-transparent px-2 text-xs text-destructive hover:bg-destructive/10"
+                                  >
+                                    <X className="size-3.5" /> Cancelar
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
                               <Button
                                 type="button"
                                 variant="outline"
@@ -2690,6 +2714,8 @@ function AdminOrders() {
                               >
                                 <EyeOff className="size-4" /> Ocultar
                               </Button>
+                                </>
+                              )}
                             </div>
                           </div>
                         </TableCell>
