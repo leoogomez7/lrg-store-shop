@@ -630,13 +630,13 @@ function AdminOrders() {
 
   const cancelQuickEditOrder = useCallback(() => {
     const queuedOrderId = bulkQuickEditOrderQueue[0];
-    const nextQueue = bulkQuickEditOrderQueue.slice(1);
+    const remainingQueue = bulkQuickEditOrderQueue.slice(1);
     const nextQuickEditOrder = queuedOrderId
       ? editableOrders.find((order) => order.id === queuedOrderId)
       : null;
 
     if (queuedOrderId && nextQuickEditOrder) {
-      setBulkQuickEditOrderQueue(nextQueue);
+      setBulkQuickEditOrderQueue(remainingQueue);
       setQuickEditOrderId(null);
       setQuickEditOrderForm((current) => {
         const next = { ...current };
@@ -702,8 +702,9 @@ function AdminOrders() {
       return nextOrders;
     });
 
-    const nextQueue = bulkQuickEditOrderQueue.slice(1);
-    setBulkQuickEditOrderQueue(nextQueue);
+    const queuedOrderId = bulkQuickEditOrderQueue[0];
+    const remainingQueue = bulkQuickEditOrderQueue.slice(1);
+    setBulkQuickEditOrderQueue(remainingQueue);
     setQuickEditOrderId(null);
     setQuickEditOrderForm((current) => {
       const next = { ...current };
@@ -712,8 +713,8 @@ function AdminOrders() {
       return next;
     });
 
-    if (nextQueue.length > 0) {
-      const nextQuickEditOrder = editableOrders.find((candidate) => candidate.id === nextQueue[0]);
+    if (queuedOrderId && remainingQueue.length > 0) {
+      const nextQuickEditOrder = editableOrders.find((candidate) => candidate.id === remainingQueue[0]);
       if (nextQuickEditOrder) {
         setSelectionMode(true);
         startQuickEditOrder(nextQuickEditOrder);

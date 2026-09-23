@@ -54,6 +54,7 @@ import { catalogQueries, orderQueries } from "@/services/catalog.service";
 import { formatNumber } from "@/lib/format";
 import { saveProducts, type Product } from "@/data/products";
 import { moveToTrash } from "@/data/trash";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export const Route = createFileRoute("/admin/proveedores")({
   loader: async ({ context }) => {
@@ -142,6 +143,8 @@ function AdminSuppliers() {
   const [quickEditFromDetails, setQuickEditFromDetails] = React.useState(false);
   const [quickEditSupplierQueue, setQuickEditSupplierQueue] = React.useState<string[]>([]);
   const [editingSupplierKey, setEditingSupplierKey] = React.useState<string | null>(null);
+  const [supplierDeleteConfirmOpen, setSupplierDeleteConfirmOpen] = React.useState(false);
+  const [pendingSupplierDelete, setPendingSupplierDelete] = React.useState<(() => void) | null>(null);
   const supplierFormKey = `${newSupplier.name.trim()}|${newSupplier.phone.trim()}|${newSupplier.social.trim()}`;
   const supplierFormHasChanges = !editingSupplierKey || supplierFormKey !== editingSupplierKey;
 
@@ -389,6 +392,22 @@ function AdminSuppliers() {
   };
 
   const cancelQuickEditSupplier = () => {
+    const queuedSupplierKey = quickEditSupplierQueue[0];
+    const remainingQueue = quickEditSupplierQueue.slice(1);
+    const nextRow = queuedSupplierKey
+      ? rows.find((row) => row.key === queuedSupplierKey)
+      : null;
+
+    if (queuedSupplierKey && nextRow) {
+      setQuickEditSupplierQueue(remainingQueue);
+      setQuickEditSupplierKey(null);
+      setQuickEditSupplier(null);
+      setQuickEditFromDetails(false);
+      setSelectionMode(true);
+      startQuickEditSupplier(nextRow);
+      return;
+    }
+
     setSelectionMode(selectedSupplierKeys.length > 0);
     setQuickEditSupplierKey(null);
     setQuickEditSupplier(null);
@@ -449,17 +468,20 @@ function AdminSuppliers() {
     });
     saveProducts(nextProducts);
     queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
+    const queuedSupplierKey = quickEditSupplierQueue[0];
+    const remainingQueue = quickEditSupplierQueue.slice(1);
     setQuickEditSupplierKey(null);
     setQuickEditSupplier(null);
     setQuickEditFromDetails(false);
 
-    const nextQueue = quickEditSupplierQueue.slice(1);
-    setQuickEditSupplierQueue(nextQueue);
-    if (closeEditor && nextQueue.length > 0) {
-      setSelectionMode(true);
-      const nextRow = rows.find((row) => row.key === nextQueue[0]);
-      if (nextRow) startQuickEditSupplier(nextRow);
-      return;
+    setQuickEditSupplierQueue(remainingQueue);
+    if (closeEditor && queuedSupplierKey) {
+      const nextRow = rows.find((row) => row.key === queuedSupplierKey);
+      if (nextRow) {
+        setSelectionMode(true);
+        startQuickEditSupplier(nextRow);
+        return;
+      }
     }
 
     if (closeEditor) {
@@ -1243,9 +1265,8 @@ function AdminSuppliers() {
                     size="sm"
                     variant="destructive"
                     onClick={() => {
-                      if (window.confirm("¿Eliminar proveedores seleccionados?")) {
-                        deleteSelectedSuppliers();
-                      }
+                      setPendingSupplierDelete(() => deleteSelectedSuppliers);
+                      setSupplierDeleteConfirmOpen(true);
                     }}
                   >
                     <Trash2 className="size-4" /> Eliminar
@@ -1573,6 +1594,25 @@ function AdminSuppliers() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={supplierDeleteConfirmOpen}
+        onOpenChange={(open) => {
+          setSupplierDeleteConfirmOpen(open);
+          if (!open) {
+            setPendingSupplierDelete(null);
+          }
+        }}
+        title="Eliminar proveedores seleccionados?"
+        description="Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onConfirm={() => {
+          pendingSupplierDelete?.();
+          setPendingSupplierDelete(null);
+          setSupplierDeleteConfirmOpen(false);
+        }}
+      />
     </main>
   );
 }
