@@ -72,6 +72,7 @@ function AdminClients() {
   const [typeOpen, setTypeOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [spentOpen, setSpentOpen] = useState(false);
+  const [expandedCustomerKey, setExpandedCustomerKey] = useState<string | null>(null);
   type Customer = {
     key: string;
     name: string;
@@ -717,7 +718,15 @@ function AdminClients() {
           <TableBody>
             {visibleCustomers.map((c) => {
               const totalSpent = c.orders.reduce((s, o) => s + (o.total || 0), 0);
-              return <CustomerRow key={c.key} customer={c} totalSpent={totalSpent} />;
+              return (
+                <CustomerRow
+                  key={c.key}
+                  customer={c}
+                  totalSpent={totalSpent}
+                  open={expandedCustomerKey === c.key}
+                  onOpenChange={(open) => setExpandedCustomerKey(open ? c.key : null)}
+                />
+              );
             })}
             {filteredCustomers.length === 0 ? (
               <TableRow>
@@ -817,11 +826,14 @@ function formatPurchaseDate(value: string) {
 function CustomerRow({
   customer,
   totalSpent,
+  open,
+  onOpenChange,
 }: {
   customer: { key: string; name: string; email: string; isGuest: boolean; orders: Order[] };
   totalSpent: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
   const [allPurchasesOpen, setAllPurchasesOpen] = useState(false);
   const navigate = useNavigate();
@@ -861,7 +873,7 @@ function CustomerRow({
         key={customer.key}
         onClick={(event) => {
           if ((event.target as HTMLElement).closest("button, input, [role=combobox], a")) return;
-          setOpen((value) => !value);
+          onOpenChange(!open);
         }}
         className="cursor-pointer hover:bg-transparent"
       >
@@ -888,7 +900,7 @@ function CustomerRow({
             className="inline-flex items-center gap-2 rounded-md bg-transparent px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             onClick={(event) => {
               event.stopPropagation();
-              setOpen((v) => !v);
+              onOpenChange(!open);
             }}
           >
             {open ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
