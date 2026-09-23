@@ -844,8 +844,21 @@ function AdminProducts() {
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
     await saveProducts(nextProducts);
-    const hiddenProductsCount = nextProducts.filter((product) => product.hidden).length;
-    const availableProductsCount = nextProducts.filter((product) => !product.hidden).length;
+
+    const hiddenProductsCount = selectedEntries.reduce((count, entry) => {
+      const product = nextProducts.find((item) => item.id === entry.productId);
+      if (!product) return count;
+
+      const isHidden = entry.variantId
+        ? Boolean(
+            (product.variants ?? []).find((variant) => variant.id === entry.variantId)?.hidden,
+          )
+        : Boolean(product.hidden);
+
+      return isHidden ? count + 1 : count;
+    }, 0);
+    const availableProductsCount = selectedEntries.length - hiddenProductsCount;
+
     toast.success(hidden ? "Productos ocultados" : "Productos disponibles", {
       description: `${hiddenProductsCount} ocultos · ${availableProductsCount} disponibles`,
     });
