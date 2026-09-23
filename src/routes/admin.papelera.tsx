@@ -29,6 +29,8 @@ function AdminTrash() {
   const [selectionMode, setSelectionMode] = useState<"delete" | "restore" | null>(null);
   const [selectedDeleteKeys, setSelectedDeleteKeys] = useState<string[]>([]);
   const [selectedRestoreKeys, setSelectedRestoreKeys] = useState<string[]>([]);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     title: string;
@@ -93,6 +95,20 @@ function AdminTrash() {
       );
     });
   }, [entries, query]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredEntries.length / pageSize));
+  const safePage = Math.min(page, totalPages - 1);
+  const paginatedEntries = filteredEntries.slice(safePage * pageSize, (safePage + 1) * pageSize);
+
+  useEffect(() => {
+    setPage(0);
+  }, [query, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages - 1) {
+      setPage(Math.max(0, totalPages - 1));
+    }
+  }, [page, totalPages]);
 
   const restoreEntry = async (entry: TrashEntry) => {
     if (entry.type === "producto") {
@@ -348,7 +364,7 @@ function AdminTrash() {
             No se encontraron elementos eliminados.
           </div>
         ) : (
-          filteredEntries.map((entry) => {
+          paginatedEntries.map((entry) => {
             const isProduct = entry.type === "producto";
             const isOrder = entry.type === "pedido";
             const name = isProduct
@@ -423,6 +439,44 @@ function AdminTrash() {
           })
         )}
       </div>
+
+      {!isLoading && filteredEntries.length > 0 ? (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 pb-8">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Mostrar</span>
+            <select
+              value={pageSize}
+              onChange={(event) => setPageSize(Number(event.target.value))}
+              className="h-10 rounded-xl border border-input bg-background/80 px-3 text-sm text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              aria-label="Cantidad de elementos por página"
+            >
+              {[10, 20, 30, 50].map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setPage(0)} disabled={safePage === 0}>
+              Principio
+            </Button>
+            <span className="grid size-9 place-items-center rounded-full bg-surface-2 text-sm font-medium text-foreground">
+              {safePage + 1}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(totalPages - 1)}
+              disabled={safePage >= totalPages - 1}
+            >
+              Último
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <ConfirmDialog
         open={confirmState.open || entryToDelete !== null}
