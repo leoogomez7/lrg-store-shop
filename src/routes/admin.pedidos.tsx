@@ -2574,7 +2574,7 @@ function AdminOrders() {
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeOrderEditor()}>
         <DialogContent
           key={isCreatingOrder ? "new-order-dialog" : "edit-order-dialog"}
-          className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto p-4 shadow-none sm:w-[calc(100vw-2rem)] sm:p-6"
+          className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-hidden p-4 shadow-none md:overflow-y-auto sm:w-[calc(100vw-2rem)] sm:p-6"
         >
           <DialogHeader>
             <div className="flex items-center justify-between gap-3">
@@ -2609,78 +2609,34 @@ function AdminOrders() {
           {orderForm ? (
             <div className="min-w-0 space-y-4">
               <div className="space-y-4 rounded-xl border border-border/60 bg-surface/40 p-4">
-                <p className="font-semibold">Pedido</p>
+                <p className="text-lg font-semibold tracking-tight text-foreground">Datos cliente</p>
                 <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                   <div className="flex min-w-0 flex-col gap-0">
-                    <Label className="min-h-5">Pedido</Label>
+                    <Label className="min-h-5">Número de pedido</Label>
                     <Input value={orderForm.id} disabled />
                   </div>
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Cliente</Label>
-                    <Input
-                      value={orderForm.customer}
-                      onChange={(event) =>
-                        setOrderForm({ ...orderForm, customer: event.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div
-                  className={cn(
-                    "grid min-w-0 items-start gap-3 sm:grid-cols-2",
-                    orderStoreSlugs.length > 1 && "hidden",
-                  )}
-                >
-                  <div className="flex min-w-0 flex-col gap-0">
-                    <Label className="min-h-5">Fecha de compra</Label>
-                    <Input
-                      type="date"
-                      value={orderForm.date}
-                      onChange={(event) => setOrderForm({ ...orderForm, date: event.target.value })}
-                      className="[&::-webkit-calendar-picker-indicator]:invert"
-                    />
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-0">
-                    <Label className="min-h-5">Fecha de entrega</Label>
-                    <Input
-                      type="date"
-                      value={orderForm.deliveryDate ?? ""}
-                      onChange={(event) =>
-                        setOrderForm({ ...orderForm, deliveryDate: event.target.value })
-                      }
-                      className="[&::-webkit-calendar-picker-indicator]:invert"
-                    />
+                    <Input value={orderForm.customer} disabled />
                   </div>
                 </div>
 
                 <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Correo</Label>
-                    <Input
-                      value={orderForm.email}
-                      onChange={(event) =>
-                        setOrderForm({ ...orderForm, email: event.target.value })
-                      }
-                    />
+                    <Input value={orderForm.email} disabled />
                   </div>
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Celular</Label>
-                    <Input
-                      value={orderForm.phone}
-                      onChange={(event) =>
-                        setOrderForm({ ...orderForm, phone: event.target.value })
-                      }
-                    />
+                    <Input value={orderForm.phone} disabled />
                   </div>
                 </div>
+              </div>
 
-                <div
-                  className={cn(
-                    "grid min-w-0 items-start gap-3 sm:grid-cols-2",
-                    orderStoreSlugs.length > 1 && "hidden",
-                  )}
-                >
+              <div className="space-y-4 rounded-xl border border-border/60 bg-surface/40 p-4">
+                <p className="text-lg font-semibold tracking-tight text-foreground">Datos del pedido</p>
+
+                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Método de pago</Label>
                     <Select
@@ -2733,12 +2689,7 @@ function AdminOrders() {
                   </div>
                 </div>
 
-                <div
-                  className={cn(
-                    "grid min-w-0 items-start gap-3 sm:grid-cols-2",
-                    orderStoreSlugs.length > 1 && "hidden",
-                  )}
-                >
+                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Método de envío</Label>
                     <Select
@@ -2786,119 +2737,6 @@ function AdminOrders() {
                   </div>
                 </div>
 
-                {orderStoreSlugs.length > 1 ? (
-                  <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
-                    <p className="font-semibold">Datos por tienda</p>
-                    {orderStoreSlugs.map((storeSlug) => {
-                      const storeItems = orderForm.items.filter(
-                        (item) => (item.brand ?? orderForm.brand) === storeSlug,
-                      );
-                      const firstItem = storeItems[0];
-                      if (!firstItem) return null;
-                      const updateStoreItems = (updates: Partial<EditableOrderItem>) =>
-                        setOrderForm({
-                          ...orderForm,
-                          items: orderForm.items.map((item) =>
-                            (item.brand ?? orderForm.brand) === storeSlug
-                              ? { ...item, ...updates }
-                              : item,
-                          ),
-                        });
-                      return (
-                        <div key={storeSlug} className="rounded-xl border border-border/60 p-3">
-                          <p className="mb-3 text-sm font-medium">
-                            {brands[storeSlug]?.name ?? storeSlug}
-                          </p>
-                          <div className="grid gap-3 sm:grid-cols-4">
-                            <div>
-                              <Label>Método de pago</Label>
-                              <Select
-                                value={firstItem.paymentMethod ?? ""}
-                                onValueChange={(value) =>
-                                  updateStoreItems({ paymentMethod: value })
-                                }
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Seleccionar método" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {paymentMethodOptions.map((method) => (
-                                    <SelectItem key={method} value={method}>
-                                      {method}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div>
-                              <Label>Estado de pago</Label>
-                              <Select
-                                value={firstItem.paymentStatus ?? orderForm.paymentStatus}
-                                onValueChange={(value) =>
-                                  updateStoreItems({ paymentStatus: value as PaymentStatus })
-                                }
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map(
-                                    (status) => (
-                                      <SelectItem key={status} value={status}>
-                                        {status}
-                                      </SelectItem>
-                                    ),
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div>
-                              <Label>Método de envío</Label>
-                              <Select
-                                value={firstItem.shippingMethod ?? ""}
-                                onValueChange={(value) =>
-                                  updateStoreItems({ shippingMethod: value })
-                                }
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Seleccionar método" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {shippingMethodOptions.map((method) => (
-                                    <SelectItem key={method} value={method}>
-                                      {method}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div>
-                              <Label>Estado de envío</Label>
-                              <Select
-                                value={firstItem.deliveryStatus ?? orderForm.deliveryStatus}
-                                onValueChange={(value) =>
-                                  updateStoreItems({ deliveryStatus: value as DeliveryStatus })
-                                }
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {(["Pendiente", "Enviado"] as DeliveryStatus[]).map((status) => (
-                                    <SelectItem key={status} value={status}>
-                                      {status}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
-
                 <div>
                   <Label>Observaciones</Label>
                   <Textarea
@@ -2917,8 +2755,8 @@ function AdminOrders() {
                 ) : null}
               </div>
 
-              <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
-                <p className="font-semibold">Productos</p>
+              <div className="space-y-4 rounded-xl border border-border/60 bg-surface/40 p-4">
+                <p className="text-lg font-semibold tracking-tight text-foreground">Productos</p>
                 <div className="space-y-3">
                   {orderForm.items.map((item, itemIndex) => {
                     const productSuggestions = allProducts
@@ -3009,13 +2847,7 @@ function AdminOrders() {
                         </div>
                         <div>
                           <Label>Precio</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            value={item.price * item.quantity}
-                            disabled
-                          />
+                          <Input type="number" min={0} step={0.01} value={item.price * item.quantity} disabled />
                         </div>
                         <div>
                           <Label>Número de envío</Label>
@@ -3114,7 +2946,7 @@ function AdminOrders() {
               </div>
 
               <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
-                <p className="font-semibold">Proveedor</p>
+                <p className="text-lg font-semibold tracking-tight text-foreground">Proveedor</p>
                 {Array.from(
                   new Map(
                     orderForm.items.map((item) => {

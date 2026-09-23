@@ -4005,28 +4005,10 @@ function ProductEditDialog({
           </div>
 
           <div className="order-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                 Precios
               </span>
-              <Select
-                value={selectedVariantId ?? "base"}
-                onValueChange={(value) => setSelectedVariantId(value === "base" ? null : value)}
-              >
-                <SelectTrigger className="h-8 w-48">
-                  <SelectValue placeholder="Elegir variante" />
-                </SelectTrigger>
-                <SelectContent>
-                  {!productForm.variants.length && (
-                    <SelectItem value="base">Producto base</SelectItem>
-                  )}
-                  {productForm.variants.map((variant) => (
-                    <SelectItem key={variant.id} value={variant.id}>
-                      {variant.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             {activeUsdRequired && (
               <div className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/5 p-3 text-xs text-muted-foreground">
@@ -4450,28 +4432,10 @@ function ProductEditDialog({
           </Dialog>
 
           <div className="order-4 rounded-2xl border border-border/60 bg-surface/40 p-4">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                 Características
               </span>
-              <Select
-                value={selectedVariantId ?? "base"}
-                onValueChange={(value) => setSelectedVariantId(value === "base" ? null : value)}
-              >
-                <SelectTrigger className="h-8 w-48">
-                  <SelectValue placeholder="Elegir variante" />
-                </SelectTrigger>
-                <SelectContent>
-                  {!productForm.variants.length && (
-                    <SelectItem value="base">Producto base</SelectItem>
-                  )}
-                  {productForm.variants.map((variant) => (
-                    <SelectItem key={variant.id} value={variant.id}>
-                      {variant.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="space-y-2">
@@ -4493,8 +4457,8 @@ function ProductEditDialog({
                   <Button type="button" onClick={handleAddFeature} className="whitespace-nowrap">
                     <Plus className="h-4 w-4" /> Agregar
                   </Button>
-                  <label className="inline-flex h-9 w-44 shrink-0 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
-                    <span className="truncate text-xs sm:text-sm">
+                  <label className="inline-flex h-9 min-w-[13rem] shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
+                    <span className="text-[11px] leading-none sm:text-sm">
                       Aplicar a todas las variantes
                     </span>
                     <Switch
@@ -4619,8 +4583,8 @@ function ProductEditDialog({
                     <Button type="button" onClick={handleAddInclude} className="whitespace-nowrap">
                       <Plus className="h-4 w-4" /> Agregar
                     </Button>
-                    <label className="inline-flex h-9 w-44 shrink-0 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
-                      <span className="truncate text-xs sm:text-sm">
+                    <label className="inline-flex h-9 shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
+                      <span className="text-[11px] leading-none sm:text-sm">
                         Aplicar a todas las variantes
                       </span>
                       <Switch
@@ -4729,8 +4693,8 @@ function ProductEditDialog({
                       <Check className="mr-2 size-3.5" />
                       Confirmar
                     </Button>
-                    <label className="inline-flex h-9 w-full shrink-0 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
-                      <span className="truncate text-xs sm:text-sm">
+                    <label className="inline-flex h-9 min-w-[13rem] shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
+                      <span className="text-[11px] leading-none sm:text-sm">
                         Aplicar a todas las variantes
                       </span>
                       <Switch
