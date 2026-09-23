@@ -370,9 +370,10 @@ function AdminSuppliers() {
   };
 
   const startQuickEditSupplier = (row: SupplierRow) => {
+    setExpandedSupplierKey(row.key);
     setQuickEditSupplierKey(row.key);
     setQuickEditSupplier({ name: row.name, phone: row.phone, social: row.social });
-    setQuickEditFromDetails(false);
+    setQuickEditFromDetails(true);
   };
 
   const cancelQuickEditSupplier = () => {
@@ -1300,7 +1301,7 @@ function AdminSuppliers() {
                         </TableCell>
 
                         <TableCell className="pl-5 text-center text-sm font-medium text-foreground">
-                          {isQuickEditing && !quickEditFromDetails ? (
+                          {isQuickEditing ? (
                             <Input
                               value={quickSupplier.name}
                               onChange={(event) =>
@@ -1313,7 +1314,7 @@ function AdminSuppliers() {
                           )}
                         </TableCell>
                         <TableCell className="w-36 min-w-36 text-center text-sm text-foreground">
-                          {isQuickEditing && !quickEditFromDetails ? (
+                          {isQuickEditing ? (
                             <Input
                               value={quickSupplier.phone}
                               onChange={(event) =>
@@ -1329,7 +1330,7 @@ function AdminSuppliers() {
                           )}
                         </TableCell>
                         <TableCell className="text-center text-sm text-foreground">
-                          {isQuickEditing && !quickEditFromDetails ? (
+                          {isQuickEditing ? (
                             <Input
                               value={quickSupplier.social}
                               onChange={(event) =>
@@ -1367,9 +1368,7 @@ function AdminSuppliers() {
                         <TableCell className="text-center text-sm text-foreground">
                           {row.soldQuantity}
                         </TableCell>
-                        {!selectionMode &&
-                          (!hasExpandedSupplier ||
-                            (quickEditSupplierKey !== null && !quickEditFromDetails)) && (
+                        {!selectionMode && !hasExpandedSupplier && (
                           <TableCell
                             className={cn(
                               "whitespace-nowrap pr-5 text-center",
@@ -1452,7 +1451,7 @@ function AdminSuppliers() {
                         <TableRow>
                           <TableCell
                             colSpan={selectionMode || hasExpandedSupplier ? 6 : 7}
-                            className="w-full bg-muted/30 p-4 text-left"
+                            className="w-full bg-muted/30 p-0 text-left"
                           >
                             <>
                               <p className="mb-2 pt-6 font-medium">Productos</p>
@@ -1497,7 +1496,7 @@ function AdminSuppliers() {
                                     : startQuickEditSupplier(row)
                                 }
                                 className={cn(
-                                  "h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground",
+                                  "h-7 gap-1 bg-transparent px-2 text-xs",
                                   isQuickEditing &&
                                     "text-green-600 hover:bg-green-100/80 hover:text-green-700",
                                 )}
@@ -1518,7 +1517,7 @@ function AdminSuppliers() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={cancelQuickEditSupplier}
-                                  className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                                  className="h-7 gap-1 bg-transparent px-2 text-xs text-destructive hover:bg-destructive/10"
                                 >
                                   <X className="size-3.5" /> Cancelar
                                 </Button>
