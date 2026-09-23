@@ -2203,7 +2203,7 @@ function AdminOrders() {
                 <TableHead className="w-18">Gastos</TableHead>
                 <TableHead className="w-20">Total</TableHead>
                 <TableHead className="w-18">Ganancias</TableHead>
-                {!selectionMode && !hasExpandedOrder && (
+                {!selectionMode && (!hasExpandedOrder || quickEditOrderId !== null) && (
                   <TableHead className="w-80 min-w-80 text-left">Acciones</TableHead>
                 )}
               </TableRow>
@@ -2410,7 +2410,7 @@ function AdminOrders() {
                       <TableCell>{formatPrice(order.expenses)}</TableCell>
                       <TableCell>{formatPrice(order.total)}</TableCell>
                       <TableCell>{formatPrice(order.profit)}</TableCell>
-                      {!selectionMode && !hasExpandedOrder && (
+                      {!selectionMode && (!hasExpandedOrder || isQuickEditing) && (
                         <TableCell className="w-80 min-w-80 text-left">
                           <div className="flex min-w-max flex-nowrap items-center justify-start gap-0.5 overflow-visible">
                             {isQuickEditing ? (
