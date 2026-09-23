@@ -899,37 +899,49 @@ function CustomerRow({
       {open && (
         <TableRow>
           <TableCell colSpan={5} className="p-2">
-            <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {customer.orders.slice(0, 9).map((o) => (
+            <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-2 sm:grid-cols-2">
+              {customer.orders.slice(0, 6).map((o) => (
                 <div
                   key={o.id}
                   className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
                 >
-                  <div className="flex min-w-0 w-full items-center gap-2">
+                  <div className="flex w-full min-w-0 flex-col gap-2">
                     <button
                       type="button"
-                      className="min-w-0 truncate font-medium text-primary underline-offset-4 hover:underline"
+                      className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
                       onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
                     >
-                      {o.id}
+                      Pedido {o.id}
                     </button>
-                    <div className="shrink-0 text-[11px] text-muted-foreground">
-                      Fecha de compra: {formatPurchaseDate(o.date)}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                        Fecha de compra: {formatPurchaseDate(o.date)}
+                      </span>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setDocumentsOrder(o);
-                      }}
-                    >
-                      <Paperclip className="size-3.5" /> Archivos adjuntos
-                    </Button>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                      >
+                        Ver pedido
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDocumentsOrder(o);
+                        }}
+                      >
+                        <Paperclip className="size-3.5" /> Archivos adjuntos
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
-              {customer.orders.length > 9 ? (
+              {customer.orders.length > 6 ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -957,14 +969,14 @@ function CustomerRow({
                 className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
               >
                 <div className="flex w-full min-w-0 flex-col gap-2">
-                  <div className="flex min-w-0 items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      className="min-w-0 truncate font-medium text-primary underline-offset-4 hover:underline"
-                      onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
-                    >
-                      {o.id}
-                    </button>
+                  <button
+                    type="button"
+                    className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                    onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                  >
+                    Pedido {o.id}
+                  </button>
+                  <div className="flex items-center justify-between gap-2">
                     <span className="shrink-0 text-[11px] text-muted-foreground">
                       {formatPurchaseDate(o.date)}
                     </span>
