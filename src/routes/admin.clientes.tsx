@@ -901,13 +901,19 @@ function CustomerRow({
         <TableRow>
           <TableCell colSpan={5} className="p-2">
             <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-2 sm:grid-cols-2">
-              {customer.orders.slice(0, 5).map((o) => (
-                <div
-                  key={o.id}
-                  className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
-                >
-                  <div className="flex w-full min-w-0 flex-col gap-1.5">
-                    <div className="flex items-center justify-between gap-2">
+              {customer.orders.slice(0, 5).map((o, index, visibleOrders) => {
+                const isLastVisible = index === visibleOrders.length - 1 && customer.orders.length > 5;
+
+                return (
+                  <div
+                    key={o.id}
+                    className={
+                      isLastVisible
+                        ? "flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm sm:col-span-2"
+                        : "flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
+                    }
+                  >
+                    <div className="flex w-full min-w-0 items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
                         <button
                           type="button"
@@ -941,21 +947,21 @@ function CustomerRow({
                         >
                           <Paperclip className="size-3.5" /> Archivos adjuntos
                         </Button>
+                        {isLastVisible ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-8 px-3 py-1"
+                            onClick={() => setAllPurchasesOpen(true)}
+                          >
+                            <Plus className="size-3.5" /> Ver más
+                          </Button>
+                        ) : null}
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {customer.orders.length > 5 ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="col-span-full min-h-10 rounded-xl"
-                  onClick={() => setAllPurchasesOpen(true)}
-                >
-                  <Plus className="size-3.5" /> Ver más
-                </Button>
-              ) : null}
+                );
+              })}
             </div>
           </TableCell>
         </TableRow>
