@@ -383,11 +383,13 @@ function AdminSuppliers() {
       .filter((row): row is SupplierRow => Boolean(row));
     const firstRow = queue[0];
     if (!firstRow) return;
+    setSelectionMode(true);
     setQuickEditSupplierQueue(queue.slice(1).map((row) => row.key));
     startQuickEditSupplier(firstRow);
   };
 
   const cancelQuickEditSupplier = () => {
+    setSelectionMode(selectedSupplierKeys.length > 0);
     setQuickEditSupplierKey(null);
     setQuickEditSupplier(null);
     setQuickEditFromDetails(false);
@@ -1205,33 +1207,54 @@ function AdminSuppliers() {
           </div>
           {selectedSupplierKeys.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" variant="outline" onClick={startBulkQuickEditSuppliers}>
-                <Edit3 className="size-4" /> Editar rápido
-              </Button>
-              <Button size="sm" variant="outline" onClick={editSelectedSupplier}>
-                <Pencil className="size-4" /> Editar
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => {
-                  if (window.confirm("¿Eliminar proveedores seleccionados?")) {
-                    deleteSelectedSuppliers();
-                  }
-                }}
-              >
-                <Trash2 className="size-4" /> Eliminar
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setSelectionMode(false);
-                  setSelectedSupplierKeys([]);
-                }}
-              >
-                <X className="size-4" /> Cancelar
-              </Button>
+              {quickEditSupplierKey !== null ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => {
+                      if (quickEditSupplierKey && quickEditSupplier) {
+                        saveSupplierChanges(quickEditSupplierKey, quickEditSupplier);
+                      }
+                    }}
+                  >
+                    <Check className="size-4" /> Guardar
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={cancelQuickEditSupplier}>
+                    <X className="size-4" /> Cancelar
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button size="sm" variant="outline" onClick={startBulkQuickEditSuppliers}>
+                    <Edit3 className="size-4" /> Editar rápido
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={editSelectedSupplier}>
+                    <Pencil className="size-4" /> Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => {
+                      if (window.confirm("¿Eliminar proveedores seleccionados?")) {
+                        deleteSelectedSuppliers();
+                      }
+                    }}
+                  >
+                    <Trash2 className="size-4" /> Eliminar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectionMode(false);
+                      setSelectedSupplierKeys([]);
+                    }}
+                  >
+                    <X className="size-4" /> Cancelar
+                  </Button>
+                </>
+              )}
             </div>
           ) : null}
         </div>
