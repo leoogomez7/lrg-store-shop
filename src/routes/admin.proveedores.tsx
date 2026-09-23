@@ -369,11 +369,11 @@ function AdminSuppliers() {
     setNewSupplierOpen(true);
   };
 
-  const startQuickEditSupplier = (row: SupplierRow) => {
-    setExpandedSupplierKey(row.key);
+  const startQuickEditSupplier = (row: SupplierRow, fromDetails = false) => {
+    setExpandedSupplierKey(fromDetails ? row.key : null);
     setQuickEditSupplierKey(row.key);
     setQuickEditSupplier({ name: row.name, phone: row.phone, social: row.social });
-    setQuickEditFromDetails(true);
+    setQuickEditFromDetails(fromDetails);
   };
 
   const cancelQuickEditSupplier = () => {
@@ -1454,12 +1454,12 @@ function AdminSuppliers() {
                             className="w-full bg-muted/30 p-0 text-left"
                           >
                             <>
-                              <p className="mb-2 pt-6 font-medium">Productos</p>
-                              <div className="space-y-1.5">
+                                <p className="mb-2 px-5 pt-6 font-medium">Productos</p>
+                              <div className="space-y-1.5 px-5">
                                   {sortedProducts.slice(0, 8).map((product) => (
                                     <div
                                       key={product.name}
-                                      className="flex items-center justify-start gap-4 rounded-md bg-muted px-2.5 py-1.5 text-xs text-foreground"
+                                      className="flex items-center justify-start gap-4 px-2.5 py-1.5 text-xs text-foreground"
                                     >
                                       <span className="min-w-0 wrap-break-word">{product.name}</span>
                                       <span className="shrink-0 text-muted-foreground">
@@ -1493,12 +1493,12 @@ function AdminSuppliers() {
                                 onClick={() =>
                                   isQuickEditing
                                     ? saveSupplierChanges(row.key, quickSupplier)
-                                    : startQuickEditSupplier(row)
+                                    : startQuickEditSupplier(row, true)
                                 }
                                 className={cn(
-                                  "h-7 gap-1 bg-transparent px-2 text-xs",
+                                  "h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground",
                                   isQuickEditing &&
-                                    "text-green-600 hover:bg-green-100/80 hover:text-green-700",
+                                    "border-transparent bg-transparent px-2 text-green-600 hover:bg-green-100/80 hover:text-green-700",
                                 )}
                               >
                                 {isQuickEditing ? (
