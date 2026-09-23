@@ -2206,7 +2206,7 @@ function AdminOrders() {
                   <TableHead
                     className={cn(
                       "w-0 min-w-0 max-w-0 overflow-visible px-0 text-left",
-                      hasExpandedOrder && quickEditOrderId === null && "invisible",
+                      hasExpandedOrder && quickEditOrderId === null && "hidden",
                     )}
                   >
                     <span className="block min-w-96 pl-2">Acciones</span>
@@ -2420,7 +2420,7 @@ function AdminOrders() {
                         <TableCell
                           className={cn(
                             "w-0 min-w-0 max-w-0 overflow-visible px-0 text-left",
-                            hasExpandedOrder && !isQuickEditing && "invisible",
+                            hasExpandedOrder && !isQuickEditing && "hidden",
                           )}
                         >
                           <div className="flex min-w-96 flex-nowrap items-center justify-start gap-0.5 overflow-visible pl-2">
