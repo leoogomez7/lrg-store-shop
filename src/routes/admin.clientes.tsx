@@ -905,7 +905,7 @@ function CustomerRow({
                   key={o.id}
                   className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
                 >
-                  <div className="flex w-full min-w-0 flex-col gap-2">
+                  <div className="flex w-full min-w-0 flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <button
                         type="button"
@@ -920,6 +920,7 @@ function CustomerRow({
                           variant="outline"
                           size="sm"
                           onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                          className="h-8 px-3 py-1"
                         >
                           Ver pedido
                         </Button>
@@ -927,6 +928,7 @@ function CustomerRow({
                           type="button"
                           variant="outline"
                           size="sm"
+                          className="h-8 px-3 py-1"
                           onClick={() => {
                             setDocumentsOrder(o);
                           }}
@@ -970,7 +972,7 @@ function CustomerRow({
                 key={o.id}
                 className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
               >
-                <div className="flex w-full min-w-0 flex-col gap-2">
+                <div className="flex w-full min-w-0 flex-col gap-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <button
                       type="button"
@@ -985,6 +987,7 @@ function CustomerRow({
                         variant="outline"
                         size="sm"
                         onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                        className="h-8 px-3 py-1"
                       >
                         Ver pedido
                       </Button>
@@ -992,7 +995,7 @@ function CustomerRow({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="shrink-0 px-2"
+                        className="h-8 px-3 py-1"
                         onClick={() => {
                           setAllPurchasesOpen(false);
                           setDocumentsOrder(o);
