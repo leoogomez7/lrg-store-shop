@@ -704,15 +704,15 @@ function AdminClients() {
           stickyHeader
           stickyScrollbar
           containerClassName="overflow-x-auto overflow-y-visible"
-          className="w-full text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
+          className="w-full table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Total de pedidos</TableHead>
-              <TableHead>Total gastado</TableHead>
-              <TableHead>Detalles</TableHead>
+              <TableHead className="w-[28%]">Cliente</TableHead>
+              <TableHead className="w-[28%]">Email</TableHead>
+              <TableHead className="w-[16%]">Total de pedidos</TableHead>
+              <TableHead className="w-[18%]">Total gastado</TableHead>
+              <TableHead className="w-[10%]">Detalles</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
