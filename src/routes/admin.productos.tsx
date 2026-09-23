@@ -3617,7 +3617,10 @@ function ProductEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-4 shadow-2xl sm:w-[calc(100vw-2rem)] sm:p-6">
+      <DialogContent
+        className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-4 pr-2 shadow-2xl sm:w-[calc(100vw-2rem)] sm:p-6"
+        style={{ scrollbarGutter: "stable" }}
+      >
         <DialogHeader className="space-y-2">
           <div className="flex items-center justify-between gap-3">
             <DialogTitle>{modeTitle}</DialogTitle>
@@ -4674,26 +4677,26 @@ function ProductEditDialog({
                   <Textarea
                     value={descriptionDraft}
                     rows={3}
-                    className="flex-1"
+                    className="min-h-[90px] flex-1"
                     onChange={(event) => {
                       setDescriptionDraft(event.target.value);
                       setDescriptionConfirmed(false);
                     }}
                     placeholder="Descripción de esta variante"
                   />
-                  <div className="flex flex-wrap gap-2 sm:w-44 sm:flex-col">
+                  <div className="flex w-full flex-col gap-2 sm:w-[15rem]">
                     <Button
                       type="button"
                       size="sm"
                       variant="default"
                       onClick={confirmDescription}
                       disabled={descriptionDraft === descriptionInitialRef.current}
-                      className="text-sm"
+                      className="h-10 w-full text-sm"
                     >
                       <Check className="mr-2 size-3.5" />
                       Confirmar
                     </Button>
-                    <label className="inline-flex h-9 min-w-[13rem] shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
+                    <label className="inline-flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
                       <span className="text-[11px] leading-none sm:text-sm">
                         Aplicar a todas las variantes
                       </span>
