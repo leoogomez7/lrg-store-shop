@@ -2019,33 +2019,7 @@ function AdminOrders() {
         ) : null}
       </div>
 
-      <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
-        <div className={cn("flex w-10 shrink-0 flex-col items-center self-stretch bg-transparent py-3")}>
-          <div className="mb-3 h-6" />
-          {visibleResults.map((order) => (
-            <div key={order.id} className="flex min-h-[3.25rem] w-full items-center justify-center py-2">
-              <Checkbox
-                className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                checked={selectedOrderIds.includes(order.id)}
-                onClick={(event) => event.stopPropagation()}
-                onCheckedChange={(checked) => {
-                  const isChecked = checked === true;
-                  setSelectedOrderIds((current) => {
-                    const next = isChecked
-                      ? current.includes(order.id)
-                        ? current
-                        : [...current, order.id]
-                      : current.filter((id) => id !== order.id);
-                    setSelectionMode(next.length > 0);
-                    return next;
-                  });
-                }}
-                aria-label={`Seleccionar pedido ${order.id}`}
-              />
-            </div>
-          ))}
-        </div>
-
+      <div className="mt-4 rounded-2xl">
         <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
           <Table
             hideScrollbarOnMobile
@@ -2063,6 +2037,7 @@ function AdminOrders() {
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
+                <TableHead className="w-10 px-1"> </TableHead>
                 <TableHead className="w-24">Pedido</TableHead>
                 <TableHead className="w-20">Fecha</TableHead>
                 <TableHead className="w-24">Estado de pago</TableHead>
@@ -2128,6 +2103,29 @@ function AdminOrders() {
                             : undefined
                       }
                     >
+                      <TableCell className="w-10 px-1">
+                        <div className="flex items-center justify-center">
+                          <Checkbox
+                            className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                            checked={selectedOrderIds.includes(order.id)}
+                            onClick={(event) => event.stopPropagation()}
+                            onCheckedChange={(checked) => {
+                              const isChecked = checked === true;
+                              setSelectedOrderIds((current) => {
+                                const next = isChecked
+                                  ? current.includes(order.id)
+                                    ? current
+                                    : [...current, order.id]
+                                  : current.filter((id) => id !== order.id);
+                                setSelectionMode(next.length > 0);
+                                return next;
+                              });
+                            }}
+                            aria-label={`Seleccionar pedido ${order.id}`}
+                          />
+                        </div>
+                      </TableCell>
+
                       <TableCell className="w-24 text-center text-sm font-medium">
                         <div className="flex min-w-0 items-center justify-center gap-1 text-center">
                           <div className="flex min-w-0 flex-col items-center gap-1">
