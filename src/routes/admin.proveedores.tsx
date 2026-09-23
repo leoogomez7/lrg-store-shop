@@ -1497,7 +1497,7 @@ function AdminSuppliers() {
                                     : startQuickEditSupplier(row)
                                 }
                                 className={cn(
-                                  "h-7 gap-1 px-2 text-xs",
+                                  "h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground",
                                   isQuickEditing &&
                                     "text-green-600 hover:bg-green-100/80 hover:text-green-700",
                                 )}
@@ -1526,23 +1526,23 @@ function AdminSuppliers() {
                                 <>
                                   <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
                                     onClick={() => openSupplierEditor(row)}
-                                    className="h-7 gap-1 px-2 text-xs"
+                                    className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground"
                                   >
                                     <Pencil className="size-3.5" /> Editar
                                   </Button>
                                   <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
                                     onClick={() => {
                                       if (window.confirm(`¿Eliminar el proveedor "${row.name}"?`)) {
                                         deleteSupplier(row.key);
                                       }
                                     }}
-                                    className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                                    className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs text-destructive shadow-none hover:bg-destructive/10"
                                   >
                                     <Trash2 className="size-3.5" /> Eliminar
                                   </Button>
@@ -1554,6 +1554,7 @@ function AdminSuppliers() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => setExpandedSupplierKey(null)}
+                                  className="h-8 gap-2 rounded-md px-3 text-xs"
                                 >
                                   <EyeOff className="size-4" /> Ocultar
                                 </Button>
