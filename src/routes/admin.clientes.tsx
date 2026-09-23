@@ -900,7 +900,7 @@ function CustomerRow({
       {open && (
         <TableRow>
           <TableCell colSpan={5} className="p-2">
-            <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="mx-auto grid w-full max-w-5xl grid-cols-1 items-stretch gap-2 sm:grid-cols-2">
               {customer.orders.slice(0, 4).map((o) => (
                 <div
                   key={o.id}
@@ -947,7 +947,7 @@ function CustomerRow({
 
               {customer.orders[4] ? (
                 <>
-                  <div className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm">
+                  <div className="flex min-h-[52px] min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm">
                     <div className="flex w-full min-w-0 items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
                         <button
@@ -994,7 +994,7 @@ function CustomerRow({
                     <Button
                       type="button"
                       variant="outline"
-                      className="flex min-h-10 items-center justify-center rounded-xl border border-border/60 px-3 py-2 text-sm"
+                      className="flex min-h-[52px] items-center justify-center rounded-xl border border-border/60 px-3 py-2 text-sm"
                       onClick={() => setAllPurchasesOpen(true)}
                     >
                       <Plus className="size-3.5" /> Ver más
