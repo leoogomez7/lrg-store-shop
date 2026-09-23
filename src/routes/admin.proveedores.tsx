@@ -329,6 +329,7 @@ function AdminSuppliers() {
   };
 
   const startQuickEditSupplier = (row: SupplierRow) => {
+    setExpandedSupplierKey(null);
     setQuickEditSupplierKey(row.key);
     setQuickEditSupplier({ name: row.name, phone: row.phone, social: row.social });
   };
@@ -1194,7 +1195,7 @@ function AdminSuppliers() {
                   <TableHead className="w-40 min-w-40">Red social</TableHead>
                   <TableHead className="w-40 min-w-40">Total vendido</TableHead>
                   <TableHead className="w-36 min-w-36">Cantidad vendida</TableHead>
-                  {!selectionMode && !hasExpandedSupplier && (
+                  {!selectionMode && (!hasExpandedSupplier || quickEditSupplierKey !== null) && (
                     <TableHead className="w-108 min-w-108 pr-5">Acciones</TableHead>
                   )}
                 </TableRow>
@@ -1223,6 +1224,9 @@ function AdminSuppliers() {
                             )
                           )
                             return;
+                          if (quickEditSupplierKey !== null && quickEditSupplierKey !== row.key) {
+                            cancelQuickEditSupplier();
+                          }
                           setExpandedSupplierKey(isExpanded ? null : row.key);
                         }}
                         className={
@@ -1319,7 +1323,7 @@ function AdminSuppliers() {
                         <TableCell className="text-center text-sm text-foreground">
                           {row.soldQuantity}
                         </TableCell>
-                        {!selectionMode && !hasExpandedSupplier && (
+                        {!selectionMode && (!hasExpandedSupplier || quickEditSupplierKey !== null) && (
                           <TableCell
                             className="w-108 min-w-108 whitespace-nowrap pr-5 text-center"
                             onClick={(event) => event.stopPropagation()}

@@ -1279,11 +1279,17 @@ function AdminOrders() {
           shippingMethod: item.shippingMethod ?? order.shippingMethod,
           paymentStatus: item.paymentStatus ?? getPaymentStatus(order.status),
           deliveryStatus: item.deliveryStatus ?? getDeliveryStatus(order.status),
-          supplier: getSupplierForItem(item.name)?.supplier
+          supplier: getSupplierForItem(item.name, item.productId, item.variantId)?.supplier
             ? {
-                name: getSupplierForItem(item.name)?.supplier?.name ?? "",
-                phone: getSupplierForItem(item.name)?.supplier?.phone ?? "",
-                social: getSupplierForItem(item.name)?.supplier?.social ?? "",
+                name:
+                  getSupplierForItem(item.name, item.productId, item.variantId)?.supplier?.name ??
+                  "",
+                phone:
+                  getSupplierForItem(item.name, item.productId, item.variantId)?.supplier?.phone ??
+                  "",
+                social:
+                  getSupplierForItem(item.name, item.productId, item.variantId)?.supplier?.social ??
+                  "",
               }
             : undefined,
         };
@@ -1596,19 +1602,10 @@ function AdminOrders() {
       saveOrders(nextOrders);
       return nextOrders;
     });
-    toast.success("Pedido guardado");
-    const nextBulkOrderId = bulkOrderEditQueue[bulkOrderEditPosition + 1];
-    if (nextBulkOrderId) {
-      const nextOrder =
-        editableOrders.find((order) => order.id === nextBulkOrderId) ??
-        orders.find((order) => order.id === nextBulkOrderId);
-      if (nextOrder) {
-        setBulkOrderEditPosition((current) => current + 1);
-        openEditOrderDialog(nextOrder);
-        return;
-      }
-    }
-    closeOrderEditor();
+    setOrderForm(orderToSave);
+    setIsCreatingOrder(false);
+    initialOrderFormSnapshot.current = JSON.stringify(orderToSave);
+    toast.success("Cambios guardados");
   };
 
   const changeSelectedOrderStore = (store: BrandSlug) => {
@@ -1700,14 +1697,20 @@ function AdminOrders() {
     openEditOrderDialog(nextOrder);
   };
 
-  const getSupplierForItem = (itemName: string) => {
+  const getSupplierForItem = (itemName: string, productId?: string, variantId?: string) => {
     const normalizedName = itemName.trim().toLowerCase();
     const product = allProducts.find(
       (candidate) =>
+        candidate.id === productId ||
         candidate.name.toLowerCase() === normalizedName ||
         candidate.variants?.some((variant) => variant.name.toLowerCase() === normalizedName),
     );
-    return product ? { productName: product.name, supplier: product.supplier } : undefined;
+    const variant = product?.variants?.find(
+      (candidate) => candidate.id === variantId || candidate.name.toLowerCase() === normalizedName,
+    );
+    return product
+      ? { productName: product.name, supplier: variant?.supplier ?? product.supplier }
+      : undefined;
   };
 
   return (
@@ -2496,9 +2499,9 @@ function AdminOrders() {
                             <p className="font-medium">Detalle del pedido</p>
 
                             <div className="space-y-4">
-                              <div className="flex items-center justify-between gap-4">
-                                <p className="font-medium">Cliente</p>
-                                <p className="font-medium">Productos comprados</p>
+                              <div className="grid gap-6 lg:grid-cols-2">
+                                <p className="text-center font-medium">Cliente</p>
+                                <p className="text-center font-medium">Productos comprados</p>
                               </div>
 
                               <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:items-start">
@@ -2573,6 +2576,11 @@ function AdminOrders() {
                                         candidate.id === item.productId ||
                                         candidate.name === item.name,
                                     );
+                                    const supplier = getSupplierForItem(
+                                      item.name,
+                                      item.productId,
+                                      item.variantId,
+                                    )?.supplier;
                                     const itemBrand = item.brand ?? product?.brand ?? order.brand;
                                     return (
                                       <li
@@ -2586,6 +2594,9 @@ function AdminOrders() {
                                           </p>
                                           <p className="text-xs text-muted-foreground">
                                             {item.quantity} × {formatPrice(item.price)}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            Proveedor: {supplier?.name ?? "Sin proveedor asignado"}
                                           </p>
                                         </div>
                                         <span className="shrink-0 text-right font-medium">
@@ -2760,7 +2771,7 @@ function AdminOrders() {
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeOrderEditor()}>
         <DialogContent
           key={isCreatingOrder ? "new-order-dialog" : "edit-order-dialog"}
-          className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-hidden p-4 font-sans shadow-none md:overflow-y-auto sm:w-[calc(100vw-2rem)] sm:p-6"
+          className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-hidden p-4 shadow-none md:overflow-y-auto sm:w-[calc(100vw-2rem)] sm:p-6"
         >
           <DialogHeader>
             <div className="flex items-center justify-between gap-3">
@@ -2961,7 +2972,7 @@ function AdminOrders() {
                     className="inline-flex items-center gap-2"
                   >
                     <Check className="size-4" />
-                    Confirmar edición
+                    Confirmar cambios
                   </Button>
                 </div>
 
@@ -2985,6 +2996,11 @@ function AdminOrders() {
                     const selectedProduct = allProducts.find(
                       (product) => product.name.toLowerCase() === item.name.trim().toLowerCase(),
                     );
+                    const selectedSupplier = getSupplierForItem(
+                      item.name,
+                      item.productId,
+                      item.variantId,
+                    )?.supplier;
                     const canEditProductName = !item.confirmed;
                     const hasUnlimitedStock = Boolean(selectedProduct?.stockUnlimited);
                     const exceedsStock = Boolean(
@@ -3086,7 +3102,7 @@ function AdminOrders() {
                           <Label>Proveedor</Label>
                           <Input
                             value={
-                              item.supplier?.name ?? selectedProduct?.supplier?.name ?? ""
+                              item.supplier?.name ?? selectedSupplier?.name ?? ""
                             }
                             placeholder="-"
                             disabled
