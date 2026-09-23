@@ -370,7 +370,6 @@ function AdminSuppliers() {
   };
 
   const startQuickEditSupplier = (row: SupplierRow) => {
-    setExpandedSupplierKey(null);
     setQuickEditSupplierKey(row.key);
     setQuickEditSupplier({ name: row.name, phone: row.phone, social: row.social });
     setQuickEditFromDetails(false);
