@@ -1401,16 +1401,21 @@ function AdminOrders() {
     const nextItems = [...orderForm.items];
     const currentItem = nextItems[index];
     if (!currentItem) return;
+    const supplier = getSupplierForItem(
+      name,
+      product?.parentId ?? product?.id,
+      product?.variantId,
+    )?.supplier;
     nextItems[index] = {
       ...currentItem,
       name,
       brand: product?.brand ?? selectedOrderStore,
       price: product?.price ?? 0,
-      supplier: product?.supplier
+      supplier: supplier
         ? {
-            name: product.supplier.name,
-            phone: product.supplier.phone,
-            social: product.supplier.social,
+            name: supplier.name,
+            phone: supplier.phone,
+            social: supplier.social,
           }
         : undefined,
       stock: product?.stockUnlimited ? undefined : product?.stock,
@@ -2614,15 +2619,8 @@ function AdminOrders() {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => startQuickEditOrder(order)}
-                              >
-                                <Edit3 className="size-4" /> Editar rápido
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
                                 onClick={() => setReceiptsOrder(order)}
+                                className="h-8 gap-2 rounded-md px-3 text-xs"
                               >
                                 <FileText className="size-4" /> Comprobantes de pago del cliente
                               </Button>
@@ -2634,6 +2632,7 @@ function AdminOrders() {
                                   setDocumentsOrder(order);
                                   setPendingAttachments([]);
                                 }}
+                                className="h-8 gap-2 rounded-md px-3 text-xs"
                               >
                                 <Paperclip className="size-4" /> Subir archivos para el cliente
                               </Button>
@@ -2641,7 +2640,17 @@ function AdminOrders() {
                                 type="button"
                                 variant="outline"
                                 size="sm"
+                                onClick={() => startQuickEditOrder(order)}
+                                className="h-8 gap-2 rounded-md px-3 text-xs"
+                              >
+                                <Edit3 className="size-4" /> Editar rápido
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
                                 onClick={() => openEditOrderDialog(order)}
+                                className="h-8 gap-2 rounded-md px-3 text-xs"
                               >
                                 <Pencil className="size-4" /> Editar
                               </Button>
@@ -2658,6 +2667,7 @@ function AdminOrders() {
                                     onConfirm: () => handleDeleteOrder(order),
                                   })
                                 }
+                                className="h-8 gap-2 rounded-md px-3 text-xs text-destructive hover:bg-destructive/10"
                               >
                                 <Trash2 className="size-4" /> Eliminar
                               </Button>
@@ -2666,6 +2676,7 @@ function AdminOrders() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setExpandedOrderId(null)}
+                                className="h-8 gap-2 rounded-md px-3 text-xs"
                               >
                                 <EyeOff className="size-4" /> Ocultar
                               </Button>

@@ -40,6 +40,7 @@ export function expandCatalogProducts(productList: Product[]) {
         comisionCurrency: variant.comisionCurrency ?? product.comisionCurrency ?? "ARS",
         gastos: variant.gastos ?? product.gastos,
         gastosCurrency: variant.gastosCurrency ?? product.gastosCurrency ?? "ARS",
+        supplier: variant.supplier ?? product.supplier,
         description: variant.description || product.description,
         stock: variant.stock,
         stockUnlimited: variant.stockUnlimited ?? product.stockUnlimited ?? false,
