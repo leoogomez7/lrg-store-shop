@@ -630,12 +630,13 @@ function AdminOrders() {
 
   const cancelQuickEditOrder = useCallback(() => {
     const queuedOrderId = bulkQuickEditOrderQueue[0];
+    const nextQueue = bulkQuickEditOrderQueue.slice(1);
     const nextQuickEditOrder = queuedOrderId
       ? editableOrders.find((order) => order.id === queuedOrderId)
       : null;
 
     if (queuedOrderId && nextQuickEditOrder) {
-      setBulkQuickEditOrderQueue((current) => current.slice(1));
+      setBulkQuickEditOrderQueue(nextQueue);
       setQuickEditOrderId(null);
       setQuickEditOrderForm((current) => {
         const next = { ...current };
@@ -645,10 +646,12 @@ function AdminOrders() {
         }
         return next;
       });
+      setSelectionMode(true);
       startQuickEditOrder(nextQuickEditOrder);
       return;
     }
 
+    setBulkQuickEditOrderQueue([]);
     setQuickEditOrderId(null);
     setQuickEditOrderForm((current) => {
       const next = { ...current };
@@ -658,7 +661,8 @@ function AdminOrders() {
       }
       return next;
     });
-  }, [bulkQuickEditOrderQueue, editableOrders, quickEditOrderId]);
+    setSelectionMode(selectedOrderIds.length > 0);
+  }, [bulkQuickEditOrderQueue, editableOrders, quickEditOrderId, selectedOrderIds.length]);
 
   const saveQuickEditOrder = async (order: Order) => {
     const draft = quickEditOrderForm[order.id];
@@ -698,11 +702,8 @@ function AdminOrders() {
       return nextOrders;
     });
 
-    const queuedOrderId = bulkQuickEditOrderQueue[0];
-    const nextQuickEditOrder = queuedOrderId
-      ? editableOrders.find((candidate) => candidate.id === queuedOrderId)
-      : null;
-
+    const nextQueue = bulkQuickEditOrderQueue.slice(1);
+    setBulkQuickEditOrderQueue(nextQueue);
     setQuickEditOrderId(null);
     setQuickEditOrderForm((current) => {
       const next = { ...current };
@@ -711,11 +712,16 @@ function AdminOrders() {
       return next;
     });
 
-    if (queuedOrderId && nextQuickEditOrder) {
-      setBulkQuickEditOrderQueue((current) => current.slice(1));
-      startQuickEditOrder(nextQuickEditOrder);
-      return;
+    if (nextQueue.length > 0) {
+      const nextQuickEditOrder = editableOrders.find((candidate) => candidate.id === nextQueue[0]);
+      if (nextQuickEditOrder) {
+        setSelectionMode(true);
+        startQuickEditOrder(nextQuickEditOrder);
+        return;
+      }
     }
+
+    setSelectionMode(selectedOrderIds.length > 0);
   };
 
   const addDocuments = async (files: FileList | null) => {

@@ -452,14 +452,21 @@ function AdminSuppliers() {
     setQuickEditSupplierKey(null);
     setQuickEditSupplier(null);
     setQuickEditFromDetails(false);
-    const nextQuickEditKey = quickEditSupplierQueue[0];
-    if (closeEditor && nextQuickEditKey) {
-      setQuickEditSupplierQueue((current) => current.slice(1));
-      const nextRow = rows.find((row) => row.key === nextQuickEditKey);
+
+    const nextQueue = quickEditSupplierQueue.slice(1);
+    setQuickEditSupplierQueue(nextQueue);
+    if (closeEditor && nextQueue.length > 0) {
+      setSelectionMode(true);
+      const nextRow = rows.find((row) => row.key === nextQueue[0]);
       if (nextRow) startQuickEditSupplier(nextRow);
+      return;
+    }
+
+    if (closeEditor) {
+      setSelectionMode(selectedSupplierKeys.length > 0);
+      setEditingSupplierKey(null);
     }
     toast.success("Proveedor guardado");
-    if (closeEditor) setEditingSupplierKey(null);
   };
 
   const deleteSupplier = (supplierKey: string) => {
@@ -1266,23 +1273,17 @@ function AdminSuppliers() {
               alwaysShowScrollbarOnDesktop
               stickyHeader
               stickyScrollbar
-              containerClassName={cn(
-                "overflow-y-visible",
-                hasExpandedSupplier ? "overflow-x-hidden" : "overflow-x-auto",
-              )}
-              className={cn(
-                "w-full table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1",
-                hasExpandedSupplier ? "min-w-0" : selectionMode ? "min-w-200" : "min-w-312",
-              )}
+              containerClassName="overflow-x-hidden overflow-y-visible"
+              className="w-full min-w-0 table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1"
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
                   <TableHead className="w-10 px-1"> </TableHead>
-                  <TableHead className="w-48 min-w-48 pl-5">Nombre</TableHead>
-                  <TableHead className="w-36 min-w-36">Celular</TableHead>
-                  <TableHead className="w-40 min-w-40">Red social</TableHead>
-                  <TableHead className="w-40 min-w-40">Total vendido</TableHead>
-                  <TableHead className="w-36 min-w-36">Cantidad vendida</TableHead>
+                  <TableHead className="w-[24%] min-w-[150px] pl-5">Nombre</TableHead>
+                  <TableHead className="w-[16%] min-w-[110px]">Celular</TableHead>
+                  <TableHead className="w-[18%] min-w-[120px]">Red social</TableHead>
+                  <TableHead className="w-[22%] min-w-[140px]">Total vendido</TableHead>
+                  <TableHead className="w-[20%] min-w-[120px]">Cantidad vendida</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

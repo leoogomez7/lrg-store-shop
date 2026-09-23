@@ -745,6 +745,17 @@ function AdminProducts() {
 
   const getBulkProductQueue = () => normalizeProductSelection(selectedProductIds);
 
+  const resolveQuickEditSelection = (selectionKey: string) => {
+    const [productId, ...variantParts] = selectionKey.split(":");
+    const variantId = variantParts.length > 0 ? variantParts.join(":") : undefined;
+    const product =
+      editableProducts.find((item) => item.id === productId) ??
+      (productsData as Product[]).find((item) => item.id === productId);
+    if (!product) return null;
+    const variant = variantId ? product.variants?.find((item) => item.id === variantId) : undefined;
+    return { product, variant };
+  };
+
   const toggleProductSelection = (selectionKey: string, checked: boolean) => {
     setSelectedProductIds((current) => {
       const next = checked
@@ -973,18 +984,15 @@ function AdminProducts() {
   };
 
   const handleBulkQuickEditProducts = () => {
-    const queue = getBulkProductQueue();
+    const queue = [...selectedProductIds];
     if (!queue.length) return;
 
-    const firstProductId = queue[0];
-    const product =
-      editableProducts.find((item) => item.id === firstProductId) ??
-      (productsData as Product[]).find((item) => item.id === firstProductId);
-
-    if (!product) return;
+    const firstSelection = queue[0];
+    const firstEntry = resolveQuickEditSelection(firstSelection);
+    if (!firstEntry) return;
 
     setBulkQuickEditQueue(queue.slice(1));
-    startQuickEdit(product, product.variants?.[0]);
+    startQuickEdit(firstEntry.product, firstEntry.variant);
   };
 
   const navigateBulkEditProduct = (direction: -1 | 1) => {
@@ -1038,13 +1046,10 @@ function AdminProducts() {
   };
 
   const cancelQuickEdit = () => {
-    const queuedProductId = bulkQuickEditQueue[0];
-    const nextQuickEditProduct = queuedProductId
-      ? editableProducts.find((item) => item.id === queuedProductId) ??
-        (productsData as Product[]).find((item) => item.id === queuedProductId)
-      : null;
+    const queuedSelectionKey = bulkQuickEditQueue[0];
+    const nextQuickEditEntry = queuedSelectionKey ? resolveQuickEditSelection(queuedSelectionKey) : null;
 
-    if (queuedProductId && nextQuickEditProduct) {
+    if (queuedSelectionKey && nextQuickEditEntry) {
       setBulkQuickEditQueue((current) => current.slice(1));
       setQuickEditProductId(null);
       setQuickEditVariantId(null);
@@ -1059,7 +1064,7 @@ function AdminProducts() {
           ];
         return next;
       });
-      startQuickEdit(nextQuickEditProduct, nextQuickEditProduct.variants?.[0]);
+      startQuickEdit(nextQuickEditEntry.product, nextQuickEditEntry.variant);
       return;
     }
 
@@ -1183,11 +1188,8 @@ function AdminProducts() {
       [product.id]: String(nextDiscount),
     }));
 
-    const queuedProductId = bulkQuickEditQueue[0];
-    const nextQuickEditProduct = queuedProductId
-      ? editableProducts.find((item) => item.id === queuedProductId) ??
-        (productsData as Product[]).find((item) => item.id === queuedProductId)
-      : null;
+    const queuedSelectionKey = bulkQuickEditQueue[0];
+    const nextQuickEditEntry = queuedSelectionKey ? resolveQuickEditSelection(queuedSelectionKey) : null;
 
     setQuickEditProductId(null);
     setQuickEditVariantId(null);
@@ -1197,9 +1199,9 @@ function AdminProducts() {
       return next;
     });
 
-    if (queuedProductId && nextQuickEditProduct) {
+    if (queuedSelectionKey && nextQuickEditEntry) {
       setBulkQuickEditQueue((current) => current.slice(1));
-      startQuickEdit(nextQuickEditProduct, nextQuickEditProduct.variants?.[0]);
+      startQuickEdit(nextQuickEditEntry.product, nextQuickEditEntry.variant);
       return;
     }
   };
@@ -2133,42 +2135,67 @@ function AdminProducts() {
         </div>
         {selectedProductIds.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={handleBulkQuickEditProducts}>
-              <Edit3 className="size-4" /> Editar rápido
-            </Button>
-            <Button size="sm" variant="outline" onClick={handleBulkEditProducts}>
-              <Pencil className="size-4" /> Editar
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(false)}>
-              <Eye className="size-4" /> Disponible
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(true)}>
-              <EyeOff className="size-4" /> No disponible
-            </Button>
-            <Button size="sm" variant="outline" onClick={handleBulkDuplicateProducts}>
-              <Copy className="size-4" /> Duplicar
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() =>
-                setConfirmState({
-                  open: true,
-                  title: "Eliminar productos seleccionados?",
-                  description: "Esta acción no se puede deshacer.",
-                  onConfirm: handleBulkDeleteProducts,
-                })
-              }
-            >
-              <Trash2 className="size-4" /> Eliminar
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={clearBulkSelection}
-            >
-              <X className="size-4" /> Cancelar
-            </Button>
+            {quickEditProductId !== null ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => {
+                    const currentProduct = editableProducts.find((product) => product.id === quickEditProductId);
+                    const currentVariant = quickEditVariantId
+                      ? currentProduct?.variants?.find((variant) => variant.id === quickEditVariantId)
+                      : undefined;
+                    if (currentProduct) {
+                      saveQuickEdit(currentProduct, currentVariant);
+                    }
+                  }}
+                >
+                  <Check className="size-4" /> Guardar
+                </Button>
+                <Button size="sm" variant="destructive" onClick={cancelQuickEdit}>
+                  <X className="size-4" /> Cancelar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button size="sm" variant="outline" onClick={handleBulkQuickEditProducts}>
+                  <Edit3 className="size-4" /> Editar rápido
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleBulkEditProducts}>
+                  <Pencil className="size-4" /> Editar
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(false)}>
+                  <Eye className="size-4" /> Disponible
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(true)}>
+                  <EyeOff className="size-4" /> No disponible
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleBulkDuplicateProducts}>
+                  <Copy className="size-4" /> Duplicar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() =>
+                    setConfirmState({
+                      open: true,
+                      title: "Eliminar productos seleccionados?",
+                      description: "Esta acción no se puede deshacer.",
+                      onConfirm: handleBulkDeleteProducts,
+                    })
+                  }
+                >
+                  <Trash2 className="size-4" /> Eliminar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={clearBulkSelection}
+                >
+                  <X className="size-4" /> Cancelar
+                </Button>
+              </>
+            )}
           </div>
         ) : null}
       </div>
@@ -2485,35 +2512,6 @@ function AdminProducts() {
                           {formatPrice(
                             quickDraft.price * (1 - quickDraft.discount / 100) - quickDraft.gastos,
                           )}
-                        </TableCell>
-                        <TableCell className="align-middle">
-                          <div className="flex flex-wrap items-center justify-center gap-1">
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() =>
-                                setConfirmState({
-                                  open: true,
-                                  title: `Guardar cambios de "${product.name}"?`,
-                                  description: undefined,
-                                  onConfirm: () => saveQuickEdit(product, variant),
-                                })
-                              }
-                              className="h-7 flex-none gap-1 px-2 text-xs"
-                            >
-                              <Check className="h-3 w-3" />
-                              <span className="hidden sm:inline">Guardar</span>
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={cancelQuickEdit}
-                              className="h-7 flex-none gap-1 px-2 text-xs"
-                            >
-                              <X className="size-3" />
-                              <span className="hidden sm:inline">Cancelar</span>
-                            </Button>
-                          </div>
                         </TableCell>
                       </>
                     ) : (
