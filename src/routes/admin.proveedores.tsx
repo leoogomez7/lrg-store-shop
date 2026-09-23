@@ -1171,10 +1171,10 @@ function AdminSuppliers() {
         </div>
 
         <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
-          <div className={cn("flex w-10 shrink-0 flex-col items-center bg-transparent py-3")}>
+          <div className={cn("flex w-10 shrink-0 flex-col items-center self-stretch bg-transparent py-3")}>
             <div className="mb-3 h-6" />
             {visibleRows.map((row) => (
-              <div key={row.key} className="flex h-13 w-full items-center justify-center">
+              <div key={row.key} className="flex min-h-[3.25rem] w-full items-center justify-center py-2">
                 <Checkbox
                   className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                   checked={selectedSupplierKeys.includes(row.key)}

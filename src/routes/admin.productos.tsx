@@ -696,7 +696,8 @@ function AdminProducts() {
     saveProducts(productsData as Product[]);
   };
 
-  const getProductSelectionKey = (product: Product, variant?: ProductVariant) => product.id;
+  const getProductSelectionKey = (product: Product, variant?: ProductVariant) =>
+    variant ? `${product.id}:${variant.id}` : product.id;
 
   const getProductIdFromSelectionKey = (selectionKey: string) =>
     selectionKey.split(":")[0] ?? selectionKey;
@@ -1328,7 +1329,7 @@ function AdminProducts() {
     });
   }, [visibleResults]);
   const visibleProductSelectionKeys = Array.from(
-    new Set(displayRows.map(({ product }) => getProductSelectionKey(product))),
+    new Set(displayRows.map(({ product, variant }) => getProductSelectionKey(product, variant))),
   );
   const selectedVisibleProductKeys = visibleProductSelectionKeys.filter((key) =>
     selectedProductIds.includes(key),
@@ -2001,24 +2002,27 @@ function AdminProducts() {
 
       <FilterChipList chips={adminFilterChips} />
       <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
-        <div className={cn("flex w-10 shrink-0 flex-col items-center bg-transparent py-3")}>
+        <div className={cn("flex w-10 shrink-0 flex-col items-center self-stretch bg-transparent py-3")}>
           <div className="mb-3 h-6" />
-          {displayRows.map(({ product, variant }) => (
-            <div
-              key={`${product.id}-${variant?.id ?? "base"}`}
-              className="flex h-15.5 w-full items-center justify-center"
-            >
-              <Checkbox
-                className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                checked={selectedProductIds.includes(product.id)}
-                onCheckedChange={(checked) => {
-                  const isChecked = checked === true;
-                  toggleProductSelection(product.id, isChecked);
-                }}
-                aria-label={`Seleccionar ${product.name}`}
-              />
-            </div>
-          ))}
+          {displayRows.map(({ product, variant }) => {
+            const selectionKey = getProductSelectionKey(product, variant);
+            return (
+              <div
+                key={`${product.id}-${variant?.id ?? "base"}`}
+                className="flex min-h-[3.25rem] w-full items-center justify-center py-2"
+              >
+                <Checkbox
+                  className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                  checked={selectedProductIds.includes(selectionKey)}
+                  onCheckedChange={(checked) => {
+                    const isChecked = checked === true;
+                    toggleProductSelection(selectionKey, isChecked);
+                  }}
+                  aria-label={`Seleccionar ${product.name}${variant ? ` ${variant.name}` : ""}`}
+                />
+              </div>
+            );
+          })}
         </div>
 
         <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
