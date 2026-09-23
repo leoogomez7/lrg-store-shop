@@ -2194,7 +2194,7 @@ function AdminOrders() {
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
                 <TableHead className="w-10 px-1"> </TableHead>
-                <TableHead className="w-24">Pedido</TableHead>
+                <TableHead className="w-24 min-w-24 max-w-24">Pedido</TableHead>
                 <TableHead className="w-20">Fecha</TableHead>
                 <TableHead className="w-24">Estado de pago</TableHead>
                 <TableHead className="w-28">Núm. envío</TableHead>
@@ -2282,7 +2282,7 @@ function AdminOrders() {
                         </div>
                       </TableCell>
 
-                      <TableCell className="w-24 text-center text-sm font-medium">
+                      <TableCell className="w-24 min-w-24 max-w-24 text-center text-sm font-medium">
                         <div className="flex min-w-0 items-center justify-center gap-1 text-center">
                           <div className="flex min-w-0 flex-col items-center gap-1">
                             <span className="min-w-0 break-all text-sm leading-tight">
