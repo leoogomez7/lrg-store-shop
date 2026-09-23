@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ContactRound, Package, RotateCcw, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { ContactRound, Package, RotateCcw, Search, ShoppingCart, Trash2, X } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -29,6 +29,17 @@ function AdminTrash() {
   const [selectionMode, setSelectionMode] = useState<"delete" | "restore" | null>(null);
   const [selectedDeleteKeys, setSelectedDeleteKeys] = useState<string[]>([]);
   const [selectedRestoreKeys, setSelectedRestoreKeys] = useState<string[]>([]);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description?: string;
+    confirmLabel?: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: "",
+    onConfirm: () => {},
+  });
 
   const getEntryKey = (entry: TrashEntry) => `${entry.type}-${entry.id}`;
 
@@ -203,39 +214,51 @@ function AdminTrash() {
     clearSelection();
   };
 
-  const restoreAllEntries = async () => {
+  const restoreAllEntries = () => {
     if (!entries.length) return;
-    if (!window.confirm("¿Restaurar todos los elementos de la papelera?")) return;
-
-    for (const entry of [...entries]) {
-      await restoreEntry(entry);
-    }
-    clearSelection();
+    setConfirmState({
+      open: true,
+      title: "¿Restaurar todos los elementos?",
+      description: "Se restaurarán todos los elementos de la papelera.",
+      confirmLabel: "Restaurar todo",
+      onConfirm: async () => {
+        for (const entry of [...entries]) {
+          await restoreEntry(entry);
+        }
+        clearSelection();
+      },
+    });
   };
 
   const emptyTrash = () => {
     if (!entries.length) return;
-    if (!window.confirm("¿Vaciar toda la papelera? Esta acción elimina definitivamente todos los elementos.")) return;
+    setConfirmState({
+      open: true,
+      title: "¿Vaciar la papelera?",
+      description: "Esta acción elimina definitivamente todos los elementos de la papelera.",
+      confirmLabel: "Vaciar papelera",
+      onConfirm: () => {
+        entries.forEach((entry) => {
+          if (entry.type === "producto") {
+            const productIndex = products.findIndex((product) => product.id === entry.item.id);
+            if (productIndex >= 0) {
+              products.splice(productIndex, 1);
+              saveProducts(products);
+            }
+          } else if (entry.type === "pedido") {
+            const orderIndex = orders.findIndex((order) => order.id === entry.item.id);
+            if (orderIndex >= 0) {
+              orders.splice(orderIndex, 1);
+              saveOrders(orders);
+            }
+          }
+          removeFromTrash(entry);
+        });
 
-    entries.forEach((entry) => {
-      if (entry.type === "producto") {
-        const productIndex = products.findIndex((product) => product.id === entry.item.id);
-        if (productIndex >= 0) {
-          products.splice(productIndex, 1);
-          saveProducts(products);
-        }
-      } else if (entry.type === "pedido") {
-        const orderIndex = orders.findIndex((order) => order.id === entry.item.id);
-        if (orderIndex >= 0) {
-          orders.splice(orderIndex, 1);
-          saveOrders(orders);
-        }
-      }
-      removeFromTrash(entry);
+        setEntries([]);
+        clearSelection();
+      },
     });
-
-    setEntries([]);
-    clearSelection();
   };
 
   return (
@@ -248,7 +271,6 @@ function AdminTrash() {
             Los elementos se eliminan automáticamente después de 10 días.
           </p>
         </div>
-        <span className="text-sm text-muted-foreground">{entries.length} elementos</span>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -256,7 +278,7 @@ function AdminTrash() {
           <Trash2 className="size-4" /> Vaciar papelera
         </Button>
         <Button type="button" variant="outline" onClick={restoreAllEntries}>
-          <RotateCcw className="size-4" /> Restaurar todos los elementos
+          <RotateCcw className="size-4" /> Restaurar todos
         </Button>
         <Button
           type="button"
@@ -266,7 +288,7 @@ function AdminTrash() {
             setSelectedRestoreKeys([]);
           }}
         >
-          <Trash2 className="size-4" /> Seleccionar
+          <Trash2 className="size-4" /> Seleccionar borrados
         </Button>
         <Button
           type="button"
@@ -278,28 +300,22 @@ function AdminTrash() {
         >
           <RotateCcw className="size-4" /> Seleccionar restaurar
         </Button>
-        {selectionMode ? (
-          <Button type="button" variant="ghost" onClick={clearSelection}>
-            Cancelar
-          </Button>
-        ) : null}
-      </div>
-
-      {selectionMode === "delete" && selectedDeleteKeys.length > 0 ? (
-        <div className="mt-4 flex justify-end">
+        {selectionMode === "delete" && selectedDeleteKeys.length > 0 ? (
           <Button type="button" variant="destructive" onClick={deleteSelectedPermanently}>
             <Trash2 className="size-4" /> Eliminar seleccionados
           </Button>
-        </div>
-      ) : null}
-
-      {selectionMode === "restore" && selectedRestoreKeys.length > 0 ? (
-        <div className="mt-4 flex justify-end">
+        ) : null}
+        {selectionMode === "restore" && selectedRestoreKeys.length > 0 ? (
           <Button type="button" variant="default" onClick={restoreSelectedEntries}>
             <RotateCcw className="size-4" /> Restaurar seleccionados
           </Button>
-        </div>
-      ) : null}
+        ) : null}
+        {selectionMode ? (
+          <Button type="button" variant="ghost" onClick={clearSelection}>
+            <X className="size-4" /> Cancelar
+          </Button>
+        ) : null}
+      </div>
 
       <div className="relative mt-6">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -310,6 +326,10 @@ function AdminTrash() {
           aria-label="Buscar elemento eliminado"
           className="h-10 w-full rounded-xl border border-input bg-background/80 pl-9 pr-3 text-sm outline-none transition focus-visible:ring-1 focus-visible:ring-ring"
         />
+      </div>
+
+      <div className="mt-2 flex justify-end">
+        <span className="text-sm text-muted-foreground">{entries.length} elementos</span>
       </div>
 
       <div className="mt-6 space-y-3 pb-20">
@@ -350,23 +370,22 @@ function AdminTrash() {
                       }
                       onChange={(event) => {
                         const checked = event.target.checked;
+                        const entryKey = getEntryKey(entry);
                         if (selectionMode === "delete") {
-                          setSelectedDeleteKeys((current) =>
-                            checked
-                              ? current.includes(getEntryKey(entry))
-                                ? current
-                                : [...current, getEntryKey(entry)]
-                              : current.filter((key) => key !== getEntryKey(entry)),
-                          );
+                          setSelectedDeleteKeys((current) => {
+                            const next = checked
+                              ? [...new Set([...current, entryKey])]
+                              : current.filter((key) => key !== entryKey);
+                            return next;
+                          });
                           return;
                         }
-                        setSelectedRestoreKeys((current) =>
-                          checked
-                            ? current.includes(getEntryKey(entry))
-                              ? current
-                              : [...current, getEntryKey(entry)]
-                            : current.filter((key) => key !== getEntryKey(entry)),
-                        );
+                        setSelectedRestoreKeys((current) => {
+                          const next = checked
+                            ? [...new Set([...current, entryKey])]
+                            : current.filter((key) => key !== entryKey);
+                          return next;
+                        });
                       }}
                       className="h-4 w-4 accent-primary"
                       aria-label={`Seleccionar ${name}`}
@@ -404,13 +423,29 @@ function AdminTrash() {
       </div>
 
       <ConfirmDialog
-        open={entryToDelete !== null}
-        onOpenChange={(open) => !open && setEntryToDelete(null)}
-        title="¿Eliminar definitivamente?"
-        description="Este elemento no podrá restaurarse después."
-        confirmLabel="Eliminar definitivamente"
+        open={confirmState.open || entryToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmState((current) => ({ ...current, open: false }));
+            setEntryToDelete(null);
+          }
+        }}
+        title={entryToDelete !== null ? "¿Eliminar definitivamente?" : confirmState.title}
+        description={
+          entryToDelete !== null
+            ? "Este elemento no podrá restaurarse después."
+            : confirmState.description
+        }
+        confirmLabel={entryToDelete !== null ? "Eliminar definitivamente" : confirmState.confirmLabel}
         cancelLabel="Cancelar"
-        onConfirm={deletePermanently}
+        onConfirm={() => {
+          if (entryToDelete) {
+            deletePermanently();
+            return;
+          }
+          confirmState.onConfirm();
+          setConfirmState((current) => ({ ...current, open: false }));
+        }}
       />
     </main>
   );

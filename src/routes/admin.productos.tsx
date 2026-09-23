@@ -682,22 +682,35 @@ function AdminProducts() {
     });
   };
 
-  const handleToggleHidden = (productId: string) => {
-    // Toggle hidden flag on the shared products data so public listing respects it
-    const idx = (productsData as Product[]).findIndex((p) => p.id === productId);
-    if (idx === -1) return;
-    const current = (productsData as Product[])[idx] as Product & { hidden?: boolean };
-    current.hidden = !current.hidden;
+  const handleToggleHidden = (productId: string, variantId?: string) => {
+    const nextProducts = (productsData as Product[]).map((product) => {
+      if (product.id !== productId) return product;
+      if (variantId) {
+        if (!product.variants?.length) return product;
+        return {
+          ...product,
+          variants: product.variants.map((variant) =>
+            variant.id === variantId ? { ...variant, hidden: !Boolean(variant.hidden) } : variant,
+          ),
+        };
+      }
+      return { ...product, hidden: !Boolean(product.hidden) };
+    });
 
-    // Update local editable list to reflect the change
-    setEditableProducts((currentList) =>
-      currentList.map((p) => (p.id === productId ? { ...p, hidden: current.hidden } : p)),
-    );
-    saveProducts(productsData as Product[]);
+    productsData.splice(0, productsData.length, ...nextProducts);
+    setEditableProducts(nextProducts);
+    void saveProducts(nextProducts);
   };
 
   const getProductSelectionKey = (product: Product, variant?: ProductVariant) =>
     variant ? `${product.id}:${variant.id}` : product.id;
+
+  const getSelectedProductEntries = (selectionKeys: string[]) =>
+    Array.from(new Set(selectionKeys)).map((selectionKey) => {
+      const [productId, ...variantParts] = selectionKey.split(":");
+      const variantId = variantParts.length > 0 ? variantParts.join(":") : undefined;
+      return { productId: productId ?? selectionKey, variantId };
+    });
 
   const getProductIdFromSelectionKey = (selectionKey: string) =>
     selectionKey.split(":")[0] ?? selectionKey;
@@ -744,32 +757,89 @@ function AdminProducts() {
   };
 
   const handleBulkDeleteProducts = async () => {
-    const selectedIds = new Set(getBulkProductQueue());
-    if (!selectedIds.size) return;
-
-    const selectedProducts = (productsData as Product[]).filter((product) =>
-      selectedIds.has(product.id),
+    const selectedEntries = getSelectedProductEntries(selectedProductIds);
+    const selectedProductIdsSet = new Set(
+      selectedEntries.filter((entry) => !entry.variantId).map((entry) => entry.productId),
     );
+    const selectedVariantIdsByProduct = new Map<string, string[]>();
+    for (const entry of selectedEntries) {
+      if (!entry.variantId) continue;
+      const current = selectedVariantIdsByProduct.get(entry.productId) ?? [];
+      current.push(entry.variantId);
+      selectedVariantIdsByProduct.set(entry.productId, current);
+    }
 
-    selectedProducts.forEach((product) => {
-      moveToTrash({ type: "producto", id: product.id, item: product });
-    });
+    const nextProducts = (productsData as Product[])
+      .map((product) => {
+        const selectedVariantIds = selectedVariantIdsByProduct.get(product.id) ?? [];
+        const hasWholeProductSelection = selectedProductIdsSet.has(product.id);
 
-    const nextProducts = (productsData as Product[]).filter((product) => !selectedIds.has(product.id));
+        if (hasWholeProductSelection && !selectedVariantIds.length) {
+          moveToTrash({ type: "producto", id: product.id, item: product });
+          return null;
+        }
+
+        if (selectedVariantIds.length > 0) {
+          const remainingVariants = (product.variants ?? []).filter(
+            (variant) => !selectedVariantIds.includes(variant.id),
+          );
+
+          if (remainingVariants.length === 0 && !hasWholeProductSelection) {
+            moveToTrash({ type: "producto", id: product.id, item: product });
+            return null;
+          }
+
+          return {
+            ...product,
+            variants: remainingVariants,
+          };
+        }
+
+        return product;
+      })
+      .filter((product): product is Product => Boolean(product));
+
+    if (!nextProducts.length && !selectedProductIdsSet.size && !selectedVariantIdsByProduct.size) {
+      return;
+    }
+
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
     await saveProducts(nextProducts);
-    toast.success(`${selectedProducts.length} producto${selectedProducts.length === 1 ? "" : "s"} eliminado${selectedProducts.length === 1 ? "" : "s"}`);
+    toast.success(`${selectedEntries.length} elemento${selectedEntries.length === 1 ? "" : "s"} eliminado${selectedEntries.length === 1 ? "" : "s"}`);
     clearBulkProductSelection();
   };
 
   const handleBulkToggleProducts = async (hidden: boolean) => {
-    const selectedIds = new Set(getBulkProductQueue());
-    if (!selectedIds.size) return;
+    const selectedEntries = getSelectedProductEntries(selectedProductIds);
+    if (!selectedEntries.length) return;
 
-    const nextProducts = (productsData as Product[]).map((product) =>
-      selectedIds.has(product.id) ? { ...product, hidden } : product,
-    );
+    const nextProducts = (productsData as Product[]).map((product) => {
+      const productSelectedEntries = selectedEntries.filter((entry) => entry.productId === product.id);
+      if (!productSelectedEntries.length) return product;
+
+      const selectedVariantIds = productSelectedEntries
+        .filter((entry) => entry.variantId)
+        .map((entry) => entry.variantId)
+        .filter((variantId): variantId is string => Boolean(variantId));
+
+      const hasWholeProductSelection = productSelectedEntries.some((entry) => !entry.variantId);
+
+      if (selectedVariantIds.length > 0) {
+        return {
+          ...product,
+          variants: (product.variants ?? []).map((variant) =>
+            selectedVariantIds.includes(variant.id) ? { ...variant, hidden } : variant,
+          ),
+        };
+      }
+
+      if (hasWholeProductSelection) {
+        return { ...product, hidden };
+      }
+
+      return product;
+    });
 
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
@@ -779,34 +849,68 @@ function AdminProducts() {
   };
 
   const handleBulkDuplicateProducts = async () => {
-    const selectedIds = new Set(getBulkProductQueue());
-    if (!selectedIds.size) return;
+    const selectedEntries = getSelectedProductEntries(selectedProductIds);
+    if (!selectedEntries.length) return;
 
-    const selected = [...(productsData as Product[])].filter((product) => selectedIds.has(product.id));
-    const duplicates = selected.map((product) => {
+    const duplicates: Product[] = [];
+    for (const entry of selectedEntries) {
+      const product = (productsData as Product[]).find((item) => item.id === entry.productId);
+      if (!product) continue;
+
+      if (!entry.variantId) {
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).slice(2, 7);
+        const newId = `${product.id}-copy-${timestamp}-${random}`;
+        const newSlug = `${product.slug}-copy-${timestamp}`
+          .replace(/[^a-z0-9-]/g, "-")
+          .replace(/--+/g, "-");
+
+        duplicates.push({
+          ...product,
+          id: newId,
+          slug: newSlug,
+          name: `${product.name} (Copia)`,
+          createdAt: new Date().toISOString().slice(0, 10),
+          hidden: Boolean(product.hidden),
+        });
+        continue;
+      }
+
+      const selectedVariant = product.variants?.find((variant) => variant.id === entry.variantId);
+      if (!selectedVariant) continue;
+
       const timestamp = Date.now();
       const random = Math.random().toString(36).slice(2, 7);
       const newId = `${product.id}-copy-${timestamp}-${random}`;
       const newSlug = `${product.slug}-copy-${timestamp}`
         .replace(/[^a-z0-9-]/g, "-")
         .replace(/--+/g, "-");
+      const duplicatedVariant = {
+        ...selectedVariant,
+        id: `${selectedVariant.id}-copy-${timestamp}-${random}`,
+        hidden: Boolean(selectedVariant.hidden),
+      };
 
-      return {
+      duplicates.push({
         ...product,
         id: newId,
         slug: newSlug,
         name: `${product.name} (Copia)`,
-        createdAt: new Date().toISOString().slice(0, 10),
+        variantName: selectedVariant.name,
+        variants: [duplicatedVariant],
         hidden: Boolean(product.hidden),
-      };
-    });
+        createdAt: new Date().toISOString().slice(0, 10),
+      });
+    }
+
+    if (!duplicates.length) return;
 
     const nextProducts = [...(productsData as Product[]), ...duplicates];
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
     await saveProducts(nextProducts);
     toast.success(
-      `${duplicates.length} producto${duplicates.length === 1 ? "" : "s"} duplicado${duplicates.length === 1 ? "" : "s"}`,
+      `${duplicates.length} elemento${duplicates.length === 1 ? "" : "s"} duplicado${duplicates.length === 1 ? "" : "s"}`,
     );
     clearBulkProductSelection();
   };
@@ -2011,7 +2115,13 @@ function AdminProducts() {
                   checked={selectedProductIds.includes(selectionKey)}
                   onCheckedChange={(checked) => {
                     const isChecked = checked === true;
-                    toggleProductSelection(selectionKey, isChecked);
+                    setSelectedProductIds((current) => {
+                      const next = isChecked
+                        ? [...new Set([...current, selectionKey])]
+                        : current.filter((key) => key !== selectionKey);
+                      setSelectionMode(next.length > 0);
+                      return next;
+                    });
                   }}
                   aria-label={`Seleccionar ${product.name}${variant ? ` ${variant.name}` : ""}`}
                 />
@@ -2356,7 +2466,7 @@ function AdminProducts() {
                                 </span>
                               </span>
                             ) : null}
-                            {product.hidden ? (
+                            {(variant ? Boolean(variant.hidden) : Boolean(product.hidden)) ? (
                               <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
                                 Oculto
                               </span>
@@ -2416,15 +2526,15 @@ function AdminProducts() {
                           >
                             <div className="flex flex-nowrap items-center justify-center gap-1 overflow-hidden">
                               <label className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
-                                <span>{product.hidden ? "No disponible" : "Disponible"}</span>
+                                <span>{variant ? (variant.hidden ? "No disponible" : "Disponible") : product.hidden ? "No disponible" : "Disponible"}</span>
                                 <Switch
-                                  checked={!product.hidden}
+                                  checked={variant ? !variant.hidden : !product.hidden}
                                   onCheckedChange={() =>
                                     setConfirmState({
                                       open: true,
-                                      title: `${product.hidden ? "Mostrar" : "Ocultar"} "${product.name}"?`,
+                                      title: `${variant ? (variant.hidden ? "Mostrar" : "Ocultar") : product.hidden ? "Mostrar" : "Ocultar"} "${product.name}${variant ? ` ${variant.name}` : ""}"?`,
                                       description: undefined,
-                                      onConfirm: () => handleToggleHidden(product.id),
+                                      onConfirm: () => handleToggleHidden(product.id, variant?.id),
                                     })
                                   }
                                 />

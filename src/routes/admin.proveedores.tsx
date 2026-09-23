@@ -1180,8 +1180,13 @@ function AdminSuppliers() {
                   checked={selectedSupplierKeys.includes(row.key)}
                   onCheckedChange={(checked) => {
                     const isChecked = checked === true;
-                    toggleSupplierSelection(row.key, isChecked);
-                    setSelectionMode(isChecked || selectedSupplierKeys.length > 1);
+                    setSelectedSupplierKeys((current) => {
+                      const next = isChecked
+                        ? [...new Set([...current, row.key])]
+                        : current.filter((key) => key !== row.key);
+                      setSelectionMode(next.length > 0);
+                      return next;
+                    });
                   }}
                   aria-label={`Seleccionar proveedor ${row.name}`}
                 />
