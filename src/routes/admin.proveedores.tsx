@@ -1408,89 +1408,11 @@ function AdminSuppliers() {
                         <TableCell className="text-center text-sm text-foreground">
                           {row.soldQuantity}
                         </TableCell>
-                        {!selectionMode && !hasExpandedSupplier && (
-                          <TableCell
-                            className={cn(
-                              "whitespace-nowrap pr-5 text-center",
-                              isQuickEditing ? "w-32 min-w-32" : "w-108 min-w-108",
-                            )}
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <div className="flex min-w-max flex-nowrap items-center justify-center gap-1.5">
-                              {isQuickEditing ? (
-                                <>
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={() => saveSupplierChanges(row.key, quickSupplier)}
-                                    className="h-7 shrink-0 gap-1 px-2 text-[10px]"
-                                  >
-                                    <Check className="size-3.5" /> Guardar
-                                  </Button>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={cancelQuickEditSupplier}
-                                    className="h-7 shrink-0 gap-1 px-2 text-[10px]"
-                                  >
-                                    <X className="size-3.5" /> Cancelar
-                                  </Button>
-                                </>
-                              ) : (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                      setExpandedSupplierKey(isExpanded ? null : row.key)
-                                    }
-                                    className="h-6 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[10px] font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
-                                  >
-                                    {isExpanded ? (
-                                      <EyeOff className="size-4" />
-                                    ) : (
-                                      <Eye className="size-4" />
-                                    )}
-                                    {isExpanded ? "Ocultar" : "Detalles"}
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => startQuickEditSupplier(row)}
-                                    className="h-6 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[10px]"
-                                  >
-                                    <Edit3 className="size-3.5" /> Editar rápido
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => openSupplierEditor(row)}
-                                    className="h-6 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[10px]"
-                                  >
-                                    <Pencil className="size-3.5" /> Editar
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      if (window.confirm(`¿Eliminar el proveedor "${row.name}"?`)) {
-                                        deleteSupplier(row.key);
-                                      }
-                                    }}
-                                    className="h-6 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[10px] text-destructive hover:bg-destructive/10"
-                                  >
-                                    <Trash2 className="size-3.5" /> Eliminar
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </TableCell>
-                        )}
                       </TableRow>
                       {isExpanded ? (
                         <TableRow>
                           <TableCell
-                            colSpan={selectionMode || hasExpandedSupplier ? 6 : 7}
+                            colSpan={6}
                             className="w-full bg-muted/30 p-0 text-left"
                           >
                             <>
@@ -1525,80 +1447,6 @@ function AdminSuppliers() {
                                   )}
                               </div>
                             </>
-                            <div className="flex flex-wrap items-center justify-center gap-2 pt-3">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  isQuickEditing
-                                    ? saveSupplierChanges(row.key, quickSupplier)
-                                    : startQuickEditSupplier(row, true)
-                                }
-                                className={cn(
-                                  "h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground",
-                                  isQuickEditing &&
-                                    "border-transparent bg-transparent px-2 text-green-600 hover:bg-green-100/80 hover:text-green-700",
-                                )}
-                              >
-                                {isQuickEditing ? (
-                                  <>
-                                    <Check className="size-3.5" /> Guardar
-                                  </>
-                                ) : (
-                                  <>
-                                    <Edit3 className="size-3.5" /> Editar rápido
-                                  </>
-                                )}
-                              </Button>
-                              {isQuickEditing ? (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={cancelQuickEditSupplier}
-                                  className="h-7 gap-1 bg-transparent px-2 text-xs text-destructive hover:bg-destructive/10"
-                                >
-                                  <X className="size-3.5" /> Cancelar
-                                </Button>
-                              ) : (
-                                <>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => openSupplierEditor(row)}
-                                    className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground"
-                                  >
-                                    <Pencil className="size-3.5" /> Editar
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      if (window.confirm(`¿Eliminar el proveedor "${row.name}"?`)) {
-                                        deleteSupplier(row.key);
-                                      }
-                                    }}
-                                    className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs text-destructive shadow-none hover:bg-destructive/10"
-                                  >
-                                    <Trash2 className="size-3.5" /> Eliminar
-                                  </Button>
-                                </>
-                              )}
-                              {!isQuickEditing && (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setExpandedSupplierKey(null)}
-                                  className="h-8 gap-2 rounded-md px-3 text-xs"
-                                >
-                                  <EyeOff className="size-4" /> Ocultar
-                                </Button>
-                              )}
-                            </div>
                           </TableCell>
                         </TableRow>
                       ) : null}

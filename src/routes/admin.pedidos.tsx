@@ -2187,36 +2187,56 @@ function AdminOrders() {
         </div>
         {selectedOrderIds.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={handleBulkQuickEditOrders}>
-              <Edit3 className="size-4" /> Editar rápido
-            </Button>
-            <Button size="sm" variant="outline" onClick={handleBulkEditOrders}>
-              <Pencil className="size-4" /> Editar
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() =>
-                setConfirmState({
-                  open: true,
-                  title: "Eliminar pedidos seleccionados?",
-                  description: "Esta acción no se puede deshacer.",
-                  onConfirm: handleBulkDeleteOrders,
-                })
-              }
-            >
-              <Trash2 className="size-4" /> Eliminar
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setSelectionMode(false);
-                setSelectedOrderIds([]);
-              }}
-            >
-              <X className="size-4" /> Cancelar
-            </Button>
+            {quickEditOrderId !== null ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => {
+                    const currentOrder = editableOrders.find((order) => order.id === quickEditOrderId);
+                    if (currentOrder) saveQuickEditOrder(currentOrder);
+                  }}
+                >
+                  <Check className="size-4" /> Guardar
+                </Button>
+                <Button size="sm" variant="destructive" onClick={cancelQuickEditOrder}>
+                  <X className="size-4" /> Cancelar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button size="sm" variant="outline" onClick={handleBulkQuickEditOrders}>
+                  <Edit3 className="size-4" /> Editar rápido
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleBulkEditOrders}>
+                  <Pencil className="size-4" /> Editar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() =>
+                    setConfirmState({
+                      open: true,
+                      title: "Eliminar pedidos seleccionados?",
+                      description: "Esta acción no se puede deshacer.",
+                      onConfirm: handleBulkDeleteOrders,
+                    })
+                  }
+                >
+                  <Trash2 className="size-4" /> Eliminar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectionMode(false);
+                    setSelectedOrderIds([]);
+                  }}
+                >
+                  <X className="size-4" /> Cancelar
+                </Button>
+              </>
+            )}
           </div>
         ) : null}
       </div>
@@ -2452,93 +2472,6 @@ function AdminOrders() {
                       <TableCell>{formatPrice(order.expenses)}</TableCell>
                       <TableCell>{formatPrice(order.total)}</TableCell>
                       <TableCell>{formatPrice(order.profit)}</TableCell>
-                      {!selectionMode && (
-                        <TableCell
-                          className={cn(
-                            "w-0 min-w-0 max-w-0 overflow-visible px-0 text-left",
-                            hasExpandedOrder && "hidden",
-                          )}
-                        >
-                          <div className="relative left-96 flex w-96 min-w-max flex-nowrap items-center justify-start gap-0.5 overflow-visible">
-                            {isQuickEditing ? (
-                              <>
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={() => saveQuickEditOrder(order)}
-                                  disabled={!quickEditHasChanges}
-                                  className="h-7 shrink-0 gap-1 px-2 text-[10px] disabled:cursor-not-allowed disabled:opacity-100"
-                                >
-                                  <Check className="h-4 w-4" />
-                                  Guardar
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={cancelQuickEditOrder}
-                                  className="h-7 shrink-0 gap-1 px-2 text-[10px]"
-                                >
-                                  <X className="size-4" />
-                                  Cancelar
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                                  title={isExpanded ? "Ocultar detalles" : "Mostrar detalles"}
-                                  className="h-6 shrink-0 gap-1 whitespace-nowrap bg-transparent px-1.5 text-[10px] font-medium text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
-                                >
-                                  {isExpanded ? (
-                                    <EyeOff className="size-4" />
-                                  ) : (
-                                    <Eye className="size-4" />
-                                  )}
-                                  <span className="hidden sm:inline">
-                                    {isExpanded ? "Ocultar" : "Mostrar"}
-                                  </span>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => startQuickEditOrder(order)}
-                                  className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
-                                >
-                                  <Edit3 className="size-4" />
-                                  <span className="hidden sm:inline">Editar rápido</span>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => openEditOrderDialog(order)}
-                                  className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px]"
-                                >
-                                  <Pencil className="size-4" />
-                                  <span className="hidden sm:inline">Editar</span>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    setConfirmState({
-                                      open: true,
-                                      title: `Eliminar pedido ${order.id}?`,
-                                      description: `Esta acción no se puede deshacer.`,
-                                      onConfirm: () => handleDeleteOrder(order),
-                                    })
-                                  }
-                                  className="h-6 shrink-0 gap-1 whitespace-nowrap px-1.5 text-[10px] text-destructive hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="size-4" />
-                                  <span className="hidden sm:inline">Eliminar</span>
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
                     </TableRow>
 
                     {isExpanded && (
