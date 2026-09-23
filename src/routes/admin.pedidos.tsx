@@ -2641,7 +2641,7 @@ function AdminOrders() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => startQuickEditOrder(order)}
-                                className="h-8 gap-2 rounded-md px-3 text-xs"
+                                className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground"
                               >
                                 <Edit3 className="size-4" /> Editar rápido
                               </Button>
@@ -2650,7 +2650,7 @@ function AdminOrders() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => openEditOrderDialog(order)}
-                                className="h-8 gap-2 rounded-md px-3 text-xs"
+                                className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground"
                               >
                                 <Pencil className="size-4" /> Editar
                               </Button>
@@ -2658,7 +2658,6 @@ function AdminOrders() {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="text-destructive hover:bg-destructive/10"
                                 onClick={() =>
                                   setConfirmState({
                                     open: true,
@@ -2667,7 +2666,7 @@ function AdminOrders() {
                                     onConfirm: () => handleDeleteOrder(order),
                                   })
                                 }
-                                className="h-8 gap-2 rounded-md px-3 text-xs text-destructive hover:bg-destructive/10"
+                                className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs text-destructive shadow-none hover:bg-destructive/10"
                               >
                                 <Trash2 className="size-4" /> Eliminar
                               </Button>
