@@ -2192,7 +2192,7 @@ function AdminOrders() {
                 ? "min-w-0"
                 : selectionMode
                   ? "min-w-200"
-                  : "w-[calc(100%+20rem)] min-w-0",
+                  : "w-[calc(100%+24rem)] min-w-0",
             )}
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -2208,7 +2208,7 @@ function AdminOrders() {
                 <TableHead className="w-20">Total</TableHead>
                 <TableHead className="w-18">Ganancias</TableHead>
                 {!selectionMode && (!hasExpandedOrder || quickEditOrderId !== null) && (
-                  <TableHead className="w-80 min-w-80 text-left">Acciones</TableHead>
+                  <TableHead className="w-96 min-w-96 text-left">Acciones</TableHead>
                 )}
               </TableRow>
             </TableHeader>
@@ -2415,7 +2415,7 @@ function AdminOrders() {
                       <TableCell>{formatPrice(order.total)}</TableCell>
                       <TableCell>{formatPrice(order.profit)}</TableCell>
                       {!selectionMode && (!hasExpandedOrder || isQuickEditing) && (
-                        <TableCell className="w-80 min-w-80 text-left">
+                        <TableCell className="w-96 min-w-96 text-left">
                           <div className="flex min-w-max flex-nowrap items-center justify-start gap-0.5 overflow-visible">
                             {isQuickEditing ? (
                               <>
