@@ -913,11 +913,6 @@ function CustomerRow({
                     >
                       Pedido {o.id}
                     </button>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="shrink-0 text-[11px] text-muted-foreground">
-                        Fecha de compra: {formatPurchaseDate(o.date)}
-                      </span>
-                    </div>
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       <Button
                         type="button"
@@ -937,6 +932,11 @@ function CustomerRow({
                       >
                         <Paperclip className="size-3.5" /> Archivos adjuntos
                       </Button>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                        Fecha de compra: {formatPurchaseDate(o.date)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -976,11 +976,6 @@ function CustomerRow({
                   >
                     Pedido {o.id}
                   </button>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="shrink-0 text-[11px] text-muted-foreground">
-                      {formatPurchaseDate(o.date)}
-                    </span>
-                  </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <Button
                       type="button"
@@ -1002,6 +997,11 @@ function CustomerRow({
                     >
                       <Paperclip className="size-3.5" /> Archivos adjuntos
                     </Button>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      {formatPurchaseDate(o.date)}
+                    </span>
                   </div>
                 </div>
               </div>
