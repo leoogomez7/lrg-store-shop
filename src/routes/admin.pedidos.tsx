@@ -778,40 +778,76 @@ function AdminOrders() {
 
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
   const [availableShippingMethods, setAvailableShippingMethods] = useState<string[]>([]);
+  const [availablePaymentMethodsByBrand, setAvailablePaymentMethodsByBrand] = useState<
+    Record<BrandSlug, string[]>
+  >({ arcade: [], scents: [], "web-design": [] });
+  const [availableShippingMethodsByBrand, setAvailableShippingMethodsByBrand] = useState<
+    Record<BrandSlug, string[]>
+  >({ arcade: [], scents: [], "web-design": [] });
 
   useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
-      const readConfiguredMethods = (settingKey: string, fallback: string[]) => {
+      const fallbackByBrand: Record<BrandSlug, string[]> = {
+        arcade: defaultPaymentMethods,
+        scents: defaultPaymentMethods,
+        "web-design": defaultPaymentMethods,
+      };
+      const fallbackShippingByBrand: Record<BrandSlug, string[]> = {
+        arcade: defaultShippingMethods,
+        scents: defaultShippingMethods,
+        "web-design": defaultShippingMethods,
+      };
+      const readConfiguredMethodsByBrand = (
+        settingKey: string,
+        fallback: Record<BrandSlug, string[]>,
+      ) => {
         const setting = settings.find((item) => item.settingKey === settingKey);
         if (!setting) return fallback;
         try {
           const parsed = JSON.parse(setting.settingValue) as unknown;
-          const values = Array.isArray(parsed)
-            ? parsed
-            : Object.values(parsed as Record<string, unknown>).flatMap((brandConfig) => {
-                if (Array.isArray(brandConfig)) return brandConfig;
-                if (brandConfig && typeof brandConfig === "object") {
-                  const methods = (brandConfig as { methods?: unknown }).methods;
-                  return Array.isArray(methods) ? methods : [];
-                }
-                return [];
-              });
-          const names = values
-            .filter((value) => value && typeof value === "object")
-            .filter((value) => (value as { enabled?: boolean }).enabled !== false)
-            .map((value) => String((value as { name?: unknown }).name ?? ""))
-            .filter(Boolean);
-          return names.length > 0 ? Array.from(new Set(names)) : fallback;
+          const readNames = (values: unknown) =>
+            (Array.isArray(values) ? values : [])
+              .filter((value) => value && typeof value === "object")
+              .filter((value) => (value as { enabled?: boolean }).enabled !== false)
+              .map((value) => String((value as { name?: unknown }).name ?? ""))
+              .filter(Boolean);
+
+          if (Array.isArray(parsed)) {
+            const names = readNames(parsed);
+            return Object.fromEntries(
+              brandList.map((brand) => [brand.slug, names.length ? names : fallback[brand.slug]]),
+            ) as Record<BrandSlug, string[]>;
+          }
+
+          const parsedByBrand = parsed as Record<string, unknown>;
+          return Object.fromEntries(
+            brandList.map((brand) => {
+              const brandConfig = parsedByBrand[brand.slug];
+              const values = Array.isArray(brandConfig)
+                ? brandConfig
+                : brandConfig && typeof brandConfig === "object"
+                  ? (brandConfig as { methods?: unknown }).methods
+                  : [];
+              const names = readNames(values);
+              return [brand.slug, names.length ? Array.from(new Set(names)) : fallback[brand.slug]];
+            }),
+          ) as Record<BrandSlug, string[]>;
         } catch {
           return fallback;
         }
       };
-      setAvailablePaymentMethods(
-        readConfiguredMethods("lrg:paymentMethods", defaultPaymentMethods),
+      const paymentMethodsByBrand = readConfiguredMethodsByBrand(
+        "lrg:paymentMethods",
+        fallbackByBrand,
       );
-      setAvailableShippingMethods(
-        readConfiguredMethods("lrg:shippingMethods", defaultShippingMethods),
+      const shippingMethodsByBrand = readConfiguredMethodsByBrand(
+        "lrg:shippingMethods",
+        fallbackShippingByBrand,
       );
+      setAvailablePaymentMethodsByBrand(paymentMethodsByBrand);
+      setAvailableShippingMethodsByBrand(shippingMethodsByBrand);
+      setAvailablePaymentMethods(Array.from(new Set(Object.values(paymentMethodsByBrand).flat())));
+      setAvailableShippingMethods(Array.from(new Set(Object.values(shippingMethodsByBrand).flat())));
     });
   }, []);
 
@@ -838,12 +874,14 @@ function AdminOrders() {
   }, [orders]);
 
   const paymentMethodOptions = useMemo(() => {
-    const options = [...availablePaymentMethods];
+    const options = [
+      ...(orderForm ? availablePaymentMethodsByBrand[orderForm.brand] ?? [] : availablePaymentMethods),
+    ];
     if (orderForm?.paymentMethod && !options.includes(orderForm.paymentMethod)) {
       options.push(orderForm.paymentMethod);
     }
-    return options;
-  }, [availablePaymentMethods, orderForm?.paymentMethod]);
+    return Array.from(new Set(options));
+  }, [availablePaymentMethods, availablePaymentMethodsByBrand, orderForm?.brand, orderForm?.paymentMethod]);
 
   const orderBrandOptions = useMemo(
     () =>
@@ -863,12 +901,21 @@ function AdminOrders() {
   );
 
   const shippingMethodOptions = useMemo(() => {
-    const options = [...availableShippingMethods];
+    const options = [
+      ...(orderForm
+        ? availableShippingMethodsByBrand[orderForm.brand] ?? []
+        : availableShippingMethods),
+    ];
     if (orderForm?.shippingMethod && !options.includes(orderForm.shippingMethod)) {
       options.push(orderForm.shippingMethod);
     }
-    return options;
-  }, [availableShippingMethods, orderForm?.shippingMethod]);
+    return Array.from(new Set(options));
+  }, [
+    availableShippingMethods,
+    availableShippingMethodsByBrand,
+    orderForm?.brand,
+    orderForm?.shippingMethod,
+  ]);
 
   const getOrderCurrencies = useCallback(
     (order: Order) =>
@@ -1297,6 +1344,13 @@ function AdminOrders() {
       ...currentItem,
       name,
       price: product?.price ?? 0,
+      supplier: product?.supplier
+        ? {
+            name: product.supplier.name,
+            phone: product.supplier.phone,
+            social: product.supplier.social,
+          }
+        : undefined,
       stock: product?.stockUnlimited ? undefined : product?.stock,
       quantity: product
         ? Math.max(
@@ -2659,7 +2713,7 @@ function AdminOrders() {
               <div className="space-y-4 rounded-xl border border-border/60 bg-surface/40 p-4">
                 <p className="text-lg font-semibold tracking-tight text-foreground">Datos del pedido</p>
 
-                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
+                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-3">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Método de pago</Label>
                     <Select
@@ -2686,29 +2740,6 @@ function AdminOrders() {
                     </Select>
                   </div>
                   <div className="flex min-w-0 flex-col gap-0">
-                    <Label className="min-h-5">Tienda</Label>
-                    <Select
-                      value={orderForm.brand}
-                      onValueChange={(value) =>
-                        setOrderForm({ ...orderForm, brand: value as BrandSlug })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Seleccionar tienda" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {orderBrandOptions.map((brand) => (
-                          <SelectItem key={brand.value} value={brand.value}>
-                            {brand.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-                  <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Estado de pago</Label>
                     <Select
                       value={orderForm.paymentStatus}
@@ -2728,6 +2759,46 @@ function AdminOrders() {
                         {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((status) => (
                           <SelectItem key={status} value={status}>
                             {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Tienda</Label>
+                    <Select
+                      value={orderForm.brand}
+                      onValueChange={(value) =>
+                        setOrderForm({ ...orderForm, brand: value as BrandSlug })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar tienda" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {orderBrandOptions.map((brand) => (
+                          <SelectItem key={brand.value} value={brand.value}>
+                            {brand.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Método de envío</Label>
+                    <Select
+                      value={orderForm.shippingMethod ?? ""}
+                      onValueChange={(value) =>
+                        setOrderForm({ ...orderForm, shippingMethod: value })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar método" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {shippingMethodOptions.map((method) => (
+                          <SelectItem key={method} value={method}>
+                            {method}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -2757,33 +2828,6 @@ function AdminOrders() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-
-                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-                  <div className="flex min-w-0 flex-col gap-0">
-                    <Label className="min-h-5">Método de envío</Label>
-                    <Select
-                      value={orderForm.shippingMethod ?? ""}
-                      onValueChange={(value) =>
-                        setOrderForm({ ...orderForm, shippingMethod: value })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Seleccionar método" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shippingMethodOptions.map((method) => (
-                          <SelectItem key={method} value={method}>
-                            {method}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-0 opacity-0 pointer-events-none">
-                    <Label className="min-h-5">Espacio</Label>
-                    <div className="h-10 rounded-md border border-border/60 bg-transparent" />
                   </div>
                 </div>
 
@@ -2853,7 +2897,7 @@ function AdminOrders() {
                     return (
                       <div
                         key={`item-${itemIndex}`}
-                        className="relative grid gap-2 rounded-xl border border-border/60 bg-surface/40 p-3 sm:grid-cols-[1.7fr_1fr_1fr_1.2fr_auto]"
+                        className="relative grid gap-2 rounded-xl border border-border/60 bg-surface/40 p-3 sm:grid-cols-[1.7fr_0.5fr_0.65fr_1.2fr_1.2fr_auto]"
                       >
                         <div className="relative">
                           <Label>Nombre</Label>
@@ -2927,14 +2971,24 @@ function AdminOrders() {
                             placeholder="-"
                           />
                         </div>
-                        <div className="flex items-end gap-2">
+                        <div>
+                          <Label>Proveedor</Label>
+                          <Input
+                            value={
+                              item.supplier?.name ?? selectedProduct?.supplier?.name ?? ""
+                            }
+                            placeholder="-"
+                            disabled
+                          />
+                        </div>
+                        <div className="flex flex-col items-stretch justify-end gap-1">
                           {item.confirmed ? (
                             <>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 onClick={() => unconfirmOrderItem(itemIndex)}
-                                className="h-10 px-3"
+                                className="h-8 justify-start px-2"
                               >
                                 <Pencil className="size-4" /> Editar
                               </Button>
@@ -2948,7 +3002,7 @@ function AdminOrders() {
                                     onConfirm: () => removeOrderItem(itemIndex),
                                   })
                                 }
-                                className="h-10 p-2 text-destructive hover:bg-destructive/20"
+                                className="h-8 justify-start px-2 text-destructive hover:bg-destructive/20"
                               >
                                 <Trash2 className="size-4" /> Eliminar
                               </Button>
@@ -3008,72 +3062,6 @@ function AdminOrders() {
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
-                <p className="text-lg font-semibold tracking-tight text-foreground">Proveedor</p>
-                {Array.from(
-                  new Map(
-                    orderForm.items.map((item) => {
-                      const match = getSupplierForItem(item.name);
-                      return [item.name, match] as const;
-                    }),
-                  ).entries(),
-                ).map(([itemName, match]) => (
-                  <div key={itemName} className="grid gap-3 sm:grid-cols-4">
-                    {(() => {
-                      const item = orderForm.items.find((candidate) => candidate.name === itemName);
-                      const supplier = item?.supplier ?? match?.supplier;
-                      const updateSupplier = (field: "name" | "phone" | "social", value: string) =>
-                        setOrderForm({
-                          ...orderForm,
-                          items: orderForm.items.map((candidate) =>
-                            candidate.name === itemName
-                              ? {
-                                  ...candidate,
-                                  supplier: {
-                                    name: candidate.supplier?.name ?? match?.supplier?.name ?? "",
-                                    phone:
-                                      candidate.supplier?.phone ?? match?.supplier?.phone ?? "",
-                                    social:
-                                      candidate.supplier?.social ?? match?.supplier?.social ?? "",
-                                    [field]: value,
-                                  },
-                                }
-                              : candidate,
-                          ),
-                        });
-                      return (
-                        <>
-                          <div>
-                            <Label>Producto</Label>
-                            <Input value={itemName} disabled />
-                          </div>
-                          <div>
-                            <Label>Nombre</Label>
-                            <Input
-                              value={supplier?.name ?? ""}
-                              onChange={(event) => updateSupplier("name", event.target.value)}
-                            />
-                          </div>
-                          <div>
-                            <Label>Celular</Label>
-                            <Input
-                              value={supplier?.phone ?? ""}
-                              onChange={(event) => updateSupplier("phone", event.target.value)}
-                            />
-                          </div>
-                          <div>
-                            <Label>Red social</Label>
-                            <Input
-                              value={supplier?.social ?? ""}
-                              onChange={(event) => updateSupplier("social", event.target.value)}
-                            />
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                ))}
-              </div>
             </div>
           ) : null}
 
