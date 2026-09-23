@@ -65,7 +65,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { brands } from "@/config/brands";
+import { brandList, brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
 import { catalogQueries, orderQueries, type Product } from "@/services/catalog.service";
 import { cn } from "@/lib/utils";
@@ -844,6 +844,15 @@ function AdminOrders() {
     }
     return options;
   }, [availablePaymentMethods, orderForm?.paymentMethod]);
+
+  const orderBrandOptions = useMemo(
+    () =>
+      brandList.map((brand) => ({
+        value: brand.slug,
+        label: `LRG ${brand.name}`,
+      })),
+    [],
+  );
 
   const orderStoreSlugs = useMemo(
     () =>
@@ -2347,15 +2356,21 @@ function AdminOrders() {
                           <div className="w-full min-w-0 space-y-4 overflow-hidden rounded-2xl bg-surface-2/90 p-3 text-sm sm:p-5">
                             <p className="font-medium">Detalle del pedido</p>
 
-                            <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:items-start">
-                              <div className="min-w-0 space-y-3">
-                                <div>
-                                  <span className="block text-xs text-muted-foreground">
-                                    Cliente
-                                  </span>
-                                  <span className="block wrap-break-word">{displayCustomer}</span>
-                                  {order.isGuest && <Badge variant="warning">Invitado</Badge>}
-                                </div>
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between gap-4">
+                                <p className="font-medium">Cliente</p>
+                                <p className="font-medium">Productos comprados</p>
+                              </div>
+
+                              <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:items-start">
+                                <div className="min-w-0 space-y-3">
+                                  <div>
+                                    <span className="block text-xs text-muted-foreground">
+                                      Cliente
+                                    </span>
+                                    <span className="block wrap-break-word">{displayCustomer}</span>
+                                    {order.isGuest && <Badge variant="warning">Invitado</Badge>}
+                                  </div>
                                 <div>
                                   <span className="block text-xs text-muted-foreground">
                                     Correo
@@ -2411,10 +2426,9 @@ function AdminOrders() {
                                   </span>
                                 </div>
                               </div>
-                              <div className="min-w-0 space-y-3">
-                                <p className="font-medium">Productos comprados</p>
-                                <ul className="grid min-w-0 gap-2 text-sm">
-                                  {order.items.map((item, itemIndex) => {
+                                <div className="min-w-0 space-y-3">
+                                  <ul className="grid min-w-0 gap-2 text-sm">
+                                    {order.items.map((item, itemIndex) => {
                                     const product = allProducts.find(
                                       (candidate) =>
                                         candidate.id === item.productId ||
@@ -2440,8 +2454,9 @@ function AdminOrders() {
                                         </span>
                                       </li>
                                     );
-                                  })}
-                                </ul>
+                                    })}
+                                  </ul>
+                                </div>
                               </div>
                             </div>
                             <div className="flex flex-wrap justify-center gap-2 pt-2">
@@ -2671,6 +2686,29 @@ function AdminOrders() {
                     </Select>
                   </div>
                   <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Tienda</Label>
+                    <Select
+                      value={orderForm.brand}
+                      onValueChange={(value) =>
+                        setOrderForm({ ...orderForm, brand: value as BrandSlug })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar tienda" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {orderBrandOptions.map((brand) => (
+                          <SelectItem key={brand.value} value={brand.value}>
+                            {brand.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
+                  <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Estado de pago</Label>
                     <Select
                       value={orderForm.paymentStatus}
@@ -2690,29 +2728,6 @@ function AdminOrders() {
                         {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((status) => (
                           <SelectItem key={status} value={status}>
                             {status}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-                  <div className="flex min-w-0 flex-col gap-0">
-                    <Label className="min-h-5">Método de envío</Label>
-                    <Select
-                      value={orderForm.shippingMethod ?? ""}
-                      onValueChange={(value) =>
-                        setOrderForm({ ...orderForm, shippingMethod: value })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Seleccionar método" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shippingMethodOptions.map((method) => (
-                          <SelectItem key={method} value={method}>
-                            {method}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -2745,6 +2760,33 @@ function AdminOrders() {
                   </div>
                 </div>
 
+                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Método de envío</Label>
+                    <Select
+                      value={orderForm.shippingMethod ?? ""}
+                      onValueChange={(value) =>
+                        setOrderForm({ ...orderForm, shippingMethod: value })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar método" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {shippingMethodOptions.map((method) => (
+                          <SelectItem key={method} value={method}>
+                            {method}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0 opacity-0 pointer-events-none">
+                    <Label className="min-h-5">Espacio</Label>
+                    <div className="h-10 rounded-md border border-border/60 bg-transparent" />
+                  </div>
+                </div>
+
                 <div>
                   <Label>Observaciones</Label>
                   <Textarea
@@ -2753,6 +2795,19 @@ function AdminOrders() {
                       setOrderForm({ ...orderForm, extraInfo: event.target.value })
                     }
                   />
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <Button
+                    type="button"
+                    variant="default"
+                    onClick={handleSaveOrder}
+                    disabled={!hasOrderChanges || !isOrderFormValid}
+                    className="inline-flex items-center gap-2"
+                  >
+                    <Check className="size-4" />
+                    Confirmar edición
+                  </Button>
                 </div>
 
                 {paymentInstruction ? (
