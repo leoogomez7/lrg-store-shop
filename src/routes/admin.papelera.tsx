@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ContactRound, Package, RotateCcw, Search, ShoppingCart, Trash2, X } from "lucide-react";
+import { Check, ContactRound, Package, RotateCcw, Search, ShoppingCart, Trash2, X } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Input } from "@/components/ui/input";
 import { orders, saveOrders } from "@/data/orders";
 import { products, saveProducts } from "@/data/products";
 import { applyTrashEntries, readTrash, removeFromTrash, type TrashEntry } from "@/data/trash";
@@ -31,6 +32,7 @@ function AdminTrash() {
   const [selectedRestoreKeys, setSelectedRestoreKeys] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [pageSizeInput, setPageSizeInput] = useState("10");
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     title: string;
@@ -99,6 +101,12 @@ function AdminTrash() {
   const totalPages = Math.max(1, Math.ceil(filteredEntries.length / pageSize));
   const safePage = Math.min(page, totalPages - 1);
   const paginatedEntries = filteredEntries.slice(safePage * pageSize, (safePage + 1) * pageSize);
+  const hasPreviousPage = safePage > 0;
+  const hasNextPage = safePage < totalPages - 1;
+
+  useEffect(() => {
+    setPageSizeInput(String(pageSize));
+  }, [pageSize]);
 
   useEffect(() => {
     setPage(0);
@@ -441,40 +449,84 @@ function AdminTrash() {
       </div>
 
       {!isLoading && filteredEntries.length > 0 ? (
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 pb-8">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Mostrar</span>
-            <select
-              value={pageSize}
-              onChange={(event) => setPageSize(Number(event.target.value))}
-              className="h-10 rounded-xl border border-input bg-background/80 px-3 text-sm text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              aria-label="Cantidad de elementos por página"
-            >
-              {[10, 20, 30, 50].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setPage(0)} disabled={safePage === 0}>
-              Principio
-            </Button>
-            <span className="grid size-9 place-items-center rounded-full bg-surface-2 text-sm font-medium text-foreground">
-              {safePage + 1}
-            </span>
+        <div className="mt-4 flex flex-col gap-3 pb-20">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
+              size="sm"
+              onClick={() => setPage(0)}
+              disabled={!hasPreviousPage}
+              className="h-9 px-4"
+            >
+              Principio
+            </Button>
+            <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+              {Array.from({ length: totalPages }, (_, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${
+                    index === safePage
+                      ? "bg-muted text-foreground"
+                      : "bg-transparent text-muted-foreground hover:bg-surface-2"
+                  }`}
+                  onClick={() => setPage(index)}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
               size="sm"
               onClick={() => setPage(totalPages - 1)}
-              disabled={safePage >= totalPages - 1}
+              disabled={!hasNextPage}
+              className="h-9 px-4"
             >
               Último
             </Button>
           </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="text-sm text-muted-foreground">Mostrar</div>
+            <Input
+              type="number"
+              min={1}
+              max={1000}
+              value={pageSizeInput}
+              placeholder="Cantidad"
+              onChange={(event) => setPageSizeInput(event.target.value)}
+              className="h-8 w-20 bg-background/50"
+            />
+
+            {(() => {
+              const v = Number(pageSizeInput);
+              const isValid = Number.isFinite(v) && v >= 1;
+              const isChanged = pageSizeInput !== "" && String(Math.floor(v)) !== String(pageSize);
+              return (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (!isValid || !isChanged) return;
+                    const final = Math.min(1000, Math.floor(v));
+                    setPageSize(final);
+                    setPage(0);
+                  }}
+                  disabled={!isValid || !isChanged}
+                  className="h-8 px-4"
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Confirmar
+                </Button>
+              );
+            })()}
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground">
+            {paginatedEntries.length} de {filteredEntries.length} elementos mostrados
+          </p>
         </div>
       ) : null}
 
