@@ -2187,7 +2187,7 @@ function AdminOrders() {
             )}
             className={cn(
               "w-full table-fixed border-collapse text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
-              selectionMode ? "min-w-200" : "min-w-0",
+              selectionMode ? "min-w-200" : hasExpandedOrder ? "min-w-0" : "min-w-[98rem]",
             )}
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -2205,11 +2205,11 @@ function AdminOrders() {
                 {!selectionMode && (
                   <TableHead
                     className={cn(
-                      "w-0 min-w-0 max-w-0 overflow-visible px-0 text-left",
+                      "w-96 min-w-96 text-left",
                       hasExpandedOrder && quickEditOrderId === null && "hidden",
                     )}
                   >
-                    <span className="block min-w-96 pl-2">Acciones</span>
+                    Acciones
                   </TableHead>
                 )}
               </TableRow>
@@ -2419,11 +2419,11 @@ function AdminOrders() {
                       {!selectionMode && (
                         <TableCell
                           className={cn(
-                            "w-0 min-w-0 max-w-0 overflow-visible px-0 text-left",
+                            "w-96 min-w-96 text-left",
                             hasExpandedOrder && !isQuickEditing && "hidden",
                           )}
                         >
-                          <div className="flex min-w-96 flex-nowrap items-center justify-start gap-0.5 overflow-visible pl-2">
+                          <div className="flex min-w-max flex-nowrap items-center justify-start gap-0.5 overflow-visible">
                             {isQuickEditing ? (
                               <>
                                 <Button
