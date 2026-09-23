@@ -2189,21 +2189,21 @@ function AdminOrders() {
             className={cn(
               "w-full table-fixed border-collapse text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
               hasExpandedOrder
-                ? "min-w-0"
+                ? "min-w-[98rem]"
                 : selectionMode
                   ? "min-w-200"
-                  : "w-[calc(100%+24rem)] min-w-0",
+                  : "min-w-[98rem]",
             )}
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
                 <TableHead className="w-10 px-1"> </TableHead>
-                <TableHead className={cn(hasExpandedOrder ? "w-40" : "w-24")}>Pedido</TableHead>
+                <TableHead className="w-24">Pedido</TableHead>
                 <TableHead className="w-20">Fecha</TableHead>
                 <TableHead className="w-24">Estado de pago</TableHead>
-                <TableHead className="w-24">Núm. envío</TableHead>
+                <TableHead className="w-28">Núm. envío</TableHead>
                 <TableHead className="w-24">Estado de envío</TableHead>
-                <TableHead className="w-20">Fecha envío</TableHead>
+                <TableHead className="w-24">Fecha envío</TableHead>
                 <TableHead className="w-18">Gastos</TableHead>
                 <TableHead className="w-20">Total</TableHead>
                 <TableHead className="w-18">Ganancias</TableHead>
