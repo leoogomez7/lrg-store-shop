@@ -158,9 +158,33 @@ export const orderService = {
     return Array.from(totals.values());
   },
   create: async (order: Order) => {
-    await adjustProductStockForOrder(order, -1);
-    await upsertAdminOrder({ data: { order } });
-    return order;
+    const productsData = await listAdminProducts({ data: {} });
+    const orderWithSupplierSnapshots: Order = {
+      ...order,
+      items: order.items.map((item) => {
+        if (item.supplier) return item;
+        const product = productsData.find(
+          (candidate) => candidate.id === item.productId || candidate.name === item.name,
+        );
+        const variant = product?.variants?.find(
+          (candidate) => candidate.id === item.variantId || candidate.name === item.variantName,
+        );
+        const supplier = variant?.supplier ?? product?.supplier;
+        return supplier
+          ? {
+              ...item,
+              supplier: {
+                name: supplier.name,
+                phone: supplier.phone,
+                social: supplier.social,
+              },
+            }
+          : item;
+      }),
+    };
+    await adjustProductStockForOrder(orderWithSupplierSnapshots, -1);
+    await upsertAdminOrder({ data: { order: orderWithSupplierSnapshots } });
+    return orderWithSupplierSnapshots;
   },
   update: async (order: Order) => {
     await upsertAdminOrder({ data: { order } });

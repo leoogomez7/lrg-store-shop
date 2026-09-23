@@ -189,6 +189,7 @@ function AdminSuppliers() {
         const assignmentSummary = orders.reduce(
           (summary, order) => {
             for (const item of order.items) {
+              if (item.supplier) continue;
               const itemName = item.name.toLowerCase();
               const itemVariantName = item.variantName?.toLowerCase();
               const matchesById =
@@ -242,6 +243,43 @@ function AdminSuppliers() {
         grouped.set(key, current);
       }
     }
+
+    for (const order of orders) {
+      for (const item of order.items) {
+        if (!item.supplier || item.quantity <= 0) continue;
+        const { name, phone, social } = item.supplier;
+        if (!name && !phone && !social) continue;
+        const key = `${name}|${phone}|${social}`;
+        const current = grouped.get(key) ?? {
+          key,
+          name,
+          phone,
+          social,
+          products: [],
+          stores: [],
+          sales: 0,
+          salesByCurrency: { ARS: 0, USD: 0 },
+          soldQuantity: 0,
+        };
+        const productName = item.variantName ? `${item.name} · ${item.variantName}` : item.name;
+        const currentProduct = current.products.find((product) => product.name === productName);
+        if (currentProduct) {
+          currentProduct.quantity += item.quantity;
+        } else {
+          current.products.push({ name: productName, quantity: item.quantity });
+        }
+        const itemGastos = item.gastos ?? 0;
+        const itemCurrency = item.gastosCurrency ?? "ARS";
+        const itemSales = itemGastos * item.quantity;
+        current.sales += itemSales;
+        current.salesByCurrency[itemCurrency] += itemSales;
+        current.soldQuantity += item.quantity;
+        const itemStore = item.brand ?? order.brand;
+        if (!current.stores.includes(itemStore)) current.stores.push(itemStore);
+        grouped.set(key, current);
+      }
+    }
+
     for (const supplier of standaloneSuppliers) {
       const key = `${supplier.name}|${supplier.phone}|${supplier.social}`;
       if (!grouped.has(key))
@@ -331,11 +369,11 @@ function AdminSuppliers() {
     setNewSupplierOpen(true);
   };
 
-  const startQuickEditSupplier = (row: SupplierRow, fromDetails = false) => {
-    if (!fromDetails) setExpandedSupplierKey(null);
+  const startQuickEditSupplier = (row: SupplierRow) => {
+    setExpandedSupplierKey(null);
     setQuickEditSupplierKey(row.key);
     setQuickEditSupplier({ name: row.name, phone: row.phone, social: row.social });
-    setQuickEditFromDetails(fromDetails);
+    setQuickEditFromDetails(false);
   };
 
   const cancelQuickEditSupplier = () => {
@@ -1417,52 +1455,9 @@ function AdminSuppliers() {
                             colSpan={selectionMode || hasExpandedSupplier ? 6 : 7}
                             className="w-full bg-muted/30 p-4 text-left"
                           >
-                            {isQuickEditing && quickEditFromDetails ? (
-                              <div className="grid gap-3 pt-6 sm:grid-cols-3">
-                                <div>
-                                  <Label>Nombre</Label>
-                                  <Input
-                                    value={quickSupplier.name}
-                                    onChange={(event) =>
-                                      setQuickEditSupplier({
-                                        ...quickSupplier,
-                                        name: event.target.value,
-                                      })
-                                    }
-                                    className="h-9"
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Celular</Label>
-                                  <Input
-                                    value={quickSupplier.phone}
-                                    onChange={(event) =>
-                                      setQuickEditSupplier({
-                                        ...quickSupplier,
-                                        phone: event.target.value,
-                                      })
-                                    }
-                                    className="h-9"
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Red social</Label>
-                                  <Input
-                                    value={quickSupplier.social}
-                                    onChange={(event) =>
-                                      setQuickEditSupplier({
-                                        ...quickSupplier,
-                                        social: event.target.value,
-                                      })
-                                    }
-                                    className="h-9"
-                                  />
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <p className="mb-2 pt-6 font-medium">Productos</p>
-                                <div className="space-y-1.5">
+                            <>
+                              <p className="mb-2 pt-6 font-medium">Productos</p>
+                              <div className="space-y-1.5">
                                   {sortedProducts.slice(0, 8).map((product) => (
                                     <div
                                       key={product.name}
@@ -1490,9 +1485,8 @@ function AdminSuppliers() {
                                       Ver más
                                     </Button>
                                   )}
-                                </div>
-                              </>
-                            )}
+                              </div>
+                            </>
                             <div className="flex flex-wrap items-center justify-center gap-2 pt-3">
                               <Button
                                 type="button"
@@ -1501,7 +1495,7 @@ function AdminSuppliers() {
                                 onClick={() =>
                                   isQuickEditing
                                     ? saveSupplierChanges(row.key, quickSupplier)
-                                    : startQuickEditSupplier(row, true)
+                                    : startQuickEditSupplier(row)
                                 }
                                 className={cn(
                                   "h-7 gap-1 px-2 text-xs",
