@@ -901,29 +901,66 @@ function CustomerRow({
         <TableRow>
           <TableCell colSpan={5} className="p-2">
             <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-2 sm:grid-cols-2">
-              {customer.orders.slice(0, 5).map((o, index, visibleOrders) => {
-                const isLastVisible = index === visibleOrders.length - 1 && customer.orders.length > 5;
+              {customer.orders.slice(0, 4).map((o) => (
+                <div
+                  key={o.id}
+                  className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
+                >
+                  <div className="flex w-full min-w-0 items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <button
+                        type="button"
+                        className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                        onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                      >
+                        {o.id}
+                      </button>
+                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                        {formatPurchaseDate(o.date)}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                        className="h-8 px-3 py-1"
+                      >
+                        <Eye className="size-3.5" /> Ver pedido
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3 py-1"
+                        onClick={() => {
+                          setDocumentsOrder(o);
+                        }}
+                      >
+                        <Paperclip className="size-3.5" /> Archivos adjuntos
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
 
-                return (
-                  <div
-                    key={o.id}
-                    className={
-                      isLastVisible
-                        ? "flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm sm:col-span-2"
-                        : "flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
-                    }
-                  >
+              {customer.orders[4] ? (
+                <>
+                  <div className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm">
                     <div className="flex w-full min-w-0 items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
                         <button
                           type="button"
                           className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
-                          onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                          onClick={() =>
+                            navigate({ to: "/admin/pedidos", search: { pedido: customer.orders[4].id } })
+                          }
                         >
-                          {o.id}
+                          {customer.orders[4].id}
                         </button>
                         <span className="shrink-0 text-[11px] text-muted-foreground">
-                          {formatPurchaseDate(o.date)}
+                          {formatPurchaseDate(customer.orders[4].date)}
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center justify-end gap-2">
@@ -931,7 +968,9 @@ function CustomerRow({
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                          onClick={() =>
+                            navigate({ to: "/admin/pedidos", search: { pedido: customer.orders[4].id } })
+                          }
                           className="h-8 px-3 py-1"
                         >
                           <Eye className="size-3.5" /> Ver pedido
@@ -942,26 +981,27 @@ function CustomerRow({
                           size="sm"
                           className="h-8 px-3 py-1"
                           onClick={() => {
-                            setDocumentsOrder(o);
+                            setDocumentsOrder(customer.orders[4]);
                           }}
                         >
                           <Paperclip className="size-3.5" /> Archivos adjuntos
                         </Button>
-                        {isLastVisible ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="h-8 px-3 py-1"
-                            onClick={() => setAllPurchasesOpen(true)}
-                          >
-                            <Plus className="size-3.5" /> Ver más
-                          </Button>
-                        ) : null}
                       </div>
                     </div>
                   </div>
-                );
-              })}
+
+                  {customer.orders.length > 5 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex min-h-10 items-center justify-center rounded-xl border border-border/60 px-3 py-2 text-sm"
+                      onClick={() => setAllPurchasesOpen(true)}
+                    >
+                      <Plus className="size-3.5" /> Ver más
+                    </Button>
+                  ) : null}
+                </>
+              ) : null}
             </div>
           </TableCell>
         </TableRow>
