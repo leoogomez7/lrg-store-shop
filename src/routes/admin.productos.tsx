@@ -2104,36 +2104,7 @@ function AdminProducts() {
       </div>
 
       <FilterChipList chips={adminFilterChips} />
-      <div className="mt-4 flex items-stretch gap-2 rounded-2xl">
-        <div className={cn("flex w-10 shrink-0 flex-col items-center self-stretch bg-transparent py-3")}>
-          <div className="mb-3 h-6" />
-          {displayRows.map(({ product, variant }) => {
-            const selectionKey = getProductSelectionKey(product, variant);
-            return (
-              <div
-                key={`${product.id}-${variant?.id ?? "base"}`}
-                className="flex min-h-[3.25rem] w-full items-center justify-center py-2"
-              >
-                <Checkbox
-                  className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                  checked={selectedProductIds.includes(selectionKey)}
-                  onCheckedChange={(checked) => {
-                    const isChecked = checked === true;
-                    setSelectedProductIds((current) => {
-                      const next = isChecked
-                        ? [...new Set([...current, selectionKey])]
-                        : current.filter((key) => key !== selectionKey);
-                      setSelectionMode(next.length > 0);
-                      return next;
-                    });
-                  }}
-                  aria-label={`Seleccionar ${product.name}${variant ? ` ${variant.name}` : ""}`}
-                />
-              </div>
-            );
-          })}
-        </div>
-
+      <div className="mt-4 rounded-2xl">
         <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
           <Table
             hideScrollbarOnMobile
@@ -2148,6 +2119,7 @@ function AdminProducts() {
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
+                <TableHead className="w-10 px-1"> </TableHead>
                 <TableHead className="w-40 text-center">Producto</TableHead>
                 <TableHead className="w-20 text-center">Tienda</TableHead>
                 <TableHead className="w-16 text-center">Stock</TableHead>
@@ -2226,6 +2198,27 @@ function AdminProducts() {
                       !selectionMode && !isQuickEditing && "cursor-pointer hover:bg-transparent",
                     )}
                   >
+                    <TableCell className="w-10 px-1">
+                      <div className="flex items-center justify-center">
+                        <Checkbox
+                          className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                          checked={selectedProductIds.includes(getProductSelectionKey(product, variant))}
+                          onCheckedChange={(checked) => {
+                            const isChecked = checked === true;
+                            const selectionKey = getProductSelectionKey(product, variant);
+                            setSelectedProductIds((current) => {
+                              const next = isChecked
+                                ? [...new Set([...current, selectionKey])]
+                                : current.filter((key) => key !== selectionKey);
+                              setSelectionMode(next.length > 0);
+                              return next;
+                            });
+                          }}
+                          aria-label={`Seleccionar ${product.name}${variant ? ` ${variant.name}` : ""}`}
+                        />
+                      </div>
+                    </TableCell>
+
                     {isQuickEditing ? (
                       <>
                         <TableCell className="min-w-64 align-middle text-center">
