@@ -2184,11 +2184,15 @@ function AdminOrders() {
             stickyScrollbar
             containerClassName={cn(
               "touch-pan-x overscroll-x-contain overflow-y-visible [-webkit-overflow-scrolling:touch]",
-              hasExpandedOrder ? "overflow-x-hidden" : "overflow-x-auto",
+              "overflow-x-auto",
             )}
             className={cn(
               "w-full table-fixed border-collapse text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
-              hasExpandedOrder ? "min-w-0" : selectionMode ? "min-w-200" : "min-w-[98rem]",
+              hasExpandedOrder
+                ? "min-w-[64rem]"
+                : selectionMode
+                  ? "min-w-200"
+                  : "min-w-[98rem]",
             )}
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
