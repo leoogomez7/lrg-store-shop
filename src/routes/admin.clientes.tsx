@@ -25,6 +25,7 @@ import {
   EyeOff,
   FileText,
   Paperclip,
+  Plus,
   Search,
   Sheet,
   X,
@@ -900,7 +901,7 @@ function CustomerRow({
         <TableRow>
           <TableCell colSpan={5} className="p-2">
             <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-2 sm:grid-cols-2">
-              {customer.orders.slice(0, 6).map((o) => (
+              {customer.orders.slice(0, 5).map((o) => (
                 <div
                   key={o.id}
                   className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
@@ -927,7 +928,7 @@ function CustomerRow({
                           onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
                           className="h-8 px-3 py-1"
                         >
-                          Ver pedido
+                          <Eye className="size-3.5" /> Ver pedido
                         </Button>
                         <Button
                           type="button"
@@ -945,14 +946,14 @@ function CustomerRow({
                   </div>
                 </div>
               ))}
-              {customer.orders.length > 6 ? (
+              {customer.orders.length > 5 ? (
                 <Button
                   type="button"
                   variant="outline"
-                  className="min-h-10 rounded-xl"
+                  className="col-span-full min-h-10 rounded-xl"
                   onClick={() => setAllPurchasesOpen(true)}
                 >
-                  Ver más
+                  <Plus className="size-3.5" /> Ver más
                 </Button>
               ) : null}
             </div>
@@ -994,7 +995,7 @@ function CustomerRow({
                         onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
                         className="h-8 px-3 py-1"
                       >
-                        Ver pedido
+                        <Eye className="size-3.5" /> Ver pedido
                       </Button>
                       <Button
                         type="button"
@@ -1096,7 +1097,7 @@ function CustomerRow({
                   setDocumentsOrder(null);
                 }}
               >
-                Ver pedido
+                <Eye className="size-4" /> Ver pedido
               </Button>
             ) : null}
           </div>
