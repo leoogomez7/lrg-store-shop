@@ -731,18 +731,15 @@ function AdminProducts() {
   const getBulkProductQueue = () => normalizeProductSelection(selectedProductIds);
 
   const toggleProductSelection = (selectionKey: string, checked: boolean) => {
-    const normalizedSelectionKey = getProductIdFromSelectionKey(selectionKey);
     setSelectedProductIds((current) => {
-      const normalizedCurrent = normalizeProductSelection(current);
       const next = checked
-        ? normalizedCurrent.includes(normalizedSelectionKey)
-          ? normalizedCurrent
-          : [...normalizedCurrent, normalizedSelectionKey]
-        : normalizedCurrent.filter((key) => key !== normalizedSelectionKey);
+        ? current.includes(selectionKey)
+          ? current
+          : [...current, selectionKey]
+        : current.filter((key) => key !== selectionKey);
 
-      const normalizedNext = normalizeProductSelection(next);
-      setSelectionMode(normalizedNext.length > 0);
-      return normalizedNext;
+      setSelectionMode(next.length > 0);
+      return next;
     });
   };
 
@@ -1943,14 +1940,12 @@ function AdminProducts() {
               }
               const shouldSelect = checked === true || checked === "indeterminate";
               setSelectedProductIds((current) => {
-                const normalizedCurrent = normalizeProductSelection(current);
                 const next = shouldSelect
-                  ? Array.from(new Set([...normalizedCurrent, ...visibleProductSelectionKeys]))
-                  : normalizedCurrent.filter((key) => !visibleProductSelectionKeys.includes(key));
+                  ? Array.from(new Set([...current, ...visibleProductSelectionKeys]))
+                  : current.filter((key) => !visibleProductSelectionKeys.includes(key));
 
-                const normalizedNext = normalizeProductSelection(next);
-                setSelectionMode(normalizedNext.length > 0);
-                return normalizedNext;
+                setSelectionMode(next.length > 0);
+                return next;
               });
             }}
             aria-label="Seleccionar productos visibles"
