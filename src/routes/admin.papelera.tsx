@@ -318,9 +318,9 @@ function AdminTrash() {
         />
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-3">
+      <div className="mt-3 flex min-h-11 items-center justify-between gap-3">
         <span className="text-sm text-muted-foreground">{entries.length} elementos</span>
-        <div className="flex items-center gap-2">
+        <div className="flex min-h-10 items-center justify-end gap-2">
           {selectionMode === "delete" && selectedDeleteKeys.length > 0 ? (
             <Button type="button" variant="destructive" onClick={deleteSelectedPermanently}>
               <Trash2 className="size-4" /> Eliminar seleccionados
@@ -334,7 +334,7 @@ function AdminTrash() {
         </div>
       </div>
 
-      <div className="mt-6 space-y-3 pb-20">
+      <div className="mt-5 space-y-3 pb-20">
         {isLoading ? (
           <div className="glass-panel rounded-2xl p-8 text-center text-sm text-muted-foreground">
             Cargando elementos eliminados...
