@@ -2122,7 +2122,7 @@ function AdminOrders() {
                       }}
                       className={
                         highlightedOrderId === order.id
-                          ? "animate-pulse bg-amber-500/20 ring-2 ring-amber-400"
+                          ? "animate-pulse border border-amber-400/80 bg-gradient-to-r from-amber-500/25 via-yellow-300/25 to-amber-500/25 shadow-[0_0_0_1px_rgba(251,191,36,0.55),0_0_18px_rgba(251,191,36,0.28)]"
                           : !selectionMode && !isQuickEditing
                             ? "cursor-pointer hover:bg-transparent"
                             : undefined

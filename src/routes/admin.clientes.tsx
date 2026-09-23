@@ -950,35 +950,47 @@ function CustomerRow({
             <DialogTitle>Todas las compras</DialogTitle>
             <DialogDescription>{customer.name}</DialogDescription>
           </DialogHeader>
-          <div className="grid max-h-[65vh] grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid max-h-[65vh] grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
             {customer.orders.map((o) => (
               <div
                 key={o.id}
                 className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
               >
-                <div className="flex min-w-0 w-full items-center gap-2">
-                  <button
-                    type="button"
-                    className="min-w-0 truncate font-medium text-primary underline-offset-4 hover:underline"
-                    onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
-                  >
-                    {o.id}
-                  </button>
-                  <div className="shrink-0 text-[11px] text-muted-foreground">
-                    {formatPurchaseDate(o.date)}
+                <div className="flex w-full min-w-0 flex-col gap-2">
+                  <div className="flex min-w-0 items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      className="min-w-0 truncate font-medium text-primary underline-offset-4 hover:underline"
+                      onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                    >
+                      {o.id}
+                    </button>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      {formatPurchaseDate(o.date)}
+                    </span>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 px-2"
-                    onClick={() => {
-                      setAllPurchasesOpen(false);
-                      setDocumentsOrder(o);
-                    }}
-                  >
-                    <Paperclip className="size-3.5" /> Archivos adjuntos
-                  </Button>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                    >
+                      Ver pedido
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 px-2"
+                      onClick={() => {
+                        setAllPurchasesOpen(false);
+                        setDocumentsOrder(o);
+                      }}
+                    >
+                      <Paperclip className="size-3.5" /> Archivos adjuntos
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1038,14 +1050,37 @@ function CustomerRow({
                 <p className="text-sm text-muted-foreground">No hay archivos adjuntos.</p>
               )}
           </div>
-          <Input
-            type="file"
-            multiple
-            onChange={async (event) => {
-              await saveAdminAttachments(Array.from(event.target.files ?? []));
-              event.target.value = "";
-            }}
-          />
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+            <input
+              id="client-order-file-input"
+              type="file"
+              multiple
+              className="hidden"
+              onChange={async (event) => {
+                await saveAdminAttachments(Array.from(event.target.files ?? []));
+                event.target.value = "";
+              }}
+            />
+            <label
+              htmlFor="client-order-file-input"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-input bg-background/80 px-3 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-accent"
+            >
+              <Paperclip className="size-4" />
+              Adjuntar archivos
+            </label>
+            {documentsOrder ? (
+              <Button
+                type="button"
+                variant="default"
+                onClick={() => {
+                  navigate({ to: "/admin/pedidos", search: { pedido: documentsOrder.id } });
+                  setDocumentsOrder(null);
+                }}
+              >
+                Ver pedido
+              </Button>
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
     </>
