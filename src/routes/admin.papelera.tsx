@@ -274,7 +274,7 @@ function AdminTrash() {
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
-        <Button type="button" variant="destructive" onClick={emptyTrash}>
+        <Button type="button" variant="outline" onClick={emptyTrash}>
           <Trash2 className="size-4" /> Vaciar papelera
         </Button>
         <Button type="button" variant="outline" onClick={restoreAllEntries}>
@@ -300,16 +300,6 @@ function AdminTrash() {
         >
           <RotateCcw className="size-4" /> Seleccionar restaurar
         </Button>
-        {selectionMode === "delete" && selectedDeleteKeys.length > 0 ? (
-          <Button type="button" variant="destructive" onClick={deleteSelectedPermanently}>
-            <Trash2 className="size-4" /> Eliminar seleccionados
-          </Button>
-        ) : null}
-        {selectionMode === "restore" && selectedRestoreKeys.length > 0 ? (
-          <Button type="button" variant="default" onClick={restoreSelectedEntries}>
-            <RotateCcw className="size-4" /> Restaurar seleccionados
-          </Button>
-        ) : null}
         {selectionMode ? (
           <Button type="button" variant="ghost" onClick={clearSelection}>
             <X className="size-4" /> Cancelar
@@ -328,8 +318,20 @@ function AdminTrash() {
         />
       </div>
 
-      <div className="mt-2 flex justify-end">
+      <div className="mt-3 flex items-center justify-between gap-3">
         <span className="text-sm text-muted-foreground">{entries.length} elementos</span>
+        <div className="flex items-center gap-2">
+          {selectionMode === "delete" && selectedDeleteKeys.length > 0 ? (
+            <Button type="button" variant="destructive" onClick={deleteSelectedPermanently}>
+              <Trash2 className="size-4" /> Eliminar seleccionados
+            </Button>
+          ) : null}
+          {selectionMode === "restore" && selectedRestoreKeys.length > 0 ? (
+            <Button type="button" variant="default" onClick={restoreSelectedEntries}>
+              <RotateCcw className="size-4" /> Restaurar seleccionados
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div className="mt-6 space-y-3 pb-20">

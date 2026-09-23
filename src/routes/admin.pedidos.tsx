@@ -1474,14 +1474,21 @@ function AdminOrders() {
     closeOrderEditor();
   };
 
+  const clearOrderSelection = useCallback(() => {
+    setSelectedOrderIds([]);
+    setSelectionMode(false);
+  }, []);
+
   const toggleOrderSelection = (orderId: string, checked: boolean) => {
-    setSelectedOrderIds((current) =>
-      checked
+    setSelectedOrderIds((current) => {
+      const next = checked
         ? current.includes(orderId)
           ? current
           : [...current, orderId]
-        : current.filter((id) => id !== orderId),
-    );
+        : current.filter((id) => id !== orderId);
+      setSelectionMode(next.length > 0);
+      return next;
+    });
   };
 
   const handleBulkDeleteOrders = () => {
@@ -1496,7 +1503,7 @@ function AdminOrders() {
       saveOrders(next);
       return next;
     });
-    setSelectedOrderIds([]);
+    clearOrderSelection();
   };
 
   const handleDeleteOrder = (order: Order) => {
@@ -1506,6 +1513,9 @@ function AdminOrders() {
       saveOrders(nextOrders);
       return nextOrders;
     });
+    if (selectedOrderIds.includes(order.id)) {
+      clearOrderSelection();
+    }
   };
 
   const handleBulkDuplicateOrders = () => {
@@ -1520,12 +1530,13 @@ function AdminOrders() {
       saveOrders(next);
       return next;
     });
-    setSelectedOrderIds([]);
+    clearOrderSelection();
   };
 
   const handleBulkEditOrders = () => {
     const order = editableOrders.find((item) => item.id === selectedOrderIds[0]);
     if (order) {
+      clearOrderSelection();
       setBulkOrderEditQueue(selectedOrderIds);
       setBulkOrderEditPosition(0);
       openEditOrderDialog(order);
@@ -2019,8 +2030,15 @@ function AdminOrders() {
                 onClick={(event) => event.stopPropagation()}
                 onCheckedChange={(checked) => {
                   const isChecked = checked === true;
-                  toggleOrderSelection(order.id, isChecked);
-                  setSelectionMode(isChecked || selectedOrderIds.length > 1);
+                  setSelectedOrderIds((current) => {
+                    const next = isChecked
+                      ? current.includes(order.id)
+                        ? current
+                        : [...current, order.id]
+                      : current.filter((id) => id !== order.id);
+                    setSelectionMode(next.length > 0);
+                    return next;
+                  });
                 }}
                 aria-label={`Seleccionar pedido ${order.id}`}
               />

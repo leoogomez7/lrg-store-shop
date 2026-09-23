@@ -844,7 +844,11 @@ function AdminProducts() {
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
     await saveProducts(nextProducts);
-    toast.success(hidden ? "Productos ocultados" : "Productos disponibles");
+    const hiddenProductsCount = nextProducts.filter((product) => product.hidden).length;
+    const availableProductsCount = nextProducts.filter((product) => !product.hidden).length;
+    toast.success(hidden ? "Productos ocultados" : "Productos disponibles", {
+      description: `${hiddenProductsCount} ocultos · ${availableProductsCount} disponibles`,
+    });
     clearBulkProductSelection();
   };
 
