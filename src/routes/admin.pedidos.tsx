@@ -2205,11 +2205,11 @@ function AdminOrders() {
                 {!selectionMode && (
                   <TableHead
                     className={cn(
-                      "w-96 min-w-96 text-left",
+                      "w-0 min-w-0 max-w-0 overflow-visible px-0 text-left",
                       hasExpandedOrder && quickEditOrderId === null && "hidden",
                     )}
                   >
-                    Acciones
+                    <span className="relative left-96 block w-96">Acciones</span>
                   </TableHead>
                 )}
               </TableRow>
@@ -2419,11 +2419,11 @@ function AdminOrders() {
                       {!selectionMode && (
                         <TableCell
                           className={cn(
-                            "w-96 min-w-96 text-left",
+                            "w-0 min-w-0 max-w-0 overflow-visible px-0 text-left",
                             hasExpandedOrder && !isQuickEditing && "hidden",
                           )}
                         >
-                          <div className="flex min-w-max flex-nowrap items-center justify-start gap-0.5 overflow-visible">
+                          <div className="relative left-96 flex w-96 min-w-max flex-nowrap items-center justify-start gap-0.5 overflow-visible">
                             {isQuickEditing ? (
                               <>
                                 <Button
