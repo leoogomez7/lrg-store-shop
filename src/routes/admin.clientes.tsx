@@ -906,32 +906,34 @@ function CustomerRow({
                   className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
                 >
                   <div className="flex w-full min-w-0 flex-col gap-2">
-                    <button
-                      type="button"
-                      className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
-                      onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
-                    >
-                      Pedido {o.id}
-                    </button>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <Button
+                    <div className="flex items-center justify-between gap-2">
+                      <button
                         type="button"
-                        variant="outline"
-                        size="sm"
+                        className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
                         onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
                       >
-                        Ver pedido
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setDocumentsOrder(o);
-                        }}
-                      >
-                        <Paperclip className="size-3.5" /> Archivos adjuntos
-                      </Button>
+                        Pedido {o.id}
+                      </button>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                        >
+                          Ver pedido
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setDocumentsOrder(o);
+                          }}
+                        >
+                          <Paperclip className="size-3.5" /> Archivos adjuntos
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <span className="shrink-0 text-[11px] text-muted-foreground">
@@ -969,34 +971,36 @@ function CustomerRow({
                 className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
               >
                 <div className="flex w-full min-w-0 flex-col gap-2">
-                  <button
-                    type="button"
-                    className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
-                    onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
-                  >
-                    Pedido {o.id}
-                  </button>
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <Button
+                  <div className="flex items-center justify-between gap-2">
+                    <button
                       type="button"
-                      variant="outline"
-                      size="sm"
+                      className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
                       onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
                     >
-                      Ver pedido
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0 px-2"
-                      onClick={() => {
-                        setAllPurchasesOpen(false);
-                        setDocumentsOrder(o);
-                      }}
-                    >
-                      <Paperclip className="size-3.5" /> Archivos adjuntos
-                    </Button>
+                      Pedido {o.id}
+                    </button>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                      >
+                        Ver pedido
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 px-2"
+                        onClick={() => {
+                          setAllPurchasesOpen(false);
+                          setDocumentsOrder(o);
+                        }}
+                      >
+                        <Paperclip className="size-3.5" /> Archivos adjuntos
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="shrink-0 text-[11px] text-muted-foreground">
