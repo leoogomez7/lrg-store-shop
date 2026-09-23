@@ -548,6 +548,7 @@ function AdminOrders() {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [bulkOrderEditQueue, setBulkOrderEditQueue] = useState<string[]>([]);
+  const [bulkQuickEditOrderQueue, setBulkQuickEditOrderQueue] = useState<string[]>([]);
   const [bulkOrderEditPosition, setBulkOrderEditPosition] = useState(0);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
@@ -628,6 +629,26 @@ function AdminOrders() {
   };
 
   const cancelQuickEditOrder = useCallback(() => {
+    const queuedOrderId = bulkQuickEditOrderQueue[0];
+    const nextQuickEditOrder = queuedOrderId
+      ? editableOrders.find((order) => order.id === queuedOrderId)
+      : null;
+
+    if (queuedOrderId && nextQuickEditOrder) {
+      setBulkQuickEditOrderQueue((current) => current.slice(1));
+      setQuickEditOrderId(null);
+      setQuickEditOrderForm((current) => {
+        const next = { ...current };
+        if (quickEditOrderId) {
+          delete next[quickEditOrderId];
+          delete quickEditOriginalSnapshots.current[quickEditOrderId];
+        }
+        return next;
+      });
+      startQuickEditOrder(nextQuickEditOrder);
+      return;
+    }
+
     setQuickEditOrderId(null);
     setQuickEditOrderForm((current) => {
       const next = { ...current };
@@ -637,7 +658,7 @@ function AdminOrders() {
       }
       return next;
     });
-  }, [quickEditOrderId]);
+  }, [bulkQuickEditOrderQueue, editableOrders, quickEditOrderId]);
 
   const saveQuickEditOrder = async (order: Order) => {
     const draft = quickEditOrderForm[order.id];
@@ -677,6 +698,11 @@ function AdminOrders() {
       return nextOrders;
     });
 
+    const queuedOrderId = bulkQuickEditOrderQueue[0];
+    const nextQuickEditOrder = queuedOrderId
+      ? editableOrders.find((candidate) => candidate.id === queuedOrderId)
+      : null;
+
     setQuickEditOrderId(null);
     setQuickEditOrderForm((current) => {
       const next = { ...current };
@@ -684,6 +710,12 @@ function AdminOrders() {
       delete quickEditOriginalSnapshots.current[order.id];
       return next;
     });
+
+    if (queuedOrderId && nextQuickEditOrder) {
+      setBulkQuickEditOrderQueue((current) => current.slice(1));
+      startQuickEditOrder(nextQuickEditOrder);
+      return;
+    }
   };
 
   const addDocuments = async (files: FileList | null) => {
@@ -1641,6 +1673,17 @@ function AdminOrders() {
     });
   };
 
+  const handleBulkQuickEditOrders = () => {
+    const queue = [...selectedOrderIds];
+    if (!queue.length) return;
+
+    const firstOrder = editableOrders.find((order) => order.id === queue[0]);
+    if (!firstOrder) return;
+
+    setBulkQuickEditOrderQueue(queue.slice(1));
+    startQuickEditOrder(firstOrder);
+  };
+
   const handleBulkDeleteOrders = () => {
     const ids = new Set(selectedOrderIds);
     editableOrders
@@ -2144,6 +2187,9 @@ function AdminOrders() {
         </div>
         {selectedOrderIds.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={handleBulkQuickEditOrders}>
+              <Edit3 className="size-4" /> Editar rápido
+            </Button>
             <Button size="sm" variant="outline" onClick={handleBulkEditOrders}>
               <Pencil className="size-4" /> Editar
             </Button>
@@ -2202,16 +2248,6 @@ function AdminOrders() {
                 <TableHead className="w-18">Gastos</TableHead>
                 <TableHead className="w-20">Total</TableHead>
                 <TableHead className="w-18">Ganancias</TableHead>
-                {!selectionMode && (
-                  <TableHead
-                    className={cn(
-                      "w-0 min-w-0 max-w-0 overflow-visible px-0 text-left",
-                      hasExpandedOrder && quickEditOrderId === null && "hidden",
-                    )}
-                  >
-                    <span className="relative left-96 block w-96">Acciones</span>
-                  </TableHead>
-                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2427,20 +2463,20 @@ function AdminOrders() {
                             {isQuickEditing ? (
                               <>
                                 <Button
-                                  variant="ghost"
+                                  variant="default"
                                   size="sm"
                                   onClick={() => saveQuickEditOrder(order)}
                                   disabled={!quickEditHasChanges}
-                                  className="h-7 shrink-0 gap-1 bg-transparent px-2 text-[10px] text-green-600 hover:bg-green-100/80 hover:text-green-700 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40 disabled:opacity-100"
+                                  className="h-7 shrink-0 gap-1 px-2 text-[10px] disabled:cursor-not-allowed disabled:opacity-100"
                                 >
                                   <Check className="h-4 w-4" />
                                   Guardar
                                 </Button>
                                 <Button
-                                  variant="ghost"
+                                  variant="destructive"
                                   size="sm"
                                   onClick={cancelQuickEditOrder}
-                                  className="h-7 shrink-0 gap-1 bg-transparent px-2 text-[10px] text-destructive shadow-none hover:bg-destructive/10"
+                                  className="h-7 shrink-0 gap-1 px-2 text-[10px]"
                                 >
                                   <X className="size-4" />
                                   Cancelar

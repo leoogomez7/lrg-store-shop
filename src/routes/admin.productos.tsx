@@ -180,6 +180,7 @@ function AdminProducts() {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [bulkEditQueue, setBulkEditQueue] = useState<string[]>([]);
+  const [bulkQuickEditQueue, setBulkQuickEditQueue] = useState<string[]>([]);
   const [bulkEditPosition, setBulkEditPosition] = useState(0);
   const bulkEditQueueRef = useRef<string[]>([]);
   const bulkEditPositionRef = useRef(0);
@@ -736,6 +737,7 @@ function AdminProducts() {
     setSelectionMode(false);
     setSelectedProductIds([]);
     setBulkEditQueue([]);
+    setBulkQuickEditQueue([]);
     setBulkEditPosition(0);
     bulkEditQueueRef.current = [];
     bulkEditPositionRef.current = 0;
@@ -970,6 +972,21 @@ function AdminProducts() {
     openEditProductDialog(product, firstVariant);
   };
 
+  const handleBulkQuickEditProducts = () => {
+    const queue = getBulkProductQueue();
+    if (!queue.length) return;
+
+    const firstProductId = queue[0];
+    const product =
+      editableProducts.find((item) => item.id === firstProductId) ??
+      (productsData as Product[]).find((item) => item.id === firstProductId);
+
+    if (!product) return;
+
+    setBulkQuickEditQueue(queue.slice(1));
+    startQuickEdit(product, product.variants?.[0]);
+  };
+
   const navigateBulkEditProduct = (direction: -1 | 1) => {
     const queue = bulkEditQueueRef.current.length > 0
       ? bulkEditQueueRef.current
@@ -1021,6 +1038,31 @@ function AdminProducts() {
   };
 
   const cancelQuickEdit = () => {
+    const queuedProductId = bulkQuickEditQueue[0];
+    const nextQuickEditProduct = queuedProductId
+      ? editableProducts.find((item) => item.id === queuedProductId) ??
+        (productsData as Product[]).find((item) => item.id === queuedProductId)
+      : null;
+
+    if (queuedProductId && nextQuickEditProduct) {
+      setBulkQuickEditQueue((current) => current.slice(1));
+      setQuickEditProductId(null);
+      setQuickEditVariantId(null);
+      setQuickEditForm((current) => {
+        const next = { ...current };
+        if (quickEditProductId)
+          delete next[
+            getQuickEditKey(
+              { id: quickEditProductId } as Product,
+              quickEditVariantId ? ({ id: quickEditVariantId } as ProductVariant) : undefined,
+            )
+          ];
+        return next;
+      });
+      startQuickEdit(nextQuickEditProduct, nextQuickEditProduct.variants?.[0]);
+      return;
+    }
+
     setQuickEditProductId(null);
     setQuickEditVariantId(null);
     setQuickEditForm((current) => {
@@ -1141,6 +1183,12 @@ function AdminProducts() {
       [product.id]: String(nextDiscount),
     }));
 
+    const queuedProductId = bulkQuickEditQueue[0];
+    const nextQuickEditProduct = queuedProductId
+      ? editableProducts.find((item) => item.id === queuedProductId) ??
+        (productsData as Product[]).find((item) => item.id === queuedProductId)
+      : null;
+
     setQuickEditProductId(null);
     setQuickEditVariantId(null);
     setQuickEditForm((current) => {
@@ -1148,6 +1196,12 @@ function AdminProducts() {
       delete next[key];
       return next;
     });
+
+    if (queuedProductId && nextQuickEditProduct) {
+      setBulkQuickEditQueue((current) => current.slice(1));
+      startQuickEdit(nextQuickEditProduct, nextQuickEditProduct.variants?.[0]);
+      return;
+    }
   };
 
   type SortOrder =
@@ -2079,6 +2133,9 @@ function AdminProducts() {
         </div>
         {selectedProductIds.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={handleBulkQuickEditProducts}>
+              <Edit3 className="size-4" /> Editar rápido
+            </Button>
             <Button size="sm" variant="outline" onClick={handleBulkEditProducts}>
               <Pencil className="size-4" /> Editar
             </Button>
@@ -2142,9 +2199,6 @@ function AdminProducts() {
                 <TableHead className="w-20 text-center">Descuento</TableHead>
                 <TableHead className="w-24 text-center">Precio tienda</TableHead>
                 <TableHead className="w-24 text-center">Ganancias</TableHead>
-                {!selectionMode && (
-                  <TableHead className="w-52 min-w-52 text-center">Acciones</TableHead>
-                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2435,7 +2489,7 @@ function AdminProducts() {
                         <TableCell className="align-middle">
                           <div className="flex flex-wrap items-center justify-center gap-1">
                             <Button
-                              variant="ghost"
+                              variant="default"
                               size="sm"
                               onClick={() =>
                                 setConfirmState({
@@ -2445,16 +2499,16 @@ function AdminProducts() {
                                   onConfirm: () => saveQuickEdit(product, variant),
                                 })
                               }
-                              className="h-7 flex-none gap-1 bg-transparent px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                              className="h-7 flex-none gap-1 px-2 text-xs"
                             >
                               <Check className="h-3 w-3" />
                               <span className="hidden sm:inline">Guardar</span>
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="destructive"
                               size="sm"
                               onClick={cancelQuickEdit}
-                              className="h-7 flex-none gap-1 bg-transparent px-2 text-xs text-destructive shadow-none hover:bg-destructive/10"
+                              className="h-7 flex-none gap-1 px-2 text-xs"
                             >
                               <X className="size-3" />
                               <span className="hidden sm:inline">Cancelar</span>
@@ -2529,77 +2583,6 @@ function AdminProducts() {
                         <TableCell className="text-center">
                           {formatPrice(displayProfit, displayProfitCurrency)}
                         </TableCell>
-                        {!selectionMode && (
-                          <TableCell
-                            className="min-w-52 text-center"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <div className="flex flex-nowrap items-center justify-center gap-1 overflow-hidden">
-                              <label className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1 text-xs">
-                                <span>{variant ? (variant.hidden ? "No disponible" : "Disponible") : product.hidden ? "No disponible" : "Disponible"}</span>
-                                <Switch
-                                  checked={variant ? !variant.hidden : !product.hidden}
-                                  onCheckedChange={() =>
-                                    setConfirmState({
-                                      open: true,
-                                      title: `${variant ? (variant.hidden ? "Mostrar" : "Ocultar") : product.hidden ? "Mostrar" : "Ocultar"} "${product.name}${variant ? ` ${variant.name}` : ""}"?`,
-                                      description: undefined,
-                                      onConfirm: () => handleToggleHidden(product.id, variant?.id),
-                                    })
-                                  }
-                                />
-                              </label>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDuplicateProduct(product)}
-                                className="h-7 shrink-0 gap-1 px-2 text-xs"
-                              >
-                                <Copy className="h-3.5 w-3.5" />
-                                <span>Duplicar</span>
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => startQuickEdit(product, variant)}
-                                className="h-7 shrink-0 gap-1 px-2 text-xs"
-                              >
-                                <Edit3 className="h-3.5 w-3.5" />
-                                <span>Editar rápido</span>
-                              </Button>
-
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openEditProductDialog(product, variant)}
-                                className="h-7 shrink-0 gap-1 px-2 text-xs"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                                <span>Editar</span>
-                              </Button>
-
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  setConfirmState({
-                                    open: true,
-                                    title: variant
-                                      ? `Eliminar variante "${variant.name}"?`
-                                      : `Eliminar "${product.name}"?`,
-                                    description: "Esta acción no se puede deshacer.",
-                                    onConfirm: () => handleDeleteProduct(product.id, variant?.id),
-                                  })
-                                }
-                                aria-label={`Eliminar ${product.name}`}
-                                className="h-7 shrink-0 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                <span>Eliminar</span>
-                              </Button>
-                            </div>
-                          </TableCell>
-                        )}
                       </>
                     )}
                   </TableRow>

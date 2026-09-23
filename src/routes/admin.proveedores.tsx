@@ -140,6 +140,7 @@ function AdminSuppliers() {
   const [quickEditSupplierKey, setQuickEditSupplierKey] = React.useState<string | null>(null);
   const [quickEditSupplier, setQuickEditSupplier] = React.useState<StandaloneSupplier | null>(null);
   const [quickEditFromDetails, setQuickEditFromDetails] = React.useState(false);
+  const [quickEditSupplierQueue, setQuickEditSupplierQueue] = React.useState<string[]>([]);
   const [editingSupplierKey, setEditingSupplierKey] = React.useState<string | null>(null);
   const supplierFormKey = `${newSupplier.name.trim()}|${newSupplier.phone.trim()}|${newSupplier.social.trim()}`;
   const supplierFormHasChanges = !editingSupplierKey || supplierFormKey !== editingSupplierKey;
@@ -376,10 +377,21 @@ function AdminSuppliers() {
     setQuickEditFromDetails(fromDetails);
   };
 
+  const startBulkQuickEditSuppliers = () => {
+    const queue = selectedSupplierKeys
+      .map((key) => rows.find((row) => row.key === key))
+      .filter((row): row is SupplierRow => Boolean(row));
+    const firstRow = queue[0];
+    if (!firstRow) return;
+    setQuickEditSupplierQueue(queue.slice(1).map((row) => row.key));
+    startQuickEditSupplier(firstRow);
+  };
+
   const cancelQuickEditSupplier = () => {
     setQuickEditSupplierKey(null);
     setQuickEditSupplier(null);
     setQuickEditFromDetails(false);
+    setQuickEditSupplierQueue([]);
   };
 
   const saveSupplierChanges = (
@@ -438,6 +450,12 @@ function AdminSuppliers() {
     setQuickEditSupplierKey(null);
     setQuickEditSupplier(null);
     setQuickEditFromDetails(false);
+    const nextQuickEditKey = quickEditSupplierQueue[0];
+    if (closeEditor && nextQuickEditKey) {
+      setQuickEditSupplierQueue((current) => current.slice(1));
+      const nextRow = rows.find((row) => row.key === nextQuickEditKey);
+      if (nextRow) startQuickEditSupplier(nextRow);
+    }
     toast.success("Proveedor guardado");
     if (closeEditor) setEditingSupplierKey(null);
   };
@@ -1187,6 +1205,9 @@ function AdminSuppliers() {
           </div>
           {selectedSupplierKeys.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={startBulkQuickEditSuppliers}>
+                <Edit3 className="size-4" /> Editar rápido
+              </Button>
               <Button size="sm" variant="outline" onClick={editSelectedSupplier}>
                 <Pencil className="size-4" /> Editar
               </Button>
@@ -1239,10 +1260,6 @@ function AdminSuppliers() {
                   <TableHead className="w-40 min-w-40">Red social</TableHead>
                   <TableHead className="w-40 min-w-40">Total vendido</TableHead>
                   <TableHead className="w-36 min-w-36">Cantidad vendida</TableHead>
-                  {!selectionMode &&
-                    (!hasExpandedSupplier || (quickEditSupplierKey !== null && !quickEditFromDetails)) && (
-                    <TableHead className="w-108 min-w-108 pr-5">Acciones</TableHead>
-                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1380,18 +1397,18 @@ function AdminSuppliers() {
                               {isQuickEditing ? (
                                 <>
                                   <Button
-                                    variant="ghost"
+                                    variant="default"
                                     size="sm"
                                     onClick={() => saveSupplierChanges(row.key, quickSupplier)}
-                                    className="h-7 shrink-0 gap-1 bg-transparent px-2 text-[10px] text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                                    className="h-7 shrink-0 gap-1 px-2 text-[10px]"
                                   >
                                     <Check className="size-3.5" /> Guardar
                                   </Button>
                                   <Button
-                                    variant="ghost"
+                                    variant="destructive"
                                     size="sm"
                                     onClick={cancelQuickEditSupplier}
-                                    className="h-7 shrink-0 gap-1 bg-transparent px-2 text-[10px] text-destructive shadow-none hover:bg-destructive/10"
+                                    className="h-7 shrink-0 gap-1 px-2 text-[10px]"
                                   >
                                     <X className="size-3.5" /> Cancelar
                                   </Button>
