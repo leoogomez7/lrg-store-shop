@@ -1398,8 +1398,8 @@ function AdminSuppliers() {
                       {isExpanded ? (
                         <TableRow>
                           <TableCell
-                            colSpan={selectionMode || hasExpandedSupplier ? 5 : 6}
-                            className="bg-muted/30 p-4 text-left"
+                            colSpan={selectionMode || hasExpandedSupplier ? 6 : 7}
+                            className="w-full bg-muted/30 p-4 text-left"
                           >
                             <p className="mb-2 font-medium">Productos</p>
                             <div className="space-y-1.5">
@@ -1431,7 +1431,38 @@ function AdminSuppliers() {
                                 </Button>
                               )}
                             </div>
-                            <div className="flex justify-center pt-3">
+                            <div className="flex flex-wrap items-center justify-center gap-2 pt-3">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => startQuickEditSupplier(row)}
+                                className="h-7 gap-1 px-2 text-xs"
+                              >
+                                <Edit3 className="size-3.5" /> Editar rápido
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openSupplierEditor(row)}
+                                className="h-7 gap-1 px-2 text-xs"
+                              >
+                                <Pencil className="size-3.5" /> Editar
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  if (window.confirm(`¿Eliminar el proveedor "${row.name}"?`)) {
+                                    deleteSupplier(row.key);
+                                  }
+                                }}
+                                className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="size-3.5" /> Eliminar
+                              </Button>
                               <Button
                                 type="button"
                                 variant="outline"

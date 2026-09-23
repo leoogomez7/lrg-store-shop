@@ -55,6 +55,8 @@ export type Order = {
     brand?: BrandSlug;
     paymentMethod?: string;
     shippingMethod?: string;
+    paymentStatus?: "Pendiente" | "Pagado" | "Cancelado";
+    deliveryStatus?: "Pendiente" | "Enviado";
   }[];
 };
 

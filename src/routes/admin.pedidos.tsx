@@ -566,6 +566,7 @@ function AdminOrders() {
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
   const sortButtonRef = useRef<HTMLButtonElement | null>(null);
   const [orderForm, setOrderForm] = useState<EditableOrder | null>(null);
+  const [selectedOrderStore, setSelectedOrderStore] = useState<BrandSlug>("arcade");
   const initialOrderFormSnapshot = useRef<string | null>(null);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [paymentInstruction, setPaymentInstruction] = useState<string>("");
@@ -883,15 +884,6 @@ function AdminOrders() {
     return Array.from(new Set(options));
   }, [availablePaymentMethods, availablePaymentMethodsByBrand, orderForm?.brand, orderForm?.paymentMethod]);
 
-  const orderBrandOptions = useMemo(
-    () =>
-      brandList.map((brand) => ({
-        value: brand.slug,
-        label: `LRG ${brand.name}`,
-      })),
-    [],
-  );
-
   const orderStoreSlugs = useMemo(
     () =>
       orderForm
@@ -899,6 +891,58 @@ function AdminOrders() {
         : [],
     [orderForm],
   );
+
+  const getItemStore = (item: EditableOrderItem) => item.brand ?? orderForm?.brand ?? "arcade";
+
+  const getStoreItems = (items: EditableOrderItem[], store: BrandSlug) =>
+    items.filter((item) => getItemStore(item) === store);
+
+  const getStoreFormValues = (items: EditableOrderItem[], store: BrandSlug) => {
+    const storeItems = getStoreItems(items, store);
+    const firstItem = storeItems[0];
+    return {
+      paymentMethod: firstItem?.paymentMethod ?? "",
+      paymentStatus: firstItem?.paymentStatus ?? "Pendiente",
+      shippingMethod: firstItem?.shippingMethod ?? "",
+      deliveryStatus: firstItem?.deliveryStatus ?? "Pendiente",
+    };
+  };
+
+  const applySelectedStoreValues = (form: EditableOrder, store: BrandSlug) => {
+    const storeItems = getStoreItems(form.items, store);
+    return {
+      ...getStoreFormValues(form.items, store),
+      paymentMethod:
+        storeItems[0]?.paymentMethod ??
+        (store === form.brand ? form.paymentMethod : ""),
+      paymentStatus:
+        storeItems[0]?.paymentStatus ??
+        (store === form.brand ? form.paymentStatus : "Pendiente"),
+      shippingMethod:
+        storeItems[0]?.shippingMethod ??
+        (store === form.brand ? form.shippingMethod ?? "" : ""),
+      deliveryStatus:
+        storeItems[0]?.deliveryStatus ??
+        (store === form.brand ? form.deliveryStatus : "Pendiente"),
+    };
+  };
+
+  const saveSelectedStoreValues = (form: EditableOrder, store: BrandSlug) => ({
+    ...form,
+    brand: store,
+    items: form.items.map((item) =>
+      getItemStore(item) === store
+        ? {
+            ...item,
+            brand: store,
+            paymentMethod: form.paymentMethod,
+            paymentStatus: form.paymentStatus,
+            shippingMethod: form.shippingMethod,
+            deliveryStatus: form.deliveryStatus,
+          }
+        : item,
+    ),
+  });
 
   const shippingMethodOptions = useMemo(() => {
     const options = [
@@ -1222,6 +1266,7 @@ function AdminOrders() {
         const productMatch = allProducts.find((product) => product.name === item.name);
         return {
           ...item,
+          brand: item.brand ?? productMatch?.brand ?? order.brand,
           originalName: item.name,
           originalQuantity: item.quantity,
           stock: productMatch?.stockUnlimited
@@ -1230,6 +1275,8 @@ function AdminOrders() {
               ? Math.max(productMatch.stock, item.quantity)
               : undefined,
           confirmed: true,
+          paymentMethod: item.paymentMethod ?? order.paymentMethod,
+          shippingMethod: item.shippingMethod ?? order.shippingMethod,
           paymentStatus: item.paymentStatus ?? getPaymentStatus(order.status),
           deliveryStatus: item.deliveryStatus ?? getDeliveryStatus(order.status),
           supplier: getSupplierForItem(item.name)?.supplier
@@ -1255,6 +1302,13 @@ function AdminOrders() {
     cloned.total = totals.total;
     cloned.expenses = totals.expenses;
     cloned.profit = totals.profit;
+    const firstStore = cloned.items[0]?.brand ?? cloned.brand;
+    setSelectedOrderStore(firstStore);
+    const selectedStoreValues = applySelectedStoreValues(cloned, firstStore);
+    cloned.paymentMethod = selectedStoreValues.paymentMethod;
+    cloned.paymentStatus = selectedStoreValues.paymentStatus;
+    cloned.shippingMethod = selectedStoreValues.shippingMethod;
+    cloned.deliveryStatus = selectedStoreValues.deliveryStatus;
     initialOrderFormSnapshot.current = JSON.stringify(cloned);
     setOrderForm(cloned);
     setIsCreatingOrder(false);
@@ -1281,6 +1335,7 @@ function AdminOrders() {
       shippingMethod: "",
       items: [],
     };
+    setSelectedOrderStore(newOrder.brand);
     initialOrderFormSnapshot.current = JSON.stringify(newOrder);
     setOrderForm(newOrder);
     setIsCreatingOrder(true);
@@ -1343,6 +1398,7 @@ function AdminOrders() {
     nextItems[index] = {
       ...currentItem,
       name,
+      brand: product?.brand ?? selectedOrderStore,
       price: product?.price ?? 0,
       supplier: product?.supplier
         ? {
@@ -1399,6 +1455,7 @@ function AdminOrders() {
           confirmed: false,
           originalName: "",
           originalQuantity: 0,
+          brand: selectedOrderStore,
         },
       ],
     });
@@ -1515,10 +1572,27 @@ function AdminOrders() {
       return;
     }
     if (!isOrderFormValid) return;
+    const selectedStoreForm = saveSelectedStoreValues(orderForm, selectedOrderStore);
+    const originalForm = JSON.parse(initialOrderFormSnapshot.current) as EditableOrder;
+    const selectedStoreItems = selectedStoreForm.items.filter(
+      (item) => item.brand === selectedOrderStore,
+    );
+    const preservedItems = originalForm.items.filter(
+      (item) => item.brand !== selectedOrderStore,
+    );
+    const mergedItems = [...preservedItems, ...selectedStoreItems];
+    const totals = computeOrderTotals(mergedItems, orderForm.total ? orderForm.expenses / orderForm.total : 0.65);
+    const orderToSave: EditableOrder = {
+      ...selectedStoreForm,
+      items: mergedItems,
+      total: totals.total,
+      expenses: totals.expenses,
+      profit: totals.profit,
+    };
     setEditableOrders((current) => {
       const nextOrders = isCreatingOrder
-        ? [orderForm, ...current]
-        : current.map((order) => (order.id === orderForm.id ? orderForm : order));
+        ? [orderToSave, ...current]
+        : current.map((order) => (order.id === orderToSave.id ? orderToSave : order));
       saveOrders(nextOrders);
       return nextOrders;
     });
@@ -1535,6 +1609,17 @@ function AdminOrders() {
       }
     }
     closeOrderEditor();
+  };
+
+  const changeSelectedOrderStore = (store: BrandSlug) => {
+    if (!orderForm || store === selectedOrderStore) return;
+    const nextForm = saveSelectedStoreValues(orderForm, selectedOrderStore);
+    const storeValues = applySelectedStoreValues(nextForm, store);
+    setSelectedOrderStore(store);
+    setOrderForm({
+      ...nextForm,
+      ...storeValues,
+    });
   };
 
   const clearOrderSelection = useCallback(() => {
@@ -2404,7 +2489,7 @@ function AdminOrders() {
                     {isExpanded && (
                       <TableRow key={`${order.id}-details`}>
                         <TableCell
-                          colSpan={11}
+                          colSpan={10}
                           className="w-full bg-surface-2/90 p-0 sm:p-0"
                         >
                           <div className="w-full min-w-0 space-y-4 overflow-hidden rounded-2xl bg-surface-2/90 p-3 text-sm sm:p-5">
@@ -2513,7 +2598,15 @@ function AdminOrders() {
                                 </div>
                               </div>
                             </div>
-                            <div className="flex flex-wrap justify-center gap-2 pt-2">
+                            <div className="flex flex-wrap justify-center gap-2 border-t border-border/50 pt-3">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => startQuickEditOrder(order)}
+                              >
+                                <Edit3 className="size-4" /> Editar rápido
+                              </Button>
                               <Button
                                 type="button"
                                 variant="outline"
@@ -2540,6 +2633,22 @@ function AdminOrders() {
                                 onClick={() => openEditOrderDialog(order)}
                               >
                                 <Pencil className="size-4" /> Editar
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive hover:bg-destructive/10"
+                                onClick={() =>
+                                  setConfirmState({
+                                    open: true,
+                                    title: `Eliminar pedido ${order.id}?`,
+                                    description: "Esta acción no se puede deshacer.",
+                                    onConfirm: () => handleDeleteOrder(order),
+                                  })
+                                }
+                              >
+                                <Trash2 className="size-4" /> Eliminar
                               </Button>
                               <Button
                                 type="button"
@@ -2651,7 +2760,7 @@ function AdminOrders() {
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeOrderEditor()}>
         <DialogContent
           key={isCreatingOrder ? "new-order-dialog" : "edit-order-dialog"}
-          className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-hidden p-4 shadow-none md:overflow-y-auto sm:w-[calc(100vw-2rem)] sm:p-6"
+          className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-hidden p-4 font-sans shadow-none md:overflow-y-auto sm:w-[calc(100vw-2rem)] sm:p-6"
         >
           <DialogHeader>
             <div className="flex items-center justify-between gap-3">
@@ -2711,9 +2820,31 @@ function AdminOrders() {
               </div>
 
               <div className="space-y-4 rounded-xl border border-border/60 bg-surface/40 p-4">
-                <p className="text-lg font-semibold tracking-tight text-foreground">Datos del pedido</p>
+                <div className="flex items-end justify-between gap-3">
+                  <p className="text-lg font-semibold tracking-tight text-foreground">
+                    Datos del pedido
+                  </p>
+                  <div className="w-full max-w-xs">
+                    <Label className="min-h-5">Tienda</Label>
+                    <Select
+                      value={selectedOrderStore}
+                      onValueChange={(value) => changeSelectedOrderStore(value as BrandSlug)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar tienda" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {orderStoreSlugs.map((store) => (
+                          <SelectItem key={store} value={store}>
+                            {`LRG ${brands[store].name}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-3">
+                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Método de pago</Label>
                     <Select
@@ -2759,26 +2890,6 @@ function AdminOrders() {
                         {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map((status) => (
                           <SelectItem key={status} value={status}>
                             {status}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-0">
-                    <Label className="min-h-5">Tienda</Label>
-                    <Select
-                      value={orderForm.brand}
-                      onValueChange={(value) =>
-                        setOrderForm({ ...orderForm, brand: value as BrandSlug })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Seleccionar tienda" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {orderBrandOptions.map((brand) => (
-                          <SelectItem key={brand.value} value={brand.value}>
-                            {brand.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
