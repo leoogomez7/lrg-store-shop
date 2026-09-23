@@ -907,13 +907,18 @@ function CustomerRow({
                 >
                   <div className="flex w-full min-w-0 flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
-                      <button
-                        type="button"
-                        className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
-                        onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
-                      >
-                        Pedido {o.id}
-                      </button>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <button
+                          type="button"
+                          className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                          onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                        >
+                          {o.id}
+                        </button>
+                        <span className="shrink-0 text-[11px] text-muted-foreground">
+                          {formatPurchaseDate(o.date)}
+                        </span>
+                      </div>
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         <Button
                           type="button"
@@ -936,11 +941,6 @@ function CustomerRow({
                           <Paperclip className="size-3.5" /> Archivos adjuntos
                         </Button>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="shrink-0 text-[11px] text-muted-foreground">
-                        Fecha de compra: {formatPurchaseDate(o.date)}
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -974,13 +974,18 @@ function CustomerRow({
               >
                 <div className="flex w-full min-w-0 flex-col gap-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
-                      onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
-                    >
-                      Pedido {o.id}
-                    </button>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <button
+                        type="button"
+                        className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                        onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                      >
+                        {o.id}
+                      </button>
+                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                        {formatPurchaseDate(o.date)}
+                      </span>
+                    </div>
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       <Button
                         type="button"
@@ -1004,11 +1009,6 @@ function CustomerRow({
                         <Paperclip className="size-3.5" /> Archivos adjuntos
                       </Button>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="shrink-0 text-[11px] text-muted-foreground">
-                      {formatPurchaseDate(o.date)}
-                    </span>
                   </div>
                 </div>
               </div>
