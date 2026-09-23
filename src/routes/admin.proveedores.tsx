@@ -221,16 +221,18 @@ function AdminSuppliers() {
           salesByCurrency: { ARS: 0, USD: 0 },
           soldQuantity: 0,
         };
-        const currentProduct = current.products.find(
-          (item) => item.name === assignment.productName,
-        );
-        if (currentProduct) {
-          currentProduct.quantity += assignmentSummary.quantity;
-        } else {
-          current.products.push({
-            name: assignment.productName,
-            quantity: assignmentSummary.quantity,
-          });
+        if (assignmentSummary.quantity > 0) {
+          const currentProduct = current.products.find(
+            (item) => item.name === assignment.productName,
+          );
+          if (currentProduct) {
+            currentProduct.quantity += assignmentSummary.quantity;
+          } else {
+            current.products.push({
+              name: assignment.productName,
+              quantity: assignmentSummary.quantity,
+            });
+          }
         }
         if (!current.stores.includes(product.brand)) current.stores.push(product.brand);
         current.sales += assignmentSummary.total;
@@ -1261,7 +1263,7 @@ function AdminSuppliers() {
                         </TableCell>
 
                         <TableCell className="pl-5 text-center text-sm font-medium text-foreground">
-                          {isQuickEditing ? (
+                          {isQuickEditing && !quickEditFromDetails ? (
                             <Input
                               value={quickSupplier.name}
                               onChange={(event) =>
@@ -1274,7 +1276,7 @@ function AdminSuppliers() {
                           )}
                         </TableCell>
                         <TableCell className="w-36 min-w-36 text-center text-sm text-foreground">
-                          {isQuickEditing ? (
+                          {isQuickEditing && !quickEditFromDetails ? (
                             <Input
                               value={quickSupplier.phone}
                               onChange={(event) =>
@@ -1290,7 +1292,7 @@ function AdminSuppliers() {
                           )}
                         </TableCell>
                         <TableCell className="text-center text-sm text-foreground">
-                          {isQuickEditing ? (
+                          {isQuickEditing && !quickEditFromDetails ? (
                             <Input
                               value={quickSupplier.social}
                               onChange={(event) =>
@@ -1461,23 +1463,23 @@ function AdminSuppliers() {
                               <>
                                 <p className="mb-2 pt-6 font-medium">Productos</p>
                                 <div className="space-y-1.5">
-                                  {sortedProducts.slice(0, 6).map((product) => (
+                                  {sortedProducts.slice(0, 8).map((product) => (
                                     <div
                                       key={product.name}
                                       className="flex items-center justify-start gap-4 rounded-md bg-muted px-2.5 py-1.5 text-xs text-foreground"
                                     >
                                       <span className="min-w-0 wrap-break-word">{product.name}</span>
                                       <span className="shrink-0 text-muted-foreground">
-                                        Cantidad: {product.quantity}
+                                        Cantidad vendida: {product.quantity}
                                       </span>
                                     </div>
                                   ))}
                                   {row.products.length === 0 && (
                                     <p className="text-sm text-muted-foreground">
-                                      Este proveedor todavía no tiene productos asignados.
+                                      Este proveedor todavía no tiene productos vendidos.
                                     </p>
                                   )}
-                                  {sortedProducts.length > 6 && (
+                                  {sortedProducts.length > 8 && (
                                     <Button
                                       type="button"
                                       variant="ghost"
@@ -1501,7 +1503,11 @@ function AdminSuppliers() {
                                     ? saveSupplierChanges(row.key, quickSupplier)
                                     : startQuickEditSupplier(row, true)
                                 }
-                                className="h-7 gap-1 px-2 text-xs"
+                                className={cn(
+                                  "h-7 gap-1 px-2 text-xs",
+                                  isQuickEditing &&
+                                    "text-green-600 hover:bg-green-100/80 hover:text-green-700",
+                                )}
                               >
                                 {isQuickEditing ? (
                                   <>
@@ -1549,14 +1555,16 @@ function AdminSuppliers() {
                                   </Button>
                                 </>
                               )}
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setExpandedSupplierKey(null)}
-                              >
-                                <EyeOff className="size-4" /> Ocultar
-                              </Button>
+                              {!isQuickEditing && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setExpandedSupplierKey(null)}
+                                >
+                                  <EyeOff className="size-4" /> Ocultar
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1663,10 +1671,11 @@ function AdminSuppliers() {
         <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader>
             <DialogTitle>Productos de {productsModalSupplier?.name}</DialogTitle>
-            <DialogDescription>Listado completo de productos asignados.</DialogDescription>
+            <DialogDescription>Listado completo de productos vendidos.</DialogDescription>
           </DialogHeader>
           <div className="max-h-[min(70vh,32rem)] space-y-1.5 overflow-y-auto">
             {[...(productsModalSupplier?.products ?? [])]
+              .filter((product) => product.quantity > 0)
               .sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }))
               .map((product) => (
                 <div
@@ -1675,7 +1684,7 @@ function AdminSuppliers() {
                 >
                   <span className="min-w-0 wrap-break-word">{product.name}</span>
                   <span className="shrink-0 text-muted-foreground">
-                    Cantidad: {product.quantity}
+                    Cantidad vendida: {product.quantity}
                   </span>
                 </div>
               ))}
