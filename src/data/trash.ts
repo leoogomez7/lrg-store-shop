@@ -61,3 +61,10 @@ export function removeFromTrash(entry: TrashEntry) {
     data: { settingKey: TRASH_STORAGE_KEY, settingValue: JSON.stringify(nextEntries) },
   });
 }
+
+export function clearTrash() {
+  remoteTrash = [];
+  void saveAdminSetting({
+    data: { settingKey: TRASH_STORAGE_KEY, settingValue: JSON.stringify([]) },
+  });
+}

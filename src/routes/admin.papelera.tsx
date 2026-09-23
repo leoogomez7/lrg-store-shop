@@ -26,6 +26,17 @@ function AdminTrash() {
   const [isLoading, setIsLoading] = useState(true);
   const [entryToDelete, setEntryToDelete] = useState<TrashEntry | null>(null);
   const [query, setQuery] = useState("");
+  const [selectionMode, setSelectionMode] = useState<"delete" | "restore" | null>(null);
+  const [selectedDeleteKeys, setSelectedDeleteKeys] = useState<string[]>([]);
+  const [selectedRestoreKeys, setSelectedRestoreKeys] = useState<string[]>([]);
+
+  const getEntryKey = (entry: TrashEntry) => `${entry.type}-${entry.id}`;
+
+  const clearSelection = () => {
+    setSelectionMode(null);
+    setSelectedDeleteKeys([]);
+    setSelectedRestoreKeys([]);
+  };
 
   useEffect(() => {
     let active = true;
@@ -155,6 +166,78 @@ function AdminTrash() {
     setEntryToDelete(null);
   };
 
+  const deleteSelectedPermanently = () => {
+    const selectedEntries = entries.filter((entry) => selectedDeleteKeys.includes(getEntryKey(entry)));
+    if (!selectedEntries.length) return;
+
+    selectedEntries.forEach((entry) => {
+      if (entry.type === "producto") {
+        const productIndex = products.findIndex((product) => product.id === entry.item.id);
+        if (productIndex >= 0) {
+          products.splice(productIndex, 1);
+          saveProducts(products);
+        }
+      } else if (entry.type === "pedido") {
+        const orderIndex = orders.findIndex((order) => order.id === entry.item.id);
+        if (orderIndex >= 0) {
+          orders.splice(orderIndex, 1);
+          saveOrders(orders);
+        }
+      }
+      removeFromTrash(entry);
+    });
+
+    setEntries((current) =>
+      current.filter((entry) => !selectedDeleteKeys.includes(getEntryKey(entry))),
+    );
+    clearSelection();
+  };
+
+  const restoreSelectedEntries = async () => {
+    const selectedEntries = entries.filter((entry) => selectedRestoreKeys.includes(getEntryKey(entry)));
+    if (!selectedEntries.length) return;
+
+    for (const entry of selectedEntries) {
+      await restoreEntry(entry);
+    }
+    clearSelection();
+  };
+
+  const restoreAllEntries = async () => {
+    if (!entries.length) return;
+    if (!window.confirm("¿Restaurar todos los elementos de la papelera?")) return;
+
+    for (const entry of [...entries]) {
+      await restoreEntry(entry);
+    }
+    clearSelection();
+  };
+
+  const emptyTrash = () => {
+    if (!entries.length) return;
+    if (!window.confirm("¿Vaciar toda la papelera? Esta acción elimina definitivamente todos los elementos.")) return;
+
+    entries.forEach((entry) => {
+      if (entry.type === "producto") {
+        const productIndex = products.findIndex((product) => product.id === entry.item.id);
+        if (productIndex >= 0) {
+          products.splice(productIndex, 1);
+          saveProducts(products);
+        }
+      } else if (entry.type === "pedido") {
+        const orderIndex = orders.findIndex((order) => order.id === entry.item.id);
+        if (orderIndex >= 0) {
+          orders.splice(orderIndex, 1);
+          saveOrders(orders);
+        }
+      }
+      removeFromTrash(entry);
+    });
+
+    setEntries([]);
+    clearSelection();
+  };
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Eliminaciones</p>
@@ -167,6 +250,56 @@ function AdminTrash() {
         </div>
         <span className="text-sm text-muted-foreground">{entries.length} elementos</span>
       </div>
+
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <Button type="button" variant="destructive" onClick={emptyTrash}>
+          <Trash2 className="size-4" /> Vaciar papelera
+        </Button>
+        <Button type="button" variant="outline" onClick={restoreAllEntries}>
+          <RotateCcw className="size-4" /> Restaurar todos los elementos
+        </Button>
+        <Button
+          type="button"
+          variant={selectionMode === "delete" ? "default" : "outline"}
+          onClick={() => {
+            setSelectionMode((current) => (current === "delete" ? null : "delete"));
+            setSelectedRestoreKeys([]);
+          }}
+        >
+          <Trash2 className="size-4" /> Seleccionar
+        </Button>
+        <Button
+          type="button"
+          variant={selectionMode === "restore" ? "default" : "outline"}
+          onClick={() => {
+            setSelectionMode((current) => (current === "restore" ? null : "restore"));
+            setSelectedDeleteKeys([]);
+          }}
+        >
+          <RotateCcw className="size-4" /> Seleccionar restaurar
+        </Button>
+        {selectionMode ? (
+          <Button type="button" variant="ghost" onClick={clearSelection}>
+            Cancelar
+          </Button>
+        ) : null}
+      </div>
+
+      {selectionMode === "delete" && selectedDeleteKeys.length > 0 ? (
+        <div className="mt-4 flex justify-end">
+          <Button type="button" variant="destructive" onClick={deleteSelectedPermanently}>
+            <Trash2 className="size-4" /> Eliminar seleccionados
+          </Button>
+        </div>
+      ) : null}
+
+      {selectionMode === "restore" && selectedRestoreKeys.length > 0 ? (
+        <div className="mt-4 flex justify-end">
+          <Button type="button" variant="default" onClick={restoreSelectedEntries}>
+            <RotateCcw className="size-4" /> Restaurar seleccionados
+          </Button>
+        </div>
+      ) : null}
 
       <div className="relative mt-6">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -207,6 +340,38 @@ function AdminTrash() {
                 className="glass-panel flex flex-wrap items-center justify-between gap-4 rounded-2xl p-4"
               >
                 <div className="flex min-w-0 items-center gap-3">
+                  {selectionMode ? (
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectionMode === "delete"
+                          ? selectedDeleteKeys.includes(getEntryKey(entry))
+                          : selectedRestoreKeys.includes(getEntryKey(entry))
+                      }
+                      onChange={(event) => {
+                        const checked = event.target.checked;
+                        if (selectionMode === "delete") {
+                          setSelectedDeleteKeys((current) =>
+                            checked
+                              ? current.includes(getEntryKey(entry))
+                                ? current
+                                : [...current, getEntryKey(entry)]
+                              : current.filter((key) => key !== getEntryKey(entry)),
+                          );
+                          return;
+                        }
+                        setSelectedRestoreKeys((current) =>
+                          checked
+                            ? current.includes(getEntryKey(entry))
+                              ? current
+                              : [...current, getEntryKey(entry)]
+                            : current.filter((key) => key !== getEntryKey(entry)),
+                        );
+                      }}
+                      className="h-4 w-4 accent-primary"
+                      aria-label={`Seleccionar ${name}`}
+                    />
+                  ) : null}
                   <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2">
                     {isProduct ? (
                       <Package className="size-4" />
