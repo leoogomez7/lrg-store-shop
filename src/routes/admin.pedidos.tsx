@@ -2341,10 +2341,10 @@ function AdminOrders() {
                     {isExpanded && (
                       <TableRow key={`${order.id}-details`}>
                         <TableCell
-                          colSpan={selectionMode || hasExpandedOrder ? 9 : 10}
-                          className="bg-surface-2/70 p-3 sm:p-5"
+                          colSpan={11}
+                          className="w-full bg-surface-2/90 p-0 sm:p-0"
                         >
-                          <div className="w-full max-w-none min-w-0 space-y-4 overflow-hidden text-sm">
+                          <div className="w-full min-w-0 space-y-4 overflow-hidden rounded-2xl bg-surface-2/90 p-3 text-sm sm:p-5">
                             <p className="font-medium">Detalle del pedido</p>
 
                             <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:items-start">
@@ -2432,7 +2432,7 @@ function AdminOrders() {
                                             LRG {brands[itemBrand].shortName}
                                           </p>
                                           <p className="text-xs text-muted-foreground">
-                                            {item.quantity} × {formatPrice(item.price)} unitario
+                                            {item.quantity} × {formatPrice(item.price)}
                                           </p>
                                         </div>
                                         <span className="shrink-0 text-right font-medium">
@@ -2463,6 +2463,14 @@ function AdminOrders() {
                                 }}
                               >
                                 <Paperclip className="size-4" /> Subir archivos para el cliente
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openEditOrderDialog(order)}
+                              >
+                                <Pencil className="size-4" /> Editar
                               </Button>
                               <Button
                                 type="button"
