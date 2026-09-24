@@ -468,13 +468,13 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
       <div className="relative flex min-h-screen">
         <aside
           className={cn(
-            "hidden shrink-0 border-r border-border/60 bg-surface/40 transition-[width] duration-200 lg:block",
+            "fixed inset-y-0 left-0 z-40 hidden border-r border-border/60 bg-surface/40 transition-[width] duration-200 lg:block",
             sidebarCollapsed ? "w-20" : "w-64",
           )}
         >
           <div
             className={cn(
-              "sticky top-0 flex h-screen flex-col p-5",
+              "flex h-screen flex-col p-5",
               sidebarCollapsed && "items-center px-3",
             )}
           >
@@ -578,7 +578,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1">
+        <div className={cn("min-w-0 flex-1", sidebarCollapsed ? "lg:pl-20" : "lg:pl-64")}>
           <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:hidden">
             <DropdownMenu open={adminUserMenuOpen} onOpenChange={setAdminUserMenuOpen}>
               <DropdownMenuTrigger asChild>
