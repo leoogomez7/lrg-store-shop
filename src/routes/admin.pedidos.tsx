@@ -2590,7 +2590,9 @@ function AdminOrders() {
                                     {order.items.slice(0, 4).map((item, itemIndex) => {
                                       const product = allProducts.find(
                                         (candidate) =>
-                                          candidate.id === item.productId || candidate.name === item.name,
+                                          candidate.id === item.productId ||
+                                          candidate.variantId === item.variantId ||
+                                          candidate.name === item.name,
                                       );
                                       const supplier = getSupplierForItem(
                                         item.name,
