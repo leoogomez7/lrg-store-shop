@@ -561,6 +561,7 @@ function AdminOrders() {
   );
   const [pendingAttachments, setPendingAttachments] = useState<OrderAttachment[]>([]);
   const [isSavingDocuments, setIsSavingDocuments] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
   const documentsInputRef = useRef<HTMLInputElement | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deliveryFilterOpen, setDeliveryFilterOpen] = useState(false);
@@ -1691,8 +1692,8 @@ function AdminOrders() {
     setSelectionMode(false);
   };
 
-  const handleSaveOrder = () => {
-    if (!orderForm) return;
+  const handleSaveOrder = async () => {
+    if (!orderForm || isSavingOrder) return;
     if (isCreatingOrder && !orderForm.date.trim()) {
       toast.error("La fecha de compra es obligatoria.");
       return;
@@ -1716,16 +1717,19 @@ function AdminOrders() {
       expenses: totals.expenses,
       profit: totals.profit,
     };
-    setEditableOrders((current) => {
+    setIsSavingOrder(true);
+    try {
       const nextOrders = isCreatingOrder
-        ? [orderToSave, ...current]
-        : current.map((order) => (order.id === orderToSave.id ? orderToSave : order));
-      void saveOrders(nextOrders);
+        ? [orderToSave, ...editableOrders]
+        : editableOrders.map((order) => (order.id === orderToSave.id ? orderToSave : order));
+      await saveOrders(nextOrders);
+      setEditableOrders(nextOrders);
       queryClient.setQueryData(orderQueries.list().queryKey, nextOrders);
-      return nextOrders;
-    });
-    toast.success("Cambios guardados");
-    closeOrderEditor();
+      toast.success("Cambios guardados");
+      closeOrderEditor();
+    } finally {
+      setIsSavingOrder(false);
+    }
   };
 
   const changeSelectedOrderStore = (store: BrandSlug) => {
@@ -3422,6 +3426,7 @@ function AdminOrders() {
                 <Button
                   variant="secondary"
                   onClick={closeOrderEditor}
+                  disabled={isSavingOrder}
                   className="rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none"
                   style={{ boxShadow: "none" }}
                 >
@@ -3430,11 +3435,11 @@ function AdminOrders() {
                 <Button
                   variant="default"
                   onClick={handleSaveOrder}
-                  disabled={!hasOrderChanges || !isOrderFormValid}
+                  disabled={!hasOrderChanges || !isOrderFormValid || isSavingOrder}
                   className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50"
                   style={{ boxShadow: "none" }}
                 >
-                  <Save className="h-4 w-4 mr-2" /> Guardar pedido
+                  <Save className="h-4 w-4 mr-2" /> {isSavingOrder ? "Guardando..." : "Guardar pedido"}
                 </Button>
               </div>
             </div>

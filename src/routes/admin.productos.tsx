@@ -177,6 +177,7 @@ function AdminProducts() {
   const [pendingDiscounts, setPendingDiscounts] = useState<Record<string, string>>({});
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [createChoiceOpen, setCreateChoiceOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
@@ -1236,7 +1237,7 @@ function AdminProducts() {
     | "discountedPrice_asc"
     | "discountedPrice_desc";
 
-  const handleSaveProduct = async () => {
+  const persistProduct = async () => {
     if (!productForm) return;
 
     const processedImages = await Promise.all(productForm.images.map(cropImageDataUrl));
@@ -1384,6 +1385,16 @@ function AdminProducts() {
       }
     }
     closeProductEditor();
+  };
+
+  const handleSaveProduct = async () => {
+    if (isSavingProduct) return;
+    setIsSavingProduct(true);
+    try {
+      await persistProduct();
+    } finally {
+      setIsSavingProduct(false);
+    }
   };
 
   useEffect(() => {
@@ -2899,6 +2910,7 @@ function AdminProducts() {
         bulkEditCount={0}
         onNavigateBulkEdit={() => {}}
         onSave={handleSaveProduct}
+        isSaving={isSavingProduct}
         supplierProducts={products}
       />
       <ProductEditDialog
@@ -2913,6 +2925,7 @@ function AdminProducts() {
         bulkEditCount={bulkEditQueue.length}
         onNavigateBulkEdit={navigateBulkEditProduct}
         onSave={handleSaveProduct}
+        isSaving={isSavingProduct}
         supplierProducts={products}
       />
       <Dialog open={usdRatePromptOpen} onOpenChange={setUsdRatePromptOpen}>
@@ -2983,6 +2996,7 @@ function ProductEditDialog({
   bulkEditCount,
   onNavigateBulkEdit,
   onSave,
+  isSaving,
   supplierProducts,
 }: {
   open: boolean;
@@ -2996,6 +3010,7 @@ function ProductEditDialog({
   bulkEditCount: number;
   onNavigateBulkEdit: (direction: -1 | 1) => void;
   onSave: () => void;
+  isSaving: boolean;
   supplierProducts: Product[];
 }) {
   const [newFeature, setNewFeature] = useState("");
@@ -4887,6 +4902,7 @@ function ProductEditDialog({
                     onOpenChange(false);
                   }
                 }}
+                disabled={isSaving}
                 className="rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none"
                 style={{ boxShadow: "none" }}
               >
@@ -4894,13 +4910,13 @@ function ProductEditDialog({
               </Button>
               <Button
                 variant="default"
-                disabled={!canSave}
+                disabled={!canSave || isSaving}
                 onClick={() => setConfirmSaveOpen(true)}
                 className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50"
                 style={{ boxShadow: "none" }}
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isNewProduct ? "Guardar producto" : "Guardar cambios"}
+                {isSaving ? "Guardando..." : isNewProduct ? "Guardar producto" : "Guardar cambios"}
               </Button>
             </div>
           </div>
@@ -4938,6 +4954,7 @@ function ProductEditDialog({
           confirmLabel="Guardar"
           cancelLabel="Cancelar"
           onConfirm={() => {
+            if (isSaving) return;
             setConfirmSaveOpen(false);
             onSave();
           }}
