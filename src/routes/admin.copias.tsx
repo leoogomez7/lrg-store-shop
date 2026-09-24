@@ -36,6 +36,12 @@ const formatDate = (value: string) =>
     timeStyle: "short",
   }).format(new Date(value));
 
+const getBackupReference = (backup: AdminBackupSummary) => {
+  if (backup.reason === "weekly-scheduled") return "Programada";
+  if (backup.reason === "manual") return "Manual";
+  return backup.id.split(":")[0];
+};
+
 function AdminBackups() {
   const queryClient = useQueryClient();
   const { data: backups } = useSuspenseQuery(backupsQuery);
@@ -44,6 +50,27 @@ function AdminBackups() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [pageSizeInput, setPageSizeInput] = useState("10");
+
+  const handleCreateBackup = async (reason: "manual" | "weekly-scheduled") => {
+    setIsCreatingBackup(true);
+    try {
+      const created = await createAdminBackup({ data: { reason } });
+      if (created) {
+        await queryClient.invalidateQueries({ queryKey: backupsQuery.queryKey });
+        toast.success(
+          reason === "weekly-scheduled"
+            ? "Copia semanal creada"
+            : "Copia de seguridad creada",
+        );
+      } else {
+        toast.error("No se pudo crear la copia de seguridad");
+      }
+    } catch {
+      toast.error("No se pudo crear la copia de seguridad");
+    } finally {
+      setIsCreatingBackup(false);
+    }
+  };
 
   const filteredBackups = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -87,29 +114,22 @@ function AdminBackups() {
           <Button
             type="button"
             disabled={isCreatingBackup}
-            onClick={async () => {
-              setIsCreatingBackup(true);
-              try {
-                const created = await createAdminBackup({ data: { reason: "manual" } });
-                if (created) {
-                  await queryClient.invalidateQueries({ queryKey: backupsQuery.queryKey });
-                  toast.success("Copia de seguridad creada");
-                } else {
-                  toast.error("No se pudo crear la copia de seguridad");
-                }
-              } catch {
-                toast.error("No se pudo crear la copia de seguridad");
-              } finally {
-                setIsCreatingBackup(false);
-              }
-            }}
+            onClick={() => void handleCreateBackup("weekly-scheduled")}
           >
             {isCreatingBackup ? (
               <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <Plus className="size-4" />
             )}
-            {isCreatingBackup ? "Creando..." : "Crear copia"}
+            {isCreatingBackup ? "Creando..." : "Crear copia semanal"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isCreatingBackup}
+            onClick={() => void handleCreateBackup("manual")}
+          >
+            <Plus className="size-4" /> Crear copia manual
           </Button>
         </div>
       </div>
@@ -117,7 +137,7 @@ function AdminBackups() {
       <div className="glass-panel overflow-hidden rounded-2xl border border-border/60">
         <div className="hidden grid-cols-[1.4fr_1fr_1fr_0.7fr] gap-4 border-b border-border/60 bg-surface-2 px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground md:grid">
           <span>Fecha</span>
-          <span>Pedido</span>
+          <span>Referencia</span>
           <span>Motivo</span>
           <span>Tamaño</span>
         </div>
@@ -132,7 +152,7 @@ function AdminBackups() {
                   <Archive className="size-4 shrink-0 text-primary" />
                   <span>{formatDate(backup.createdAt)}</span>
                 </div>
-                <span className="break-all text-muted-foreground">{backup.id.split(":")[0]}</span>
+                <span className="break-all text-muted-foreground">{getBackupReference(backup)}</span>
                 <span className="text-muted-foreground">{backup.reason}</span>
                 <span className="text-muted-foreground">{formatBytes(backup.sizeBytes)}</span>
               </div>
