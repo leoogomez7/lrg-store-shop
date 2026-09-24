@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Check, ContactRound, Package, RotateCcw, Search, ShoppingCart, Trash2, X } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { orders, saveOrders } from "@/data/orders";
@@ -51,6 +52,26 @@ function AdminTrash() {
     setSelectionMode(null);
     setSelectedDeleteKeys([]);
     setSelectedRestoreKeys([]);
+  };
+
+  const enterSelectionMode = (mode: "delete" | "restore") => {
+    if (selectionMode === mode) {
+      clearSelection();
+      return;
+    }
+    const allKeys = filteredEntries.map(getEntryKey);
+    setSelectionMode(mode);
+    setSelectedDeleteKeys(mode === "delete" ? allKeys : []);
+    setSelectedRestoreKeys(mode === "restore" ? allKeys : []);
+  };
+
+  const toggleAllSelection = (checked: boolean) => {
+    const allKeys = filteredEntries.map(getEntryKey);
+    if (selectionMode === "delete") {
+      setSelectedDeleteKeys(checked ? allKeys : []);
+    } else if (selectionMode === "restore") {
+      setSelectedRestoreKeys(checked ? allKeys : []);
+    }
   };
 
   useEffect(() => {
@@ -298,18 +319,21 @@ function AdminTrash() {
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" onClick={emptyTrash}>
-          <Trash2 className="size-4" /> Vaciar papelera
-        </Button>
-        <Button type="button" variant="outline" onClick={restoreAllEntries}>
-          <RotateCcw className="size-4" /> Restaurar todos
-        </Button>
+        {!selectionMode ? (
+          <>
+            <Button type="button" variant="outline" onClick={emptyTrash}>
+              <Trash2 className="size-4" /> Vaciar papelera
+            </Button>
+            <Button type="button" variant="outline" onClick={restoreAllEntries}>
+              <RotateCcw className="size-4" /> Restaurar todos
+            </Button>
+          </>
+        ) : null}
         <Button
           type="button"
           variant={selectionMode === "delete" ? "default" : "outline"}
           onClick={() => {
-            setSelectionMode((current) => (current === "delete" ? null : "delete"));
-            setSelectedRestoreKeys([]);
+            enterSelectionMode("delete");
           }}
         >
           <Trash2 className="size-4" /> Seleccionar borrados
@@ -318,8 +342,7 @@ function AdminTrash() {
           type="button"
           variant={selectionMode === "restore" ? "default" : "outline"}
           onClick={() => {
-            setSelectionMode((current) => (current === "restore" ? null : "restore"));
-            setSelectedDeleteKeys([]);
+            enterSelectionMode("restore");
           }}
         >
           <RotateCcw className="size-4" /> Seleccionar restaurar
@@ -345,6 +368,20 @@ function AdminTrash() {
       <div className="mt-3 flex min-h-11 items-center justify-between gap-3">
         <span className="text-sm text-muted-foreground">{entries.length} elementos</span>
         <div className="flex min-h-10 items-center justify-end gap-2">
+          {selectionMode ? (
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Todos</span>
+              <Checkbox
+                checked={
+                  selectionMode === "delete"
+                    ? selectedDeleteKeys.length === filteredEntries.length
+                    : selectedRestoreKeys.length === filteredEntries.length
+                }
+                onCheckedChange={(checked) => toggleAllSelection(checked === true)}
+                aria-label="Seleccionar todos"
+              />
+            </label>
+          ) : null}
           {selectionMode === "delete" && selectedDeleteKeys.length > 0 ? (
             <Button type="button" variant="destructive" onClick={deleteSelectedPermanently}>
               <Trash2 className="size-4" /> Eliminar seleccionados
@@ -387,33 +424,28 @@ function AdminTrash() {
               >
                 <div className="flex min-w-0 items-center gap-3">
                   {selectionMode ? (
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={
                         selectionMode === "delete"
                           ? selectedDeleteKeys.includes(getEntryKey(entry))
                           : selectedRestoreKeys.includes(getEntryKey(entry))
                       }
-                      onChange={(event) => {
-                        const checked = event.target.checked;
+                      onCheckedChange={(checked) => {
                         const entryKey = getEntryKey(entry);
                         if (selectionMode === "delete") {
-                          setSelectedDeleteKeys((current) => {
-                            const next = checked
+                          setSelectedDeleteKeys((current) =>
+                            checked === true
                               ? [...new Set([...current, entryKey])]
-                              : current.filter((key) => key !== entryKey);
-                            return next;
-                          });
+                              : current.filter((key) => key !== entryKey),
+                          );
                           return;
                         }
-                        setSelectedRestoreKeys((current) => {
-                          const next = checked
+                        setSelectedRestoreKeys((current) =>
+                          checked === true
                             ? [...new Set([...current, entryKey])]
-                            : current.filter((key) => key !== entryKey);
-                          return next;
-                        });
+                            : current.filter((key) => key !== entryKey),
+                        );
                       }}
-                      className="h-4 w-4 accent-primary"
                       aria-label={`Seleccionar ${name}`}
                     />
                   ) : null}
@@ -434,14 +466,16 @@ function AdminTrash() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => restoreEntry(entry)}>
-                    <RotateCcw className="size-4" /> Restaurar
-                  </Button>
-                  <Button size="sm" variant="destructive" onClick={() => setEntryToDelete(entry)}>
-                    <Trash2 className="size-4" /> Eliminar
-                  </Button>
-                </div>
+                {!selectionMode ? (
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => restoreEntry(entry)}>
+                      <RotateCcw className="size-4" /> Restaurar
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => setEntryToDelete(entry)}>
+                      <Trash2 className="size-4" /> Eliminar
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             );
           })
