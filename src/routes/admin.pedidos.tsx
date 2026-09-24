@@ -621,13 +621,10 @@ function AdminOrders() {
   }, [sortMenuOpen]);
 
   const startQuickEditOrder = (order: Order, bulk = false) => {
+    const storeStatuses = getOrderStatusByStore(order);
     const draft = {
-      deliveryStatus:
-        (order as Order & { deliveryStatus?: DeliveryStatus }).deliveryStatus ??
-        getDeliveryStatus(order.status),
-      paymentStatus:
-        (order as Order & { paymentStatus?: PaymentStatus }).paymentStatus ??
-        getPaymentStatus(order.status),
+      deliveryStatus: storeStatuses.deliveryStatus,
+      paymentStatus: storeStatuses.paymentStatus,
       shippingMethod: order.shippingMethod ?? "",
       shippingNumber: order.shippingNumber ?? "",
       paymentMethod: order.paymentMethod,
@@ -701,6 +698,11 @@ function AdminOrders() {
     if (!draft) return;
 
     const nextStatus = mergeOrderStatus(draft.deliveryStatus, draft.paymentStatus);
+    const updatedItems = order.items.map((item) => ({
+      ...item,
+      deliveryStatus: draft.deliveryStatus,
+      paymentStatus: draft.paymentStatus,
+    }));
     const wasCanceled = order.status === "cancelado";
     const willCancel = nextStatus === "cancelado" && !wasCanceled;
     const willRestore = nextStatus !== "cancelado" && wasCanceled;
@@ -721,6 +723,7 @@ function AdminOrders() {
         currentOrder.id === order.id
           ? {
               ...currentOrder,
+              items: updatedItems,
               deliveryStatus: draft.deliveryStatus,
               paymentStatus: draft.paymentStatus,
               shippingMethod: draft.shippingMethod || undefined,
@@ -977,10 +980,7 @@ function AdminOrders() {
   }, [availablePaymentMethods, availablePaymentMethodsByBrand, orderForm?.brand, orderForm?.paymentMethod]);
 
   const orderStoreSlugs = useMemo(
-    () =>
-      orderForm
-        ? Array.from(new Set(orderForm.items.map((item) => item.brand ?? orderForm.brand)))
-        : [],
+    () => (orderForm ? brandList.map((brand) => brand.slug) : []),
     [orderForm],
   );
 
@@ -988,6 +988,44 @@ function AdminOrders() {
 
   const getStoreItems = (items: EditableOrderItem[], store: BrandSlug) =>
     items.filter((item) => getItemStore(item) === store);
+
+  const getOrderStatusByStore = (order: Order) => {
+    const stores = Array.from(new Set(order.items.map((item) => item.brand ?? order.brand)));
+    const paymentStatuses = stores.map((store) => {
+      const storeItems = order.items.filter((item) => (item.brand ?? order.brand) === store);
+      const statuses = storeItems.map(
+        (item) =>
+          item.paymentStatus ??
+          (order as Order & { paymentStatus?: PaymentStatus }).paymentStatus ??
+          getPaymentStatus(order.status),
+      );
+      return statuses.every((status) => status === statuses[0])
+        ? (statuses[0] ?? "Pendiente")
+        : "Pendiente";
+    });
+    const deliveryStatuses = stores.map((store) => {
+      const storeItems = order.items.filter((item) => (item.brand ?? order.brand) === store);
+      const statuses = storeItems.map(
+        (item) =>
+          item.deliveryStatus ??
+          (order as Order & { deliveryStatus?: DeliveryStatus }).deliveryStatus ??
+          getDeliveryStatus(order.status),
+      );
+      return statuses.every((status) => status === statuses[0])
+        ? (statuses[0] ?? "Pendiente")
+        : "Pendiente";
+    });
+    return {
+      paymentStatus:
+        paymentStatuses.length > 0 && paymentStatuses.every((status) => status === paymentStatuses[0])
+          ? (paymentStatuses[0] ?? "Pendiente")
+          : "Pendiente",
+      deliveryStatus:
+        deliveryStatuses.length > 0 && deliveryStatuses.every((status) => status === deliveryStatuses[0])
+          ? (deliveryStatuses[0] ?? "Pendiente")
+          : "Pendiente",
+    };
+  };
 
   const getBrandDisplayName = useCallback((brandSlug?: BrandSlug) => {
     return brandSlug ? brands[brandSlug]?.name ?? brandSlug : "";
@@ -2381,12 +2419,8 @@ function AdminOrders() {
                   nameParts.length > 1
                     ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}`
                     : order.customer;
-                const displayDeliveryStatus =
-                  (order as Order & { deliveryStatus?: DeliveryStatus }).deliveryStatus ??
-                  getDeliveryStatus(order.status);
-                const displayPaymentStatus =
-                  (order as Order & { paymentStatus?: PaymentStatus }).paymentStatus ??
-                  getPaymentStatus(order.status);
+                const { deliveryStatus: displayDeliveryStatus, paymentStatus: displayPaymentStatus } =
+                  getOrderStatusByStore(order);
 
                 const isQuickEditing = quickEditOrderId === order.id;
                 const quickDraft = quickEditOrderForm[order.id] ?? {
@@ -3169,16 +3203,16 @@ function AdminOrders() {
                 <div className="space-y-3">
                   {orderForm.items.map((item, itemIndex) => {
                     const productSuggestions = allProducts
-                      .filter((product) => product.brand === selectedOrderStore)
                       .filter((product) =>
                         `${product.name} ${product.variantName ?? ""}`
                           .toLowerCase()
                           .includes(item.name.trim().toLowerCase()),
                       )
                       .slice(0, 6);
+                    const itemStore = item.brand ?? selectedOrderStore;
                     const selectedProduct = allProducts.find(
                       (product) =>
-                        product.brand === selectedOrderStore &&
+                        product.brand === itemStore &&
                         (product.id === item.productId ||
                           (product.variantId === item.variantId && product.name === item.name) ||
                           (product.name.toLowerCase() === item.name.trim().toLowerCase() &&
@@ -3251,8 +3285,8 @@ function AdminOrders() {
                                       {product.name}
                                       {product.variantName ? ` - ${product.variantName}` : ""}
                                     </span>
-                                    <span className="shrink-0 text-xs text-muted-foreground">
-                                      Stock: {product.stockUnlimited ? "Ilimitado" : product.stock}
+                                    <span className="shrink-0 text-right text-xs text-muted-foreground">
+                                      {getBrandDisplayName(product.brand)} · Stock: {product.stockUnlimited ? "Ilimitado" : product.stock}
                                     </span>
                                   </button>
                                 ))}

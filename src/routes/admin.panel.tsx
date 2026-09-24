@@ -577,7 +577,7 @@ function AdminDashboard() {
                 <TableRow>
                   <TableHead className="w-24">Pedido</TableHead>
                   <TableHead className="w-32">Cliente</TableHead>
-                  <TableHead className="w-24">Sector</TableHead>
+                  <TableHead className="w-24">Tiendas</TableHead>
                   <TableHead className="w-28">Fecha</TableHead>
                   <TableHead className="w-24">Total</TableHead>
                 </TableRow>
