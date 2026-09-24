@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowDown,
@@ -153,6 +153,7 @@ export const Route = createFileRoute("/admin/productos")({
 });
 
 function AdminProducts() {
+  const queryClient = useQueryClient();
   const { data: products } = useSuspenseQuery(catalogQueries.allAdmin());
   const [editableProducts, setEditableProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
@@ -603,7 +604,9 @@ function AdminProducts() {
   const handleDeleteProduct = async (productId: string, variantId?: string) => {
     const product = (productsData as Product[]).find((item) => item.id === productId);
     if (product && variantId) {
-      const remainingVariants = (product.variants ?? []).filter((variant) => variant.id !== variantId);
+      const remainingVariants = (product.variants ?? []).filter(
+        (variant) => variant.id !== variantId,
+      );
       product.variants = remainingVariants;
 
       if (remainingVariants.length === 0) {
@@ -620,9 +623,7 @@ function AdminProducts() {
           return next;
         });
 
-        const productIndex = (productsData as Product[]).findIndex(
-          (item) => item.id === productId,
-        );
+        const productIndex = (productsData as Product[]).findIndex((item) => item.id === productId);
         if (productIndex !== -1) {
           (productsData as Product[]).splice(productIndex, 1);
           await saveProducts(productsData as Product[]);
@@ -692,11 +693,11 @@ function AdminProducts() {
         return {
           ...product,
           variants: product.variants.map((variant) =>
-            variant.id === variantId ? { ...variant, hidden: !Boolean(variant.hidden) } : variant,
+            variant.id === variantId ? { ...variant, hidden: !variant.hidden } : variant,
           ),
         };
       }
-      return { ...product, hidden: !Boolean(product.hidden) };
+      return { ...product, hidden: !product.hidden };
     });
 
     productsData.splice(0, productsData.length, ...nextProducts);
@@ -820,7 +821,9 @@ function AdminProducts() {
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
     await saveProducts(nextProducts);
-    toast.success(`${selectedEntries.length} elemento${selectedEntries.length === 1 ? "" : "s"} eliminado${selectedEntries.length === 1 ? "" : "s"}`);
+    toast.success(
+      `${selectedEntries.length} elemento${selectedEntries.length === 1 ? "" : "s"} eliminado${selectedEntries.length === 1 ? "" : "s"}`,
+    );
     clearBulkProductSelection();
   };
 
@@ -829,7 +832,9 @@ function AdminProducts() {
     if (!selectedEntries.length) return;
 
     const nextProducts = (productsData as Product[]).map((product) => {
-      const productSelectedEntries = selectedEntries.filter((entry) => entry.productId === product.id);
+      const productSelectedEntries = selectedEntries.filter(
+        (entry) => entry.productId === product.id,
+      );
       if (!productSelectedEntries.length) return product;
 
       const selectedVariantIds = productSelectedEntries
@@ -999,9 +1004,8 @@ function AdminProducts() {
   };
 
   const navigateBulkEditProduct = (direction: -1 | 1) => {
-    const queue = bulkEditQueueRef.current.length > 0
-      ? bulkEditQueueRef.current
-      : getBulkProductQueue();
+    const queue =
+      bulkEditQueueRef.current.length > 0 ? bulkEditQueueRef.current : getBulkProductQueue();
     const nextPosition = bulkEditPositionRef.current + direction;
     if (nextPosition < 0 || nextPosition >= queue.length) return;
 
@@ -1052,7 +1056,9 @@ function AdminProducts() {
     const currentSelectionKey = quickEditProductId
       ? `${quickEditProductId}:${quickEditVariantId ?? "base"}`
       : null;
-    const remainingQueue = bulkQuickEditQueue.filter((selectionKey) => selectionKey !== currentSelectionKey);
+    const remainingQueue = bulkQuickEditQueue.filter(
+      (selectionKey) => selectionKey !== currentSelectionKey,
+    );
     const nextQueuedSelectionKey = remainingQueue[0];
     const nextQuickEditEntry = nextQueuedSelectionKey
       ? resolveQuickEditSelection(nextQueuedSelectionKey)
@@ -1195,7 +1201,9 @@ function AdminProducts() {
     }));
 
     const currentSelectionKey = key;
-    const remainingQueue = bulkQuickEditQueue.filter((selectionKey) => selectionKey !== currentSelectionKey);
+    const remainingQueue = bulkQuickEditQueue.filter(
+      (selectionKey) => selectionKey !== currentSelectionKey,
+    );
     const nextQueuedSelectionKey = remainingQueue[0];
     const nextQuickEditEntry = nextQueuedSelectionKey
       ? resolveQuickEditSelection(nextQueuedSelectionKey)
@@ -1343,7 +1351,12 @@ function AdminProducts() {
       }));
     }
 
-    saveProducts(productsData as Product[]);
+    await saveProducts(productsData as Product[]);
+    queryClient.setQueryData(catalogQueries.allAdmin().queryKey, [...productsData]);
+    void queryClient.invalidateQueries({
+      queryKey: ["products"],
+      refetchType: "active",
+    });
     toast.success("Producto guardado");
     const nextBulkPosition = bulkEditPositionRef.current + 1;
     const queue = bulkEditQueueRef.current;
@@ -2150,9 +2163,13 @@ function AdminProducts() {
                   size="sm"
                   variant="default"
                   onClick={() => {
-                    const currentProduct = editableProducts.find((product) => product.id === quickEditProductId);
+                    const currentProduct = editableProducts.find(
+                      (product) => product.id === quickEditProductId,
+                    );
                     const currentVariant = quickEditVariantId
-                      ? currentProduct?.variants?.find((variant) => variant.id === quickEditVariantId)
+                      ? currentProduct?.variants?.find(
+                          (variant) => variant.id === quickEditVariantId,
+                        )
                       : undefined;
                     if (currentProduct) {
                       saveQuickEdit(currentProduct, currentVariant);
@@ -2161,11 +2178,7 @@ function AdminProducts() {
                 >
                   <Check className="size-4" /> Guardar
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={cancelQuickEdit}
-                >
+                <Button size="sm" variant="destructive" onClick={cancelQuickEdit}>
                   <X className="size-4" /> Saltar
                 </Button>
                 <Button size="sm" variant="outline" onClick={cancelQuickEditSession}>
@@ -2203,11 +2216,7 @@ function AdminProducts() {
                 >
                   <Trash2 className="size-4" /> Eliminar
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={clearBulkSelection}
-                >
+                <Button size="sm" variant="outline" onClick={clearBulkSelection}>
                   <X className="size-4" /> Cancelar
                 </Button>
               </>
@@ -2312,7 +2321,9 @@ function AdminProducts() {
                       <div className="flex items-center justify-center">
                         <Checkbox
                           className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                          checked={selectedProductIds.includes(getProductSelectionKey(product, variant))}
+                          checked={selectedProductIds.includes(
+                            getProductSelectionKey(product, variant),
+                          )}
                           onCheckedChange={(checked) => {
                             const isChecked = checked === true;
                             const selectionKey = getProductSelectionKey(product, variant);
