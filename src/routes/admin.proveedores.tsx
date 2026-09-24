@@ -117,27 +117,45 @@ const normalizeSupplier = (supplier: Partial<StandaloneSupplier> | null | undefi
   social: supplier?.social?.trim() ?? "",
 });
 
-const formatSupplierProductLabel = (name: string) => {
-  if (!name) return "Producto";
-  return name.replace(/\s+·\s+/g, " · ");
+const formatSupplierProductLabel = (name: string, quantity?: number) => {
+  const safeName = name?.trim() ? name.replace(/\s+·\s+/g, " · ") : "Producto";
+  if (typeof quantity === "number") {
+    return `${safeName} · ${quantity}`;
+  }
+  return safeName;
 };
 
 const dedupeSuppliers = (suppliers: StandaloneSupplier[]) => {
   const byKey = new Map<string, StandaloneSupplier>();
   for (const supplier of suppliers) {
-    const key = getSupplierKey(normalizeSupplier(supplier));
+    const normalized = normalizeSupplier(supplier);
+    const key = getSupplierKey(normalized);
     const existing = byKey.get(key);
     if (!existing) {
-      byKey.set(key, { ...normalizeSupplier(supplier), id: supplier.id ?? getSupplierKey(normalizeSupplier(supplier)) });
+      byKey.set(key, {
+        ...normalized,
+        id: supplier.id ?? key,
+      });
       continue;
     }
     byKey.set(key, {
       ...existing,
-      ...normalizeSupplier(supplier),
-      id: existing.id ?? supplier.id ?? getSupplierKey(normalizeSupplier(supplier)),
+      ...normalized,
+      id: existing.id ?? supplier.id ?? key,
     });
   }
   return Array.from(byKey.values());
+};
+
+const replaceSupplierRecord = (
+  suppliers: StandaloneSupplier[],
+  supplierKey: string,
+  nextSupplier: StandaloneSupplier,
+) => {
+  const withoutTarget = suppliers.filter(
+    (supplier) => !(supplier.id === supplierKey || getSupplierKey(normalizeSupplier(supplier)) === supplierKey),
+  );
+  return dedupeSuppliers([...withoutTarget, nextSupplier]);
 };
 
 function AdminSuppliers() {
@@ -523,22 +541,7 @@ function AdminSuppliers() {
     });
     if (!normalized.name || !normalized.phone || !normalized.social) return;
 
-    const mergedSuppliers = new Map<string, StandaloneSupplier>();
-    for (const supplier of standaloneSuppliers) {
-      const supplierId = supplier.id ?? getSupplierKey(supplier);
-      const candidateKey = getSupplierKey(supplier);
-      if (supplierId === supplierKey || candidateKey === supplierKey) {
-        const merged = { ...normalizeSupplier(supplier), ...normalized, id: supplier.id ?? normalized.id };
-        mergedSuppliers.set(getSupplierKey(merged), merged);
-        continue;
-      }
-      if (!mergedSuppliers.has(candidateKey)) {
-        mergedSuppliers.set(candidateKey, supplier);
-      }
-    }
-    const finalSupplierKey = getSupplierKey(normalized);
-    mergedSuppliers.set(finalSupplierKey, normalized);
-    const nextStandaloneSuppliers = dedupeSuppliers(Array.from(mergedSuppliers.values()));
+    const nextStandaloneSuppliers = replaceSupplierRecord(standaloneSuppliers, supplierKey, normalized);
 
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
@@ -601,9 +604,10 @@ function AdminSuppliers() {
         },
       });
     }
-    const nextStandaloneSuppliers = standaloneSuppliers.filter(
-      (supplier) =>
-        !(supplier.id === supplierKey || getSupplierKey(supplier) === supplierKey),
+    const nextStandaloneSuppliers = dedupeSuppliers(
+      standaloneSuppliers.filter(
+        (supplier) => !(supplier.id === supplierKey || getSupplierKey(supplier) === supplierKey),
+      ),
     );
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
@@ -710,12 +714,14 @@ function AdminSuppliers() {
         }),
       );
 
-    const nextStandaloneSuppliers = standaloneSuppliers.filter(
-      (supplier) =>
-        !(
-          selectedKeys.has(supplier.id ?? getSupplierKey(supplier)) ||
-          selectedKeys.has(getSupplierKey(supplier))
-        ),
+    const nextStandaloneSuppliers = dedupeSuppliers(
+      standaloneSuppliers.filter(
+        (supplier) =>
+          !(
+            selectedKeys.has(supplier.id ?? getSupplierKey(supplier)) ||
+            selectedKeys.has(getSupplierKey(supplier))
+          ),
+      ),
     );
     const nextProducts = unlinkSupplierReferences(selectedKeys);
 
@@ -892,7 +898,7 @@ function AdminSuppliers() {
   ]);
   const exportExcel = () => {
     const sheet = XLSX.utils.aoa_to_sheet([
-      ["Nombre", "Celular", "Red social", "Productos", "Total vendido ($/USD)", "Cantidad vendida"],
+      ["Nombre", "Celular", "Red social", "Producto", "Total vendido ($/USD)", "Cantidad vendida"],
       ...exportRows,
     ]);
     const workbook = XLSX.utils.book_new();
@@ -903,7 +909,7 @@ function AdminSuppliers() {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.write(
-      `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #d4d4d4;padding:8px;text-align:left}th{background:#f3f3f3}</style></head><body><h2>Proveedores</h2><table border="1" cellpadding="6"><thead><tr><th>Nombre</th><th>Celular</th><th>Red social</th><th>Productos</th><th>Total vendido</th><th>Cantidad vendida</th></tr></thead><tbody>${exportRows.map((row) => `<tr>${row.map((cell) => `<td>${String(cell).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`,
+      `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #d4d4d4;padding:8px;text-align:left}th{background:#f3f3f3}</style></head><body><h2>Proveedores</h2><table border="1" cellpadding="6"><thead><tr><th>Nombre</th><th>Celular</th><th>Red social</th><th>Producto</th><th>Total vendido</th><th>Cantidad vendida</th></tr></thead><tbody>${exportRows.map((row) => `<tr>${row.map((cell) => `<td>${String(cell).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`,
     );
     printWindow.document.close();
     printWindow.print();
@@ -1587,13 +1593,10 @@ function AdminSuppliers() {
                                   {sortedProducts.slice(0, 8).map((product) => (
                                     <div
                                       key={`${product.name}-${product.quantity}`}
-                                      className="flex items-center justify-start gap-4 px-2.5 py-1.5 text-xs text-foreground"
+                                      className="flex items-center justify-start gap-3 px-2.5 py-1.5 text-xs text-foreground"
                                     >
                                       <span className="min-w-0 wrap-break-word">
-                                        {formatSupplierProductLabel(product.name)}
-                                      </span>
-                                      <span className="shrink-0 text-muted-foreground">
-                                        Cantidad vendida: {product.quantity}
+                                        {formatSupplierProductLabel(product.name, product.quantity)}
                                       </span>
                                     </div>
                                   ))}
@@ -1732,10 +1735,7 @@ function AdminSuppliers() {
                   className="flex items-center justify-between gap-3 rounded-md bg-muted px-3 py-2 text-sm"
                 >
                   <span className="min-w-0 wrap-break-word">
-                    {formatSupplierProductLabel(product.name)}
-                  </span>
-                  <span className="shrink-0 text-muted-foreground">
-                    Cantidad vendida: {product.quantity}
+                    {formatSupplierProductLabel(product.name, product.quantity)}
                   </span>
                 </div>
               ))}

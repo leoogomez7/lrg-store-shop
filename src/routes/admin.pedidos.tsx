@@ -942,6 +942,11 @@ function AdminOrders() {
     return brandName.replace(/^LRG\s+/i, "").trim();
   }, []);
 
+  const getBrandFullName = useCallback((brandSlug?: BrandSlug) => {
+    if (!brandSlug) return "Sin tienda";
+    return brands[brandSlug]?.name ?? brandSlug;
+  }, []);
+
   const getStoreFormValues = (items: EditableOrderItem[], store: BrandSlug) => {
     const storeItems = getStoreItems(items, store);
     const firstItem = storeItems[0];
@@ -2342,7 +2347,7 @@ function AdminOrders() {
                       }}
                       className={
                         highlightedOrderId === order.id
-                          ? "animate-pulse border border-amber-400/80 bg-gradient-to-r from-amber-500/25 via-yellow-300/25 to-amber-500/25 shadow-[0_0_0_1px_rgba(251,191,36,0.55),0_0_18px_rgba(251,191,36,0.28)]"
+                          ? "animate-pulse border border-amber-400/80 bg-linear-to-r from-amber-500/25 via-yellow-300/25 to-amber-500/25 shadow-[0_0_0_1px_rgba(251,191,36,0.55),0_0_18px_rgba(251,191,36,0.28)]"
                           : !selectionMode && !isQuickEditing
                             ? "cursor-pointer hover:bg-transparent"
                             : undefined
@@ -2527,7 +2532,8 @@ function AdminOrders() {
 
                               <div className="min-w-0 space-y-3">
                                 <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
-                                  <div className="flex items-center justify-end gap-3">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-sm font-semibold">Productos comprados</p>
                                     {order.items.length > 4 && (
                                       <Button
                                         type="button"
@@ -2553,7 +2559,7 @@ function AdminOrders() {
                                         item.variantId,
                                       )?.supplier;
                                       const itemBrand = item.brand ?? product?.brand ?? order.brand;
-                                      const variantText =
+                                      const uniqueVariantName =
                                         item.variantName && item.variantName !== item.name
                                           ? ` · ${item.variantName}`
                                           : "";
@@ -2565,114 +2571,116 @@ function AdminOrders() {
                                         >
                                           <div className="flex min-w-0 items-start justify-between gap-3">
                                             <div className="min-w-0 text-left">
-                                              <p className="wrap-break-word font-medium">
-                                                {item.name}
-                                                {variantText && (
+                                              <div className="flex flex-wrap items-center gap-2">
+                                                <span className="inline-flex rounded-full border border-border/60 bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                                                  {getBrandFullName(itemBrand)}
+                                                </span>
+                                                <span className="wrap-break-word font-medium">
+                                                  {item.name}
+                                                </span>
+                                                {uniqueVariantName && (
                                                   <span className="text-muted-foreground">
-                                                    {variantText}
+                                                    {uniqueVariantName}
                                                   </span>
                                                 )}
-                                              </p>
+                                              </div>
+                                              <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                                                <span>Proveedor: {supplier?.name ?? "Sin proveedor asignado"}</span>
+                                                <span>•</span>
+                                                <span>{item.quantity} ud.</span>
+                                              </div>
                                             </div>
                                             <span className="shrink-0 text-right font-medium">
                                               {formatPrice(item.price * item.quantity)}
                                             </span>
                                           </div>
-                                          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                                            <span>{getBrandDisplayName(itemBrand)}</span>
-                                            <span>
-                                              {item.quantity} × {formatPrice(item.price)}
-                                            </span>
-                                          </div>
-                                          <p className="mt-1 text-xs text-muted-foreground">
-                                            Proveedor: {supplier?.name ?? "Sin proveedor asignado"}
-                                          </p>
                                         </li>
                                       );
                                     })}
                                   </ul>
                                 </div>
 
-                                {Array.from(
-                                  new Map(
-                                    order.items.map((item) => {
-                                      const product = allProducts.find(
-                                        (candidate) =>
-                                          candidate.id === item.productId || candidate.name === item.name,
-                                      );
-                                      const itemBrand = item.brand ?? product?.brand ?? order.brand;
-                                      return [itemBrand, itemBrand] as const;
-                                    }),
-                                  ).values(),
-                                ).map((brandSlug) => {
-                                  const itemsInBrand = order.items.filter((item) => {
-                                    const product = allProducts.find(
-                                      (candidate) =>
-                                        candidate.id === item.productId || candidate.name === item.name,
-                                    );
-                                    return (item.brand ?? product?.brand ?? order.brand) === brandSlug;
-                                  });
-                                  const suppliers = Array.from(
-                                    new Set(
-                                      itemsInBrand
-                                        .map((item) =>
-                                          getSupplierForItem(
-                                            item.name,
-                                            item.productId,
-                                            item.variantId,
-                                          )?.supplier?.name,
-                                        )
-                                        .filter((name): name is string => Boolean(name)),
-                                    ),
+                                {(() => {
+                                  const storeSlugs = Array.from(
+                                    new Map(
+                                      order.items.map((item) => {
+                                        const product = allProducts.find(
+                                          (candidate) =>
+                                            candidate.id === item.productId || candidate.name === item.name,
+                                        );
+                                        const itemBrand = item.brand ?? product?.brand ?? order.brand;
+                                        return [itemBrand, itemBrand] as const;
+                                      }),
+                                    ).values(),
                                   );
 
                                   return (
-                                    <div
-                                      key={brandSlug}
-                                      className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-4"
-                                    >
-                                      <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <span className="text-sm font-medium">
-                                          {getBrandDisplayName(brandSlug)}
-                                        </span>
-                                      </div>
-                                      <div className="grid gap-2 sm:grid-cols-2">
-                                        <div>
-                                          <span className="block text-xs text-muted-foreground">
-                                            Método de pago
-                                          </span>
-                                          <span className="block wrap-break-word">
-                                            {order.paymentMethod || "—"}
-                                          </span>
-                                        </div>
-                                        <div>
-                                          <span className="block text-xs text-muted-foreground">
-                                            Método de envío
-                                          </span>
-                                          <span className="block wrap-break-word">
-                                            {order.shippingMethod ?? "—"}
-                                          </span>
-                                        </div>
-                                        <div className="sm:col-span-2">
-                                          <span className="block text-xs text-muted-foreground">
-                                            Proveedor
-                                          </span>
-                                          <span className="block wrap-break-word">
-                                            {suppliers.length ? suppliers.join(", ") : "Sin proveedor asignado"}
-                                          </span>
-                                        </div>
-                                        <div className="sm:col-span-2">
-                                          <span className="block text-xs text-muted-foreground">
-                                            Observaciones
-                                          </span>
-                                          <span className="block wrap-break-word">
-                                            {order.extraInfo || "—"}
-                                          </span>
-                                        </div>
-                                      </div>
+                                    <div className="grid gap-3 xl:grid-cols-3">
+                                      {storeSlugs.map((brandSlug) => {
+                                        const itemsInBrand = order.items.filter((item) => {
+                                          const product = allProducts.find(
+                                            (candidate) =>
+                                              candidate.id === item.productId || candidate.name === item.name,
+                                          );
+                                          return (
+                                            (item.brand ?? product?.brand ?? order.brand) === brandSlug
+                                          );
+                                        });
+                                        const suppliers = Array.from(
+                                          new Set(
+                                            itemsInBrand
+                                              .map((item) =>
+                                                getSupplierForItem(
+                                                  item.name,
+                                                  item.productId,
+                                                  item.variantId,
+                                                )?.supplier?.name,
+                                              )
+                                              .filter((name): name is string => Boolean(name)),
+                                          ),
+                                        );
+
+                                        return (
+                                          <div
+                                            key={brandSlug}
+                                            className="rounded-xl border border-border/60 bg-surface/40 p-4"
+                                          >
+                                            <div className="mb-3 flex items-center justify-between gap-2">
+                                              <span className="text-sm font-semibold">
+                                                {getBrandFullName(brandSlug)}
+                                              </span>
+                                            </div>
+                                            <div className="space-y-2.5 text-sm">
+                                              {[
+                                                ["Método de pago", order.paymentMethod || "—"],
+                                                ["Método de envío", order.shippingMethod || "—"],
+                                                [
+                                                  "Proveedor",
+                                                  suppliers.length
+                                                    ? suppliers.join(", ")
+                                                    : "Sin proveedor asignado",
+                                                ],
+                                                ["Observaciones", order.extraInfo || "—"],
+                                              ].map(([label, value]) => (
+                                                <div
+                                                  key={label}
+                                                  className="flex items-start justify-between gap-3"
+                                                >
+                                                  <span className="min-w-0 text-muted-foreground">
+                                                    {label}
+                                                  </span>
+                                                  <span className="min-w-0 max-w-[60%] text-right wrap-break-word font-medium">
+                                                    {String(value)}
+                                                  </span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   );
-                                })}
+                                })()}
                               </div>
                             </div>
 
