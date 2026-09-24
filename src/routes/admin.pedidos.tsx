@@ -989,8 +989,7 @@ function AdminOrders() {
     items.filter((item) => getItemStore(item) === store);
 
   const getBrandDisplayName = useCallback((brandSlug?: BrandSlug) => {
-    const brandName = brandSlug ? brands[brandSlug]?.shortName ?? brands[brandSlug]?.name : "";
-    return brandName.replace(/^LRG\s+/i, "").trim();
+    return brandSlug ? brands[brandSlug]?.name ?? brandSlug : "";
   }, []);
 
   const getBrandFullName = useCallback((brandSlug?: BrandSlug) => {
@@ -2987,7 +2986,9 @@ function AdminOrders() {
           {orderForm ? (
             <div className="min-w-0 space-y-4">
               <div className="space-y-4 rounded-xl border border-border/60 bg-surface/40 p-4">
-                <p className="text-lg font-semibold tracking-tight text-foreground">Datos cliente</p>
+                <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                  Datos cliente
+                </span>
                 <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Número de pedido</Label>
@@ -3013,9 +3014,9 @@ function AdminOrders() {
 
               <div className="space-y-4 rounded-xl border border-border/60 bg-surface/40 p-4">
                 <div className="flex items-end justify-between gap-3">
-                  <p className="text-lg font-semibold tracking-tight text-foreground">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                     Datos del pedido
-                  </p>
+                  </span>
                   <div className="w-full max-w-xs">
                     <Select
                       value={selectedOrderStore}
@@ -3152,7 +3153,9 @@ function AdminOrders() {
               </div>
 
               <div className="space-y-4 rounded-xl border border-border/60 bg-surface/40 p-4">
-                <p className="text-lg font-semibold tracking-tight text-foreground">Productos</p>
+                <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                  Productos
+                </span>
                 <div className="space-y-3">
                   {orderForm.items.map((item, itemIndex) => {
                     const productSuggestions = allProducts
@@ -3189,6 +3192,7 @@ function AdminOrders() {
                     const itemCanBeSaved =
                       itemHasChanges &&
                       Boolean(selectedProduct) &&
+                      (!selectedProduct?.parentId || Boolean(item.variantName)) &&
                       item.quantity >= 1 &&
                       (hasUnlimitedStock ||
                         item.quantity <=
@@ -3202,12 +3206,21 @@ function AdminOrders() {
                         <div className="relative">
                           <Label>Nombre</Label>
                           <Input
-                            value={item.name}
+                            value={
+                              item.variantName ? `${item.name} - ${item.variantName}` : item.name
+                            }
                             placeholder="Escriba un producto"
                             disabled={!canEditProductName}
-                            onChange={(event) =>
-                              updateOrderItemProduct(itemIndex, event.target.value)
-                            }
+                            onChange={(event) => {
+                              const variantSuffix = item.variantName
+                                ? ` - ${item.variantName}`
+                                : "";
+                              const nextName =
+                                variantSuffix && event.target.value.endsWith(variantSuffix)
+                                  ? event.target.value.slice(0, -variantSuffix.length)
+                                  : event.target.value;
+                              updateOrderItemProduct(itemIndex, nextName);
+                            }}
                           />
                           {canEditProductName &&
                             item.name.trim() &&
@@ -3330,6 +3343,21 @@ function AdminOrders() {
                     );
                   })}
                 </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <Label>Gastos</Label>
+                    <Input value={formatPrice(orderForm.expenses)} disabled />
+                  </div>
+                  <div>
+                    <Label>Ganancias</Label>
+                    <Input value={formatPrice(orderForm.profit)} disabled />
+                  </div>
+                  <div>
+                    <Label>Total</Label>
+                    <Input value={formatPrice(orderForm.total)} disabled />
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-between pt-2">
@@ -3342,21 +3370,6 @@ function AdminOrders() {
                   <Plus className="size-4" />
                   Agregar producto
                 </Button>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div>
-                  <Label>Gastos</Label>
-                  <Input value={formatPrice(orderForm.expenses)} disabled />
-                </div>
-                <div>
-                  <Label>Ganancias</Label>
-                  <Input value={formatPrice(orderForm.profit)} disabled />
-                </div>
-                <div>
-                  <Label>Total</Label>
-                  <Input value={formatPrice(orderForm.total)} disabled />
-                </div>
               </div>
 
             </div>
