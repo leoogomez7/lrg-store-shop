@@ -6,11 +6,14 @@ import {
   LogOut,
   MapPin,
   Package,
+  CloudDownload,
   ShoppingBag,
   ShoppingCart,
   Store,
+  ContactRound,
+  Settings,
   User,
-  UserPlus,
+  Users,
   Trash2,
 } from "lucide-react";
 import { useEffect, useState, type MouseEvent } from "react";
@@ -169,11 +172,12 @@ function BrandHeaderContent({
         { label: "Panel administrativo", to: "/admin/panel", icon: LayoutDashboard },
         { label: "Productos", to: "/admin/productos", icon: Package },
         { label: "Pedidos", to: "/admin/pedidos", icon: ShoppingCart },
-        { label: "Clientes", to: "/admin/clientes", icon: User },
-        { label: "Proveedores", to: "/admin/proveedores", icon: UserPlus },
+        { label: "Clientes", to: "/admin/clientes", icon: Users },
+        { label: "Proveedores", to: "/admin/proveedores", icon: ContactRound },
         { label: "Tiendas disponibles", to: "/admin/marcas", icon: Store },
-        { label: "Configuración", to: "/admin/configuracion", icon: User },
+        { label: "Configuración", to: "/admin/configuracion", icon: Settings },
         { label: "Papelera", to: "/admin/papelera", icon: Trash2 },
+        { label: "Copias de seguridad", to: "/admin/copias", icon: CloudDownload },
       ]
     : [
         { label: "Panel administrativo", to: "/cuenta/panel", icon: LayoutDashboard },

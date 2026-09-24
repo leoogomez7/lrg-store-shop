@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { getAuthRole } from "@/lib/auth-role";
 import {
   ContactRound,
-  Archive,
+  CloudDownload,
   Facebook,
   Instagram,
   LayoutDashboard,
@@ -206,7 +206,7 @@ function BrandFooterContent({
     ["Tiendas disponibles", "/admin/marcas", Store],
     ["Configuración", "/admin/configuracion", Settings],
     ["Papelera", "/admin/papelera", Trash2],
-    ["Copias de seguridad", "/admin/copias", Archive],
+    ["Copias de seguridad", "/admin/copias", CloudDownload],
   ];
   const menu: FooterMenuItem[] = isAdmin
     ? adminMenu

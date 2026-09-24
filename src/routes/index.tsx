@@ -233,7 +233,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             className="glass inline-flex w-fit items-center gap-2 rounded-full px-4 py-1.5 text-xs tracking-[0.16em] text-muted-foreground uppercase opacity-100"
             style={{ transition: "opacity 600ms ease" }}
           >
-            <span aria-hidden="true">👋</span>
+            <span aria-hidden="true"></span>
             Bienvenido LRG Store Shop
           </span>
 

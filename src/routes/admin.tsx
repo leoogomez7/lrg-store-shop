@@ -12,8 +12,8 @@ import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import {
   AlertTriangle,
-  Archive,
   Check,
+  CloudDownload,
   ContactRound,
   ArrowRight,
   CircleArrowLeft,
@@ -87,7 +87,7 @@ const navigation = [
   { to: "/admin/marcas", label: "Tiendas disponibles", icon: Store, exact: false },
   { to: "/admin/configuracion", label: "Configuración", icon: Settings, exact: false },
   { to: "/admin/papelera", label: "Papelera", icon: Trash2, exact: false },
-  { to: "/admin/copias", label: "Copias de seguridad", icon: Archive, exact: false },
+  { to: "/admin/copias", label: "Copias de seguridad", icon: CloudDownload, exact: false },
 ] as const;
 
 function AdminLayout() {
@@ -475,10 +475,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           )}
         >
           <div
-            className={cn(
-              "flex h-screen flex-col p-5",
-              sidebarCollapsed && "items-center px-3",
-            )}
+            className={cn("flex h-screen flex-col p-5", sidebarCollapsed && "items-center px-3")}
           >
             <div
               className={cn(
