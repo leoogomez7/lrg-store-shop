@@ -625,8 +625,54 @@ function AdminSuppliers() {
     openSupplierEditor(nextRow);
   };
 
+  const countSupplierLinkedItems = (supplierKey: string) => {
+    let linkedProducts = 0;
+    let linkedVariants = 0;
+
+    for (const product of products) {
+      if (product.supplier && matchesSupplierKey(product.supplier, supplierKey)) {
+        linkedProducts += 1;
+      }
+      for (const variant of product.variants ?? []) {
+        if (variant.supplier && matchesSupplierKey(variant.supplier, supplierKey)) {
+          linkedVariants += 1;
+        }
+      }
+    }
+
+    return { linkedProducts, linkedVariants };
+  };
+
+  const unlinkSupplierReferences = (supplierKeys: Iterable<string>) => {
+    const keys = Array.from(new Set([...supplierKeys]));
+    let nextProducts = (products as Product[]).map((product) => ({ ...product }));
+
+    for (const supplierKey of keys) {
+      nextProducts = nextProducts.map((product) => ({
+        ...product,
+        supplier:
+          product.supplier && matchesSupplierKey(product.supplier, supplierKey)
+            ? undefined
+            : product.supplier,
+        variants: product.variants?.map((variant) => ({
+          ...variant,
+          supplier:
+            variant.supplier && matchesSupplierKey(variant.supplier, supplierKey)
+              ? undefined
+              : variant.supplier,
+        })),
+      }));
+    }
+
+    return nextProducts;
+  };
+
   const deleteSelectedSuppliers = () => {
     const selectedKeys = new Set(selectedSupplierKeys);
+    const linkedEntries = filteredRows
+      .filter((row) => selectedKeys.has(row.key))
+      .map((row) => ({ row, usage: countSupplierLinkedItems(row.key) }));
+
     filteredRows
       .filter((row) => selectedKeys.has(row.key))
       .forEach((row) =>
@@ -636,6 +682,7 @@ function AdminSuppliers() {
           item: { name: row.name, phone: row.phone, social: row.social },
         }),
       );
+
     const nextStandaloneSuppliers = standaloneSuppliers.filter(
       (supplier) =>
         !(
@@ -643,24 +690,12 @@ function AdminSuppliers() {
           selectedKeys.has(getSupplierKey(supplier))
         ),
     );
-    const nextProducts = (products as Product[]).map((product) => ({
-      ...product,
-      supplier:
-        product.supplier &&
-        (selectedKeys.has(getSupplierIdentity(product.supplier as Partial<StandaloneSupplier> & { name: string; phone: string; social: string })) ||
-          selectedKeys.has(getSupplierKey(product.supplier)))
-          ? undefined
-          : product.supplier,
-      variants: product.variants?.map((variant) => ({
-        ...variant,
-        supplier:
-          variant.supplier &&
-          (selectedKeys.has(getSupplierIdentity(variant.supplier as Partial<StandaloneSupplier> & { name: string; phone: string; social: string })) ||
-            selectedKeys.has(getSupplierKey(variant.supplier)))
-            ? undefined
-            : variant.supplier,
-      })),
-    }));
+    const nextProducts = unlinkSupplierReferences(selectedKeys);
+
+    const linkedCount = linkedEntries.reduce(
+      (sum, entry) => sum + entry.usage.linkedProducts + entry.usage.linkedVariants,
+      0,
+    );
 
     setStandaloneSuppliers(nextStandaloneSuppliers);
     setSelectedSupplierKeys([]);
@@ -672,7 +707,29 @@ function AdminSuppliers() {
     });
     saveProducts(nextProducts);
     queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
+
+    if (linkedCount > 0) {
+      toast.success(`Proveedor/es eliminado/s. Se desvincularon ${linkedCount} referencias de productos/variantes.`);
+    }
   };
+
+  const selectedSupplierDeleteSummary = React.useMemo(() => {
+    const keys = selectedSupplierKeys;
+    if (keys.length === 0) {
+      return { productLinks: 0, variantLinks: 0, total: 0 };
+    }
+
+    return keys.reduce(
+      (summary, key) => {
+        const usage = countSupplierLinkedItems(key);
+        summary.productLinks += usage.linkedProducts;
+        summary.variantLinks += usage.linkedVariants;
+        summary.total += usage.linkedProducts + usage.linkedVariants;
+        return summary;
+      },
+      { productLinks: 0, variantLinks: 0, total: 0 },
+    );
+  }, [selectedSupplierKeys, products]);
 
   const filteredRows = rows
     .filter((row) => {
@@ -1679,7 +1736,11 @@ function AdminSuppliers() {
           }
         }}
         title="Eliminar proveedores seleccionados?"
-        description="Esta acción no se puede deshacer."
+        description={
+          selectedSupplierDeleteSummary.total > 0
+            ? `Se quitarán ${selectedSupplierDeleteSummary.total} referencias vinculadas en productos/variantes antes de borrar el proveedor.`
+            : "Esta acción no se puede deshacer."
+        }
         confirmLabel="Eliminar"
         cancelLabel="Cancelar"
         onConfirm={() => {
