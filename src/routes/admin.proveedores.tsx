@@ -1368,6 +1368,25 @@ function AdminSuppliers() {
             </div>
             <DialogFooter>
               <div className="flex w-full items-center justify-between gap-2">
+                {editingSupplierKey ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => {
+                      const supplierKey = editingSupplierKey;
+                      setPendingSupplierDelete(() => {
+                        deleteSupplier(supplierKey);
+                        closeSupplierEditor();
+                      });
+                      setSupplierDeleteConfirmOpen(true);
+                    }}
+                    className="gap-2"
+                  >
+                    <Trash2 className="size-4" /> Eliminar
+                  </Button>
+                ) : (
+                  <span />
+                )}
                 {editingSupplierKey && bulkSupplierEditQueue.length > 1 ? (
                   <div className="flex gap-2">
                     <Button

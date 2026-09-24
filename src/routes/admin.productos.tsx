@@ -2926,6 +2926,25 @@ function AdminProducts() {
         onNavigateBulkEdit={navigateBulkEditProduct}
         onSave={handleSaveProduct}
         isSaving={isSavingProduct}
+        onDelete={
+          editingProduct
+            ? () => {
+                const productId = editingProduct.id;
+                const variantId = initialVariantId ?? undefined;
+                setConfirmState({
+                  open: true,
+                  title: variantId ? "¿Eliminar variante?" : "¿Eliminar producto?",
+                  description: variantId
+                    ? "La variante se quitará del producto."
+                    : "El producto se enviará a la papelera.",
+                  confirmLabel: "Eliminar",
+                  onConfirm: () => {
+                    void handleDeleteProduct(productId, variantId).then(() => closeProductEditor());
+                  },
+                });
+              }
+            : undefined
+        }
         supplierProducts={products}
       />
       <Dialog open={usdRatePromptOpen} onOpenChange={setUsdRatePromptOpen}>
@@ -2997,6 +3016,7 @@ function ProductEditDialog({
   onNavigateBulkEdit,
   onSave,
   isSaving,
+  onDelete,
   supplierProducts,
 }: {
   open: boolean;
@@ -3011,6 +3031,7 @@ function ProductEditDialog({
   onNavigateBulkEdit: (direction: -1 | 1) => void;
   onSave: () => void;
   isSaving: boolean;
+  onDelete?: () => void;
   supplierProducts: Product[];
 }) {
   const [newFeature, setNewFeature] = useState("");
@@ -4890,7 +4911,21 @@ function ProductEditDialog({
         />
 
         <DialogFooter>
-          <div className="flex items-center justify-end w-full gap-2">
+          <div className="flex w-full items-center justify-between gap-2">
+            {onDelete ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={onDelete}
+                disabled={isSaving}
+                className="gap-2"
+              >
+                <Trash2 className="size-4" /> Eliminar
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex items-center gap-2">
             <div className="flex gap-2">
               <Button
                 variant="secondary"
@@ -4918,6 +4953,7 @@ function ProductEditDialog({
                 <Save className="h-4 w-4 mr-2" />
                 {isSaving ? "Guardando..." : isNewProduct ? "Guardar producto" : "Guardar cambios"}
               </Button>
+            </div>
             </div>
           </div>
         </DialogFooter>

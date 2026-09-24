@@ -3447,6 +3447,33 @@ function AdminOrders() {
 
           <DialogFooter>
             <div className="flex w-full items-center justify-between gap-2">
+              {!isCreatingOrder ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={isSavingOrder}
+                  onClick={() => {
+                    if (!orderForm) return;
+                    const orderToDelete = editableOrders.find((order) => order.id === orderForm.id);
+                    if (!orderToDelete) return;
+                    setConfirmState({
+                      open: true,
+                      title: `¿Eliminar pedido ${orderToDelete.id}?`,
+                      description: "Esta acción enviará el pedido a la papelera.",
+                      confirmLabel: "Eliminar",
+                      onConfirm: () => {
+                        handleDeleteOrder(orderToDelete);
+                        closeOrderEditor();
+                      },
+                    });
+                  }}
+                  className="gap-2"
+                >
+                  <Trash2 className="size-4" /> Eliminar
+                </Button>
+              ) : (
+                <span />
+              )}
               {!isCreatingOrder && bulkOrderEditQueue.length > 1 ? (
                 <div className="flex gap-2">
                   <Button
