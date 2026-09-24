@@ -251,6 +251,7 @@ function AdminProducts() {
     title: string;
     description?: string;
     confirmLabel?: string;
+    cancelLabel?: string;
     onConfirm: () => void;
   }>({ open: false, title: "", description: undefined, onConfirm: () => {} });
 
@@ -988,6 +989,8 @@ function AdminProducts() {
     if (!queue.length) return;
 
     const firstSelection = queue[0];
+    if (!firstSelection) return;
+
     const firstEntry = resolveQuickEditSelection(firstSelection);
     if (!firstEntry) return;
 

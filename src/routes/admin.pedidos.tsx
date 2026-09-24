@@ -408,6 +408,8 @@ type DeliveryStatus = "Pendiente" | "Enviado";
 type PaymentStatus = "Pendiente" | "Pagado" | "Cancelado";
 
 type EditableOrderItem = {
+  productId?: string;
+  variantId?: string;
   name: string;
   quantity: number;
   originalName: string | undefined;
@@ -579,6 +581,8 @@ function AdminOrders() {
     open: boolean;
     title: string;
     description?: string | undefined;
+    confirmLabel?: string;
+    cancelLabel?: string;
     onConfirm: () => void;
   }>({ open: false, title: "", onConfirm: () => {} });
 
@@ -933,6 +937,11 @@ function AdminOrders() {
   const getStoreItems = (items: EditableOrderItem[], store: BrandSlug) =>
     items.filter((item) => getItemStore(item) === store);
 
+  const getBrandDisplayName = useCallback((brandSlug?: BrandSlug) => {
+    const brandName = brandSlug ? brands[brandSlug]?.shortName ?? brands[brandSlug]?.name : "";
+    return brandName.replace(/^LRG\s+/i, "").trim();
+  }, []);
+
   const getStoreFormValues = (items: EditableOrderItem[], store: BrandSlug) => {
     const storeItems = getStoreItems(items, store);
     const firstItem = storeItems[0];
@@ -1165,7 +1174,9 @@ function AdminOrders() {
     });
     const timeout = window.setTimeout(() => {
       setHighlightedOrderId(null);
-      setExpandedOrderId(search.pedido);
+      if (search.pedido) {
+        setExpandedOrderId(search.pedido);
+      }
     }, 2600);
     return () => {
       window.cancelAnimationFrame(frame);
@@ -1620,7 +1631,8 @@ function AdminOrders() {
     }
     if (!isOrderFormValid) return;
     const selectedStoreForm = saveSelectedStoreValues(orderForm, selectedOrderStore);
-    const originalForm = JSON.parse(initialOrderFormSnapshot.current) as EditableOrder;
+    const originalForm = JSON.parse(initialOrderFormSnapshot.current ?? "null") as EditableOrder | null;
+    if (!originalForm) return;
     const selectedStoreItems = selectedStoreForm.items.filter(
       (item) => item.brand === selectedOrderStore,
     );
@@ -2491,17 +2503,13 @@ function AdminOrders() {
 
                     {isExpanded && (
                       <TableRow key={`${order.id}-details`}>
-                        <TableCell
-                          colSpan={10}
-                          className="w-full bg-surface-2/90 p-0 sm:p-0"
-                        >
+                        <TableCell colSpan={10} className="w-full bg-surface-2/90 p-0 sm:p-0">
                           <div className="w-full min-w-0 space-y-4 overflow-hidden rounded-2xl bg-surface-2/90 p-3 text-sm sm:p-5">
                             <p className="font-medium">Detalle del pedido</p>
 
                             <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
                               <div className="min-w-0 space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
                                 <div>
-                                  <span className="block text-xs text-muted-foreground">Cliente</span>
                                   <span className="block wrap-break-word text-base font-medium">
                                     {displayCustomer}
                                   </span>
@@ -2519,8 +2527,7 @@ function AdminOrders() {
 
                               <div className="min-w-0 space-y-3">
                                 <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
-                                  <div className="flex items-center justify-between gap-3">
-                                    <span className="text-sm font-medium">Productos comprados</span>
+                                  <div className="flex items-center justify-end gap-3">
                                     {order.items.length > 4 && (
                                       <Button
                                         type="button"
@@ -2550,6 +2557,7 @@ function AdminOrders() {
                                         item.variantName && item.variantName !== item.name
                                           ? ` · ${item.variantName}`
                                           : "";
+
                                       return (
                                         <li
                                           key={`${item.name}-${item.variantId ?? itemIndex}`}
@@ -2570,8 +2578,8 @@ function AdminOrders() {
                                               {formatPrice(item.price * item.quantity)}
                                             </span>
                                           </div>
-                                          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                                            <span>{brands[itemBrand].shortName}</span>
+                                          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                                            <span>{getBrandDisplayName(itemBrand)}</span>
                                             <span>
                                               {item.quantity} × {formatPrice(item.price)}
                                             </span>
@@ -2624,7 +2632,9 @@ function AdminOrders() {
                                       className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-4"
                                     >
                                       <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <span className="text-sm font-medium">{brands[brandSlug].name}</span>
+                                        <span className="text-sm font-medium">
+                                          {getBrandDisplayName(brandSlug)}
+                                        </span>
                                       </div>
                                       <div className="grid gap-2 sm:grid-cols-2">
                                         <div>
@@ -2698,70 +2708,70 @@ function AdminOrders() {
                                 </>
                               ) : (
                                 <>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setReceiptsOrder(order)}
-                                className="h-8 gap-2 rounded-md px-3 text-xs"
-                              >
-                                <FileText className="size-4" /> Comprobantes de pago del cliente
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setDocumentsOrder(order);
-                                  setPendingAttachments([]);
-                                }}
-                                className="h-8 gap-2 rounded-md px-3 text-xs"
-                              >
-                                <Paperclip className="size-4" /> Subir archivos para el cliente
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => startQuickEditOrder(order)}
-                                className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground"
-                              >
-                                <Edit3 className="size-4" /> Editar rápido
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openEditOrderDialog(order)}
-                                className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground"
-                              >
-                                <Pencil className="size-4" /> Editar
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  setConfirmState({
-                                    open: true,
-                                    title: `Eliminar pedido ${order.id}?`,
-                                    description: "Esta acción no se puede deshacer.",
-                                    onConfirm: () => handleDeleteOrder(order),
-                                  })
-                                }
-                                className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs text-destructive shadow-none hover:bg-destructive/10"
-                              >
-                                <Trash2 className="size-4" /> Eliminar
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setExpandedOrderId(null)}
-                                className="h-8 gap-2 rounded-md px-3 text-xs"
-                              >
-                                <EyeOff className="size-4" /> Ocultar
-                              </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setReceiptsOrder(order)}
+                                    className="h-8 gap-2 rounded-md px-3 text-xs"
+                                  >
+                                    <FileText className="size-4" /> Comprobantes de pago del cliente
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setDocumentsOrder(order);
+                                      setPendingAttachments([]);
+                                    }}
+                                    className="h-8 gap-2 rounded-md px-3 text-xs"
+                                  >
+                                    <Paperclip className="size-4" /> Subir archivos para el cliente
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => startQuickEditOrder(order)}
+                                    className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground"
+                                  >
+                                    <Edit3 className="size-4" /> Editar rápido
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openEditOrderDialog(order)}
+                                    className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground"
+                                  >
+                                    <Pencil className="size-4" /> Editar
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      setConfirmState({
+                                        open: true,
+                                        title: `Eliminar pedido ${order.id}?`,
+                                        description: "Esta acción no se puede deshacer.",
+                                        onConfirm: () => handleDeleteOrder(order),
+                                      })
+                                    }
+                                    className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs text-destructive shadow-none hover:bg-destructive/10"
+                                  >
+                                    <Trash2 className="size-4" /> Eliminar
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setExpandedOrderId(null)}
+                                    className="h-8 gap-2 rounded-md px-3 text-xs"
+                                  >
+                                    <EyeOff className="size-4" /> Ocultar
+                                  </Button>
                                 </>
                               )}
                             </div>
@@ -2941,7 +2951,7 @@ function AdminOrders() {
                       <SelectContent>
                         {orderStoreSlugs.map((store) => (
                           <SelectItem key={store} value={store}>
-                            {brands[store].shortName}
+                            {getBrandDisplayName(store)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -3369,8 +3379,8 @@ function AdminOrders() {
                       {formatPrice(item.price * item.quantity)}
                     </span>
                   </div>
-                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span>{brands[itemBrand].shortName}</span>
+                  <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span>{getBrandDisplayName(itemBrand)}</span>
                     <span>
                       {item.quantity} × {formatPrice(item.price)}
                     </span>

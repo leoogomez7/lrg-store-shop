@@ -95,6 +95,16 @@ const getSupplierKey = (supplier: Pick<StandaloneSupplier, "name" | "phone" | "s
 const getSupplierIdentity = (supplier: Pick<StandaloneSupplier, "id" | "name" | "phone" | "social">) =>
   supplier.id ?? getSupplierKey(supplier);
 
+const matchesSupplierKey = (
+  supplier: Partial<StandaloneSupplier> | { name: string; phone: string; social: string } | null | undefined,
+  supplierKey: string,
+) => {
+  if (!supplier) return false;
+  const supplierId = "id" in supplier ? supplier.id : undefined;
+  return (supplierId !== undefined && supplierId === supplierKey) ||
+    getSupplierKey(supplier as Pick<StandaloneSupplier, "name" | "phone" | "social">) === supplierKey;
+};
+
 const withSupplierIdentity = (supplier: StandaloneSupplier) => ({
   ...supplier,
   id: supplier.id ?? getSupplierKey(supplier),
@@ -506,16 +516,14 @@ function AdminSuppliers() {
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
       supplier:
-        product.supplier &&
-        (product.supplier.id === supplierKey || getSupplierKey(product.supplier) === supplierKey)
-          ? { ...product.supplier, ...normalized, id: normalized.id }
+        product.supplier && matchesSupplierKey(product.supplier, supplierKey)
+          ? { ...product.supplier, ...normalized, id: normalized.id ?? getSupplierKey(normalized) }
           : product.supplier,
       variants: product.variants?.map((variant) => ({
         ...variant,
         supplier:
-          variant.supplier &&
-          (variant.supplier.id === supplierKey || getSupplierKey(variant.supplier) === supplierKey)
-            ? { ...variant.supplier, ...normalized, id: normalized.id }
+          variant.supplier && matchesSupplierKey(variant.supplier, supplierKey)
+            ? { ...variant.supplier, ...normalized, id: normalized.id ?? getSupplierKey(normalized) }
             : variant.supplier,
       })),
     }));
@@ -573,15 +581,13 @@ function AdminSuppliers() {
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
       supplier:
-        product.supplier &&
-        (product.supplier.id === supplierKey || getSupplierKey(product.supplier) === supplierKey)
+        product.supplier && matchesSupplierKey(product.supplier, supplierKey)
           ? undefined
           : product.supplier,
       variants: product.variants?.map((variant) => ({
         ...variant,
         supplier:
-          variant.supplier &&
-          (variant.supplier.id === supplierKey || getSupplierKey(variant.supplier) === supplierKey)
+          variant.supplier && matchesSupplierKey(variant.supplier, supplierKey)
             ? undefined
             : variant.supplier,
       })),
@@ -641,7 +647,7 @@ function AdminSuppliers() {
       ...product,
       supplier:
         product.supplier &&
-        (selectedKeys.has(product.supplier.id ?? getSupplierKey(product.supplier)) ||
+        (selectedKeys.has(getSupplierIdentity(product.supplier as Partial<StandaloneSupplier> & { name: string; phone: string; social: string })) ||
           selectedKeys.has(getSupplierKey(product.supplier)))
           ? undefined
           : product.supplier,
@@ -649,7 +655,7 @@ function AdminSuppliers() {
         ...variant,
         supplier:
           variant.supplier &&
-          (selectedKeys.has(variant.supplier.id ?? getSupplierKey(variant.supplier)) ||
+          (selectedKeys.has(getSupplierIdentity(variant.supplier as Partial<StandaloneSupplier> & { name: string; phone: string; social: string })) ||
             selectedKeys.has(getSupplierKey(variant.supplier)))
             ? undefined
             : variant.supplier,
@@ -674,10 +680,9 @@ function AdminSuppliers() {
         (sum, currency) => sum + row.salesByCurrency[currency],
         0,
       );
+      const searchableValues = [row.name, row.phone, row.social, ...row.products.map((entry) => entry.name)];
       return (
-        [row.name, row.phone, row.social, ...row.products].some((value) =>
-          value.toLowerCase().includes(query.toLowerCase()),
-        ) &&
+        searchableValues.some((value) => value.toLowerCase().includes(query.toLowerCase())) &&
         (!storeFilter.length || row.stores.some((store) => storeFilter.includes(store))) &&
         selectedSales >= salesMin &&
         selectedSales <= effectiveSalesMax &&

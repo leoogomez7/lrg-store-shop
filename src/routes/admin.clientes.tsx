@@ -957,63 +957,66 @@ function CustomerRow({
                 </div>
               ))}
 
-              {customer.orders[4] ? (
-                <>
-                  <div className="flex min-h-[52px] min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm">
-                    <div className="flex w-full min-w-0 items-center justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <button
-                          type="button"
-                          className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
-                          onClick={() =>
-                            navigate({ to: "/admin/pedidos", search: { pedido: customer.orders[4].id } })
-                          }
-                        >
-                          {customer.orders[4].id}
-                        </button>
-                        <span className="shrink-0 text-[11px] text-muted-foreground">
-                          {formatPurchaseDate(customer.orders[4].date)}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            navigate({ to: "/admin/pedidos", search: { pedido: customer.orders[4].id } })
-                          }
-                          className="h-8 px-3 py-1"
-                        >
-                          <Eye className="size-3.5" /> Ver pedido
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 px-3 py-1"
-                          onClick={() => {
-                            setDocumentsOrder(customer.orders[4]);
-                          }}
-                        >
-                          <Paperclip className="size-3.5" /> Archivos adjuntos
-                        </Button>
+              {(() => {
+                const fifthOrder = customer.orders[4];
+                return fifthOrder ? (
+                  <>
+                    <div className="flex min-h-[52px] min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm">
+                      <div className="flex w-full min-w-0 items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <button
+                            type="button"
+                            className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                            onClick={() =>
+                              navigate({ to: "/admin/pedidos", search: { pedido: fifthOrder.id } })
+                            }
+                          >
+                            {fifthOrder.id}
+                          </button>
+                          <span className="shrink-0 text-[11px] text-muted-foreground">
+                            {formatPurchaseDate(fifthOrder.date)}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              navigate({ to: "/admin/pedidos", search: { pedido: fifthOrder.id } })
+                            }
+                            className="h-8 px-3 py-1"
+                          >
+                            <Eye className="size-3.5" /> Ver pedido
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-3 py-1"
+                            onClick={() => {
+                              setDocumentsOrder(fifthOrder);
+                            }}
+                          >
+                            <Paperclip className="size-3.5" /> Archivos adjuntos
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {customer.orders.length > 5 ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="flex min-h-[52px] items-center justify-center rounded-xl border border-border/60 px-3 py-2 text-sm"
-                      onClick={() => setAllPurchasesOpen(true)}
-                    >
-                      <Plus className="size-3.5" /> Ver más
-                    </Button>
-                  ) : null}
-                </>
-              ) : null}
+                    {customer.orders.length > 5 ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex min-h-[52px] items-center justify-center rounded-xl border border-border/60 px-3 py-2 text-sm"
+                        onClick={() => setAllPurchasesOpen(true)}
+                      >
+                        <Plus className="size-3.5" /> Ver más
+                      </Button>
+                    ) : null}
+                  </>
+                ) : null;
+              })()}
             </div>
           </TableCell>
         </TableRow>

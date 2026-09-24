@@ -89,6 +89,12 @@ import type { Order, OrderAttachment } from "@/data/orders";
 import { hydrateFavorites, subscribeToFavoriteChanges } from "@/lib/favorites";
 import { clearAuthRole, getAuthRole } from "@/lib/auth-role";
 
+function getStoreDisplayName(storeSlug: string) {
+  const store = brands[storeSlug as keyof typeof brands];
+  const fallback = store?.shortName ?? store?.name ?? storeSlug;
+  return fallback.replace(/^LRG\s+/i, "").trim();
+}
+
 function getOrderStoreSummaries(order: Order) {
   const storeSlugs = Array.from(
     new Set(order.items.map((item) => item.brand).filter(Boolean)),
@@ -97,7 +103,6 @@ function getOrderStoreSummaries(order: Order) {
   const isMultiStore = stores.length > 1;
 
   return stores.map((storeSlug) => {
-    const store = brands[storeSlug as keyof typeof brands];
     const storeItems = order.items.filter((item) => item.brand === storeSlug);
     const paymentMethods = Array.from(
       new Set(storeItems.map((item) => item.paymentMethod).filter(Boolean)),
@@ -108,8 +113,8 @@ function getOrderStoreSummaries(order: Order) {
 
     return {
       slug: storeSlug,
-      name: store?.shortName ?? storeSlug,
-      displayName: `LRG ${store?.shortName ?? storeSlug}`,
+      name: getStoreDisplayName(storeSlug),
+      displayName: getStoreDisplayName(storeSlug),
       paymentMethod:
         paymentMethods.join(" | ") || (!isMultiStore ? order.paymentMethod : "No especificado"),
       shippingMethod:
@@ -1068,7 +1073,7 @@ function AccountPageContent({
                                   )
                                 }
                               />
-                              <span className="font-medium">LRG {brand.shortName}</span>
+                              <span className="font-medium">{getStoreDisplayName(brandSlug)}</span>
                             </label>
                           ))}
                         </div>
@@ -1797,7 +1802,7 @@ function AccountPageContent({
                                 {item.variantName ? ` · ${item.variantName}` : ""}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                LRG {itemStore?.shortName ?? itemStoreSlug}
+                                {getStoreDisplayName(itemStoreSlug)}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {item.quantity} × {formatPrice(item.price)}
