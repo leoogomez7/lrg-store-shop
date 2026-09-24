@@ -21,10 +21,11 @@ import {
   Trash2,
   X,
   Eye,
-  EyeOff,
-  Download,
-  LoaderCircle,
-} from "lucide-react";
+                                      const resolvedVariantName =
+                                        item.variantName ??
+                                        product?.variantName ??
+                                        product?.variants?.find((variant) => variant.id === item.variantId)
+                                          ?.name;
 import { Sheet, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Badge } from "@/components/ui/badge";
@@ -601,6 +602,7 @@ function AdminOrders() {
     >
   >({});
   const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
+  const quickEditDetailRef = useRef<HTMLTableRowElement | null>(null);
   const quickEditOriginalSnapshots = useRef<Record<string, string>>({});
   useEffect(() => {
     if (!sortMenuOpen) return;
@@ -801,20 +803,29 @@ function AdminOrders() {
   useEffect(() => {
     if (!quickEditOrderId) return;
 
+    setExpandedOrderId(quickEditOrderId);
+    const frame = requestAnimationFrame(() => {
+      quickEditDetailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
       const isInsideRow = quickEditRowRef.current?.contains(target);
+      const isInsideDetail = quickEditDetailRef.current?.contains(target);
       const isInsideSelectPortal = !!(target as Element)?.closest?.(
         "[data-radix-popper-content-wrapper]",
       );
 
-      if (!isInsideRow && !isInsideSelectPortal) {
+      if (!isInsideRow && !isInsideDetail && !isInsideSelectPortal) {
         cancelQuickEditOrder();
       }
     };
 
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
   }, [cancelQuickEditOrder, quickEditOrderForm, quickEditOrderId]);
 
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
@@ -2507,9 +2518,36 @@ function AdminOrders() {
                     </TableRow>
 
                     {isExpanded && (
-                      <TableRow key={`${order.id}-details`}>
+                      <TableRow
+                        key={`${order.id}-details`}
+                        ref={quickEditOrderId === order.id ? quickEditDetailRef : undefined}
+                      >
                         <TableCell colSpan={10} className="w-full bg-surface-2/90 p-0 sm:p-0">
                           <div className="w-full min-w-0 space-y-4 overflow-hidden rounded-2xl bg-surface-2/90 p-3 text-sm sm:p-5">
+                            {isQuickEditing && (
+                              <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border/50 pb-3">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => saveQuickEditOrder(order)}
+                                  disabled={!quickEditHasChanges}
+                                  className="h-7 gap-1 bg-transparent px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40"
+                                >
+                                  <Check className="size-3.5" /> Guardar
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={cancelQuickEditOrder}
+                                  className="h-7 gap-1 bg-transparent px-2 text-xs text-destructive hover:bg-destructive/10"
+                                >
+                                  <X className="size-3.5" /> Cancelar
+                                </Button>
+                              </div>
+                            )}
+
                             <p className="font-medium">Detalle del pedido</p>
 
                             <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
@@ -2578,9 +2616,9 @@ function AdminOrders() {
                                                 <span className="wrap-break-word font-medium">
                                                   {item.name}
                                                 </span>
-                                                {uniqueVariantName && (
+                                                {resolvedVariantName && (
                                                   <span className="text-muted-foreground">
-                                                    {uniqueVariantName}
+                                                    ({resolvedVariantName})
                                                   </span>
                                                 )}
                                               </div>
@@ -2588,6 +2626,8 @@ function AdminOrders() {
                                                 <span>Proveedor: {supplier?.name ?? "Sin proveedor asignado"}</span>
                                                 <span>•</span>
                                                 <span>{item.quantity} ud.</span>
+                                                <span>•</span>
+                                                <span>{formatPrice(item.price)}</span>
                                               </div>
                                             </div>
                                             <span className="shrink-0 text-right font-medium">
@@ -2685,36 +2725,8 @@ function AdminOrders() {
                             </div>
 
                             <div className="flex flex-wrap justify-center gap-2 border-t border-border/50 pt-3">
-                              {isQuickEditing ? (
+                              {!isQuickEditing ? (
                                 <>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => saveQuickEditOrder(order)}
-                                    disabled={!quickEditHasChanges}
-                                    className="h-7 gap-1 bg-transparent px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40"
-                                  >
-                                    <Check className="size-3.5" /> Guardar
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                      setConfirmState({
-                                        open: true,
-                                        title: "Descartar y seguir?",
-                                        description: "Se descarta la edición actual y continúa con el siguiente pedido seleccionado.",
-                                        onConfirm: cancelQuickEditOrder,
-                                      })
-                                    }
-                                    className="h-7 gap-1 bg-transparent px-2 text-xs text-destructive hover:bg-destructive/10"
-                                  >
-                                    <X className="size-3.5" /> Saltar
-                                  </Button>
-                                </>
-                              ) : (
                                 <>
                                   <Button
                                     type="button"
