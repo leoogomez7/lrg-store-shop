@@ -2665,20 +2665,6 @@ function AdminOrders() {
 
                               <div className="min-w-0 space-y-3">
                                 <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
-                                  <div className="flex items-center justify-between gap-3">
-                                    {order.items.length > 4 && (
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 px-2 text-xs"
-                                        onClick={() => setProductListModalOrder(order)}
-                                      >
-                                        Ver más
-                                      </Button>
-                                    )}
-                                  </div>
-
                                   <ul className="grid min-w-0 gap-2 text-sm">
                                     {order.items.slice(0, 4).map((item, itemIndex) => {
                                       const product = allProducts.find(
@@ -2735,6 +2721,19 @@ function AdminOrders() {
                                       );
                                     })}
                                   </ul>
+                                  {order.items.length > 4 && (
+                                    <div className="flex justify-center border-t border-border/50 pt-3">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs"
+                                        onClick={() => setProductListModalOrder(order)}
+                                      >
+                                        Ver más
+                                      </Button>
+                                    </div>
+                                  )}
                                 </div>
 
                               </div>
