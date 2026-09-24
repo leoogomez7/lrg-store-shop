@@ -827,6 +827,16 @@ function AdminOrders() {
     };
   }, [cancelQuickEditOrder, quickEditOrderForm, quickEditOrderId]);
 
+  useEffect(() => {
+    if (!expandedOrderId || quickEditOrderId === expandedOrderId) return;
+
+    const frame = requestAnimationFrame(() => {
+      quickEditDetailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [expandedOrderId, quickEditOrderId]);
+
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
   const [availableShippingMethods, setAvailableShippingMethods] = useState<string[]>([]);
   const [availablePaymentMethodsByBrand, setAvailablePaymentMethodsByBrand] = useState<
@@ -2519,7 +2529,7 @@ function AdminOrders() {
                     {isExpanded && (
                       <TableRow
                         key={`${order.id}-details`}
-                        ref={quickEditOrderId === order.id ? quickEditDetailRef : undefined}
+                        ref={expandedOrderId === order.id ? quickEditDetailRef : undefined}
                       >
                         <TableCell colSpan={10} className="w-full bg-surface-2/90 p-0 sm:p-0">
                           <div className="w-full min-w-0 space-y-4 overflow-hidden rounded-2xl bg-surface-2/90 p-3 text-sm sm:p-5">
