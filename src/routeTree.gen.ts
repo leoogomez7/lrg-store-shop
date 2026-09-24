@@ -23,6 +23,7 @@ import { Route as BrandIndexRouteImport } from './routes/$brand.index'
 import { Route as BrandProductosRouteImport } from './routes/$brand.productos'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 import { Route as AdminConfiguracionRouteImport } from './routes/admin.configuracion'
+import { Route as AdminCopiasRouteImport } from './routes/admin.copias'
 import { Route as AdminMarcasRouteImport } from './routes/admin.marcas'
 import { Route as AdminPanelRouteImport } from './routes/admin.panel'
 import { Route as AdminPapeleraRouteImport } from './routes/admin.papelera'
@@ -106,6 +107,11 @@ const AdminClientesRoute = AdminClientesRouteImport.update({
 const AdminConfiguracionRoute = AdminConfiguracionRouteImport.update({
   id: '/configuracion',
   path: '/configuracion',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCopiasRoute = AdminCopiasRouteImport.update({
+  id: '/copias',
+  path: '/copias',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMarcasRoute = AdminMarcasRouteImport.update({
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/$brand/productos': typeof BrandProductosRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
+  '/admin/copias': typeof AdminCopiasRoute
   '/admin/marcas': typeof AdminMarcasRoute
   '/admin/panel': typeof AdminPanelRoute
   '/admin/papelera': typeof AdminPapeleraRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/$brand/productos': typeof BrandProductosRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
+  '/admin/copias': typeof AdminCopiasRoute
   '/admin/marcas': typeof AdminMarcasRoute
   '/admin/panel': typeof AdminPanelRoute
   '/admin/papelera': typeof AdminPapeleraRoute
@@ -253,6 +261,7 @@ export interface FileRoutesById {
   '/$brand/productos': typeof BrandProductosRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
+  '/admin/copias': typeof AdminCopiasRoute
   '/admin/marcas': typeof AdminMarcasRoute
   '/admin/panel': typeof AdminPanelRoute
   '/admin/papelera': typeof AdminPapeleraRoute
@@ -285,6 +294,7 @@ export interface FileRouteTypes {
     | '/$brand/productos'
     | '/admin/clientes'
     | '/admin/configuracion'
+    | '/admin/copias'
     | '/admin/marcas'
     | '/admin/panel'
     | '/admin/papelera'
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
     | '/$brand/productos'
     | '/admin/clientes'
     | '/admin/configuracion'
+    | '/admin/copias'
     | '/admin/marcas'
     | '/admin/panel'
     | '/admin/papelera'
@@ -344,6 +355,7 @@ export interface FileRouteTypes {
     | '/$brand/productos'
     | '/admin/clientes'
     | '/admin/configuracion'
+    | '/admin/copias'
     | '/admin/marcas'
     | '/admin/panel'
     | '/admin/papelera'
@@ -475,6 +487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfiguracionRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/copias': {
+      id: '/admin/copias'
+      path: '/copias'
+      fullPath: '/admin/copias'
+      preLoaderRoute: typeof AdminCopiasRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/marcas': {
       id: '/admin/marcas'
       path: '/marcas'
@@ -593,6 +612,7 @@ const BrandRouteWithChildren = BrandRoute._addFileChildren(BrandRouteChildren)
 interface AdminRouteChildren {
   AdminClientesRoute: typeof AdminClientesRoute
   AdminConfiguracionRoute: typeof AdminConfiguracionRoute
+  AdminCopiasRoute: typeof AdminCopiasRoute
   AdminMarcasRoute: typeof AdminMarcasRoute
   AdminPanelRoute: typeof AdminPanelRoute
   AdminPapeleraRoute: typeof AdminPapeleraRoute
@@ -604,6 +624,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminClientesRoute: AdminClientesRoute,
   AdminConfiguracionRoute: AdminConfiguracionRoute,
+  AdminCopiasRoute: AdminCopiasRoute,
   AdminMarcasRoute: AdminMarcasRoute,
   AdminPanelRoute: AdminPanelRoute,
   AdminPapeleraRoute: AdminPapeleraRoute,

@@ -140,6 +140,12 @@ function ensureAdminTables() {
         deletedAt TEXT NOT NULL,
         expiresAt TEXT NOT NULL
       )`,
+        `CREATE TABLE IF NOT EXISTS database_backups (
+        id TEXT PRIMARY KEY,
+        reason TEXT NOT NULL,
+        snapshotData TEXT NOT NULL,
+        createdAt TEXT NOT NULL
+      )`,
         `CREATE TABLE IF NOT EXISTS site_visitors (
         visitorId TEXT PRIMARY KEY,
         visits INTEGER NOT NULL DEFAULT 0,
@@ -416,12 +422,70 @@ export const upsertAdminOrder = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const database = await ensureAdminTables();
     if (!database) return false;
+    const now = new Date().toISOString();
     await database.execute({
       sql: `INSERT INTO orders (id, orderData, updatedAt) VALUES (?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET orderData = excluded.orderData, updatedAt = excluded.updatedAt`,
-      args: [data.order.id, JSON.stringify(data.order), new Date().toISOString()],
+      args: [data.order.id, JSON.stringify(data.order), now],
     });
+
+    try {
+      const [productsResult, ordersResult, settingsResult] = await Promise.all([
+        database.execute("SELECT id, productData, updatedAt FROM products"),
+        database.execute("SELECT id, orderData, updatedAt FROM orders"),
+        database.execute("SELECT settingKey, settingValue, updatedAt FROM admin_settings"),
+      ]);
+      const backupId = `${data.order.id}:${now}`;
+      await database.execute({
+        sql: `INSERT INTO database_backups (id, reason, snapshotData, createdAt)
+              VALUES (?, ?, ?, ?)`,
+        args: [
+          backupId,
+          "order-purchase",
+          JSON.stringify({
+            products: productsResult.rows,
+            orders: ordersResult.rows,
+            settings: settingsResult.rows,
+          }),
+          now,
+        ],
+      });
+    } catch (error) {
+      console.error("No se pudo crear el backup automático del pedido:", error);
+    }
     return true;
+  });
+
+export type AdminBackupSummary = {
+  id: string;
+  reason: string;
+  createdAt: string;
+  sizeBytes: number;
+};
+
+export const listAdminBackups = createServerFn({ method: "POST" })
+  .validator(() => ({}))
+  .handler(async (): Promise<AdminBackupSummary[]> => {
+    const database = await ensureAdminTables();
+    if (!database) return [];
+    const result = await database.execute(
+      "SELECT id, reason, snapshotData, createdAt FROM database_backups ORDER BY createdAt DESC",
+    );
+    return result.rows.flatMap((row) => {
+      const id = row["id"];
+      const reason = row["reason"];
+      const snapshotData = row["snapshotData"];
+      const createdAt = row["createdAt"];
+      if (
+        typeof id !== "string" ||
+        typeof reason !== "string" ||
+        typeof snapshotData !== "string" ||
+        typeof createdAt !== "string"
+      ) {
+        return [];
+      }
+      return [{ id, reason, createdAt, sizeBytes: new TextEncoder().encode(snapshotData).length }];
+    });
   });
 
 export const saveAdminOrders = createServerFn({ method: "POST" })

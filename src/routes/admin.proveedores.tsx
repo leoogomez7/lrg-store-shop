@@ -698,15 +698,7 @@ function AdminSuppliers() {
             : variant.supplier,
       })),
     }));
-    const nextOrders = orders.map((order) => ({
-      ...order,
-      items: order.items.map((item) =>
-        item.supplier &&
-        matchesSupplierKey(item.supplier, supplierKey)
-          ? { ...item, supplier: undefined }
-          : item,
-      ),
-    }));
+    const nextOrders = orders;
 
     setStandaloneSuppliers(nextStandaloneSuppliers);
     setSelectedSupplierKeys((current) => current.filter((key) => key !== supplierKey));
@@ -801,15 +793,7 @@ function AdminSuppliers() {
             : variant.supplier,
       })),
     }));
-    const nextOrders = orders.map((order) => ({
-      ...order,
-      items: order.items.map((item) =>
-        item.supplier &&
-        selectedRows.some((row) => matchesSupplierKey(item.supplier, row.key))
-          ? { ...item, supplier: undefined }
-          : item,
-      ),
-    }));
+    const nextOrders = orders;
 
     const linkedCount = linkedEntries.reduce(
       (sum, entry) => sum + entry.usage.linkedProducts + entry.usage.linkedVariants,

@@ -12,6 +12,7 @@ import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import {
   AlertTriangle,
+  Archive,
   Check,
   ContactRound,
   ArrowRight,
@@ -86,6 +87,7 @@ const navigation = [
   { to: "/admin/marcas", label: "Tiendas disponibles", icon: Store, exact: false },
   { to: "/admin/configuracion", label: "Configuración", icon: Settings, exact: false },
   { to: "/admin/papelera", label: "Papelera", icon: Trash2, exact: false },
+  { to: "/admin/copias", label: "Copias de seguridad", icon: Archive, exact: false },
 ] as const;
 
 function AdminLayout() {

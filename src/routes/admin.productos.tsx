@@ -124,6 +124,7 @@ const fileToDataUrl = (file: File) =>
 
 const getSupplierKey = (supplier: ProductSupplier) =>
   [supplier.name, supplier.phone, supplier.social].map((value) => value.trim()).join("|");
+const DELETED_SUPPLIERS_STORAGE_KEY = "lrg:deletedSuppliers";
 
 const getBrandShortName = (brand: Product["brand"] | string | undefined) => {
   const brandKey = typeof brand === "string" ? brand : undefined;
@@ -3042,6 +3043,20 @@ function ProductEditDialog({
     const unique = new Map<string, ProductSupplier>();
     productSuppliers.forEach((supplier) => unique.set(getSupplierKey(supplier), supplier));
     void loadAdminSettings({ data: {} }).then((settings) => {
+      const deletedSetting = settings.find(
+        (setting) => setting.settingKey === DELETED_SUPPLIERS_STORAGE_KEY,
+      );
+      let deletedKeys: string[] = [];
+      if (deletedSetting) {
+        try {
+          const parsed = JSON.parse(deletedSetting.settingValue) as unknown;
+          deletedKeys = Array.isArray(parsed)
+            ? parsed.filter((key): key is string => typeof key === "string")
+            : [];
+        } catch {
+          deletedKeys = [];
+        }
+      }
       const stored = settings.find((setting) => setting.settingKey === "lrg:suppliers");
       if (stored) {
         try {
@@ -3051,7 +3066,11 @@ function ProductEditDialog({
           // Ignore malformed persisted supplier data.
         }
       }
-      setSupplierOptions(Array.from(unique.values()));
+      setSupplierOptions(
+        Array.from(unique.values()).filter(
+          (supplier) => !deletedKeys.includes(getSupplierKey(supplier)),
+        ),
+      );
     });
   }, [supplierProducts]);
 
