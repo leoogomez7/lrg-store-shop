@@ -201,26 +201,20 @@ export const catalogQueries = {
   byBrand: (brand: BrandSlug) =>
     queryOptions({
       queryKey: ["products", brand],
-      queryFn: ({ client }) =>
-        client
-          .ensureQueryData(catalogQueries.all())
-          .then((loaded) => catalogService.listByBrand(brand, loaded)),
+      queryFn: () =>
+        listAdminProducts({ data: {} }).then((loaded) => catalogService.listByBrand(brand, loaded)),
     }),
   detail: (brand: BrandSlug, slug: string) =>
     queryOptions({
       queryKey: ["product", brand, slug],
-      queryFn: ({ client }) =>
-        client
-          .ensureQueryData(catalogQueries.all())
-          .then((loaded) => catalogService.detail(brand, slug, loaded)),
+      queryFn: () =>
+        listAdminProducts({ data: {} }).then((loaded) => catalogService.detail(brand, slug, loaded)),
     }),
   related: (brand: BrandSlug, slug: string) =>
     queryOptions({
       queryKey: ["product", brand, slug, "related"],
-      queryFn: ({ client }) =>
-        client
-          .ensureQueryData(catalogQueries.all())
-          .then((loaded) => catalogService.related(brand, slug, loaded)),
+      queryFn: () =>
+        listAdminProducts({ data: {} }).then((loaded) => catalogService.related(brand, slug, loaded)),
     }),
   all: () =>
     queryOptions({
