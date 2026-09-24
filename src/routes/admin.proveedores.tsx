@@ -60,7 +60,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 export const Route = createFileRoute("/admin/proveedores")({
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(catalogQueries.all()),
+      context.queryClient.ensureQueryData(catalogQueries.allAdmin()),
       context.queryClient.ensureQueryData(catalogQueries.settings()),
     ]);
   },
@@ -153,7 +153,7 @@ const replaceSupplierRecord = (
 };
 
 function AdminSuppliers() {
-  const { data: products } = useSuspenseQuery(catalogQueries.all());
+  const { data: products } = useSuspenseQuery(catalogQueries.allAdmin());
   const { data: settings } = useSuspenseQuery(catalogQueries.settings());
   const { data: orders = [] } = useQuery(orderQueries.list());
   const queryClient = useQueryClient();
@@ -635,7 +635,8 @@ function AdminSuppliers() {
       },
     });
     saveProducts(nextProducts);
-    queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
+    queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
+    void queryClient.invalidateQueries({ queryKey: ["products"] });
     void saveOrders(nextOrders);
     queryClient.setQueryData(orderQueries.list().queryKey, nextOrders);
     const currentKey = supplierKey;
@@ -717,7 +718,8 @@ function AdminSuppliers() {
       },
     });
     saveProducts(nextProducts);
-    queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
+    queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
+    void queryClient.invalidateQueries({ queryKey: ["products"] });
     void saveOrders(nextOrders);
     queryClient.setQueryData(orderQueries.list().queryKey, nextOrders);
   };
@@ -824,7 +826,8 @@ function AdminSuppliers() {
       },
     });
     saveProducts(nextProducts);
-    queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
+    queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
+    void queryClient.invalidateQueries({ queryKey: ["products"] });
     void saveOrders(nextOrders);
     queryClient.setQueryData(orderQueries.list().queryKey, nextOrders);
 

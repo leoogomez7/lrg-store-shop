@@ -1543,11 +1543,9 @@ function AdminOrders() {
             ),
           )
         : currentItem.quantity,
-      confirmed: !currentItem.originalName?.trim() ? true : currentItem.confirmed,
-      originalName: !currentItem.originalName?.trim() ? name : currentItem.originalName,
-      originalQuantity: !currentItem.originalName?.trim()
-        ? Math.max(1, currentItem.quantity || 1)
-        : currentItem.originalQuantity,
+      confirmed: currentItem.confirmed,
+      originalName: currentItem.originalName,
+      originalQuantity: currentItem.originalQuantity,
     };
     updateOrderItemsOnly(nextItems);
   };
@@ -1582,8 +1580,8 @@ function AdminOrders() {
           price: 0,
           stock: undefined,
           confirmed: false,
-          originalName: "",
-          originalQuantity: 0,
+          originalName: undefined,
+          originalQuantity: undefined,
           brand: selectedOrderStore,
         },
       ],
@@ -2954,7 +2952,7 @@ function AdminOrders() {
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeOrderEditor()}>
         <DialogContent
           key={isCreatingOrder ? "new-order-dialog" : "edit-order-dialog"}
-          className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-hidden p-4 shadow-none md:overflow-y-auto sm:w-[calc(100vw-2rem)] sm:p-6"
+          className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-hidden p-4 shadow-none md:overflow-y-auto md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:w-[calc(100vw-2rem)] sm:p-6"
         >
           <DialogHeader>
             <div className="flex items-center justify-between gap-3">

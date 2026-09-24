@@ -3062,6 +3062,25 @@ function ProductEditDialog({
       setNewSupplierOpen(true);
       return;
     }
+    if (value === "none") {
+      const emptySupplier: ProductSupplier = {
+        name: "",
+        phone: "",
+        social: "",
+        purchaseDate: "",
+      };
+      setProductForm({
+        ...productForm,
+        ...(activeVariant
+          ? {
+              variants: productForm.variants.map((variant) =>
+                variant.id === activeVariant.id ? { ...variant, supplier: emptySupplier } : variant,
+              ),
+            }
+          : { supplier: emptySupplier }),
+      });
+      return;
+    }
     const selectedSupplier = supplierOptions.find((supplier) => getSupplierKey(supplier) === value);
     if (selectedSupplier) {
       const supplier = { ...selectedSupplier, purchaseDate: activeSupplier.purchaseDate };
@@ -3626,7 +3645,7 @@ function ProductEditDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-4 pr-2 shadow-2xl sm:w-[calc(100vw-2rem)] sm:p-6"
+        className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-4 pr-2 shadow-2xl md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:w-[calc(100vw-2rem)] sm:p-6"
         style={{ scrollbarGutter: "stable" }}
       >
         <DialogHeader className="space-y-2">
@@ -4339,11 +4358,19 @@ function ProductEditDialog({
             <div className="grid gap-4 sm:grid-cols-4">
               <div className="flex min-w-0 flex-col gap-1">
                 <Label>Nombre</Label>
-                <Select value={getSupplierKey(activeSupplier)} onValueChange={selectSupplier}>
+                <Select
+                  value={
+                    getSupplierKey(activeSupplier) === "||"
+                      ? "none"
+                      : getSupplierKey(activeSupplier)
+                  }
+                  onValueChange={selectSupplier}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar proveedor" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">Ninguno</SelectItem>
                     {supplierOptions.map((supplier) => (
                       <SelectItem key={getSupplierKey(supplier)} value={getSupplierKey(supplier)}>
                         {supplier.name}
