@@ -366,22 +366,7 @@ function AdminTrash() {
       </div>
 
       <div className="mt-3 flex min-h-11 items-center justify-between gap-3">
-        <span className="text-sm text-muted-foreground">{entries.length} elementos</span>
-        <div className="flex min-h-10 items-center justify-end gap-2">
-          {selectionMode ? (
-            <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Todos</span>
-              <Checkbox
-                checked={
-                  selectionMode === "delete"
-                    ? selectedDeleteKeys.length === filteredEntries.length
-                    : selectedRestoreKeys.length === filteredEntries.length
-                }
-                onCheckedChange={(checked) => toggleAllSelection(checked === true)}
-                aria-label="Seleccionar todos"
-              />
-            </label>
-          ) : null}
+        <div className="flex min-h-10 items-center gap-2">
           {selectionMode === "delete" && selectedDeleteKeys.length > 0 ? (
             <Button type="button" variant="destructive" onClick={deleteSelectedPermanently}>
               <Trash2 className="size-4" /> Eliminar seleccionados
@@ -392,10 +377,36 @@ function AdminTrash() {
               <RotateCcw className="size-4" /> Restaurar seleccionados
             </Button>
           ) : null}
+          {selectionMode ? (
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Todos</span>
+              <Checkbox
+                checked={(() => {
+                  const selectedCount =
+                    selectionMode === "delete"
+                      ? selectedDeleteKeys.length
+                      : selectedRestoreKeys.length;
+                  if (selectedCount === 0) return false;
+                  if (selectedCount < filteredEntries.length) return "indeterminate";
+                  return true;
+                })()}
+                onCheckedChange={(checked) => toggleAllSelection(checked === true)}
+                aria-label="Seleccionar todos"
+              />
+              <span>
+                {selectionMode === "delete"
+                  ? selectedDeleteKeys.length
+                  : selectedRestoreKeys.length} seleccionados
+              </span>
+            </label>
+          ) : null}
         </div>
+        <span className="text-right text-sm text-muted-foreground">
+          {filteredEntries.length} elementos
+        </span>
       </div>
 
-      <div className="mt-5 space-y-3 pb-20">
+      <div className="mt-5 space-y-3">
         {isLoading ? (
           <div className="glass-panel rounded-2xl p-8 text-center text-sm text-muted-foreground">
             Cargando elementos eliminados...
@@ -483,7 +494,7 @@ function AdminTrash() {
       </div>
 
       {!isLoading && filteredEntries.length > 0 ? (
-        <div className="mt-4 flex flex-col gap-3 pb-20">
+        <div className="mt-2 flex flex-col gap-3 pb-20">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               type="button"

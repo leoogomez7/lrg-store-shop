@@ -410,6 +410,7 @@ type PaymentStatus = "Pendiente" | "Pagado" | "Cancelado";
 type EditableOrderItem = {
   productId?: string;
   variantId?: string;
+  variantName?: string;
   name: string;
   quantity: number;
   originalName: string | undefined;
@@ -1509,9 +1510,15 @@ function AdminOrders() {
     )?.supplier;
     nextItems[index] = {
       ...currentItem,
+      productId: product?.parentId ?? product?.id,
+      variantId: product?.variantId,
+      variantName: product?.variantName,
       name,
       brand: product?.brand ?? selectedOrderStore,
       price: product?.price ?? 0,
+      priceCurrency: product?.priceCurrency,
+      gastos: product?.gastos ?? 0,
+      gastosCurrency: product?.gastosCurrency ?? product?.priceCurrency ?? "ARS",
       supplier: supplier
         ? {
             name: supplier.name,

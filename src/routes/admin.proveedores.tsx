@@ -106,6 +106,18 @@ const matchesSupplierKey = (
     getSupplierKey(supplier as Pick<StandaloneSupplier, "name" | "phone" | "social">) === supplierKey;
 };
 
+const matchesSupplierReference = (
+  supplier: Partial<StandaloneSupplier> | null | undefined,
+  supplierKey: string,
+  supplierName?: string,
+) =>
+  Boolean(
+    supplier &&
+      (matchesSupplierKey(supplier, supplierKey) ||
+        (supplierName?.trim() &&
+          supplier.name?.trim().toLowerCase() === supplierName.trim().toLowerCase())),
+  );
+
 const withSupplierIdentity = (supplier: StandaloneSupplier) => ({
   ...supplier,
   id: supplier.id ?? getSupplierKey(supplier),
@@ -229,6 +241,7 @@ function AdminSuppliers() {
 
   const rows = React.useMemo<SupplierRow[]>(() => {
     const grouped = new Map<string, SupplierRow>();
+    const countedOrderItems = new Set<string>();
     for (const product of products) {
       const assignments = product.variants?.length
         ? product.variants.map((variant) => ({
@@ -265,17 +278,24 @@ function AdminSuppliers() {
         const key = getSupplierKey({ name, phone, social });
         const assignmentSummary = orders.reduce(
           (summary, order) => {
-            for (const item of order.items) {
+            for (const [itemIndex, item] of order.items.entries()) {
               if (item.supplier) continue;
+              const orderItemKey = `${order.id}:${itemIndex}`;
               const itemName = item.name.toLowerCase();
               const itemVariantName = item.variantName?.toLowerCase();
               const matchesById =
                 item.productId === assignment.productId && item.variantId === assignment.variantId;
               const matchesLegacy =
                 !item.productId &&
-                (itemName === assignment.productName.toLowerCase() ||
-                  itemVariantName === assignment.variantName?.toLowerCase() ||
-                  (!product.variants?.length && itemName === product.name.toLowerCase()));
+                (product.variants?.length
+                  ? Boolean(
+                      assignment.variantName &&
+                        (itemName === assignment.variantName.toLowerCase() ||
+                          itemVariantName === assignment.variantName.toLowerCase()),
+                    )
+                  : itemName === assignment.productName.toLowerCase());
+                    if (countedOrderItems.has(orderItemKey)) continue;
+                    countedOrderItems.add(orderItemKey);
               if (!matchesById && !matchesLegacy) continue;
 
               const itemGastos = item.gastos ?? assignment.gastos;
@@ -538,6 +558,7 @@ function AdminSuppliers() {
     nextSupplier: StandaloneSupplier,
     closeEditor = true,
   ) => {
+    const supplierRow = rows.find((row) => row.key === supplierKey);
     const target = normalizeSupplier(nextSupplier);
     const persistedSupplier = standaloneSuppliers.find(
       (supplier) => supplier.id === supplierKey || getSupplierKey(supplier) === supplierKey,
@@ -550,18 +571,25 @@ function AdminSuppliers() {
     });
     if (!normalized.name || !normalized.phone || !normalized.social) return;
 
-    const nextStandaloneSuppliers = replaceSupplierRecord(standaloneSuppliers, supplierKey, normalized);
+    const nextStandaloneSuppliers = dedupeSuppliers([
+      ...standaloneSuppliers.filter(
+        (supplier) => !matchesSupplierReference(supplier, supplierKey, supplierRow?.name),
+      ),
+      normalized,
+    ]);
 
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
       supplier:
-        product.supplier && matchesSupplierKey(product.supplier, supplierKey)
+        product.supplier &&
+        matchesSupplierReference(product.supplier, supplierKey, supplierRow?.name)
           ? { ...product.supplier, ...normalized, id: normalized.id ?? getSupplierKey(normalized) }
           : product.supplier,
       variants: product.variants?.map((variant) => ({
         ...variant,
         supplier:
-          variant.supplier && matchesSupplierKey(variant.supplier, supplierKey)
+          variant.supplier &&
+          matchesSupplierReference(variant.supplier, supplierKey, supplierRow?.name)
             ? { ...variant.supplier, ...normalized, id: normalized.id ?? getSupplierKey(normalized) }
             : variant.supplier,
       })),
@@ -569,7 +597,8 @@ function AdminSuppliers() {
     const nextOrders = orders.map((order) => ({
       ...order,
       items: order.items.map((item) =>
-        item.supplier && matchesSupplierKey(item.supplier, supplierKey)
+        item.supplier &&
+        matchesSupplierReference(item.supplier, supplierKey, supplierRow?.name)
           ? { ...item, supplier: { ...item.supplier, ...normalized } }
           : item,
       ),
@@ -625,19 +654,22 @@ function AdminSuppliers() {
     }
     const nextStandaloneSuppliers = dedupeSuppliers(
       standaloneSuppliers.filter(
-        (supplier) => !(supplier.id === supplierKey || getSupplierKey(supplier) === supplierKey),
+        (supplier) =>
+          !matchesSupplierReference(supplier, supplierKey, supplierRow?.name),
       ),
     );
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
       supplier:
-        product.supplier && matchesSupplierKey(product.supplier, supplierKey)
+        product.supplier &&
+        matchesSupplierReference(product.supplier, supplierKey, supplierRow?.name)
           ? undefined
           : product.supplier,
       variants: product.variants?.map((variant) => ({
         ...variant,
         supplier:
-          variant.supplier && matchesSupplierKey(variant.supplier, supplierKey)
+          variant.supplier &&
+          matchesSupplierReference(variant.supplier, supplierKey, supplierRow?.name)
             ? undefined
             : variant.supplier,
       })),
@@ -645,7 +677,8 @@ function AdminSuppliers() {
     const nextOrders = orders.map((order) => ({
       ...order,
       items: order.items.map((item) =>
-        item.supplier && matchesSupplierKey(item.supplier, supplierKey)
+        item.supplier &&
+        matchesSupplierReference(item.supplier, supplierKey, supplierRow?.name)
           ? { ...item, supplier: undefined }
           : item,
       ),
@@ -729,6 +762,7 @@ function AdminSuppliers() {
 
   const deleteSelectedSuppliers = () => {
     const selectedKeys = new Set(selectedSupplierKeys);
+    const selectedRows = filteredRows.filter((row) => selectedKeys.has(row.key));
     const linkedEntries = filteredRows
       .filter((row) => selectedKeys.has(row.key))
       .map((row) => ({ row, usage: countSupplierLinkedItems(row.key) }));
@@ -746,17 +780,30 @@ function AdminSuppliers() {
     const nextStandaloneSuppliers = dedupeSuppliers(
       standaloneSuppliers.filter(
         (supplier) =>
-          !(
-            selectedKeys.has(supplier.id ?? getSupplierKey(supplier)) ||
-            selectedKeys.has(getSupplierKey(supplier))
-          ),
+          !selectedRows.some((row) => matchesSupplierReference(supplier, row.key, row.name)),
       ),
     );
-    const nextProducts = unlinkSupplierReferences(selectedKeys);
+    const nextProducts = (products as Product[]).map((product) => ({
+      ...product,
+      supplier:
+        product.supplier &&
+        selectedRows.some((row) => matchesSupplierReference(product.supplier, row.key, row.name))
+          ? undefined
+          : product.supplier,
+      variants: product.variants?.map((variant) => ({
+        ...variant,
+        supplier:
+          variant.supplier &&
+          selectedRows.some((row) => matchesSupplierReference(variant.supplier, row.key, row.name))
+            ? undefined
+            : variant.supplier,
+      })),
+    }));
     const nextOrders = orders.map((order) => ({
       ...order,
       items: order.items.map((item) =>
-        item.supplier && selectedKeys.has(getSupplierKey(item.supplier))
+        item.supplier &&
+        selectedRows.some((row) => matchesSupplierReference(item.supplier, row.key, row.name))
           ? { ...item, supplier: undefined }
           : item,
       ),
