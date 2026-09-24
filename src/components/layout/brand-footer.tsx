@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { getAuthRole } from "@/lib/auth-role";
 import {
   ContactRound,
+  Archive,
   Facebook,
   Instagram,
   LayoutDashboard,
@@ -205,6 +206,7 @@ function BrandFooterContent({
     ["Tiendas disponibles", "/admin/marcas", Store],
     ["Configuración", "/admin/configuracion", Settings],
     ["Papelera", "/admin/papelera", Trash2],
+    ["Copias de seguridad", "/admin/copias", Archive],
   ];
   const menu: FooterMenuItem[] = isAdmin
     ? adminMenu
@@ -368,7 +370,8 @@ function BrandFooterContent({
           to="/"
           className="mx-auto block max-w-7xl px-4 text-xs text-muted-foreground transition-colors hover:text-foreground sm:px-6"
         >
-          © {new Date().getFullYear()} LRG Store Shop · {brand.name}. Todos los derechos reservados.
+          © {new Date().getFullYear()} LRG Store Shop ·{" "}
+          {section === "admin" ? "LRG Store Shop" : brand.name}. Todos los derechos reservados.
         </Link>
       </div>
     </footer>

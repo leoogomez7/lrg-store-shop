@@ -1382,16 +1382,16 @@ function AdminOrders() {
           shippingMethod: item.shippingMethod ?? order.shippingMethod,
           paymentStatus: item.paymentStatus ?? getPaymentStatus(order.status),
           deliveryStatus: item.deliveryStatus ?? getDeliveryStatus(order.status),
-          supplier: getSupplierForItem(item.name, item.productId, item.variantId)?.supplier
+          supplier: item.supplier ?? getSupplierForItem(item.name, item.productId, item.variantId, item.brand ?? order.brand)?.supplier
             ? {
                 name:
-                  getSupplierForItem(item.name, item.productId, item.variantId)?.supplier?.name ??
+                  (item.supplier ?? getSupplierForItem(item.name, item.productId, item.variantId, item.brand ?? order.brand)?.supplier)?.name ??
                   "",
                 phone:
-                  getSupplierForItem(item.name, item.productId, item.variantId)?.supplier?.phone ??
+                  (item.supplier ?? getSupplierForItem(item.name, item.productId, item.variantId, item.brand ?? order.brand)?.supplier)?.phone ??
                   "",
                 social:
-                  getSupplierForItem(item.name, item.productId, item.variantId)?.supplier?.social ??
+                  (item.supplier ?? getSupplierForItem(item.name, item.productId, item.variantId, item.brand ?? order.brand)?.supplier)?.social ??
                   "",
               }
             : undefined,
@@ -1502,6 +1502,7 @@ function AdminOrders() {
       selectedProduct ??
       allProducts.find(
         (candidate) =>
+          candidate.brand === selectedOrderStore &&
           candidate.name.toLowerCase() === name.trim().toLowerCase() &&
           !candidate.variantId,
       );
@@ -1512,6 +1513,7 @@ function AdminOrders() {
       name,
       product?.parentId ?? product?.id,
       product?.variantId,
+      product?.brand ?? selectedOrderStore,
     )?.supplier;
     nextItems[index] = {
       ...currentItem,
@@ -1835,20 +1837,24 @@ function AdminOrders() {
     openEditOrderDialog(nextOrder);
   };
 
-  const getSupplierForItem = (itemName: string, productId?: string, variantId?: string) => {
+  const getSupplierForItem = (
+    itemName: string,
+    productId?: string,
+    variantId?: string,
+    brand?: BrandSlug,
+  ) => {
     const normalizedName = itemName.trim().toLowerCase();
     const product = allProducts.find(
       (candidate) =>
-        candidate.id === productId ||
-        candidate.name.toLowerCase() === normalizedName ||
-        candidate.variants?.some((variant) => variant.name.toLowerCase() === normalizedName),
+        (!brand || candidate.brand === brand) &&
+        (candidate.id === productId ||
+          candidate.name.toLowerCase() === normalizedName ||
+          candidate.variants?.some((variant) => variant.name.toLowerCase() === normalizedName)),
     );
     const variant = product?.variants?.find(
       (candidate) => candidate.id === variantId || candidate.name.toLowerCase() === normalizedName,
     );
-    return product
-      ? { productName: product.name, supplier: variant?.supplier ?? product.supplier }
-      : undefined;
+    return product ? { productName: product.name, supplier: variant?.supplier ?? product.supplier } : undefined;
   };
 
   return (
@@ -3163,6 +3169,7 @@ function AdminOrders() {
                 <div className="space-y-3">
                   {orderForm.items.map((item, itemIndex) => {
                     const productSuggestions = allProducts
+                      .filter((product) => product.brand === selectedOrderStore)
                       .filter((product) =>
                         `${product.name} ${product.variantName ?? ""}`
                           .toLowerCase()
@@ -3171,15 +3178,17 @@ function AdminOrders() {
                       .slice(0, 6);
                     const selectedProduct = allProducts.find(
                       (product) =>
-                        product.id === item.productId ||
-                        (product.variantId === item.variantId && product.name === item.name) ||
-                        (product.name.toLowerCase() === item.name.trim().toLowerCase() &&
-                          !product.variantId),
+                        product.brand === selectedOrderStore &&
+                        (product.id === item.productId ||
+                          (product.variantId === item.variantId && product.name === item.name) ||
+                          (product.name.toLowerCase() === item.name.trim().toLowerCase() &&
+                            !product.variantId)),
                     );
                     const selectedSupplier = getSupplierForItem(
                       item.name,
                       item.productId,
                       item.variantId,
+                      selectedOrderStore,
                     )?.supplier;
                     const canEditProductName = !item.confirmed;
                     const hasUnlimitedStock = Boolean(selectedProduct?.stockUnlimited);

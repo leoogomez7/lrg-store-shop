@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Check,
   ChevronDown,
@@ -71,6 +72,7 @@ export const Route = createFileRoute("/admin/panel")({
 });
 
 function AdminDashboard() {
+  const navigate = useNavigate();
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const { data: revenue } = useSuspenseQuery(orderQueries.revenue());
   const { data: products } = useSuspenseQuery(catalogQueries.all());
@@ -295,6 +297,18 @@ function AdminDashboard() {
     ordersPage * ordersPageSize,
     ordersPage * ordersPageSize + ordersPageSize,
   );
+  const getOrderSectors = (order: (typeof orders)[number]) => {
+    const sectors = Array.from(
+      new Set(
+        [order.brand, ...order.items.map((item) => item.brand)].filter(
+          (sector): sector is BrandSlug => Boolean(sector),
+        ),
+      ),
+    );
+    return sectors
+      .map((sector) => brands[sector]?.shortName ?? brands[sector]?.name ?? sector)
+      .join(" / ");
+  };
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
@@ -570,10 +584,14 @@ function AdminDashboard() {
               </TableHeader>
               <TableBody>
                 {currentOrders.map((order) => (
-                  <TableRow key={order.id}>
+                  <TableRow
+                    key={order.id}
+                    className="cursor-pointer"
+                    onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: order.id } })}
+                  >
                     <TableCell className="font-medium">{order.id}</TableCell>
                     <TableCell>{order.customer}</TableCell>
-                    <TableCell>{brands[order.brand].shortName}</TableCell>
+                    <TableCell>{getOrderSectors(order)}</TableCell>
                     <TableCell>{formatDate(order.date)}</TableCell>
                     <TableCell>{formatPrice(order.total)}</TableCell>
                   </TableRow>
