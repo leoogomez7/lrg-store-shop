@@ -89,6 +89,7 @@ type StandaloneSupplier = {
 };
 
 const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
+const DELETED_SUPPLIERS_STORAGE_KEY = "lrg:deletedSuppliers";
 
 const getSupplierKey = (supplier: Pick<StandaloneSupplier, "name" | "phone" | "social">) =>
   [supplier.name, supplier.phone, supplier.social].map((value) => value.trim()).join("|");
@@ -177,8 +178,25 @@ function AdminSuppliers() {
     null,
   );
   const [standaloneSuppliers, setStandaloneSuppliers] = React.useState<StandaloneSupplier[]>([]);
+  const [deletedSupplierKeys, setDeletedSupplierKeys] = React.useState<string[]>([]);
 
   React.useEffect(() => {
+    const deletedSetting = settings.find(
+      (setting) => setting.settingKey === DELETED_SUPPLIERS_STORAGE_KEY,
+    );
+    if (deletedSetting) {
+      try {
+        const parsed = JSON.parse(deletedSetting.settingValue) as unknown;
+        setDeletedSupplierKeys(
+          Array.isArray(parsed) ? parsed.filter((key): key is string => typeof key === "string") : [],
+        );
+      } catch {
+        setDeletedSupplierKeys([]);
+      }
+    } else {
+      setDeletedSupplierKeys([]);
+    }
+
     const stored = settings.find((setting) => setting.settingKey === SUPPLIERS_STORAGE_KEY);
     if (!stored) {
       setStandaloneSuppliers([]);
@@ -220,6 +238,17 @@ function AdminSuppliers() {
   const [pendingSupplierDelete, setPendingSupplierDelete] = React.useState<(() => void) | null>(null);
   const supplierFormKey = `${newSupplier.name.trim()}|${newSupplier.phone.trim()}|${newSupplier.social.trim()}`;
   const supplierFormHasChanges = !editingSupplierKey || supplierFormKey !== editingSupplierKey;
+
+  const saveDeletedSupplierKeys = (nextKeys: string[]) => {
+    const uniqueKeys = Array.from(new Set(nextKeys));
+    setDeletedSupplierKeys(uniqueKeys);
+    void saveAdminSetting({
+      data: {
+        settingKey: DELETED_SUPPLIERS_STORAGE_KEY,
+        settingValue: JSON.stringify(uniqueKeys),
+      },
+    });
+  };
 
   const toggleSupplierSelection = (key: string, checked: boolean) => {
     setSelectedSupplierKeys((current) =>
@@ -264,6 +293,7 @@ function AdminSuppliers() {
         const social = supplier?.social ?? "";
         if (!name && !phone && !social) continue;
         const key = getSupplierKey({ name, phone, social });
+        if (deletedSupplierKeys.includes(key)) continue;
         const assignmentSummary = orders.reduce(
           (summary, order) => {
             for (const [itemIndex, item] of order.items.entries()) {
@@ -337,6 +367,7 @@ function AdminSuppliers() {
         const { name, phone, social } = item.supplier;
         if (!name && !phone && !social) continue;
         const key = getSupplierKey({ name, phone, social });
+        if (deletedSupplierKeys.includes(key)) continue;
         const current = grouped.get(key) ?? {
           key,
           name,
@@ -374,6 +405,7 @@ function AdminSuppliers() {
 
     for (const supplier of standaloneSuppliers) {
       const key = getSupplierKey(supplier);
+      if (deletedSupplierKeys.includes(key)) continue;
       const existing = grouped.get(key);
       if (existing) {
         existing.id = existing.id ?? getSupplierIdentity(supplier);
@@ -391,7 +423,7 @@ function AdminSuppliers() {
       });
     }
     return Array.from(grouped.values());
-  }, [orders, products, standaloneSuppliers]);
+  }, [deletedSupplierKeys, orders, products, standaloneSuppliers]);
 
   const storeOptions = [
     ["arcade", "LRG Arcade"],
@@ -557,6 +589,10 @@ function AdminSuppliers() {
       social: target.social,
     });
     if (!normalized.name || !normalized.phone || !normalized.social) return;
+    const normalizedKey = getSupplierKey(normalized);
+    saveDeletedSupplierKeys(
+      deletedSupplierKeys.filter((key) => key !== supplierKey && key !== normalizedKey),
+    );
 
     const nextStandaloneSuppliers = dedupeSuppliers([
       ...standaloneSuppliers.filter(
@@ -673,6 +709,7 @@ function AdminSuppliers() {
 
     setStandaloneSuppliers(nextStandaloneSuppliers);
     setSelectedSupplierKeys((current) => current.filter((key) => key !== supplierKey));
+    saveDeletedSupplierKeys([...deletedSupplierKeys, supplierKey]);
     void saveAdminSetting({
       data: {
         settingKey: SUPPLIERS_STORAGE_KEY,
@@ -779,6 +816,7 @@ function AdminSuppliers() {
 
     setStandaloneSuppliers(nextStandaloneSuppliers);
     setSelectedSupplierKeys([]);
+    saveDeletedSupplierKeys([...deletedSupplierKeys, ...selectedKeys]);
     void saveAdminSetting({
       data: {
         settingKey: SUPPLIERS_STORAGE_KEY,
