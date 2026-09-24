@@ -68,6 +68,7 @@ export const Route = createFileRoute("/admin/proveedores")({
 });
 
 type SupplierRow = {
+  id?: string;
   key: string;
   name: string;
   phone: string;
@@ -79,12 +80,32 @@ type SupplierRow = {
   soldQuantity: number;
 };
 
-type StandaloneSupplier = Pick<SupplierRow, "name" | "phone" | "social">;
+type StandaloneSupplier = {
+  id?: string;
+  name: string;
+  phone: string;
+  social: string;
+};
 
 const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
 
 const getSupplierKey = (supplier: Pick<StandaloneSupplier, "name" | "phone" | "social">) =>
   [supplier.name, supplier.phone, supplier.social].map((value) => value.trim()).join("|");
+
+const getSupplierIdentity = (supplier: Pick<StandaloneSupplier, "id" | "name" | "phone" | "social">) =>
+  supplier.id ?? getSupplierKey(supplier);
+
+const withSupplierIdentity = (supplier: StandaloneSupplier) => ({
+  ...supplier,
+  id: supplier.id ?? getSupplierKey(supplier),
+});
+
+const normalizeSupplier = (supplier: Partial<StandaloneSupplier> | null | undefined) => ({
+  id: supplier?.id,
+  name: supplier?.name?.trim() ?? "",
+  phone: supplier?.phone?.trim() ?? "",
+  social: supplier?.social?.trim() ?? "",
+});
 
 function AdminSuppliers() {
   const { data: products } = useSuspenseQuery(catalogQueries.all());
@@ -122,7 +143,11 @@ function AdminSuppliers() {
 
     try {
       const parsed = JSON.parse(stored.settingValue) as unknown;
-      setStandaloneSuppliers(Array.isArray(parsed) ? (parsed as StandaloneSupplier[]) : []);
+      setStandaloneSuppliers(
+        Array.isArray(parsed)
+          ? (parsed as StandaloneSupplier[]).map((supplier) => withSupplierIdentity(supplier))
+          : [],
+      );
     } catch {
       setStandaloneSuppliers([]);
     }
@@ -293,6 +318,7 @@ function AdminSuppliers() {
       const key = getSupplierKey(supplier);
       if (!grouped.has(key))
         grouped.set(key, {
+          id: getSupplierIdentity(supplier),
           key,
           ...supplier,
           products: [],
@@ -344,11 +370,12 @@ function AdminSuppliers() {
   };
 
   const addSupplier = () => {
-    const supplier = {
+    const supplier = withSupplierIdentity({
+      id: newSupplier.id,
       name: newSupplier.name.trim(),
       phone: newSupplier.phone.trim(),
       social: newSupplier.social.trim(),
-    };
+    });
     if (!supplier.name || !supplier.phone || !supplier.social) return;
     if (editingSupplierKey) {
       saveSupplierChanges(editingSupplierKey, supplier, bulkSupplierEditQueue.length === 0);
@@ -400,7 +427,7 @@ function AdminSuppliers() {
 
   const openSupplierEditor = (row: SupplierRow) => {
     setEditingSupplierKey(row.key);
-    setNewSupplier({ name: row.name, phone: row.phone, social: row.social });
+    setNewSupplier({ id: row.id ?? row.key, name: row.name, phone: row.phone, social: row.social });
     setNewSupplierOpen(true);
   };
 
@@ -447,36 +474,51 @@ function AdminSuppliers() {
     nextSupplier: StandaloneSupplier,
     closeEditor = true,
   ) => {
-    const normalized = {
-      name: nextSupplier.name.trim(),
-      phone: nextSupplier.phone.trim(),
-      social: nextSupplier.social.trim(),
-    };
+    const target = normalizeSupplier(nextSupplier);
+    const persistedSupplier = standaloneSuppliers.find(
+      (supplier) => supplier.id === supplierKey || getSupplierKey(supplier) === supplierKey,
+    );
+    const normalized = withSupplierIdentity({
+      id: persistedSupplier?.id ?? nextSupplier.id ?? supplierKey,
+      name: target.name,
+      phone: target.phone,
+      social: target.social,
+    });
     if (!normalized.name || !normalized.phone || !normalized.social) return;
 
-    const nextStandaloneSuppliers = standaloneSuppliers.map((supplier) =>
-      getSupplierKey(supplier) === supplierKey ? normalized : supplier,
-    );
-    const nextProducts = (products as Product[]).map((product) => ({
-      ...product,
-      ...(product.supplier ? { supplier: product.supplier } : {}),
-      ...(product.variants
-        ? {
-            variants: product.variants.map((variant) => ({
-              ...variant,
-              ...(variant.supplier ? { supplier: variant.supplier } : {}),
-              ...(variant.supplier && getSupplierKey(variant.supplier) === supplierKey
-                ? { supplier: { ...normalized, purchaseDate: variant.supplier.purchaseDate } }
-                : {}),
-            })),
-          }
-        : {}),
-    }));
-    for (const product of nextProducts) {
-      if (product.supplier && getSupplierKey(product.supplier) === supplierKey) {
-        product.supplier = { ...normalized, purchaseDate: product.supplier.purchaseDate };
+    const mergedSuppliers = new Map<string, StandaloneSupplier>();
+    for (const supplier of standaloneSuppliers) {
+      const supplierId = supplier.id ?? getSupplierKey(supplier);
+      const candidateKey = getSupplierKey(supplier);
+      if (supplierId === supplierKey || candidateKey === supplierKey) {
+        const merged = { ...normalizeSupplier(supplier), ...normalized, id: supplier.id ?? normalized.id };
+        mergedSuppliers.set(getSupplierKey(merged), merged);
+        continue;
+      }
+      if (!mergedSuppliers.has(candidateKey)) {
+        mergedSuppliers.set(candidateKey, supplier);
       }
     }
+    const finalSupplierKey = getSupplierKey(normalized);
+    mergedSuppliers.set(finalSupplierKey, normalized);
+    const nextStandaloneSuppliers = Array.from(mergedSuppliers.values());
+
+    const nextProducts = (products as Product[]).map((product) => ({
+      ...product,
+      supplier:
+        product.supplier &&
+        (product.supplier.id === supplierKey || getSupplierKey(product.supplier) === supplierKey)
+          ? { ...product.supplier, ...normalized, id: normalized.id }
+          : product.supplier,
+      variants: product.variants?.map((variant) => ({
+        ...variant,
+        supplier:
+          variant.supplier &&
+          (variant.supplier.id === supplierKey || getSupplierKey(variant.supplier) === supplierKey)
+            ? { ...variant.supplier, ...normalized, id: normalized.id }
+            : variant.supplier,
+      })),
+    }));
 
     setStandaloneSuppliers(nextStandaloneSuppliers);
     void saveAdminSetting({
@@ -525,27 +567,24 @@ function AdminSuppliers() {
       });
     }
     const nextStandaloneSuppliers = standaloneSuppliers.filter(
-      (supplier) => getSupplierKey(supplier) !== supplierKey,
+      (supplier) =>
+        !(supplier.id === supplierKey || getSupplierKey(supplier) === supplierKey),
     );
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
-      ...(product.supplier && getSupplierKey(product.supplier) === supplierKey
-        ? {}
-        : product.supplier
-          ? { supplier: product.supplier }
-          : {}),
-      ...(product.variants
-        ? {
-            variants: product.variants.map((variant) => ({
-              ...variant,
-              ...(variant.supplier && getSupplierKey(variant.supplier) === supplierKey
-                ? {}
-                : variant.supplier
-                  ? { supplier: variant.supplier }
-                  : {}),
-            })),
-          }
-        : {}),
+      supplier:
+        product.supplier &&
+        (product.supplier.id === supplierKey || getSupplierKey(product.supplier) === supplierKey)
+          ? undefined
+          : product.supplier,
+      variants: product.variants?.map((variant) => ({
+        ...variant,
+        supplier:
+          variant.supplier &&
+          (variant.supplier.id === supplierKey || getSupplierKey(variant.supplier) === supplierKey)
+            ? undefined
+            : variant.supplier,
+      })),
     }));
 
     setStandaloneSuppliers(nextStandaloneSuppliers);
@@ -592,27 +631,29 @@ function AdminSuppliers() {
         }),
       );
     const nextStandaloneSuppliers = standaloneSuppliers.filter(
-      (supplier) => !selectedKeys.has(getSupplierKey(supplier)),
+      (supplier) =>
+        !(
+          selectedKeys.has(supplier.id ?? getSupplierKey(supplier)) ||
+          selectedKeys.has(getSupplierKey(supplier))
+        ),
     );
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
-      ...(product.supplier && selectedKeys.has(getSupplierKey(product.supplier))
-        ? {}
-        : product.supplier
-          ? { supplier: product.supplier }
-          : {}),
-      ...(product.variants
-        ? {
-            variants: product.variants.map((variant) => ({
-              ...variant,
-              ...(variant.supplier && selectedKeys.has(getSupplierKey(variant.supplier))
-                ? {}
-                : variant.supplier
-                  ? { supplier: variant.supplier }
-                  : {}),
-            })),
-          }
-        : {}),
+      supplier:
+        product.supplier &&
+        (selectedKeys.has(product.supplier.id ?? getSupplierKey(product.supplier)) ||
+          selectedKeys.has(getSupplierKey(product.supplier)))
+          ? undefined
+          : product.supplier,
+      variants: product.variants?.map((variant) => ({
+        ...variant,
+        supplier:
+          variant.supplier &&
+          (selectedKeys.has(variant.supplier.id ?? getSupplierKey(variant.supplier)) ||
+            selectedKeys.has(getSupplierKey(variant.supplier)))
+            ? undefined
+            : variant.supplier,
+      })),
     }));
 
     setStandaloneSuppliers(nextStandaloneSuppliers);
