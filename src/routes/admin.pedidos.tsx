@@ -1589,7 +1589,7 @@ function AdminOrders() {
   };
 
   const removeOrderItem = (index: number) => {
-    if (!orderForm) return;
+    if (!orderForm || orderForm.items.length <= 1) return;
     const nextItems = [...orderForm.items];
     nextItems.splice(index, 1);
     updateOrderItems(nextItems);
@@ -1668,7 +1668,7 @@ function AdminOrders() {
   };
 
   const isOrderFormValid = orderForm
-    ? orderForm.items.every(
+    ? orderForm.items.length > 0 && orderForm.items.every(
         (item) =>
           item.name &&
           item.confirmed &&
@@ -3316,6 +3316,12 @@ function AdminOrders() {
                                 type="button"
                                 variant="ghost"
                                 onClick={() => setPendingOrderItemDeleteIndex(itemIndex)}
+                                disabled={orderForm.items.length <= 1}
+                                title={
+                                  orderForm.items.length <= 1
+                                    ? "El pedido debe conservar al menos un producto"
+                                    : "Eliminar producto"
+                                }
                                 className="h-8 justify-start px-2 text-destructive hover:bg-destructive/20"
                               >
                                 <Trash2 className="size-4" /> Eliminar
