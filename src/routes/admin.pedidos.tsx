@@ -21,11 +21,10 @@ import {
   Trash2,
   X,
   Eye,
-                                      const resolvedVariantName =
-                                        item.variantName ??
-                                        product?.variantName ??
-                                        product?.variants?.find((variant) => variant.id === item.variantId)
-                                          ?.name;
+  EyeOff,
+  Download,
+  LoaderCircle,
+} from "lucide-react";
 import { Sheet, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Badge } from "@/components/ui/badge";
@@ -2552,7 +2551,9 @@ function AdminOrders() {
 
                             <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
                               <div className="min-w-0 space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
+                                <p className="text-sm font-semibold">Datos cliente</p>
                                 <div>
+                                  <span className="block text-xs text-muted-foreground">Cliente</span>
                                   <span className="block wrap-break-word text-base font-medium">
                                     {displayCustomer}
                                   </span>
@@ -2597,10 +2598,11 @@ function AdminOrders() {
                                         item.variantId,
                                       )?.supplier;
                                       const itemBrand = item.brand ?? product?.brand ?? order.brand;
-                                      const uniqueVariantName =
-                                        item.variantName && item.variantName !== item.name
-                                          ? ` · ${item.variantName}`
-                                          : "";
+                                      const resolvedVariantName =
+                                        item.variantName ??
+                                        product?.variantName ??
+                                        product?.variants?.find((variant) => variant.id === item.variantId)
+                                          ?.name;
 
                                       return (
                                         <li
@@ -2640,93 +2642,89 @@ function AdminOrders() {
                                   </ul>
                                 </div>
 
-                                {(() => {
-                                  const storeSlugs = Array.from(
-                                    new Map(
-                                      order.items.map((item) => {
-                                        const product = allProducts.find(
-                                          (candidate) =>
-                                            candidate.id === item.productId || candidate.name === item.name,
-                                        );
-                                        const itemBrand = item.brand ?? product?.brand ?? order.brand;
-                                        return [itemBrand, itemBrand] as const;
-                                      }),
-                                    ).values(),
-                                  );
-
-                                  return (
-                                    <div className="grid gap-3 xl:grid-cols-3">
-                                      {storeSlugs.map((brandSlug) => {
-                                        const itemsInBrand = order.items.filter((item) => {
-                                          const product = allProducts.find(
-                                            (candidate) =>
-                                              candidate.id === item.productId || candidate.name === item.name,
-                                          );
-                                          return (
-                                            (item.brand ?? product?.brand ?? order.brand) === brandSlug
-                                          );
-                                        });
-                                        const suppliers = Array.from(
-                                          new Set(
-                                            itemsInBrand
-                                              .map((item) =>
-                                                getSupplierForItem(
-                                                  item.name,
-                                                  item.productId,
-                                                  item.variantId,
-                                                )?.supplier?.name,
-                                              )
-                                              .filter((name): name is string => Boolean(name)),
-                                          ),
-                                        );
-
-                                        return (
-                                          <div
-                                            key={brandSlug}
-                                            className="rounded-xl border border-border/60 bg-surface/40 p-4"
-                                          >
-                                            <div className="mb-3 flex items-center justify-between gap-2">
-                                              <span className="text-sm font-semibold">
-                                                {getBrandFullName(brandSlug)}
-                                              </span>
-                                            </div>
-                                            <div className="space-y-2.5 text-sm">
-                                              {[
-                                                ["Método de pago", order.paymentMethod || "—"],
-                                                ["Método de envío", order.shippingMethod || "—"],
-                                                [
-                                                  "Proveedor",
-                                                  suppliers.length
-                                                    ? suppliers.join(", ")
-                                                    : "Sin proveedor asignado",
-                                                ],
-                                                ["Observaciones", order.extraInfo || "—"],
-                                              ].map(([label, value]) => (
-                                                <div
-                                                  key={label}
-                                                  className="flex items-start justify-between gap-3"
-                                                >
-                                                  <span className="min-w-0 text-muted-foreground">
-                                                    {label}
-                                                  </span>
-                                                  <span className="min-w-0 max-w-[60%] text-right wrap-break-word font-medium">
-                                                    {String(value)}
-                                                  </span>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  );
-                                })()}
                               </div>
                             </div>
 
+                            {(() => {
+                              const storeSlugs = Array.from(
+                                new Map(
+                                  order.items.map((item) => {
+                                    const product = allProducts.find(
+                                      (candidate) =>
+                                        candidate.id === item.productId || candidate.name === item.name,
+                                    );
+                                    const itemBrand = item.brand ?? product?.brand ?? order.brand;
+                                    return [itemBrand, itemBrand] as const;
+                                  }),
+                                ).values(),
+                              );
+
+                              return (
+                                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                  {storeSlugs.map((brandSlug) => {
+                                    const itemsInBrand = order.items.filter((item) => {
+                                      const product = allProducts.find(
+                                        (candidate) =>
+                                          candidate.id === item.productId || candidate.name === item.name,
+                                      );
+                                      return (item.brand ?? product?.brand ?? order.brand) === brandSlug;
+                                    });
+                                    const suppliers = Array.from(
+                                      new Set(
+                                        itemsInBrand
+                                          .map((item) =>
+                                            getSupplierForItem(
+                                              item.name,
+                                              item.productId,
+                                              item.variantId,
+                                            )?.supplier?.name,
+                                          )
+                                          .filter((name): name is string => Boolean(name)),
+                                      ),
+                                    );
+
+                                    return (
+                                      <div
+                                        key={brandSlug}
+                                        className="rounded-xl border border-border/60 bg-surface/40 p-4"
+                                      >
+                                        <div className="mb-3 flex items-center justify-between gap-2">
+                                          <span className="text-sm font-semibold">
+                                            {getBrandFullName(brandSlug)}
+                                          </span>
+                                        </div>
+                                        <div className="space-y-2.5 text-sm">
+                                          {[
+                                            ["Método de pago", order.paymentMethod || "—"],
+                                            ["Método de envío", order.shippingMethod || "—"],
+                                            [
+                                              "Proveedor",
+                                              suppliers.length
+                                                ? suppliers.join(", ")
+                                                : "Sin proveedor asignado",
+                                            ],
+                                            ["Observaciones", order.extraInfo || "—"],
+                                          ].map(([label, value]) => (
+                                            <div
+                                              key={label}
+                                              className="flex items-start justify-between gap-3"
+                                            >
+                                              <span className="min-w-0 text-muted-foreground">{label}</span>
+                                              <span className="min-w-0 max-w-[60%] text-right wrap-break-word font-medium">
+                                                {String(value)}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
+
                             <div className="flex flex-wrap justify-center gap-2 border-t border-border/50 pt-3">
                               {!isQuickEditing ? (
-                                <>
                                 <>
                                   <Button
                                     type="button"
@@ -2793,7 +2791,7 @@ function AdminOrders() {
                                     <EyeOff className="size-4" /> Ocultar
                                   </Button>
                                 </>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                         </TableCell>
