@@ -117,6 +117,29 @@ const normalizeSupplier = (supplier: Partial<StandaloneSupplier> | null | undefi
   social: supplier?.social?.trim() ?? "",
 });
 
+const formatSupplierProductLabel = (name: string) => {
+  if (!name) return "Producto";
+  return name.replace(/\s+·\s+/g, " · ");
+};
+
+const dedupeSuppliers = (suppliers: StandaloneSupplier[]) => {
+  const byKey = new Map<string, StandaloneSupplier>();
+  for (const supplier of suppliers) {
+    const key = getSupplierKey(normalizeSupplier(supplier));
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, { ...normalizeSupplier(supplier), id: supplier.id ?? getSupplierKey(normalizeSupplier(supplier)) });
+      continue;
+    }
+    byKey.set(key, {
+      ...existing,
+      ...normalizeSupplier(supplier),
+      id: existing.id ?? supplier.id ?? getSupplierKey(normalizeSupplier(supplier)),
+    });
+  }
+  return Array.from(byKey.values());
+};
+
 function AdminSuppliers() {
   const { data: products } = useSuspenseQuery(catalogQueries.all());
   const { data: settings } = useSuspenseQuery(catalogQueries.settings());
@@ -326,17 +349,21 @@ function AdminSuppliers() {
 
     for (const supplier of standaloneSuppliers) {
       const key = getSupplierKey(supplier);
-      if (!grouped.has(key))
-        grouped.set(key, {
-          id: getSupplierIdentity(supplier),
-          key,
-          ...supplier,
-          products: [],
-          stores: [],
-          sales: 0,
-          salesByCurrency: { ARS: 0, USD: 0 },
-          soldQuantity: 0,
-        });
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.id = existing.id ?? getSupplierIdentity(supplier);
+        continue;
+      }
+      grouped.set(key, {
+        id: getSupplierIdentity(supplier),
+        key,
+        ...supplier,
+        products: [],
+        stores: [],
+        sales: 0,
+        salesByCurrency: { ARS: 0, USD: 0 },
+        soldQuantity: 0,
+      });
     }
     return Array.from(grouped.values());
   }, [orders, products, standaloneSuppliers]);
@@ -426,7 +453,7 @@ function AdminSuppliers() {
       closeSupplierEditor();
       return;
     }
-    const nextSuppliers = [...standaloneSuppliers, supplier];
+    const nextSuppliers = dedupeSuppliers([...standaloneSuppliers, supplier]);
     setStandaloneSuppliers(nextSuppliers);
     void saveAdminSetting({
       data: { settingKey: SUPPLIERS_STORAGE_KEY, settingValue: JSON.stringify(nextSuppliers) },
@@ -511,7 +538,7 @@ function AdminSuppliers() {
     }
     const finalSupplierKey = getSupplierKey(normalized);
     mergedSuppliers.set(finalSupplierKey, normalized);
-    const nextStandaloneSuppliers = Array.from(mergedSuppliers.values());
+    const nextStandaloneSuppliers = dedupeSuppliers(Array.from(mergedSuppliers.values()));
 
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
@@ -1556,14 +1583,15 @@ function AdminSuppliers() {
                             className="w-full bg-muted/30 p-0 text-left"
                           >
                             <>
-                                <p className="mb-2 px-5 pt-6 font-medium">Productos</p>
-                              <div className="space-y-1.5 px-5">
+                              <div className="space-y-1.5 px-5 pt-6">
                                   {sortedProducts.slice(0, 8).map((product) => (
                                     <div
-                                      key={product.name}
+                                      key={`${product.name}-${product.quantity}`}
                                       className="flex items-center justify-start gap-4 px-2.5 py-1.5 text-xs text-foreground"
                                     >
-                                      <span className="min-w-0 wrap-break-word">{product.name}</span>
+                                      <span className="min-w-0 wrap-break-word">
+                                        {formatSupplierProductLabel(product.name)}
+                                      </span>
                                       <span className="shrink-0 text-muted-foreground">
                                         Cantidad vendida: {product.quantity}
                                       </span>
@@ -1691,8 +1719,8 @@ function AdminSuppliers() {
       >
         <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Productos de {productsModalSupplier?.name}</DialogTitle>
-            <DialogDescription>Listado completo de productos vendidos.</DialogDescription>
+            <DialogTitle>{productsModalSupplier?.name}</DialogTitle>
+            <DialogDescription>Detalle de ventas por producto.</DialogDescription>
           </DialogHeader>
           <div className="max-h-[min(70vh,32rem)] space-y-1.5 overflow-y-auto">
             {[...(productsModalSupplier?.products ?? [])]
@@ -1700,10 +1728,12 @@ function AdminSuppliers() {
               .sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }))
               .map((product) => (
                 <div
-                  key={product.name}
+                  key={`${product.name}-${product.quantity}`}
                   className="flex items-center justify-between gap-3 rounded-md bg-muted px-3 py-2 text-sm"
                 >
-                  <span className="min-w-0 wrap-break-word">{product.name}</span>
+                  <span className="min-w-0 wrap-break-word">
+                    {formatSupplierProductLabel(product.name)}
+                  </span>
                   <span className="shrink-0 text-muted-foreground">
                     Cantidad vendida: {product.quantity}
                   </span>
