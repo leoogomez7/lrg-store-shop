@@ -367,16 +367,6 @@ function AdminTrash() {
 
       <div className="mt-3 flex min-h-11 items-center justify-between gap-3">
         <div className="flex min-h-10 items-center gap-2">
-          {selectionMode === "delete" && selectedDeleteKeys.length > 0 ? (
-            <Button type="button" variant="destructive" onClick={deleteSelectedPermanently}>
-              <Trash2 className="size-4" /> Eliminar seleccionados
-            </Button>
-          ) : null}
-          {selectionMode === "restore" && selectedRestoreKeys.length > 0 ? (
-            <Button type="button" variant="default" onClick={restoreSelectedEntries}>
-              <RotateCcw className="size-4" /> Restaurar seleccionados
-            </Button>
-          ) : null}
           {selectionMode ? (
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Todos</span>
@@ -399,6 +389,16 @@ function AdminTrash() {
                   : selectedRestoreKeys.length} seleccionados
               </span>
             </label>
+          ) : null}
+          {selectionMode === "delete" && selectedDeleteKeys.length > 0 ? (
+            <Button type="button" variant="destructive" onClick={deleteSelectedPermanently}>
+              <Trash2 className="size-4" /> Eliminar seleccionados
+            </Button>
+          ) : null}
+          {selectionMode === "restore" && selectedRestoreKeys.length > 0 ? (
+            <Button type="button" variant="default" onClick={restoreSelectedEntries}>
+              <RotateCcw className="size-4" /> Restaurar seleccionados
+            </Button>
           ) : null}
         </div>
         <span className="text-right text-sm text-muted-foreground">
