@@ -3570,7 +3570,7 @@ function ProductEditDialog({
   const activePriceValue = activeCommissionValue + activeExpensesValue;
   const activeDiscountValue = activePriceValue * (activeDiscount / 100);
   const activeStorePrice = activePriceValue - activeDiscountValue;
-  const activeProfit = activeCommissionValue - activeExpensesValue;
+  const activeProfit = activeStorePrice - activeExpensesValue;
   const activeUsdRequired = activeCommissionCurrency === "USD" || activeExpensesCurrency === "USD";
   const hasBulkNavigation = bulkEditCount > 1;
   const canNavigatePrevious = bulkEditPosition > 0;
