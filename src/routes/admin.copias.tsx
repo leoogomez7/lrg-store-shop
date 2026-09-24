@@ -1,11 +1,16 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { Archive, Check, Search } from "lucide-react";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { Archive, Check, LoaderCircle, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LoadingState } from "@/components/common/loading-state";
-import { listAdminBackups, type AdminBackupSummary } from "@/server/persistence";
+import {
+  createAdminBackup,
+  listAdminBackups,
+  type AdminBackupSummary,
+} from "@/server/persistence";
 
 export const Route = createFileRoute("/admin/copias")({
   loader: ({ context }) => context.queryClient.ensureQueryData(backupsQuery),
@@ -32,7 +37,9 @@ const formatDate = (value: string) =>
   }).format(new Date(value));
 
 function AdminBackups() {
+  const queryClient = useQueryClient();
   const { data: backups } = useSuspenseQuery(backupsQuery);
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -64,17 +71,46 @@ function AdminBackups() {
             Snapshots automáticos creados al registrar compras.
           </p>
         </div>
-        <div className="relative w-full max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setPage(0);
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <div className="relative w-full sm:w-64">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(0);
+              }}
+              placeholder="Buscar copia"
+              className="pl-9"
+            />
+          </div>
+          <Button
+            type="button"
+            disabled={isCreatingBackup}
+            onClick={async () => {
+              setIsCreatingBackup(true);
+              try {
+                const created = await createAdminBackup({ data: { reason: "manual" } });
+                if (created) {
+                  await queryClient.invalidateQueries({ queryKey: backupsQuery.queryKey });
+                  toast.success("Copia de seguridad creada");
+                } else {
+                  toast.error("No se pudo crear la copia de seguridad");
+                }
+              } catch {
+                toast.error("No se pudo crear la copia de seguridad");
+              } finally {
+                setIsCreatingBackup(false);
+              }
             }}
-            placeholder="Buscar copia"
-            className="pl-9"
-          />
+          >
+            {isCreatingBackup ? (
+              <LoaderCircle className="size-4 animate-spin" />
+            ) : (
+              <Plus className="size-4" />
+            )}
+            {isCreatingBackup ? "Creando..." : "Crear copia"}
+          </Button>
         </div>
       </div>
 

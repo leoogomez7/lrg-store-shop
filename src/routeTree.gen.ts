@@ -37,6 +37,7 @@ import { Route as CuentaPanelRouteImport } from './routes/cuenta.panel'
 import { Route as CuentaPedidosRouteImport } from './routes/cuenta.pedidos'
 import { Route as CuentaPerfilRouteImport } from './routes/cuenta.perfil'
 import { Route as BrandProductoSlugRouteImport } from './routes/$brand.producto.$slug'
+import { Route as ApiCronBackupRouteImport } from './routes/api.cron.backup'
 import { Route as ApiMercadopagoWebhookRouteImport } from './routes/api.mercadopago.webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -179,6 +180,11 @@ const BrandProductoSlugRoute = BrandProductoSlugRouteImport.update({
   path: '/producto/$slug',
   getParentRoute: () => BrandRoute,
 } as any)
+const ApiCronBackupRoute = ApiCronBackupRouteImport.update({
+  id: '/api/cron/backup',
+  path: '/api/cron/backup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMercadopagoWebhookRoute = ApiMercadopagoWebhookRouteImport.update({
   id: '/api/mercadopago/webhook',
   path: '/api/mercadopago/webhook',
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/cuenta/perfil': typeof CuentaPerfilRoute
   '/$brand/': typeof BrandIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
+  '/api/cron/backup': typeof ApiCronBackupRoute
   '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -244,6 +251,7 @@ export interface FileRoutesByTo {
   '/cuenta/perfil': typeof CuentaPerfilRoute
   '/$brand': typeof BrandIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
+  '/api/cron/backup': typeof ApiCronBackupRoute
   '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
 }
 export interface FileRoutesById {
@@ -276,6 +284,7 @@ export interface FileRoutesById {
   '/cuenta/perfil': typeof CuentaPerfilRoute
   '/$brand/': typeof BrandIndexRoute
   '/$brand/producto/$slug': typeof BrandProductoSlugRoute
+  '/api/cron/backup': typeof ApiCronBackupRoute
   '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
 }
 export interface FileRouteTypes {
@@ -309,6 +318,7 @@ export interface FileRouteTypes {
     | '/cuenta/perfil'
     | '/$brand/'
     | '/$brand/producto/$slug'
+    | '/api/cron/backup'
     | '/api/mercadopago/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -339,6 +349,7 @@ export interface FileRouteTypes {
     | '/cuenta/perfil'
     | '/$brand'
     | '/$brand/producto/$slug'
+    | '/api/cron/backup'
     | '/api/mercadopago/webhook'
   id:
     | '__root__'
@@ -370,6 +381,7 @@ export interface FileRouteTypes {
     | '/cuenta/perfil'
     | '/$brand/'
     | '/$brand/producto/$slug'
+    | '/api/cron/backup'
     | '/api/mercadopago/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -384,6 +396,7 @@ export interface RootRouteChildren {
   ProductosRoute: typeof ProductosRoute
   RegisterRoute: typeof RegisterRoute
   SectoresRoute: typeof SectoresRoute
+  ApiCronBackupRoute: typeof ApiCronBackupRoute
   ApiMercadopagoWebhookRoute: typeof ApiMercadopagoWebhookRoute
 }
 
@@ -585,6 +598,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrandProductoSlugRouteImport
       parentRoute: typeof BrandRoute
     }
+    '/api/cron/backup': {
+      id: '/api/cron/backup'
+      path: '/api/cron/backup'
+      fullPath: '/api/cron/backup'
+      preLoaderRoute: typeof ApiCronBackupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mercadopago/webhook': {
       id: '/api/mercadopago/webhook'
       path: '/api/mercadopago/webhook'
@@ -667,6 +687,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductosRoute: ProductosRoute,
   RegisterRoute: RegisterRoute,
   SectoresRoute: SectoresRoute,
+  ApiCronBackupRoute: ApiCronBackupRoute,
   ApiMercadopagoWebhookRoute: ApiMercadopagoWebhookRoute,
 }
 export const routeTree = rootRouteImport

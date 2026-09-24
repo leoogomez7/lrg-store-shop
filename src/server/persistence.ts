@@ -169,6 +169,45 @@ function ensureAdminTables() {
   return adminTablesPromise;
 }
 
+async function createDatabaseBackup(reason: string) {
+  const adminDatabase = await ensureAdminTables();
+  if (!adminDatabase) return false;
+
+  const adminTables = [
+    "admins",
+    "admin_settings",
+    "products",
+    "product_variants",
+    "orders",
+    "payment_intents",
+    "suppliers",
+    "trash",
+    "site_visitors",
+  ];
+  const userTables = ["users", "user_carts", "guest_carts", "favorites", "addresses", "customer_orders"];
+  const [adminResults, userDatabase] = await Promise.all([
+    Promise.all(adminTables.map((table) => adminDatabase.execute(`SELECT * FROM ${table}`))),
+    ensureUserTables(),
+  ]);
+  const userResults = userDatabase
+    ? await Promise.all(userTables.map((table) => userDatabase.execute(`SELECT * FROM ${table}`)))
+    : [];
+  const now = new Date().toISOString();
+  const snapshotData = JSON.stringify({
+    createdAt: now,
+    admin: Object.fromEntries(adminTables.map((table, index) => [table, adminResults[index].rows])),
+    user: Object.fromEntries(userTables.map((table, index) => [table, userResults[index]?.rows ?? []])),
+  });
+  const backupId = `${reason}:${now}`;
+
+  await adminDatabase.execute({
+    sql: `INSERT INTO database_backups (id, reason, snapshotData, createdAt)
+          VALUES (?, ?, ?, ?)`,
+    args: [backupId, reason, snapshotData, now],
+  });
+  return true;
+}
+
 export const initializeDatabase = createServerFn({ method: "POST" })
   .validator(() => ({}))
   .handler(async () => {
@@ -430,30 +469,22 @@ export const upsertAdminOrder = createServerFn({ method: "POST" })
     });
 
     try {
-      const [productsResult, ordersResult, settingsResult] = await Promise.all([
-        database.execute("SELECT id, productData, updatedAt FROM products"),
-        database.execute("SELECT id, orderData, updatedAt FROM orders"),
-        database.execute("SELECT settingKey, settingValue, updatedAt FROM admin_settings"),
-      ]);
-      const backupId = `${data.order.id}:${now}`;
-      await database.execute({
-        sql: `INSERT INTO database_backups (id, reason, snapshotData, createdAt)
-              VALUES (?, ?, ?, ?)`,
-        args: [
-          backupId,
-          "order-purchase",
-          JSON.stringify({
-            products: productsResult.rows,
-            orders: ordersResult.rows,
-            settings: settingsResult.rows,
-          }),
-          now,
-        ],
-      });
+      await createDatabaseBackup("order-purchase");
     } catch (error) {
       console.error("No se pudo crear el backup automático del pedido:", error);
     }
     return true;
+  });
+
+export const createAdminBackup = createServerFn({ method: "POST" })
+  .validator((data: { reason?: string }) => data)
+  .handler(async ({ data }) => {
+    try {
+      return await createDatabaseBackup(data.reason ?? "manual");
+    } catch (error) {
+      console.error("No se pudo crear la copia de seguridad:", error);
+      return false;
+    }
   });
 
 export type AdminBackupSummary = {
