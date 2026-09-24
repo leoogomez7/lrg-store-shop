@@ -83,6 +83,9 @@ type StandaloneSupplier = Pick<SupplierRow, "name" | "phone" | "social">;
 
 const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
 
+const getSupplierKey = (supplier: Pick<StandaloneSupplier, "name" | "phone" | "social">) =>
+  [supplier.name, supplier.phone, supplier.social].map((value) => value.trim()).join("|");
+
 function AdminSuppliers() {
   const { data: products } = useSuspenseQuery(catalogQueries.all());
   const { data: settings } = useSuspenseQuery(catalogQueries.settings());
@@ -191,7 +194,7 @@ function AdminSuppliers() {
         const phone = supplier?.phone ?? "";
         const social = supplier?.social ?? "";
         if (!name && !phone && !social) continue;
-        const key = `${name}|${phone}|${social}`;
+        const key = getSupplierKey({ name, phone, social });
         const assignmentSummary = orders.reduce(
           (summary, order) => {
             for (const item of order.items) {
@@ -255,7 +258,7 @@ function AdminSuppliers() {
         if (!item.supplier || item.quantity <= 0) continue;
         const { name, phone, social } = item.supplier;
         if (!name && !phone && !social) continue;
-        const key = `${name}|${phone}|${social}`;
+        const key = getSupplierKey({ name, phone, social });
         const current = grouped.get(key) ?? {
           key,
           name,
@@ -287,7 +290,7 @@ function AdminSuppliers() {
     }
 
     for (const supplier of standaloneSuppliers) {
-      const key = `${supplier.name}|${supplier.phone}|${supplier.social}`;
+      const key = getSupplierKey(supplier);
       if (!grouped.has(key))
         grouped.set(key, {
           key,
@@ -452,9 +455,7 @@ function AdminSuppliers() {
     if (!normalized.name || !normalized.phone || !normalized.social) return;
 
     const nextStandaloneSuppliers = standaloneSuppliers.map((supplier) =>
-      `${supplier.name}|${supplier.phone}|${supplier.social}` === supplierKey
-        ? normalized
-        : supplier,
+      getSupplierKey(supplier) === supplierKey ? normalized : supplier,
     );
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
@@ -464,9 +465,7 @@ function AdminSuppliers() {
             variants: product.variants.map((variant) => ({
               ...variant,
               ...(variant.supplier ? { supplier: variant.supplier } : {}),
-              ...(variant.supplier &&
-              `${variant.supplier.name}|${variant.supplier.phone}|${variant.supplier.social}` ===
-                supplierKey
+              ...(variant.supplier && getSupplierKey(variant.supplier) === supplierKey
                 ? { supplier: { ...normalized, purchaseDate: variant.supplier.purchaseDate } }
                 : {}),
             })),
@@ -474,11 +473,7 @@ function AdminSuppliers() {
         : {}),
     }));
     for (const product of nextProducts) {
-      if (
-        product.supplier &&
-        `${product.supplier.name}|${product.supplier.phone}|${product.supplier.social}` ===
-          supplierKey
-      ) {
+      if (product.supplier && getSupplierKey(product.supplier) === supplierKey) {
         product.supplier = { ...normalized, purchaseDate: product.supplier.purchaseDate };
       }
     }
@@ -530,13 +525,11 @@ function AdminSuppliers() {
       });
     }
     const nextStandaloneSuppliers = standaloneSuppliers.filter(
-      (supplier) => `${supplier.name}|${supplier.phone}|${supplier.social}` !== supplierKey,
+      (supplier) => getSupplierKey(supplier) !== supplierKey,
     );
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
-      ...(product.supplier &&
-      `${product.supplier.name}|${product.supplier.phone}|${product.supplier.social}` ===
-        supplierKey
+      ...(product.supplier && getSupplierKey(product.supplier) === supplierKey
         ? {}
         : product.supplier
           ? { supplier: product.supplier }
@@ -545,9 +538,7 @@ function AdminSuppliers() {
         ? {
             variants: product.variants.map((variant) => ({
               ...variant,
-              ...(variant.supplier &&
-              `${variant.supplier.name}|${variant.supplier.phone}|${variant.supplier.social}` ===
-                supplierKey
+              ...(variant.supplier && getSupplierKey(variant.supplier) === supplierKey
                 ? {}
                 : variant.supplier
                   ? { supplier: variant.supplier }
@@ -601,14 +592,11 @@ function AdminSuppliers() {
         }),
       );
     const nextStandaloneSuppliers = standaloneSuppliers.filter(
-      (supplier) => !selectedKeys.has(`${supplier.name}|${supplier.phone}|${supplier.social}`),
+      (supplier) => !selectedKeys.has(getSupplierKey(supplier)),
     );
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
-      ...(product.supplier &&
-      selectedKeys.has(
-        `${product.supplier.name}|${product.supplier.phone}|${product.supplier.social}`,
-      )
+      ...(product.supplier && selectedKeys.has(getSupplierKey(product.supplier))
         ? {}
         : product.supplier
           ? { supplier: product.supplier }
@@ -617,10 +605,7 @@ function AdminSuppliers() {
         ? {
             variants: product.variants.map((variant) => ({
               ...variant,
-              ...(variant.supplier &&
-              selectedKeys.has(
-                `${variant.supplier.name}|${variant.supplier.phone}|${variant.supplier.social}`,
-              )
+              ...(variant.supplier && selectedKeys.has(getSupplierKey(variant.supplier))
                 ? {}
                 : variant.supplier
                   ? { supplier: variant.supplier }

@@ -2202,8 +2202,19 @@ function AdminOrders() {
                 >
                   <Check className="size-4" /> Guardar
                 </Button>
-                <Button size="sm" variant="destructive" onClick={cancelQuickEditOrder}>
-                  <X className="size-4" /> Cancelar
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() =>
+                    setConfirmState({
+                      open: true,
+                      title: "Descartar y seguir?",
+                      description: "Se descarta la edición actual y continúa con el siguiente pedido seleccionado.",
+                      onConfirm: cancelQuickEditOrder,
+                    })
+                  }
+                >
+                  <X className="size-4" /> Saltar
                 </Button>
               </>
             ) : (
@@ -2614,10 +2625,17 @@ function AdminOrders() {
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    onClick={cancelQuickEditOrder}
+                                    onClick={() =>
+                                      setConfirmState({
+                                        open: true,
+                                        title: "Descartar y seguir?",
+                                        description: "Se descarta la edición actual y continúa con el siguiente pedido seleccionado.",
+                                        onConfirm: cancelQuickEditOrder,
+                                      })
+                                    }
                                     className="h-7 gap-1 bg-transparent px-2 text-xs text-destructive hover:bg-destructive/10"
                                   >
-                                    <X className="size-3.5" /> Cancelar
+                                    <X className="size-3.5" /> Saltar
                                   </Button>
                                 </>
                               ) : (

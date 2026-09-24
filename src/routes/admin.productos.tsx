@@ -123,7 +123,7 @@ const fileToDataUrl = (file: File) =>
   });
 
 const getSupplierKey = (supplier: ProductSupplier) =>
-  `${supplier.name}|${supplier.phone}|${supplier.social}`;
+  [supplier.name, supplier.phone, supplier.social].map((value) => value.trim()).join("|");
 
 const getBrandShortName = (brand: Product["brand"] | string | undefined) => {
   const brandKey = typeof brand === "string" ? brand : undefined;
