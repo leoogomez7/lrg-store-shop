@@ -552,6 +552,7 @@ function AdminOrders() {
   const [bulkOrderEditPosition, setBulkOrderEditPosition] = useState(0);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
+  const [productListModalOrder, setProductListModalOrder] = useState<Order | null>(null);
   const [pendingOrderItemDeleteIndex, setPendingOrderItemDeleteIndex] = useState<number | null>(
     null,
   );
@@ -2497,117 +2498,174 @@ function AdminOrders() {
                           <div className="w-full min-w-0 space-y-4 overflow-hidden rounded-2xl bg-surface-2/90 p-3 text-sm sm:p-5">
                             <p className="font-medium">Detalle del pedido</p>
 
-                            <div className="space-y-4">
-                              <div className="grid gap-6 lg:grid-cols-2">
-                                <p className="text-center font-medium">Cliente</p>
-                                <p className="text-center font-medium">Productos comprados</p>
-                              </div>
-
-                              <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:items-start">
-                                <div className="min-w-0 space-y-3">
-                                  <div>
-                                    <span className="block text-xs text-muted-foreground">
-                                      Cliente
-                                    </span>
-                                    <span className="block wrap-break-word">{displayCustomer}</span>
-                                    {order.isGuest && <Badge variant="warning">Invitado</Badge>}
-                                  </div>
+                            <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+                              <div className="min-w-0 space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
                                 <div>
-                                  <span className="block text-xs text-muted-foreground">
-                                    Correo
+                                  <span className="block text-xs text-muted-foreground">Cliente</span>
+                                  <span className="block wrap-break-word text-base font-medium">
+                                    {displayCustomer}
                                   </span>
+                                  {order.isGuest && <Badge variant="warning">Invitado</Badge>}
+                                </div>
+                                <div>
+                                  <span className="block text-xs text-muted-foreground">Correo</span>
                                   <span className="block break-all">{order.email || "—"}</span>
                                 </div>
                                 <div>
-                                  <span className="block text-xs text-muted-foreground">
-                                    Celular
-                                  </span>
-                                  <span className="block wrap-break-word">
-                                    {order.phone || "—"}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="block text-xs text-muted-foreground">
-                                    Método de pago
-                                  </span>
-                                  <span className="block wrap-break-word">
-                                    {order.paymentMethod || "—"}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="block text-xs text-muted-foreground">
-                                    Método de envío
-                                  </span>
-                                  <span className="block wrap-break-word">
-                                    {order.shippingMethod ?? "—"}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="block text-xs text-muted-foreground">
-                                    Proveedor
-                                  </span>
-                                  <span className="block wrap-break-word">
-                                    {Array.from(
-                                      new Set(
-                                        order.items
-                                          .map(
-                                            (item) => getSupplierForItem(item.name)?.supplier?.name,
-                                          )
-                                          .filter((name): name is string => Boolean(name)),
-                                      ),
-                                    ).join(", ") || "Sin proveedor asignado"}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="block text-xs text-muted-foreground">
-                                    Observaciones
-                                  </span>
-                                  <span className="block wrap-break-word">
-                                    {order.extraInfo || "—"}
-                                  </span>
+                                  <span className="block text-xs text-muted-foreground">Celular</span>
+                                  <span className="block wrap-break-word">{order.phone || "—"}</span>
                                 </div>
                               </div>
-                                <div className="min-w-0 space-y-3">
-                                  <ul className="grid min-w-0 gap-2 text-sm">
-                                    {order.items.map((item, itemIndex) => {
-                                    const product = allProducts.find(
-                                      (candidate) =>
-                                        candidate.id === item.productId ||
-                                        candidate.name === item.name,
-                                    );
-                                    const supplier = getSupplierForItem(
-                                      item.name,
-                                      item.productId,
-                                      item.variantId,
-                                    )?.supplier;
-                                    const itemBrand = item.brand ?? product?.brand ?? order.brand;
-                                    return (
-                                      <li
-                                        key={`${item.name}-${item.variantId ?? itemIndex}`}
-                                        className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-xl bg-surface p-3"
+
+                              <div className="min-w-0 space-y-3">
+                                <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <span className="text-sm font-medium">Productos comprados</span>
+                                    {order.items.length > 4 && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs"
+                                        onClick={() => setProductListModalOrder(order)}
                                       >
-                                        <div className="min-w-0 text-left">
-                                          <p className="wrap-break-word font-medium">{item.name}</p>
-                                          <p className="text-xs text-muted-foreground">
-                                            LRG {brands[itemBrand].shortName}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground">
-                                            {item.quantity} × {formatPrice(item.price)}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground">
+                                        Ver más
+                                      </Button>
+                                    )}
+                                  </div>
+
+                                  <ul className="grid min-w-0 gap-2 text-sm">
+                                    {order.items.slice(0, 4).map((item, itemIndex) => {
+                                      const product = allProducts.find(
+                                        (candidate) =>
+                                          candidate.id === item.productId || candidate.name === item.name,
+                                      );
+                                      const supplier = getSupplierForItem(
+                                        item.name,
+                                        item.productId,
+                                        item.variantId,
+                                      )?.supplier;
+                                      const itemBrand = item.brand ?? product?.brand ?? order.brand;
+                                      const variantText =
+                                        item.variantName && item.variantName !== item.name
+                                          ? ` · ${item.variantName}`
+                                          : "";
+                                      return (
+                                        <li
+                                          key={`${item.name}-${item.variantId ?? itemIndex}`}
+                                          className="rounded-xl bg-surface p-3"
+                                        >
+                                          <div className="flex min-w-0 items-start justify-between gap-3">
+                                            <div className="min-w-0 text-left">
+                                              <p className="wrap-break-word font-medium">
+                                                {item.name}
+                                                {variantText && (
+                                                  <span className="text-muted-foreground">
+                                                    {variantText}
+                                                  </span>
+                                                )}
+                                              </p>
+                                            </div>
+                                            <span className="shrink-0 text-right font-medium">
+                                              {formatPrice(item.price * item.quantity)}
+                                            </span>
+                                          </div>
+                                          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                                            <span>{brands[itemBrand].shortName}</span>
+                                            <span>
+                                              {item.quantity} × {formatPrice(item.price)}
+                                            </span>
+                                          </div>
+                                          <p className="mt-1 text-xs text-muted-foreground">
                                             Proveedor: {supplier?.name ?? "Sin proveedor asignado"}
                                           </p>
-                                        </div>
-                                        <span className="shrink-0 text-right font-medium">
-                                          {formatPrice(item.price * item.quantity)}
-                                        </span>
-                                      </li>
-                                    );
+                                        </li>
+                                      );
                                     })}
                                   </ul>
                                 </div>
+
+                                {Array.from(
+                                  new Map(
+                                    order.items.map((item) => {
+                                      const product = allProducts.find(
+                                        (candidate) =>
+                                          candidate.id === item.productId || candidate.name === item.name,
+                                      );
+                                      const itemBrand = item.brand ?? product?.brand ?? order.brand;
+                                      return [itemBrand, itemBrand] as const;
+                                    }),
+                                  ).values(),
+                                ).map((brandSlug) => {
+                                  const itemsInBrand = order.items.filter((item) => {
+                                    const product = allProducts.find(
+                                      (candidate) =>
+                                        candidate.id === item.productId || candidate.name === item.name,
+                                    );
+                                    return (item.brand ?? product?.brand ?? order.brand) === brandSlug;
+                                  });
+                                  const suppliers = Array.from(
+                                    new Set(
+                                      itemsInBrand
+                                        .map((item) =>
+                                          getSupplierForItem(
+                                            item.name,
+                                            item.productId,
+                                            item.variantId,
+                                          )?.supplier?.name,
+                                        )
+                                        .filter((name): name is string => Boolean(name)),
+                                    ),
+                                  );
+
+                                  return (
+                                    <div
+                                      key={brandSlug}
+                                      className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-4"
+                                    >
+                                      <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <span className="text-sm font-medium">{brands[brandSlug].name}</span>
+                                      </div>
+                                      <div className="grid gap-2 sm:grid-cols-2">
+                                        <div>
+                                          <span className="block text-xs text-muted-foreground">
+                                            Método de pago
+                                          </span>
+                                          <span className="block wrap-break-word">
+                                            {order.paymentMethod || "—"}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span className="block text-xs text-muted-foreground">
+                                            Método de envío
+                                          </span>
+                                          <span className="block wrap-break-word">
+                                            {order.shippingMethod ?? "—"}
+                                          </span>
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                          <span className="block text-xs text-muted-foreground">
+                                            Proveedor
+                                          </span>
+                                          <span className="block wrap-break-word">
+                                            {suppliers.length ? suppliers.join(", ") : "Sin proveedor asignado"}
+                                          </span>
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                          <span className="block text-xs text-muted-foreground">
+                                            Observaciones
+                                          </span>
+                                          <span className="block wrap-break-word">
+                                            {order.extraInfo || "—"}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
+
                             <div className="flex flex-wrap justify-center gap-2 border-t border-border/50 pt-3">
                               {isQuickEditing ? (
                                 <>
@@ -2873,7 +2931,6 @@ function AdminOrders() {
                     Datos del pedido
                   </p>
                   <div className="w-full max-w-xs">
-                    <Label className="min-h-5">Tienda</Label>
                     <Select
                       value={selectedOrderStore}
                       onValueChange={(value) => changeSelectedOrderStore(value as BrandSlug)}
@@ -2884,7 +2941,7 @@ function AdminOrders() {
                       <SelectContent>
                         {orderStoreSlugs.map((store) => (
                           <SelectItem key={store} value={store}>
-                            {`LRG ${brands[store].name}`}
+                            {brands[store].shortName}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -2998,19 +3055,6 @@ function AdminOrders() {
                       setOrderForm({ ...orderForm, extraInfo: event.target.value })
                     }
                   />
-                </div>
-
-                <div className="flex justify-end pt-1">
-                  <Button
-                    type="button"
-                    variant="default"
-                    onClick={handleSaveOrder}
-                    disabled={!hasOrderChanges || !isOrderFormValid}
-                    className="inline-flex items-center gap-2"
-                  >
-                    <Check className="size-4" />
-                    Confirmar cambios
-                  </Button>
                 </div>
 
                 {paymentInstruction ? (
@@ -3286,6 +3330,60 @@ function AdminOrders() {
                 </Button>
               </div>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={productListModalOrder !== null}
+        onOpenChange={(open) => !open && setProductListModalOrder(null)}
+      >
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Productos del pedido</DialogTitle>
+            <DialogDescription>{productListModalOrder?.id}</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+            {productListModalOrder?.items.map((item, itemIndex) => {
+              const product = allProducts.find(
+                (candidate) => candidate.id === item.productId || candidate.name === item.name,
+              );
+              const supplier = getSupplierForItem(item.name, item.productId, item.variantId)?.supplier;
+              const itemBrand = item.brand ?? product?.brand ?? productListModalOrder.brand;
+              const variantText =
+                item.variantName && item.variantName !== item.name ? ` · ${item.variantName}` : "";
+
+              return (
+                <div
+                  key={`${productListModalOrder.id}-${item.name}-${item.variantId ?? itemIndex}`}
+                  className="rounded-xl border border-border/60 bg-surface/40 p-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">
+                        {item.name}
+                        {variantText && <span className="text-muted-foreground">{variantText}</span>}
+                      </p>
+                    </div>
+                    <span className="shrink-0 font-medium">
+                      {formatPrice(item.price * item.quantity)}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span>{brands[itemBrand].shortName}</span>
+                    <span>
+                      {item.quantity} × {formatPrice(item.price)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Proveedor: {supplier?.name ?? "Sin proveedor asignado"}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={() => setProductListModalOrder(null)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
