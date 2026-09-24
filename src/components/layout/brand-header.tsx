@@ -13,6 +13,7 @@ import {
   ContactRound,
   Settings,
   User,
+  UserPlus,
   Users,
   Trash2,
 } from "lucide-react";
