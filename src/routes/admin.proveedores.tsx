@@ -1003,7 +1003,7 @@ function AdminSuppliers() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
       <div className="w-full">
         <div className="flex flex-wrap items-center gap-2">
           <div className="order-1 basis-full shrink-0">

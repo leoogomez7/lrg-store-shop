@@ -307,7 +307,7 @@ function AdminTrash() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Eliminaciones</p>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -369,7 +369,6 @@ function AdminTrash() {
         <div className="flex min-h-10 items-center gap-2">
           {selectionMode ? (
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Todos</span>
               <Checkbox
                 checked={(() => {
                   const selectedCount =
