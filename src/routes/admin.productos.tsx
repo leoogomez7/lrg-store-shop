@@ -1046,41 +1046,29 @@ function AdminProducts() {
   };
 
   const cancelQuickEdit = () => {
-    const queuedSelectionKey = bulkQuickEditQueue[0];
-    const nextQuickEditEntry = queuedSelectionKey ? resolveQuickEditSelection(queuedSelectionKey) : null;
+    const currentSelectionKey = quickEditProductId
+      ? `${quickEditProductId}:${quickEditVariantId ?? "base"}`
+      : null;
+    const remainingQueue = bulkQuickEditQueue.filter((selectionKey) => selectionKey !== currentSelectionKey);
+    const nextQueuedSelectionKey = remainingQueue[0];
+    const nextQuickEditEntry = nextQueuedSelectionKey
+      ? resolveQuickEditSelection(nextQueuedSelectionKey)
+      : null;
 
-    if (queuedSelectionKey && nextQuickEditEntry) {
-      setBulkQuickEditQueue((current) => current.slice(1));
-      setQuickEditProductId(null);
-      setQuickEditVariantId(null);
-      setQuickEditForm((current) => {
-        const next = { ...current };
-        if (quickEditProductId)
-          delete next[
-            getQuickEditKey(
-              { id: quickEditProductId } as Product,
-              quickEditVariantId ? ({ id: quickEditVariantId } as ProductVariant) : undefined,
-            )
-          ];
-        return next;
-      });
-      startQuickEdit(nextQuickEditEntry.product, nextQuickEditEntry.variant);
-      return;
-    }
-
+    setBulkQuickEditQueue(remainingQueue);
     setQuickEditProductId(null);
     setQuickEditVariantId(null);
     setQuickEditForm((current) => {
       const next = { ...current };
-      if (quickEditProductId)
-        delete next[
-          getQuickEditKey(
-            { id: quickEditProductId } as Product,
-            quickEditVariantId ? ({ id: quickEditVariantId } as ProductVariant) : undefined,
-          )
-        ];
+      if (currentSelectionKey) {
+        delete next[currentSelectionKey];
+      }
       return next;
     });
+
+    if (nextQuickEditEntry) {
+      startQuickEdit(nextQuickEditEntry.product, nextQuickEditEntry.variant);
+    }
   };
 
   const showStockExceededToast = (productName: string, maxStock: number) => {
@@ -1188,8 +1176,12 @@ function AdminProducts() {
       [product.id]: String(nextDiscount),
     }));
 
-    const queuedSelectionKey = bulkQuickEditQueue[0];
-    const nextQuickEditEntry = queuedSelectionKey ? resolveQuickEditSelection(queuedSelectionKey) : null;
+    const currentSelectionKey = key;
+    const remainingQueue = bulkQuickEditQueue.filter((selectionKey) => selectionKey !== currentSelectionKey);
+    const nextQueuedSelectionKey = remainingQueue[0];
+    const nextQuickEditEntry = nextQueuedSelectionKey
+      ? resolveQuickEditSelection(nextQueuedSelectionKey)
+      : null;
 
     setQuickEditProductId(null);
     setQuickEditVariantId(null);
@@ -1198,11 +1190,10 @@ function AdminProducts() {
       delete next[key];
       return next;
     });
+    setBulkQuickEditQueue(remainingQueue);
 
-    if (queuedSelectionKey && nextQuickEditEntry) {
-      setBulkQuickEditQueue((current) => current.slice(1));
+    if (nextQuickEditEntry) {
       startQuickEdit(nextQuickEditEntry.product, nextQuickEditEntry.variant);
-      return;
     }
   };
 
@@ -2152,8 +2143,21 @@ function AdminProducts() {
                 >
                   <Check className="size-4" /> Guardar
                 </Button>
-                <Button size="sm" variant="destructive" onClick={cancelQuickEdit}>
-                  <X className="size-4" /> Cancelar
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() =>
+                    setConfirmState({
+                      open: true,
+                      title: "Descartar y seguir?",
+                      description: "Se descarta la edición actual y continúa con el siguiente producto seleccionado.",
+                      confirmLabel: "Saltar",
+                      cancelLabel: "Volver",
+                      onConfirm: cancelQuickEdit,
+                    })
+                  }
+                >
+                  <X className="size-4" /> Saltar
                 </Button>
               </>
             ) : (

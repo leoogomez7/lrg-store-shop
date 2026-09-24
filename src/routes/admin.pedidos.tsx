@@ -552,6 +552,9 @@ function AdminOrders() {
   const [bulkOrderEditPosition, setBulkOrderEditPosition] = useState(0);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
+  const [pendingOrderItemDeleteIndex, setPendingOrderItemDeleteIndex] = useState<number | null>(
+    null,
+  );
   const [pendingAttachments, setPendingAttachments] = useState<OrderAttachment[]>([]);
   const [isSavingDocuments, setIsSavingDocuments] = useState(false);
   const documentsInputRef = useRef<HTMLInputElement | null>(null);
@@ -629,38 +632,30 @@ function AdminOrders() {
   };
 
   const cancelQuickEditOrder = useCallback(() => {
-    const queuedOrderId = bulkQuickEditOrderQueue[0];
-    const remainingQueue = bulkQuickEditOrderQueue.slice(1);
-    const nextQuickEditOrder = queuedOrderId
-      ? editableOrders.find((order) => order.id === queuedOrderId)
+    const currentOrderId = quickEditOrderId;
+    const remainingQueue = bulkQuickEditOrderQueue.filter((orderId) => orderId !== currentOrderId);
+    const nextQueuedOrderId = remainingQueue[0];
+    const nextQuickEditOrder = nextQueuedOrderId
+      ? editableOrders.find((order) => order.id === nextQueuedOrderId)
       : null;
 
-    if (queuedOrderId && nextQuickEditOrder) {
-      setBulkQuickEditOrderQueue(remainingQueue);
-      setQuickEditOrderId(null);
-      setQuickEditOrderForm((current) => {
-        const next = { ...current };
-        if (quickEditOrderId) {
-          delete next[quickEditOrderId];
-          delete quickEditOriginalSnapshots.current[quickEditOrderId];
-        }
-        return next;
-      });
+    setBulkQuickEditOrderQueue(remainingQueue);
+    setQuickEditOrderId(null);
+    setQuickEditOrderForm((current) => {
+      const next = { ...current };
+      if (currentOrderId) {
+        delete next[currentOrderId];
+        delete quickEditOriginalSnapshots.current[currentOrderId];
+      }
+      return next;
+    });
+
+    if (nextQuickEditOrder) {
       setSelectionMode(true);
       startQuickEditOrder(nextQuickEditOrder);
       return;
     }
 
-    setBulkQuickEditOrderQueue([]);
-    setQuickEditOrderId(null);
-    setQuickEditOrderForm((current) => {
-      const next = { ...current };
-      if (quickEditOrderId) {
-        delete next[quickEditOrderId];
-        delete quickEditOriginalSnapshots.current[quickEditOrderId];
-      }
-      return next;
-    });
     setSelectionMode(selectedOrderIds.length > 0);
   }, [bulkQuickEditOrderQueue, editableOrders, quickEditOrderId, selectedOrderIds.length]);
 
@@ -702,8 +697,9 @@ function AdminOrders() {
       return nextOrders;
     });
 
-    const queuedOrderId = bulkQuickEditOrderQueue[0];
-    const remainingQueue = bulkQuickEditOrderQueue.slice(1);
+    const currentOrderId = order.id;
+    const remainingQueue = bulkQuickEditOrderQueue.filter((orderId) => orderId !== currentOrderId);
+    const nextQueuedOrderId = remainingQueue[0];
     setBulkQuickEditOrderQueue(remainingQueue);
     setQuickEditOrderId(null);
     setQuickEditOrderForm((current) => {
@@ -713,8 +709,8 @@ function AdminOrders() {
       return next;
     });
 
-    if (queuedOrderId && remainingQueue.length > 0) {
-      const nextQuickEditOrder = editableOrders.find((candidate) => candidate.id === remainingQueue[0]);
+    if (nextQueuedOrderId) {
+      const nextQuickEditOrder = editableOrders.find((candidate) => candidate.id === nextQueuedOrderId);
       if (nextQuickEditOrder) {
         setSelectionMode(true);
         startQuickEditOrder(nextQuickEditOrder);
@@ -3145,13 +3141,7 @@ function AdminOrders() {
                               <Button
                                 type="button"
                                 variant="ghost"
-                                onClick={() =>
-                                  setConfirmState({
-                                    open: true,
-                                    title: `Eliminar producto del pedido?`,
-                                    onConfirm: () => removeOrderItem(itemIndex),
-                                  })
-                                }
+                                onClick={() => setPendingOrderItemDeleteIndex(itemIndex)}
                                 className="h-8 justify-start px-2 text-destructive hover:bg-destructive/20"
                               >
                                 <Trash2 className="size-4" /> Eliminar
@@ -3214,6 +3204,23 @@ function AdminOrders() {
 
             </div>
           ) : null}
+
+          <ConfirmDialog
+            open={pendingOrderItemDeleteIndex !== null}
+            onOpenChange={(open) => {
+              if (!open) setPendingOrderItemDeleteIndex(null);
+            }}
+            title="Eliminar producto del pedido?"
+            description="Esta acción no se puede deshacer."
+            confirmLabel="Eliminar"
+            cancelLabel="Cancelar"
+            onConfirm={() => {
+              if (pendingOrderItemDeleteIndex !== null) {
+                removeOrderItem(pendingOrderItemDeleteIndex);
+              }
+              setPendingOrderItemDeleteIndex(null);
+            }}
+          />
 
           <DialogFooter>
             <div className="flex w-full items-center justify-between gap-2">

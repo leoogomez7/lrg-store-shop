@@ -137,12 +137,14 @@ function AdminSuppliers() {
   const [selectedSupplierKeys, setSelectedSupplierKeys] = React.useState<string[]>([]);
   const [bulkSupplierEditQueue, setBulkSupplierEditQueue] = React.useState<string[]>([]);
   const [bulkSupplierEditPosition, setBulkSupplierEditPosition] = React.useState(0);
+  const [bulkSupplierEditCompletedKeys, setBulkSupplierEditCompletedKeys] = React.useState<string[]>([]);
   const [selectionMode, setSelectionMode] = React.useState(false);
   const [quickEditSupplierKey, setQuickEditSupplierKey] = React.useState<string | null>(null);
   const [quickEditSupplier, setQuickEditSupplier] = React.useState<StandaloneSupplier | null>(null);
   const [quickEditFromDetails, setQuickEditFromDetails] = React.useState(false);
   const [quickEditSupplierQueue, setQuickEditSupplierQueue] = React.useState<string[]>([]);
   const [editingSupplierKey, setEditingSupplierKey] = React.useState<string | null>(null);
+  const [supplierSkipConfirmOpen, setSupplierSkipConfirmOpen] = React.useState(false);
   const [supplierDeleteConfirmOpen, setSupplierDeleteConfirmOpen] = React.useState(false);
   const [pendingSupplierDelete, setPendingSupplierDelete] = React.useState<(() => void) | null>(null);
   const supplierFormKey = `${newSupplier.name.trim()}|${newSupplier.phone.trim()}|${newSupplier.social.trim()}`;
@@ -333,6 +335,7 @@ function AdminSuppliers() {
     setEditingSupplierKey(null);
     setBulkSupplierEditQueue([]);
     setBulkSupplierEditPosition(0);
+    setBulkSupplierEditCompletedKeys([]);
     setSelectedSupplierKeys([]);
     setSelectionMode(false);
   };
@@ -346,15 +349,40 @@ function AdminSuppliers() {
     if (!supplier.name || !supplier.phone || !supplier.social) return;
     if (editingSupplierKey) {
       saveSupplierChanges(editingSupplierKey, supplier, bulkSupplierEditQueue.length === 0);
-      const nextPosition = bulkSupplierEditPosition + 1;
-      const nextKey = bulkSupplierEditQueue[nextPosition];
-      const nextRow =
-        filteredRows.find((row) => row.key === nextKey) ?? rows.find((row) => row.key === nextKey);
-      if (nextRow) {
-        setBulkSupplierEditPosition(nextPosition);
-        openSupplierEditor(nextRow);
-        return;
+
+      const completedKeys = new Set([...bulkSupplierEditCompletedKeys, editingSupplierKey]);
+      const currentIndex = bulkSupplierEditQueue.indexOf(editingSupplierKey);
+      const nextKey = (() => {
+        for (let offset = 1; offset < bulkSupplierEditQueue.length; offset += 1) {
+          const candidateIndex = currentIndex + offset;
+          const candidateKey = bulkSupplierEditQueue[candidateIndex];
+          if (candidateKey && !completedKeys.has(candidateKey)) {
+            return candidateKey;
+          }
+        }
+        for (let offset = 1; offset <= currentIndex; offset += 1) {
+          const candidateIndex = currentIndex - offset;
+          const candidateKey = bulkSupplierEditQueue[candidateIndex];
+          if (candidateKey && !completedKeys.has(candidateKey)) {
+            return candidateKey;
+          }
+        }
+        return null;
+      })();
+
+      setBulkSupplierEditCompletedKeys(Array.from(completedKeys));
+
+      if (nextKey) {
+        const nextRow =
+          filteredRows.find((row) => row.key === nextKey) ?? rows.find((row) => row.key === nextKey);
+        if (nextRow) {
+          const nextPosition = bulkSupplierEditQueue.indexOf(nextKey);
+          setBulkSupplierEditPosition(nextPosition);
+          openSupplierEditor(nextRow);
+          return;
+        }
       }
+
       closeSupplierEditor();
       return;
     }
@@ -392,27 +420,23 @@ function AdminSuppliers() {
   };
 
   const cancelQuickEditSupplier = () => {
-    const queuedSupplierKey = quickEditSupplierQueue[0];
-    const remainingQueue = quickEditSupplierQueue.slice(1);
-    const nextRow = queuedSupplierKey
-      ? rows.find((row) => row.key === queuedSupplierKey)
-      : null;
+    const currentKey = quickEditSupplierKey;
+    const remainingQueue = quickEditSupplierQueue.filter((key) => key !== currentKey);
+    const nextQueuedKey = remainingQueue[0];
+    const nextRow = nextQueuedKey ? rows.find((row) => row.key === nextQueuedKey) : null;
 
-    if (queuedSupplierKey && nextRow) {
-      setQuickEditSupplierQueue(remainingQueue);
-      setQuickEditSupplierKey(null);
-      setQuickEditSupplier(null);
-      setQuickEditFromDetails(false);
+    setQuickEditSupplierKey(null);
+    setQuickEditSupplier(null);
+    setQuickEditFromDetails(false);
+    setQuickEditSupplierQueue(remainingQueue);
+
+    if (nextRow) {
       setSelectionMode(true);
       startQuickEditSupplier(nextRow);
       return;
     }
 
     setSelectionMode(selectedSupplierKeys.length > 0);
-    setQuickEditSupplierKey(null);
-    setQuickEditSupplier(null);
-    setQuickEditFromDetails(false);
-    setQuickEditSupplierQueue([]);
   };
 
   const saveSupplierChanges = (
@@ -468,15 +492,16 @@ function AdminSuppliers() {
     });
     saveProducts(nextProducts);
     queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
-    const queuedSupplierKey = quickEditSupplierQueue[0];
-    const remainingQueue = quickEditSupplierQueue.slice(1);
+    const currentKey = supplierKey;
+    const remainingQueue = quickEditSupplierQueue.filter((key) => key !== currentKey);
+    const nextQueuedKey = remainingQueue[0];
     setQuickEditSupplierKey(null);
     setQuickEditSupplier(null);
     setQuickEditFromDetails(false);
 
     setQuickEditSupplierQueue(remainingQueue);
-    if (closeEditor && queuedSupplierKey) {
-      const nextRow = rows.find((row) => row.key === queuedSupplierKey);
+    if (closeEditor && nextQueuedKey) {
+      const nextRow = rows.find((row) => row.key === nextQueuedKey);
       if (nextRow) {
         setSelectionMode(true);
         startQuickEditSupplier(nextRow);
@@ -551,6 +576,7 @@ function AdminSuppliers() {
       const queue = filteredRows.filter((row) => selectedKeys.has(row.key)).map((row) => row.key);
       setBulkSupplierEditQueue(queue);
       setBulkSupplierEditPosition(0);
+      setBulkSupplierEditCompletedKeys([]);
       openSupplierEditor(selectedRow);
     }
   };
@@ -1249,8 +1275,12 @@ function AdminSuppliers() {
                   >
                     <Check className="size-4" /> Guardar
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={cancelQuickEditSupplier}>
-                    <X className="size-4" /> Cancelar
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => setSupplierSkipConfirmOpen(true)}
+                  >
+                    <X className="size-4" /> Saltar
                   </Button>
                 </>
               ) : (
@@ -1595,6 +1625,20 @@ function AdminSuppliers() {
         </DialogContent>
       </Dialog>
 
+      <ConfirmDialog
+        open={supplierSkipConfirmOpen}
+        onOpenChange={(open) => {
+          setSupplierSkipConfirmOpen(open);
+        }}
+        title="Descartar y seguir?"
+        description="Se descarta la edición actual y continúa con el siguiente proveedor seleccionado."
+        confirmLabel="Saltar"
+        cancelLabel="Volver"
+        onConfirm={() => {
+          cancelQuickEditSupplier();
+          setSupplierSkipConfirmOpen(false);
+        }}
+      />
       <ConfirmDialog
         open={supplierDeleteConfirmOpen}
         onOpenChange={(open) => {
