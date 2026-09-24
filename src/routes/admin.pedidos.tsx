@@ -603,6 +603,7 @@ function AdminOrders() {
   >({});
   const [isBulkQuickEditing, setIsBulkQuickEditing] = useState(false);
   const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
+  const expandedOrderRowRef = useRef<HTMLTableRowElement | null>(null);
   const quickEditDetailRef = useRef<HTMLTableRowElement | null>(null);
   const quickEditOriginalSnapshots = useRef<Record<string, string>>({});
   useEffect(() => {
@@ -834,7 +835,7 @@ function AdminOrders() {
 
     setExpandedOrderId(quickEditOrderId);
     const frame = requestAnimationFrame(() => {
-      quickEditDetailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      expandedOrderRowRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
 
     const handlePointerDown = (event: MouseEvent) => {
@@ -861,7 +862,7 @@ function AdminOrders() {
     if (!expandedOrderId || quickEditOrderId || isBulkQuickEditing) return;
 
     const frame = requestAnimationFrame(() => {
-      quickEditDetailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      expandedOrderRowRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
 
     return () => cancelAnimationFrame(frame);
@@ -1495,11 +1496,15 @@ function AdminOrders() {
     });
   };
 
-  const updateOrderItemProduct = (index: number, name: string) => {
+  const updateOrderItemProduct = (index: number, name: string, selectedProduct?: Product) => {
     if (!orderForm) return;
-    const product = allProducts.find(
-      (candidate) => candidate.name.toLowerCase() === name.trim().toLowerCase(),
-    );
+    const product =
+      selectedProduct ??
+      allProducts.find(
+        (candidate) =>
+          candidate.name.toLowerCase() === name.trim().toLowerCase() &&
+          !candidate.variantId,
+      );
     const nextItems = [...orderForm.items];
     const currentItem = nextItems[index];
     if (!currentItem) return;
@@ -1538,6 +1543,11 @@ function AdminOrders() {
             ),
           )
         : currentItem.quantity,
+      confirmed: !currentItem.originalName?.trim() ? true : currentItem.confirmed,
+      originalName: !currentItem.originalName?.trim() ? name : currentItem.originalName,
+      originalQuantity: !currentItem.originalName?.trim()
+        ? Math.max(1, currentItem.quantity || 1)
+        : currentItem.originalQuantity,
     };
     updateOrderItemsOnly(nextItems);
   };
@@ -1713,13 +1723,12 @@ function AdminOrders() {
       const nextOrders = isCreatingOrder
         ? [orderToSave, ...current]
         : current.map((order) => (order.id === orderToSave.id ? orderToSave : order));
-      saveOrders(nextOrders);
+      void saveOrders(nextOrders);
+      queryClient.setQueryData(orderQueries.list().queryKey, nextOrders);
       return nextOrders;
     });
-    setOrderForm(orderToSave);
-    setIsCreatingOrder(false);
-    initialOrderFormSnapshot.current = JSON.stringify(orderToSave);
     toast.success("Cambios guardados");
+    closeOrderEditor();
   };
 
   const changeSelectedOrderStore = (store: BrandSlug) => {
@@ -2388,7 +2397,10 @@ function AdminOrders() {
                   <Fragment key={order.id}>
                     <TableRow
                       id={`pedido-${order.id}`}
-                      ref={isQuickEditing ? quickEditRowRef : undefined}
+                      ref={(node) => {
+                        if (isQuickEditing) quickEditRowRef.current = node;
+                        if (isExpanded) expandedOrderRowRef.current = node;
+                      }}
                       onClick={(event) => {
                         if (
                           selectionMode ||
@@ -2401,11 +2413,14 @@ function AdminOrders() {
                         setExpandedOrderId(isExpanded ? null : order.id);
                       }}
                       className={
-                        highlightedOrderId === order.id
+                        cn(
+                          expandedOrderId === order.id && "scroll-mt-16",
+                          highlightedOrderId === order.id
                           ? "animate-pulse border border-amber-400/80 bg-linear-to-r from-amber-500/25 via-yellow-300/25 to-amber-500/25 shadow-[0_0_0_1px_rgba(251,191,36,0.55),0_0_18px_rgba(251,191,36,0.28)]"
                           : !selectionMode && !isQuickEditing
                             ? "cursor-pointer hover:bg-transparent"
-                            : undefined
+                            : undefined,
+                        )
                       }
                     >
                       <TableCell className="w-10 px-1">
@@ -3144,11 +3159,17 @@ function AdminOrders() {
                   {orderForm.items.map((item, itemIndex) => {
                     const productSuggestions = allProducts
                       .filter((product) =>
-                        product.name.toLowerCase().includes(item.name.trim().toLowerCase()),
+                        `${product.name} ${product.variantName ?? ""}`
+                          .toLowerCase()
+                          .includes(item.name.trim().toLowerCase()),
                       )
                       .slice(0, 6);
                     const selectedProduct = allProducts.find(
-                      (product) => product.name.toLowerCase() === item.name.trim().toLowerCase(),
+                      (product) =>
+                        product.id === item.productId ||
+                        (product.variantId === item.variantId && product.name === item.name) ||
+                        (product.name.toLowerCase() === item.name.trim().toLowerCase() &&
+                          !product.variantId),
                     );
                     const selectedSupplier = getSupplierForItem(
                       item.name,
@@ -3194,15 +3215,18 @@ function AdminOrders() {
                             item.name.trim() &&
                             !selectedProduct &&
                             productSuggestions.length > 0 && (
-                              <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-background p-1 shadow-lg">
+                              <div className="absolute left-0 right-0 top-full z-20 mt-0 max-h-48 overflow-y-auto rounded-lg border border-border bg-background p-1 shadow-lg">
                                 {productSuggestions.map((product) => (
                                   <button
                                     key={product.id}
                                     type="button"
                                     className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
-                                    onClick={() => updateOrderItemProduct(itemIndex, product.name)}
+                                    onClick={() => updateOrderItemProduct(itemIndex, product.name, product)}
                                   >
-                                    <span className="min-w-0 truncate">{product.name}</span>
+                                    <span className="min-w-0 truncate">
+                                      {product.name}
+                                      {product.variantName ? ` - ${product.variantName}` : ""}
+                                    </span>
                                     <span className="shrink-0 text-xs text-muted-foreground">
                                       Stock: {product.stockUnlimited ? "Ilimitado" : product.stock}
                                     </span>
@@ -3419,12 +3443,18 @@ function AdminOrders() {
           <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
             {productListModalOrder?.items.map((item, itemIndex) => {
               const product = allProducts.find(
-                (candidate) => candidate.id === item.productId || candidate.name === item.name,
+                (candidate) =>
+                  candidate.id === item.productId ||
+                  candidate.variantId === item.variantId ||
+                  candidate.name === item.name,
               );
               const supplier = getSupplierForItem(item.name, item.productId, item.variantId)?.supplier;
               const itemBrand = item.brand ?? product?.brand ?? productListModalOrder.brand;
-              const variantText =
-                item.variantName && item.variantName !== item.name ? ` · ${item.variantName}` : "";
+              const variantName =
+                item.variantName ??
+                product?.variantName ??
+                product?.variants?.find((variant) => variant.id === item.variantId)?.name;
+              const variantText = variantName && variantName !== item.name ? ` - ${variantName}` : "";
 
               return (
                 <div
