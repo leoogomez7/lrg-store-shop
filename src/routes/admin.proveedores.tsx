@@ -1368,25 +1368,7 @@ function AdminSuppliers() {
             </div>
             <DialogFooter>
               <div className="flex w-full items-center justify-between gap-2">
-                {editingSupplierKey ? (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => {
-                      const supplierKey = editingSupplierKey;
-                      setPendingSupplierDelete(() => {
-                        deleteSupplier(supplierKey);
-                        closeSupplierEditor();
-                      });
-                      setSupplierDeleteConfirmOpen(true);
-                    }}
-                    className="gap-2"
-                  >
-                    <Trash2 className="size-4" /> Eliminar
-                  </Button>
-                ) : (
-                  <span />
-                )}
+                <span />
                 {editingSupplierKey && bulkSupplierEditQueue.length > 1 ? (
                   <div className="flex gap-2">
                     <Button
@@ -1411,19 +1393,38 @@ function AdminSuppliers() {
                 ) : (
                   <span />
                 )}
-                <Button
-                  type="button"
-                  onClick={addSupplier}
-                  disabled={
-                    !newSupplier.name.trim() ||
-                    !newSupplier.phone.trim() ||
-                    !newSupplier.social.trim() ||
-                    !supplierFormHasChanges
-                  }
-                >
-                  <Save className="size-4" />
-                  Guardar
-                </Button>
+                <div className="flex items-center gap-2">
+                  {editingSupplierKey ? (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => {
+                        const supplierKey = editingSupplierKey;
+                        setPendingSupplierDelete(() => {
+                          deleteSupplier(supplierKey);
+                          closeSupplierEditor();
+                        });
+                        setSupplierDeleteConfirmOpen(true);
+                      }}
+                      className="gap-2"
+                    >
+                      <Trash2 className="size-4" /> Eliminar
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    onClick={addSupplier}
+                    disabled={
+                      !newSupplier.name.trim() ||
+                      !newSupplier.phone.trim() ||
+                      !newSupplier.social.trim() ||
+                      !supplierFormHasChanges
+                    }
+                  >
+                    <Save className="size-4" />
+                    Guardar
+                  </Button>
+                </div>
               </div>
             </DialogFooter>
           </DialogContent>
@@ -1546,7 +1547,7 @@ function AdminSuppliers() {
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
-                  <TableHead className="w-10 px-1"> </TableHead>
+                  <TableHead className="w-12 min-w-12 max-w-12 px-2"> </TableHead>
                   <TableHead className="w-[24%] min-w-[150px] pl-5">Nombre</TableHead>
                   <TableHead className="w-[16%] min-w-[110px]">Celular</TableHead>
                   <TableHead className="w-[18%] min-w-[120px]">Red social</TableHead>
@@ -1589,7 +1590,7 @@ function AdminSuppliers() {
                             : undefined
                         }
                       >
-                        <TableCell className="w-10 px-1">
+                        <TableCell className="w-12 min-w-12 max-w-12 px-2">
                           <div className="flex items-center justify-center">
                             <Checkbox
                               className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"

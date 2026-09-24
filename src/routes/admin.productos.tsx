@@ -2253,7 +2253,7 @@ function AdminProducts() {
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
-                <TableHead className="w-10 px-1"> </TableHead>
+                <TableHead className="w-12 min-w-12 max-w-12 px-2"> </TableHead>
                 <TableHead className="w-40 text-center">Producto</TableHead>
                 <TableHead className="w-20 text-center">Tienda</TableHead>
                 <TableHead className="w-16 text-center">Stock</TableHead>
@@ -2329,7 +2329,7 @@ function AdminProducts() {
                       !selectionMode && !isQuickEditing && "cursor-pointer hover:bg-transparent",
                     )}
                   >
-                    <TableCell className="w-10 px-1">
+                    <TableCell className="w-12 min-w-12 max-w-12 px-2">
                       <div className="flex items-center justify-center">
                         <Checkbox
                           className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
@@ -4912,21 +4912,20 @@ function ProductEditDialog({
 
         <DialogFooter>
           <div className="flex w-full items-center justify-between gap-2">
-            {onDelete ? (
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={onDelete}
-                disabled={isSaving}
-                className="gap-2"
-              >
-                <Trash2 className="size-4" /> Eliminar
-              </Button>
-            ) : (
-              <span />
-            )}
+            <span />
             <div className="flex items-center gap-2">
             <div className="flex gap-2">
+              {onDelete ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={onDelete}
+                  disabled={isSaving}
+                  className="gap-2"
+                >
+                  <Trash2 className="size-4" /> Eliminar
+                </Button>
+              ) : null}
               <Button
                 variant="secondary"
                 onClick={() => {

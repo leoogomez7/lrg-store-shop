@@ -1742,13 +1742,7 @@ function AdminOrders() {
     const selectedStoreForm = saveSelectedStoreValues(orderForm, selectedOrderStore);
     const originalForm = JSON.parse(initialOrderFormSnapshot.current ?? "null") as EditableOrder | null;
     if (!originalForm) return;
-    const selectedStoreItems = selectedStoreForm.items.filter(
-      (item) => item.brand === selectedOrderStore,
-    );
-    const preservedItems = originalForm.items.filter(
-      (item) => item.brand !== selectedOrderStore,
-    );
-    const mergedItems = [...preservedItems, ...selectedStoreItems];
+    const mergedItems = selectedStoreForm.items;
     const totals = computeOrderTotals(mergedItems, orderForm.total ? orderForm.expenses / orderForm.total : 0.65);
     const orderToSave: EditableOrder = {
       ...selectedStoreForm,
@@ -2399,7 +2393,7 @@ function AdminOrders() {
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
-                <TableHead className="w-10 px-1"> </TableHead>
+                <TableHead className="w-12 min-w-12 max-w-12 px-2"> </TableHead>
                 <TableHead className="w-24 min-w-24 max-w-24">Pedido</TableHead>
                 <TableHead className="w-20">Fecha</TableHead>
                 <TableHead className="w-24">Estado de pago</TableHead>
@@ -2464,7 +2458,7 @@ function AdminOrders() {
                         )
                       }
                     >
-                      <TableCell className="w-10 px-1">
+                      <TableCell className="w-12 min-w-12 max-w-12 px-2">
                         <div className="flex items-center justify-center">
                           <Checkbox
                             className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
@@ -3222,7 +3216,7 @@ function AdminOrders() {
                       item.name,
                       item.productId,
                       item.variantId,
-                      selectedOrderStore,
+                      itemStore,
                     )?.supplier;
                     const canEditProductName = !item.confirmed;
                     const hasUnlimitedStock = Boolean(selectedProduct?.stockUnlimited);
@@ -3273,7 +3267,7 @@ function AdminOrders() {
                             item.name.trim() &&
                             !selectedProduct &&
                             productSuggestions.length > 0 && (
-                              <div className="absolute left-0 right-0 top-full z-20 mt-0 max-h-48 overflow-y-auto rounded-lg border border-border bg-background p-1 shadow-lg">
+                              <div className="absolute left-0 top-full z-20 mt-0 w-[min(42rem,calc(100vw-2rem))] max-h-48 overflow-y-auto rounded-lg border border-border bg-background p-1 shadow-lg">
                                 {productSuggestions.map((product) => (
                                   <button
                                     key={product.id}
@@ -3286,7 +3280,7 @@ function AdminOrders() {
                                       {product.variantName ? ` - ${product.variantName}` : ""}
                                     </span>
                                     <span className="shrink-0 text-right text-xs text-muted-foreground">
-                                      {getBrandDisplayName(product.brand)} · Stock: {product.stockUnlimited ? "Ilimitado" : product.stock}
+                                      Stock: {product.stockUnlimited ? "Ilimitado" : product.stock}
                                     </span>
                                   </button>
                                 ))}
@@ -3447,33 +3441,7 @@ function AdminOrders() {
 
           <DialogFooter>
             <div className="flex w-full items-center justify-between gap-2">
-              {!isCreatingOrder ? (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  disabled={isSavingOrder}
-                  onClick={() => {
-                    if (!orderForm) return;
-                    const orderToDelete = editableOrders.find((order) => order.id === orderForm.id);
-                    if (!orderToDelete) return;
-                    setConfirmState({
-                      open: true,
-                      title: `¿Eliminar pedido ${orderToDelete.id}?`,
-                      description: "Esta acción enviará el pedido a la papelera.",
-                      confirmLabel: "Eliminar",
-                      onConfirm: () => {
-                        handleDeleteOrder(orderToDelete);
-                        closeOrderEditor();
-                      },
-                    });
-                  }}
-                  className="gap-2"
-                >
-                  <Trash2 className="size-4" /> Eliminar
-                </Button>
-              ) : (
-                <span />
-              )}
+              <span />
               {!isCreatingOrder && bulkOrderEditQueue.length > 1 ? (
                 <div className="flex gap-2">
                   <Button
@@ -3499,6 +3467,31 @@ function AdminOrders() {
                 <span />
               )}
               <div className="flex gap-2">
+                {!isCreatingOrder ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={isSavingOrder}
+                    onClick={() => {
+                      if (!orderForm) return;
+                      const orderToDelete = editableOrders.find((order) => order.id === orderForm.id);
+                      if (!orderToDelete) return;
+                      setConfirmState({
+                        open: true,
+                        title: `¿Eliminar pedido ${orderToDelete.id}?`,
+                        description: "Esta acción enviará el pedido a la papelera.",
+                        confirmLabel: "Eliminar",
+                        onConfirm: () => {
+                          handleDeleteOrder(orderToDelete);
+                          closeOrderEditor();
+                        },
+                      });
+                    }}
+                    className="gap-2"
+                  >
+                    <Trash2 className="size-4" /> Eliminar
+                  </Button>
+                ) : null}
                 <Button
                   variant="secondary"
                   onClick={closeOrderEditor}
