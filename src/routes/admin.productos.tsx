@@ -2004,7 +2004,7 @@ function AdminProducts() {
                 setUsdRatePromptOpen(true);
               }}
             >
-              Seleccionar USD
+              Valor USD
             </Button>
           </div>
 
@@ -2977,9 +2977,6 @@ function AdminProducts() {
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-1">
-              <Button type="button" variant="outline" onClick={() => setUsdRatePromptOpen(false)}>
-                Cancelar
-              </Button>
               <Button type="button" onClick={handleUsdRateConfirm}>
                 <Save className="mr-2 size-4" /> Guardar valor
               </Button>

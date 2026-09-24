@@ -4,11 +4,13 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { Archive, Check, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LoadingState } from "@/components/common/loading-state";
 import { listAdminBackups, type AdminBackupSummary } from "@/server/persistence";
 
 export const Route = createFileRoute("/admin/copias")({
   loader: ({ context }) => context.queryClient.ensureQueryData(backupsQuery),
-  head: () => ({ meta: [{ title: "Copias de seguridad | Administrador" }] }),
+  pendingComponent: () => <LoadingState label="Cargando copias de seguridad..." />,
+  head: () => ({ meta: [{ title: "Copias de seguridad | Respaldo" }] }),
   component: AdminBackups,
 });
 
@@ -56,7 +58,7 @@ function AdminBackups() {
     <main className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Administrador</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Copias de seguridad</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Snapshots automáticos creados al registrar compras.

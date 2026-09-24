@@ -2701,15 +2701,13 @@ function AdminOrders() {
                                                   {item.name}
                                                 </span>
                                                 {resolvedVariantName && (
-                                                  <span className="text-muted-foreground">
-                                                    ({resolvedVariantName})
-                                                  </span>
+                                                  <span className="text-muted-foreground"> - {resolvedVariantName}</span>
                                                 )}
                                               </div>
                                               <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                                                 <span>Proveedor: {supplier?.name ?? "Sin proveedor asignado"}</span>
                                                 <span>•</span>
-                                                <span>{item.quantity} ud.</span>
+                                                <span>{item.quantity} unidades</span>
                                                 <span>•</span>
                                                 <span>{formatPrice(item.price)}</span>
                                               </div>
@@ -2728,10 +2726,10 @@ function AdminOrders() {
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        className="h-7 px-2 text-xs"
+                                        className="h-7 gap-1 px-2 text-xs"
                                         onClick={() => setProductListModalOrder(order)}
                                       >
-                                        Ver más
+                                        <Plus className="size-3.5" /> Ver más
                                       </Button>
                                     </div>
                                   )}
@@ -3544,35 +3542,33 @@ function AdminOrders() {
               return (
                 <div
                   key={`${productListModalOrder.id}-${item.name}-${item.variantId ?? itemIndex}`}
-                  className="rounded-xl border border-border/60 bg-surface/40 p-3"
+                  className="rounded-xl bg-surface p-3"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-medium">
-                        {item.name}
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0 text-left">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex rounded-full border border-border/60 bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                          {getBrandFullName(itemBrand)}
+                        </span>
+                        <span className="wrap-break-word font-medium">{item.name}</span>
                         {variantText && <span className="text-muted-foreground">{variantText}</span>}
-                      </p>
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                        <span>Proveedor: {supplier?.name ?? "Sin proveedor asignado"}</span>
+                        <span>•</span>
+                        <span>{item.quantity} unidades</span>
+                        <span>•</span>
+                        <span>{formatPrice(item.price)}</span>
+                      </div>
                     </div>
                     <span className="shrink-0 font-medium">
                       {formatPrice(item.price * item.quantity)}
                     </span>
                   </div>
-                  <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span>{getBrandDisplayName(itemBrand)}</span>
-                    <span>
-                      {item.quantity} × {formatPrice(item.price)}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Proveedor: {supplier?.name ?? "Sin proveedor asignado"}
-                  </p>
                 </div>
               );
             })}
           </div>
-          <DialogFooter>
-            <Button type="button" onClick={() => setProductListModalOrder(null)}>Cerrar</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
