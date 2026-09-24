@@ -2225,10 +2225,10 @@ function AdminOrders() {
       />
 
       <div className="mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 leading-none">
           <button
             type="button"
-            className="text-sm font-medium text-foreground"
+            className="text-sm font-medium leading-none text-foreground"
             onClick={() => {
               setSelectionMode((current) => {
                 if (current) setSelectedOrderIds([]);

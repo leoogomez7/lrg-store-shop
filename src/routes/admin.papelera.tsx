@@ -61,17 +61,14 @@ function AdminTrash() {
     }
     const allKeys = filteredEntries.map(getEntryKey);
     setSelectionMode(mode);
-    setSelectedDeleteKeys(mode === "delete" ? allKeys : []);
-    setSelectedRestoreKeys(mode === "restore" ? allKeys : []);
+    setSelectedDeleteKeys(allKeys);
+    setSelectedRestoreKeys(allKeys);
   };
 
   const toggleAllSelection = (checked: boolean) => {
     const allKeys = filteredEntries.map(getEntryKey);
-    if (selectionMode === "delete") {
-      setSelectedDeleteKeys(checked ? allKeys : []);
-    } else if (selectionMode === "restore") {
-      setSelectedRestoreKeys(checked ? allKeys : []);
-    }
+    setSelectedDeleteKeys(checked ? allKeys : []);
+    setSelectedRestoreKeys(checked ? allKeys : []);
   };
 
   useEffect(() => {
@@ -319,39 +316,12 @@ function AdminTrash() {
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
-        {!selectionMode ? (
-          <>
-            <Button type="button" variant="outline" onClick={emptyTrash}>
-              <Trash2 className="size-4" /> Vaciar papelera
-            </Button>
-            <Button type="button" variant="outline" onClick={restoreAllEntries}>
-              <RotateCcw className="size-4" /> Restaurar todos
-            </Button>
-          </>
-        ) : null}
-        <Button
-          type="button"
-          variant={selectionMode === "delete" ? "default" : "outline"}
-          onClick={() => {
-            enterSelectionMode("delete");
-          }}
-        >
-          <Trash2 className="size-4" /> Seleccionar borrados
+        <Button type="button" variant="outline" onClick={emptyTrash}>
+          <Trash2 className="size-4" /> Vaciar papelera
         </Button>
-        <Button
-          type="button"
-          variant={selectionMode === "restore" ? "default" : "outline"}
-          onClick={() => {
-            enterSelectionMode("restore");
-          }}
-        >
-          <RotateCcw className="size-4" /> Seleccionar restaurar
+        <Button type="button" variant="outline" onClick={restoreAllEntries}>
+          <RotateCcw className="size-4" /> Restaurar todos
         </Button>
-        {selectionMode ? (
-          <Button type="button" variant="ghost" onClick={clearSelection}>
-            <X className="size-4" /> Cancelar
-          </Button>
-        ) : null}
       </div>
 
       <div className="relative mt-6">
@@ -367,37 +337,45 @@ function AdminTrash() {
 
       <div className="mt-3 flex min-h-11 items-center justify-between gap-3">
         <div className="flex min-h-10 items-center gap-2">
-          {selectionMode ? (
-            <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Checkbox
-                checked={(() => {
-                  const selectedCount =
-                    selectionMode === "delete"
-                      ? selectedDeleteKeys.length
-                      : selectedRestoreKeys.length;
-                  if (selectedCount === 0) return false;
-                  if (selectedCount < filteredEntries.length) return "indeterminate";
-                  return true;
-                })()}
-                onCheckedChange={(checked) => toggleAllSelection(checked === true)}
-                aria-label="Seleccionar todos"
-              />
-              <span>
-                {selectionMode === "delete"
-                  ? selectedDeleteKeys.length
-                  : selectedRestoreKeys.length} seleccionados
-              </span>
-            </label>
+          <button
+            type="button"
+            className="text-sm font-medium text-foreground"
+            onClick={() => {
+              if (selectionMode) clearSelection();
+              else enterSelectionMode("delete");
+            }}
+          >
+            Seleccionar
+          </button>
+          <Checkbox
+            checked={(() => {
+              if (!selectionMode || filteredEntries.length === 0) return false;
+              if (selectedDeleteKeys.length < filteredEntries.length) return "indeterminate";
+              return true;
+            })()}
+            onCheckedChange={(checked) => {
+              if (checked === true || checked === "indeterminate") enterSelectionMode("delete");
+              else clearSelection();
+            }}
+            aria-label="Seleccionar todos"
+          />
+          {selectionMode && selectedDeleteKeys.length > 0 ? (
+            <span className="text-xs text-muted-foreground">
+              {selectedDeleteKeys.length} seleccionados
+            </span>
           ) : null}
-          {selectionMode === "delete" && selectedDeleteKeys.length > 0 ? (
-            <Button type="button" variant="destructive" onClick={deleteSelectedPermanently}>
-              <Trash2 className="size-4" /> Eliminar seleccionados
-            </Button>
-          ) : null}
-          {selectionMode === "restore" && selectedRestoreKeys.length > 0 ? (
-            <Button type="button" variant="default" onClick={restoreSelectedEntries}>
-              <RotateCcw className="size-4" /> Restaurar seleccionados
-            </Button>
+          {selectionMode && selectedDeleteKeys.length > 0 ? (
+            <>
+              <Button type="button" variant="default" onClick={restoreSelectedEntries}>
+                <RotateCcw className="size-4" /> Restaurar seleccionados
+              </Button>
+              <Button type="button" variant="destructive" onClick={deleteSelectedPermanently}>
+                <Trash2 className="size-4" /> Eliminar seleccionados
+              </Button>
+              <Button type="button" variant="outline" onClick={clearSelection}>
+                <X className="size-4" /> Cancelar
+              </Button>
+            </>
           ) : null}
         </div>
         <span className="text-right text-sm text-muted-foreground">
@@ -443,11 +421,12 @@ function AdminTrash() {
                       onCheckedChange={(checked) => {
                         const entryKey = getEntryKey(entry);
                         if (selectionMode === "delete") {
-                          setSelectedDeleteKeys((current) =>
+                          const updateSelection = (current: string[]) =>
                             checked === true
                               ? [...new Set([...current, entryKey])]
-                              : current.filter((key) => key !== entryKey),
-                          );
+                              : current.filter((key) => key !== entryKey);
+                          setSelectedDeleteKeys(updateSelection);
+                          setSelectedRestoreKeys(updateSelection);
                           return;
                         }
                         setSelectedRestoreKeys((current) =>
