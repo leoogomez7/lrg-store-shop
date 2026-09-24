@@ -1074,6 +1074,21 @@ function AdminProducts() {
     }
   };
 
+  const cancelQuickEditSession = () => {
+    const currentSelectionKey = quickEditProductId
+      ? `${quickEditProductId}:${quickEditVariantId ?? "base"}`
+      : null;
+    setQuickEditProductId(null);
+    setQuickEditVariantId(null);
+    setBulkQuickEditQueue([]);
+    setQuickEditForm((current) => {
+      const next = { ...current };
+      if (currentSelectionKey) delete next[currentSelectionKey];
+      return next;
+    });
+    clearBulkProductSelection();
+  };
+
   const showStockExceededToast = (productName: string, maxStock: number) => {
     toast.error("No hay más stock disponible para agregar.", {
       description: `La cantidad supera el stock disponible de "${productName}" (${maxStock}).`,
@@ -2149,18 +2164,12 @@ function AdminProducts() {
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() =>
-                    setConfirmState({
-                      open: true,
-                      title: "Descartar y seguir?",
-                      description: "Se descarta la edición actual y continúa con el siguiente producto seleccionado.",
-                      confirmLabel: "Saltar",
-                      cancelLabel: "Volver",
-                      onConfirm: cancelQuickEdit,
-                    })
-                  }
+                  onClick={cancelQuickEdit}
                 >
                   <X className="size-4" /> Saltar
+                </Button>
+                <Button size="sm" variant="outline" onClick={cancelQuickEditSession}>
+                  <X className="size-4" /> Cancelar
                 </Button>
               </>
             ) : (

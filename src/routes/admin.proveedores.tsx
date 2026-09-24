@@ -53,6 +53,7 @@ import {
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 import { formatNumber } from "@/lib/format";
 import { saveProducts, type Product } from "@/data/products";
+import { saveOrders } from "@/data/orders";
 import { moveToTrash } from "@/data/trash";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -73,7 +74,7 @@ type SupplierRow = {
   name: string;
   phone: string;
   social: string;
-  products: Array<{ name: string; quantity: number }>;
+  products: Array<{ name: string; variantName?: string; quantity: number }>;
   stores: string[];
   sales: number;
   salesByCurrency: Record<"ARS" | "USD", number>;
@@ -116,14 +117,6 @@ const normalizeSupplier = (supplier: Partial<StandaloneSupplier> | null | undefi
   phone: supplier?.phone?.trim() ?? "",
   social: supplier?.social?.trim() ?? "",
 });
-
-const formatSupplierProductLabel = (name: string, quantity?: number) => {
-  const safeName = name?.trim() ? name.replace(/\s+·\s+/g, " · ") : "Producto";
-  if (typeof quantity === "number") {
-    return `${safeName} · ${quantity}`;
-  }
-  return safeName;
-};
 
 const dedupeSuppliers = (suppliers: StandaloneSupplier[]) => {
   const byKey = new Map<string, StandaloneSupplier>();
@@ -223,7 +216,6 @@ function AdminSuppliers() {
   const [quickEditFromDetails, setQuickEditFromDetails] = React.useState(false);
   const [quickEditSupplierQueue, setQuickEditSupplierQueue] = React.useState<string[]>([]);
   const [editingSupplierKey, setEditingSupplierKey] = React.useState<string | null>(null);
-  const [supplierSkipConfirmOpen, setSupplierSkipConfirmOpen] = React.useState(false);
   const [supplierDeleteConfirmOpen, setSupplierDeleteConfirmOpen] = React.useState(false);
   const [pendingSupplierDelete, setPendingSupplierDelete] = React.useState<(() => void) | null>(null);
   const supplierFormKey = `${newSupplier.name.trim()}|${newSupplier.phone.trim()}|${newSupplier.social.trim()}`;
@@ -243,7 +235,7 @@ function AdminSuppliers() {
             supplier: variant.supplier ?? product.supplier,
             productId: product.id,
             variantId: variant.id,
-            productName: `${product.name} · ${variant.name}`,
+            productName: product.name,
             variantName: variant.name,
             gastos: variant.gastos ?? product.gastos ?? 0,
             gastosCurrency:
@@ -259,7 +251,7 @@ function AdminSuppliers() {
               productId: product.id,
               variantId: undefined,
               productName: product.name,
-              variantName: product.name,
+              variantName: undefined,
               gastos: product.gastos ?? 0,
               gastosCurrency: product.gastosCurrency ?? product.priceCurrency ?? "ARS",
             },
@@ -282,7 +274,7 @@ function AdminSuppliers() {
               const matchesLegacy =
                 !item.productId &&
                 (itemName === assignment.productName.toLowerCase() ||
-                  itemVariantName === assignment.variantName.toLowerCase() ||
+                  itemVariantName === assignment.variantName?.toLowerCase() ||
                   (!product.variants?.length && itemName === product.name.toLowerCase()));
               if (!matchesById && !matchesLegacy) continue;
 
@@ -309,13 +301,15 @@ function AdminSuppliers() {
         };
         if (assignmentSummary.quantity > 0) {
           const currentProduct = current.products.find(
-            (item) => item.name === assignment.productName,
+            (item) =>
+              item.name === assignment.productName && item.variantName === assignment.variantName,
           );
           if (currentProduct) {
             currentProduct.quantity += assignmentSummary.quantity;
           } else {
             current.products.push({
               name: assignment.productName,
+              variantName: assignment.variantName,
               quantity: assignmentSummary.quantity,
             });
           }
@@ -346,12 +340,17 @@ function AdminSuppliers() {
           salesByCurrency: { ARS: 0, USD: 0 },
           soldQuantity: 0,
         };
-        const productName = item.variantName ? `${item.name} · ${item.variantName}` : item.name;
-        const currentProduct = current.products.find((product) => product.name === productName);
+        const currentProduct = current.products.find(
+          (product) => product.name === item.name && product.variantName === item.variantName,
+        );
         if (currentProduct) {
           currentProduct.quantity += item.quantity;
         } else {
-          current.products.push({ name: productName, quantity: item.quantity });
+          current.products.push({
+            name: item.name,
+            variantName: item.variantName,
+            quantity: item.quantity,
+          });
         }
         const itemGastos = item.gastos ?? 0;
         const itemCurrency = item.gastosCurrency ?? "ARS";
@@ -524,6 +523,16 @@ function AdminSuppliers() {
     setSelectionMode(selectedSupplierKeys.length > 0);
   };
 
+  const cancelQuickEditSupplierSession = () => {
+    setQuickEditSupplierKey(null);
+    setQuickEditSupplier(null);
+    setQuickEditFromDetails(false);
+    setQuickEditSupplierQueue([]);
+    setExpandedSupplierKey(null);
+    setSelectionMode(false);
+    setSelectedSupplierKeys([]);
+  };
+
   const saveSupplierChanges = (
     supplierKey: string,
     nextSupplier: StandaloneSupplier,
@@ -557,6 +566,14 @@ function AdminSuppliers() {
             : variant.supplier,
       })),
     }));
+    const nextOrders = orders.map((order) => ({
+      ...order,
+      items: order.items.map((item) =>
+        item.supplier && matchesSupplierKey(item.supplier, supplierKey)
+          ? { ...item, supplier: { ...item.supplier, ...normalized } }
+          : item,
+      ),
+    }));
 
     setStandaloneSuppliers(nextStandaloneSuppliers);
     void saveAdminSetting({
@@ -567,6 +584,8 @@ function AdminSuppliers() {
     });
     saveProducts(nextProducts);
     queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
+    void saveOrders(nextOrders);
+    queryClient.setQueryData(orderQueries.list().queryKey, nextOrders);
     const currentKey = supplierKey;
     const remainingQueue = quickEditSupplierQueue.filter((key) => key !== currentKey);
     const nextQueuedKey = remainingQueue[0];
@@ -623,6 +642,14 @@ function AdminSuppliers() {
             : variant.supplier,
       })),
     }));
+    const nextOrders = orders.map((order) => ({
+      ...order,
+      items: order.items.map((item) =>
+        item.supplier && matchesSupplierKey(item.supplier, supplierKey)
+          ? { ...item, supplier: undefined }
+          : item,
+      ),
+    }));
 
     setStandaloneSuppliers(nextStandaloneSuppliers);
     setSelectedSupplierKeys((current) => current.filter((key) => key !== supplierKey));
@@ -634,6 +661,8 @@ function AdminSuppliers() {
     });
     saveProducts(nextProducts);
     queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
+    void saveOrders(nextOrders);
+    queryClient.setQueryData(orderQueries.list().queryKey, nextOrders);
   };
 
   const editSelectedSupplier = () => {
@@ -724,6 +753,14 @@ function AdminSuppliers() {
       ),
     );
     const nextProducts = unlinkSupplierReferences(selectedKeys);
+    const nextOrders = orders.map((order) => ({
+      ...order,
+      items: order.items.map((item) =>
+        item.supplier && selectedKeys.has(getSupplierKey(item.supplier))
+          ? { ...item, supplier: undefined }
+          : item,
+      ),
+    }));
 
     const linkedCount = linkedEntries.reduce(
       (sum, entry) => sum + entry.usage.linkedProducts + entry.usage.linkedVariants,
@@ -740,6 +777,8 @@ function AdminSuppliers() {
     });
     saveProducts(nextProducts);
     queryClient.setQueryData(catalogQueries.all().queryKey, nextProducts);
+    void saveOrders(nextOrders);
+    queryClient.setQueryData(orderQueries.list().queryKey, nextOrders);
 
     if (linkedCount > 0) {
       toast.success(`Proveedor/es eliminado/s. Se desvincularon ${linkedCount} referencias de productos/variantes.`);
@@ -1399,9 +1438,12 @@ function AdminSuppliers() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => setSupplierSkipConfirmOpen(true)}
+                    onClick={cancelQuickEditSupplier}
                   >
                     <X className="size-4" /> Saltar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={cancelQuickEditSupplierSession}>
+                    <X className="size-4" /> Cancelar
                   </Button>
                 </>
               ) : (
@@ -1589,33 +1631,39 @@ function AdminSuppliers() {
                             className="w-full bg-muted/30 p-0 text-left"
                           >
                             <>
-                              <div className="space-y-1.5 px-5 pt-6">
+                              <div className="px-4 py-3">
+                                <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
                                   {sortedProducts.slice(0, 8).map((product) => (
                                     <div
-                                      key={`${product.name}-${product.quantity}`}
-                                      className="flex items-center justify-start gap-3 px-2.5 py-1.5 text-xs text-foreground"
+                                      key={`${product.name}-${product.variantName ?? "base"}`}
+                                      className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-background/35 px-3 py-2 text-xs text-foreground"
                                     >
-                                      <span className="min-w-0 wrap-break-word">
-                                        {formatSupplierProductLabel(product.name, product.quantity)}
+                                      <span className="min-w-0 wrap-break-word font-medium">
+                                        {product.name}
+                                        {product.variantName ? ` · ${product.variantName}` : ""}
+                                      </span>
+                                      <span className="shrink-0 text-right text-muted-foreground">
+                                        Cantidad vendida: {product.quantity}
                                       </span>
                                     </div>
                                   ))}
-                                  {row.products.length === 0 && (
-                                    <p className="text-sm text-muted-foreground">
-                                      Este proveedor todavía no tiene productos vendidos.
-                                    </p>
-                                  )}
-                                  {sortedProducts.length > 8 && (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => setProductsModalSupplier(row)}
-                                      className="px-2 text-xs"
-                                    >
-                                      Ver más
-                                    </Button>
-                                  )}
+                                </div>
+                                {row.products.length === 0 && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Este proveedor todavía no tiene productos vendidos.
+                                  </p>
+                                )}
+                                {sortedProducts.length > 8 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setProductsModalSupplier(row)}
+                                    className="mt-2 px-2 text-xs"
+                                  >
+                                    Ver más
+                                  </Button>
+                                )}
                               </div>
                             </>
                           </TableCell>
@@ -1731,11 +1779,15 @@ function AdminSuppliers() {
               .sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }))
               .map((product) => (
                 <div
-                  key={`${product.name}-${product.quantity}`}
+                  key={`${product.name}-${product.variantName ?? "base"}`}
                   className="flex items-center justify-between gap-3 rounded-md bg-muted px-3 py-2 text-sm"
                 >
-                  <span className="min-w-0 wrap-break-word">
-                    {formatSupplierProductLabel(product.name, product.quantity)}
+                  <span className="min-w-0 wrap-break-word font-medium">
+                    {product.name}
+                    {product.variantName ? ` · ${product.variantName}` : ""}
+                  </span>
+                  <span className="shrink-0 text-right text-muted-foreground">
+                    Cantidad vendida: {product.quantity}
                   </span>
                 </div>
               ))}
@@ -1743,20 +1795,6 @@ function AdminSuppliers() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
-        open={supplierSkipConfirmOpen}
-        onOpenChange={(open) => {
-          setSupplierSkipConfirmOpen(open);
-        }}
-        title="Descartar y seguir?"
-        description="Se descarta la edición actual y continúa con el siguiente proveedor seleccionado."
-        confirmLabel="Saltar"
-        cancelLabel="Volver"
-        onConfirm={() => {
-          cancelQuickEditSupplier();
-          setSupplierSkipConfirmOpen(false);
-        }}
-      />
       <ConfirmDialog
         open={supplierDeleteConfirmOpen}
         onOpenChange={(open) => {

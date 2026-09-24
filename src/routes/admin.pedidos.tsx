@@ -600,6 +600,7 @@ function AdminOrders() {
       }
     >
   >({});
+  const [isBulkQuickEditing, setIsBulkQuickEditing] = useState(false);
   const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
   const quickEditDetailRef = useRef<HTMLTableRowElement | null>(null);
   const quickEditOriginalSnapshots = useRef<Record<string, string>>({});
@@ -616,7 +617,7 @@ function AdminOrders() {
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [sortMenuOpen]);
 
-  const startQuickEditOrder = (order: Order) => {
+  const startQuickEditOrder = (order: Order, bulk = false) => {
     const draft = {
       deliveryStatus:
         (order as Order & { deliveryStatus?: DeliveryStatus }).deliveryStatus ??
@@ -629,6 +630,8 @@ function AdminOrders() {
       paymentMethod: order.paymentMethod,
       deliveryDate: order.deliveryDate ?? "",
     };
+    setIsBulkQuickEditing(bulk);
+    setExpandedOrderId(bulk ? null : order.id);
     setQuickEditOrderId(order.id);
     quickEditOriginalSnapshots.current[order.id] = JSON.stringify(draft);
     setQuickEditOrderForm((current) => ({
@@ -658,12 +661,37 @@ function AdminOrders() {
 
     if (nextQuickEditOrder) {
       setSelectionMode(true);
-      startQuickEditOrder(nextQuickEditOrder);
+      startQuickEditOrder(nextQuickEditOrder, isBulkQuickEditing);
       return;
     }
 
+    setIsBulkQuickEditing(false);
     setSelectionMode(selectedOrderIds.length > 0);
-  }, [bulkQuickEditOrderQueue, editableOrders, quickEditOrderId, selectedOrderIds.length]);
+  }, [
+    bulkQuickEditOrderQueue,
+    editableOrders,
+    isBulkQuickEditing,
+    quickEditOrderId,
+    selectedOrderIds.length,
+  ]);
+
+  const cancelQuickEditSession = useCallback(() => {
+    const currentOrderId = quickEditOrderId;
+    setQuickEditOrderId(null);
+    setQuickEditOrderForm((current) => {
+      const next = { ...current };
+      if (currentOrderId) {
+        delete next[currentOrderId];
+        delete quickEditOriginalSnapshots.current[currentOrderId];
+      }
+      return next;
+    });
+    setBulkQuickEditOrderQueue([]);
+    setIsBulkQuickEditing(false);
+    setExpandedOrderId(null);
+    setSelectionMode(false);
+    setSelectedOrderIds([]);
+  }, [quickEditOrderId]);
 
   const saveQuickEditOrder = async (order: Order) => {
     const draft = quickEditOrderForm[order.id];
@@ -719,11 +747,12 @@ function AdminOrders() {
       const nextQuickEditOrder = editableOrders.find((candidate) => candidate.id === nextQueuedOrderId);
       if (nextQuickEditOrder) {
         setSelectionMode(true);
-        startQuickEditOrder(nextQuickEditOrder);
+        startQuickEditOrder(nextQuickEditOrder, isBulkQuickEditing);
         return;
       }
     }
 
+    setIsBulkQuickEditing(false);
     setSelectionMode(selectedOrderIds.length > 0);
   };
 
@@ -800,7 +829,7 @@ function AdminOrders() {
   };
 
   useEffect(() => {
-    if (!quickEditOrderId) return;
+    if (!quickEditOrderId || isBulkQuickEditing) return;
 
     setExpandedOrderId(quickEditOrderId);
     const frame = requestAnimationFrame(() => {
@@ -825,17 +854,17 @@ function AdminOrders() {
       cancelAnimationFrame(frame);
       document.removeEventListener("mousedown", handlePointerDown);
     };
-  }, [cancelQuickEditOrder, quickEditOrderForm, quickEditOrderId]);
+  }, [cancelQuickEditOrder, isBulkQuickEditing, quickEditOrderForm, quickEditOrderId]);
 
   useEffect(() => {
-    if (!expandedOrderId || quickEditOrderId === expandedOrderId) return;
+    if (!expandedOrderId || quickEditOrderId || isBulkQuickEditing) return;
 
     const frame = requestAnimationFrame(() => {
       quickEditDetailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [expandedOrderId, quickEditOrderId]);
+  }, [expandedOrderId, isBulkQuickEditing, quickEditOrderId]);
 
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
   const [availableShippingMethods, setAvailableShippingMethods] = useState<string[]>([]);
@@ -1721,8 +1750,11 @@ function AdminOrders() {
     const firstOrder = editableOrders.find((order) => order.id === queue[0]);
     if (!firstOrder) return;
 
+    const isBulk = queue.length > 1;
+    setIsBulkQuickEditing(isBulk);
+    setExpandedOrderId(null);
     setBulkQuickEditOrderQueue(queue.slice(1));
-    startQuickEditOrder(firstOrder);
+    startQuickEditOrder(firstOrder, isBulk);
   };
 
   const handleBulkDeleteOrders = () => {
@@ -2243,16 +2275,12 @@ function AdminOrders() {
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() =>
-                    setConfirmState({
-                      open: true,
-                      title: "Descartar y seguir?",
-                      description: "Se descarta la edición actual y continúa con el siguiente pedido seleccionado.",
-                      onConfirm: cancelQuickEditOrder,
-                    })
-                  }
+                  onClick={cancelQuickEditOrder}
                 >
                   <X className="size-4" /> Saltar
+                </Button>
+                <Button size="sm" variant="outline" onClick={cancelQuickEditSession}>
+                  <X className="size-4" /> Cancelar
                 </Button>
               </>
             ) : (
@@ -2533,8 +2561,8 @@ function AdminOrders() {
                       >
                         <TableCell colSpan={10} className="w-full bg-surface-2/90 p-0 sm:p-0">
                           <div className="w-full min-w-0 space-y-4 overflow-hidden rounded-2xl bg-surface-2/90 p-3 text-sm sm:p-5">
-                            {isQuickEditing && (
-                              <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border/50 pb-3">
+                            {isQuickEditing && !isBulkQuickEditing && (
+                              <div className="flex flex-wrap items-center justify-center gap-2 border-b border-border/50 pb-3">
                                 <Button
                                   type="button"
                                   variant="ghost"
@@ -2561,7 +2589,6 @@ function AdminOrders() {
 
                             <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
                               <div className="min-w-0 space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
-                                <p className="text-sm font-semibold">Datos cliente</p>
                                 <div>
                                   <span className="block text-xs text-muted-foreground">Cliente</span>
                                   <span className="block wrap-break-word text-base font-medium">
@@ -2582,7 +2609,6 @@ function AdminOrders() {
                               <div className="min-w-0 space-y-3">
                                 <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
                                   <div className="flex items-center justify-between gap-3">
-                                    <p className="text-sm font-semibold">Productos comprados</p>
                                     {order.items.length > 4 && (
                                       <Button
                                         type="button"
