@@ -650,6 +650,7 @@ function AdminOrders() {
 
     setBulkQuickEditOrderQueue(remainingQueue);
     setQuickEditOrderId(null);
+    setExpandedOrderId(null);
     setQuickEditOrderForm((current) => {
       const next = { ...current };
       if (currentOrderId) {
