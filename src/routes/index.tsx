@@ -228,9 +228,9 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           displayBrandName="LRG Store Shop"
           logoBrandSlug="store-shop"
         />
-        <main className="flex flex-1 flex-col justify-start py-8">
+        <main className="flex flex-1 flex-col items-center justify-start py-8">
           <span
-            className="glass inline-flex w-fit items-center gap-2 rounded-full px-4 py-1.5 text-xs tracking-[0.16em] text-muted-foreground uppercase opacity-100"
+            className="glass inline-flex w-fit items-center gap-2 rounded-full px-4 py-1.5 text-center text-xs tracking-[0.16em] text-muted-foreground uppercase opacity-100"
             style={{ transition: "opacity 600ms ease" }}
           >
             <span aria-hidden="true"></span>
@@ -238,7 +238,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           </span>
 
           <h1
-            className="mt-6 max-w-4xl text-4xl leading-[1.05] font-semibold sm:text-6xl lg:text-7xl"
+            className="mt-6 w-full text-center text-4xl leading-[1.05] font-semibold sm:text-6xl lg:text-7xl lg:whitespace-nowrap"
             style={{
               transition: "transform 700ms ease, opacity 700ms ease",
               transform: "translateY(0)",
@@ -249,7 +249,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           </h1>
 
           <p
-            className="mt-6 max-w-none text-lg leading-relaxed text-muted-foreground"
+            className="mt-6 w-full text-center text-lg leading-relaxed text-muted-foreground"
             style={{
               transition: "transform 700ms ease, opacity 700ms ease",
               transform: "translateY(0)",
@@ -261,7 +261,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           </p>
 
           <div
-            className="mt-10 flex flex-wrap items-center gap-3"
+            className="mt-10 flex w-full flex-wrap items-center justify-center gap-3"
             style={{
               transition: "transform 700ms ease, opacity 700ms ease",
               transform: "translateY(0)",
@@ -382,7 +382,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               </div>
             </div>
 
-            <div className="mt-4 grid gap-4 grid-cols-1">
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               {sortedReviews.map((review, index) => (
                 <article
                   key={`${review.name}-${index}`}
