@@ -1937,7 +1937,7 @@ function AdminOrders() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
       <div className="flex flex-wrap items-center gap-2">
         <div className="order-1 basis-full shrink-0">
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Ventas</p>
@@ -2382,7 +2382,7 @@ function AdminOrders() {
           ) : null}
         </div>
 
-        <div className="order-1 mt-4 rounded-2xl">
+        <div className="order-1 rounded-2xl">
           <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
             <Table
               hideScrollbarOnMobile
@@ -3055,7 +3055,7 @@ function AdminOrders() {
         </div>
       </div>
 
-      <div className="mt-3 flex flex-col gap-3">
+      <div className="mt-0 flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             type="button"

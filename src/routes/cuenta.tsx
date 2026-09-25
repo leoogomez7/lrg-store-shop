@@ -325,8 +325,8 @@ function AccountPageContent({
   const [isMobileNavHidden, setIsMobileNavHidden] = useState(false);
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
   const [ordersPage, setOrdersPage] = useState(0);
-  const [ordersPageSize, setOrdersPageSize] = useState<number>(10);
-  const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("10");
+  const [ordersPageSize, setOrdersPageSize] = useState<number>(16);
+  const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("16");
   const [ordersSort, setOrdersSort] = useState<OrdersSort>("date-desc");
   const [showOrdersSort, setShowOrdersSort] = useState(false);
   const [showOrdersFilters, setShowOrdersFilters] = useState(false);

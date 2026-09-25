@@ -71,8 +71,8 @@ function AdminTrash() {
   const [selectedDeleteKeys, setSelectedDeleteKeys] = useState<string[]>([]);
   const [selectedRestoreKeys, setSelectedRestoreKeys] = useState<string[]>([]);
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
-  const [pageSizeInput, setPageSizeInput] = useState("10");
+  const [pageSize, setPageSize] = useState(16);
+  const [pageSizeInput, setPageSizeInput] = useState("16");
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     title: string;
@@ -367,7 +367,7 @@ function AdminTrash() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Eliminaciones</p>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -560,7 +560,7 @@ function AdminTrash() {
       </p>
 
       {!isLoading && filteredEntries.length > 0 ? (
-        <div className="mt-3 flex flex-col gap-3">
+        <div className="mt-0 flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               type="button"

@@ -180,6 +180,7 @@ function BrandFooterContent({
     getAuthRole() === "admin" &&
     window.localStorage.getItem("lrg_admin_final_verified") === "true";
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isCatalogPage = pathname === "/productos" || pathname.endsWith("/productos");
   const categories =
     section === "brand" && !pathname.includes("/producto/") ? brand.categories : [];
   type FooterMenuItem = [
@@ -235,7 +236,12 @@ function BrandFooterContent({
   };
 
   return (
-    <footer className="mt-10 border-t border-border/60 bg-surface/40 sm:mt-12">
+    <footer
+      className={cn(
+        "border-t border-border/60 bg-surface/40",
+        section === "admin" || isCatalogPage ? "mt-0" : "mt-10 sm:mt-12",
+      )}
+    >
       <div className="grid w-full gap-10 px-4 py-14 sm:px-6 lg:grid-cols-5 lg:px-8">
         {categories.length > 0 && (
           <div>

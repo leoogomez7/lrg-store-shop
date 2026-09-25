@@ -114,7 +114,7 @@ const getNextWeeklyBackup = () => {
 
 function PendingAdminBackups() {
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
@@ -170,8 +170,8 @@ function AdminBackups() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
-  const [pageSizeInput, setPageSizeInput] = useState("10");
+  const [pageSize, setPageSize] = useState(16);
+  const [pageSizeInput, setPageSizeInput] = useState("16");
   const [selectedBackupIds, setSelectedBackupIds] = useState<string[]>([]);
 
   const clearBackupSelection = () => setSelectedBackupIds([]);
@@ -286,7 +286,7 @@ function AdminBackups() {
   const hasNextPage = safePage < totalPages - 1;
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
@@ -595,7 +595,7 @@ function AdminBackups() {
       ) : null}
 
       {filteredBackups.length > 0 ? (
-        <div className="mt-3 flex flex-col gap-3">
+        <div className="mt-0 flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               type="button"

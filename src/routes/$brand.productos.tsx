@@ -148,8 +148,8 @@ function CatalogPage() {
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState<number>(10);
-  const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+  const [pageSize, setPageSize] = useState<number>(16);
+  const [pageSizeInput, setPageSizeInput] = useState<string>("16");
   const selectedCategoryValues = useMemo(
     () => getCategoryFilterValues(configuredCategories, filters.categories),
     [configuredCategories, filters.categories],
@@ -380,13 +380,13 @@ function CatalogPage() {
       </section>
 
       {results.length > 0 && (
-        <div className="mt-4 flex flex-col gap-3">
+        <div className="mt-0 flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
               onClick={() => setPage(0)}
               disabled={!hasPreviousPage}
-              className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:opacity-60"
+              className="h-9 px-4 disabled:opacity-60"
             >
               Principio
             </button>
@@ -395,7 +395,7 @@ function CatalogPage() {
                 <button
                   key={index}
                   type="button"
-                  className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                  className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                   onClick={() => setPage(index)}
                 >
                   {index + 1}
@@ -406,7 +406,7 @@ function CatalogPage() {
               type="button"
               onClick={() => setPage(totalPages - 1)}
               disabled={!hasNextPage}
-              className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:opacity-60"
+              className="h-9 px-4 disabled:opacity-60"
             >
               Último
             </button>
@@ -421,7 +421,7 @@ function CatalogPage() {
               value={pageSizeInput}
               placeholder="Cantidad"
               onChange={(e) => setPageSizeInput(e.target.value)}
-              className="h-8 w-20 bg-background/50"
+              className="h-8 w-20 bg-background/50 text-center"
             />
             {(() => {
               const v = Number(pageSizeInput);

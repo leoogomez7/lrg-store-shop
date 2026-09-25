@@ -231,10 +231,10 @@ function AdminProducts() {
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
   const sortButtonRef = useRef<HTMLButtonElement | null>(null);
   const [page, setPage] = useState(0);
-  // `pageSize` is the confirmed page size; default is 10 products per page
-  const [pageSize, setPageSize] = useState<number>(10);
+  // `pageSize` is the confirmed page size; default is 16 display rows per page
+  const [pageSize, setPageSize] = useState<number>(16);
   // `pageSizeInput` is the editable input value the user types before confirming
-  const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+  const [pageSizeInput, setPageSizeInput] = useState<string>("16");
 
   const priceLimit = useMemo(() => {
     const values = products
@@ -665,7 +665,7 @@ function AdminProducts() {
     }
   };
 
-  const handleDuplicateProduct = (product: Product) => {
+  const handleDuplicateProduct = async (product: Product) => {
     const newId = `${product.id}-copy-${Date.now()}`;
     const newSlug = `${product.slug}-copy-${Date.now()}`
       .replace(/[^a-z0-9-]/g, "-")
@@ -680,8 +680,13 @@ function AdminProducts() {
 
     // Add to in-memory dataset so public getters reflect it and update UI
     (productsData as Product[]).push(duplicated);
-    saveProducts(productsData as Product[]);
     setEditableProducts((current) => [...current, duplicated]);
+    await saveProducts(productsData as Product[]);
+    queryClient.setQueryData(catalogQueries.allAdmin().queryKey, [...productsData]);
+    void queryClient.invalidateQueries({
+      queryKey: ["products"],
+      refetchType: "active",
+    });
     toast.success("Producto duplicado", {
       description: `Se creó una copia de "${product.name}"`,
     });
@@ -1362,9 +1367,22 @@ function AdminProducts() {
       refetchType: "active",
     });
     toast.success("Producto guardado");
-    const nextBulkPosition = bulkEditPositionRef.current + 1;
-    const queue = bulkEditQueueRef.current;
-    const nextBulkSelectionKey = queue[nextBulkPosition];
+    const currentProductId = productForm.id;
+    const queueBeforeSave = bulkEditQueueRef.current;
+    const currentQueuePosition = queueBeforeSave.indexOf(currentProductId);
+    const remainingQueue = queueBeforeSave.filter((productId) => productId !== currentProductId);
+    const nextBulkSelectionKey =
+      currentQueuePosition >= 0
+        ? (queueBeforeSave.find(
+            (productId, index) => index > currentQueuePosition && productId !== currentProductId,
+          ) ?? remainingQueue[0])
+        : undefined;
+
+    bulkEditQueueRef.current = remainingQueue;
+    bulkEditPositionRef.current = 0;
+    setBulkEditQueue(remainingQueue);
+    setBulkEditPosition(0);
+
     if (nextBulkSelectionKey) {
       const nextProduct =
         (productsData as Product[]).find(
@@ -1374,8 +1392,6 @@ function AdminProducts() {
           (product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey),
         );
       if (nextProduct) {
-        bulkEditPositionRef.current = nextBulkPosition;
-        setBulkEditPosition(nextBulkPosition);
         const variantId = nextBulkSelectionKey.split(":")[1];
         openEditProductDialog(
           nextProduct,
@@ -1524,20 +1540,20 @@ function AdminProducts() {
     setPage(0);
   }, [pageSize]);
 
-  const visibleResults = useMemo(() => {
-    if (!pageSize || pageSize <= 0) return [] as typeof results;
-    return results.slice(page * pageSize, page * pageSize + pageSize);
-  }, [results, page, pageSize]);
   type DisplayRow = { product: Product; variant: ProductVariant | undefined };
 
-  const displayRows = useMemo<DisplayRow[]>(() => {
-    return visibleResults.flatMap((product): DisplayRow[] => {
+  const allDisplayRows = useMemo<DisplayRow[]>(() => {
+    return results.flatMap((product): DisplayRow[] => {
       if (product.variants && product.variants.length > 0) {
         return product.variants.map((variant) => ({ product, variant }));
       }
       return [{ product, variant: undefined }];
     });
-  }, [visibleResults]);
+  }, [results]);
+  const displayRows = useMemo(() => {
+    if (!pageSize || pageSize <= 0) return [];
+    return allDisplayRows.slice(page * pageSize, page * pageSize + pageSize);
+  }, [allDisplayRows, page, pageSize]);
   const visibleProductSelectionKeys = Array.from(
     new Set(displayRows.map(({ product, variant }) => getProductSelectionKey(product, variant))),
   );
@@ -1550,7 +1566,7 @@ function AdminProducts() {
   const someVisibleProductsSelected =
     selectedVisibleProductKeys.length > 0 && !allVisibleProductsSelected;
   const totalPages =
-    pageSize && pageSize > 0 ? Math.max(1, Math.ceil(results.length / pageSize)) : 1;
+    pageSize && pageSize > 0 ? Math.max(1, Math.ceil(allDisplayRows.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
   const activeFilterCount =
@@ -1629,7 +1645,7 @@ function AdminProducts() {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
       <div className="flex flex-wrap items-center gap-2">
         <div className="order-1 basis-full shrink-0">
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Catálogo</p>
@@ -2203,7 +2219,7 @@ function AdminProducts() {
         <div className="order-1">
           <FilterChipList chips={adminFilterChips} />
         </div>
-        <div className="order-2 mt-4 rounded-2xl">
+        <div className="order-2 rounded-2xl">
           <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
             <Table
               hideScrollbarOnMobile
@@ -2632,7 +2648,7 @@ function AdminProducts() {
           </div>
         </div>
       </div>
-      <div className="mt-3 flex flex-col gap-3">
+      <div className="mt-0 flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             type="button"
@@ -2704,7 +2720,7 @@ function AdminProducts() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
-          {visibleResults.length} de {results.length} productos mostrados
+          {displayRows.length} de {allDisplayRows.length} productos mostrados
         </p>
       </div>
 

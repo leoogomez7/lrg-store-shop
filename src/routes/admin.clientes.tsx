@@ -53,8 +53,8 @@ export const Route = createFileRoute("/admin/clientes")({
 function AdminClients() {
   const { data: orders = [] } = useSuspenseQuery(orderQueries.list());
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState<number>(10);
-  const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+  const [pageSize, setPageSize] = useState<number>(16);
+  const [pageSizeInput, setPageSizeInput] = useState<string>("16");
   const [query, setQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<
     "name_asc" | "name_desc" | "orders_asc" | "orders_desc" | "spent_asc" | "spent_desc"

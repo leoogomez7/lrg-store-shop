@@ -279,8 +279,8 @@ function AdminDashboard() {
       )
     : stockItems;
   const [stockPage, setStockPage] = useState(0);
-  const [stockPageSize, setStockPageSize] = useState<number>(10);
-  const [stockPageSizeInput, setStockPageSizeInput] = useState<string>("10");
+  const [stockPageSize, setStockPageSize] = useState<number>(16);
+  const [stockPageSizeInput, setStockPageSizeInput] = useState<string>("16");
   const stockPages = Math.max(1, Math.ceil(searchedStockItems.length / stockPageSize));
   const currentStockItems = searchedStockItems.slice(
     stockPage * stockPageSize,
@@ -291,8 +291,8 @@ function AdminDashboard() {
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
   const [ordersPage, setOrdersPage] = useState(0);
-  const [ordersPageSize, setOrdersPageSize] = useState<number>(10);
-  const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("10");
+  const [ordersPageSize, setOrdersPageSize] = useState<number>(16);
+  const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("16");
   const ordersPages = Math.max(1, Math.ceil(recentOrders.length / ordersPageSize));
   const currentOrders = recentOrders.slice(
     ordersPage * ordersPageSize,

@@ -233,8 +233,8 @@ function AdminSuppliers() {
     social: "",
   });
   const [page, setPage] = React.useState(0);
-  const [pageSize, setPageSize] = React.useState(10);
-  const [pageSizeInput, setPageSizeInput] = React.useState("10");
+  const [pageSize, setPageSize] = React.useState(16);
+  const [pageSizeInput, setPageSizeInput] = React.useState("16");
   const [selectedSupplierKeys, setSelectedSupplierKeys] = React.useState<string[]>([]);
   const [bulkSupplierEditQueue, setBulkSupplierEditQueue] = React.useState<string[]>([]);
   const [bulkSupplierEditPosition, setBulkSupplierEditPosition] = React.useState(0);
@@ -1012,7 +1012,7 @@ function AdminSuppliers() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
       <div className="w-full">
         <div className="flex flex-wrap items-center gap-2">
           <div className="order-1 basis-full shrink-0">
@@ -1523,7 +1523,7 @@ function AdminSuppliers() {
             ) : null}
           </div>
 
-          <div className="order-1 mt-4 rounded-2xl">
+          <div className="order-1 rounded-2xl">
             <div className="glass-panel min-w-0 overflow-visible rounded-2xl">
               <Table
                 hideScrollbarOnMobile
@@ -1762,7 +1762,7 @@ function AdminSuppliers() {
             </div>
           </div>
         </div>
-        <div className="mt-3 flex flex-col gap-3">
+        <div className="mt-0 flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               type="button"
