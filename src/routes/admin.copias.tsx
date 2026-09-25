@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LoadingState } from "@/components/common/loading-state";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   createAdminBackup,
   deleteAdminBackup,
   loadAdminBackup,
@@ -17,7 +25,7 @@ import {
 export const Route = createFileRoute("/admin/copias")({
   loader: ({ context }) => context.queryClient.ensureQueryData(backupsQuery),
   pendingComponent: () => <LoadingState label="Cargando copias de seguridad..." />,
-  head: () => ({ meta: [{ title: "Copias de seguridad | Respaldo" }] }),
+  head: () => ({ meta: [{ title: "Administrador" }] }),
   component: AdminBackups,
 });
 
@@ -74,30 +82,27 @@ const getNextWeeklyBackup = () => {
 function AdminBackups() {
   const queryClient = useQueryClient();
   const { data: backups } = useSuspenseQuery(backupsQuery);
-  const [creatingReason, setCreatingReason] = useState<"manual" | "weekly-scheduled" | null>(null);
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
+  const [backupToDelete, setBackupToDelete] = useState<AdminBackupSummary | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [pageSizeInput, setPageSizeInput] = useState("10");
 
-  const handleCreateBackup = async (reason: "manual" | "weekly-scheduled") => {
-    setCreatingReason(reason);
+  const handleCreateBackup = async () => {
+    setIsCreatingBackup(true);
     try {
-      const created = await createAdminBackup({ data: { reason } });
+      const created = await createAdminBackup({ data: { reason: "manual" } });
       if (created) {
         await queryClient.invalidateQueries({ queryKey: backupsQuery.queryKey });
-        toast.success(
-          reason === "weekly-scheduled"
-            ? "Copia semanal creada"
-            : "Copia de seguridad creada",
-        );
+        toast.success("Copia de seguridad creada");
       } else {
         toast.error("No se pudo crear la copia de seguridad");
       }
     } catch {
       toast.error("No se pudo crear la copia de seguridad");
     } finally {
-      setCreatingReason(null);
+      setIsCreatingBackup(false);
     }
   };
 
@@ -121,13 +126,13 @@ function AdminBackups() {
   };
 
   const moveBackupToTrash = async (backup: AdminBackupSummary) => {
-    if (!window.confirm("¿Enviar esta copia de seguridad a la papelera?")) return;
     const deleted = await deleteAdminBackup({ data: { id: backup.id } });
     if (!deleted) {
       toast.error("No se pudo enviar la copia a la papelera");
       return;
     }
     await queryClient.invalidateQueries({ queryKey: backupsQuery.queryKey });
+    setBackupToDelete(null);
     toast.success("Copia enviada a la papelera");
   };
 
@@ -148,8 +153,8 @@ function AdminBackups() {
   const hasNextPage = safePage < totalPages - 1;
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <main className="mx-auto w-full max-w-7xl space-y-6 p-4 text-center sm:p-6 lg:p-8">
+      <div className="flex flex-col items-center gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Copias de seguridad</h1>
@@ -158,8 +163,8 @@ function AdminBackups() {
             La próxima copia de seguridad semanal es el {getNextWeeklyBackup()}.
           </p>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <div className="relative w-full sm:w-64">
+        <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row">
+          <div className="relative w-full max-w-xs">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -173,33 +178,22 @@ function AdminBackups() {
           </div>
           <Button
             type="button"
-            disabled={creatingReason !== null}
-            onClick={() => void handleCreateBackup("weekly-scheduled")}
-          >
-            {creatingReason === "weekly-scheduled" ? (
-              <LoaderCircle className="size-4 animate-spin" />
-            ) : (
-              <Plus className="size-4" />
-            )}
-            {creatingReason === "weekly-scheduled" ? "Creando copia" : "Crear copia semanal"}
-          </Button>
-          <Button
-            type="button"
             variant="outline"
-            disabled={creatingReason !== null}
-            onClick={() => void handleCreateBackup("manual")}
+            disabled={isCreatingBackup}
+            onClick={() => void handleCreateBackup()}
+            className="min-w-44 whitespace-nowrap"
           >
-            {creatingReason === "manual" ? (
+            {isCreatingBackup ? (
               <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <Plus className="size-4" />
             )}
-            {creatingReason === "manual" ? "Creando copia" : "Crear copia manual"}
+            {isCreatingBackup ? "Creando copia" : "Crear copia manual"}
           </Button>
         </div>
       </div>
 
-      <div className="glass-panel overflow-hidden rounded-2xl border border-border/60">
+      <div className="glass-panel mx-auto w-full max-w-6xl overflow-hidden rounded-2xl border border-border/60 text-left">
         <div className="hidden grid-cols-[1.1fr_1.2fr_2fr_1.1fr] gap-4 border-b border-border/60 bg-surface-2 px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground md:grid">
           <span>Fecha</span>
           <span>Tipo de copias</span>
@@ -237,7 +231,7 @@ function AdminBackups() {
                       className="size-8 text-destructive hover:text-destructive"
                       title="Enviar a la papelera"
                       aria-label="Enviar a la papelera"
-                      onClick={() => void moveBackupToTrash(backup)}
+                      onClick={() => setBackupToDelete(backup)}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -334,6 +328,31 @@ function AdminBackups() {
           </p>
         </div>
       ) : null}
+
+      <Dialog open={backupToDelete !== null} onOpenChange={(open) => !open && setBackupToDelete(null)}>
+        <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Enviar copia a la papelera</DialogTitle>
+            <DialogDescription>
+              ¿Querés enviar esta copia de seguridad a la papelera? Podrás restaurarla desde allí.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setBackupToDelete(null)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                if (backupToDelete) void moveBackupToTrash(backupToDelete);
+              }}
+            >
+              <Trash2 className="size-4" /> Enviar a papelera
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
