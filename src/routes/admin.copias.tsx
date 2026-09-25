@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Archive, Check, LoaderCircle, Plus, Search } from "lucide-react";
+import { Check, Download, LoaderCircle, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LoadingState } from "@/components/common/loading-state";
 import {
   createAdminBackup,
+  deleteAdminBackup,
+  loadAdminBackup,
   listAdminBackups,
   type AdminBackupSummary,
 } from "@/server/persistence";
@@ -37,22 +39,49 @@ const formatDate = (value: string) =>
   }).format(new Date(value));
 
 const getBackupReference = (backup: AdminBackupSummary) => {
-  if (backup.reason === "weekly-scheduled") return "Programada";
-  if (backup.reason === "manual") return "Manual";
-  return backup.id.split(":")[0];
+  if (backup.reason === "weekly-scheduled") return "Copia todos los lunes 0:00 hs";
+  if (backup.reason === "manual") return "Copia creada por el administrador";
+  return `Pedido ${backup.id.split(":")[0]}`;
+};
+
+const getBackupType = (backup: AdminBackupSummary) => {
+  if (backup.reason === "weekly-scheduled") return "Copia semanal";
+  if (backup.reason === "manual") return "Copia manual";
+  return "Copia por pedido";
+};
+
+const getNextWeeklyBackup = () => {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(new Date()).map((part) => [part.type, part.value]));
+  const current = new Date(
+    Date.UTC(Number(parts["year"]), Number(parts["month"]) - 1, Number(parts["day"])),
+  );
+  const daysUntilMonday = ((8 - current.getUTCDay()) % 7) || 7;
+  current.setUTCDate(current.getUTCDate() + daysUntilMonday);
+  return new Intl.DateTimeFormat("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    dateStyle: "full",
+    timeStyle: "short",
+  }).format(new Date(`${current.toISOString().slice(0, 10)}T00:00:00-03:00`));
 };
 
 function AdminBackups() {
   const queryClient = useQueryClient();
   const { data: backups } = useSuspenseQuery(backupsQuery);
-  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
+  const [creatingReason, setCreatingReason] = useState<"manual" | "weekly-scheduled" | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [pageSizeInput, setPageSizeInput] = useState("10");
 
   const handleCreateBackup = async (reason: "manual" | "weekly-scheduled") => {
-    setIsCreatingBackup(true);
+    setCreatingReason(reason);
     try {
       const created = await createAdminBackup({ data: { reason } });
       if (created) {
@@ -68,8 +97,38 @@ function AdminBackups() {
     } catch {
       toast.error("No se pudo crear la copia de seguridad");
     } finally {
-      setIsCreatingBackup(false);
+      setCreatingReason(null);
     }
+  };
+
+  const downloadBackup = async (backup: AdminBackupSummary) => {
+    try {
+      const detail = await loadAdminBackup({ data: { id: backup.id } });
+      if (!detail) {
+        toast.error("No se pudo cargar la copia de seguridad");
+        return;
+      }
+      const blob = new Blob([detail.snapshotData], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `copia-seguridad-${detail.createdAt.replace(/[:.]/g, "-")}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("No se pudo descargar la copia de seguridad");
+    }
+  };
+
+  const moveBackupToTrash = async (backup: AdminBackupSummary) => {
+    if (!window.confirm("¿Enviar esta copia de seguridad a la papelera?")) return;
+    const deleted = await deleteAdminBackup({ data: { id: backup.id } });
+    if (!deleted) {
+      toast.error("No se pudo enviar la copia a la papelera");
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: backupsQuery.queryKey });
+    toast.success("Copia enviada a la papelera");
   };
 
   const filteredBackups = useMemo(() => {
@@ -94,8 +153,9 @@ function AdminBackups() {
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Copias de seguridad</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Snapshots automáticos creados al registrar compras.
+          <p className="mt-1 text-sm text-muted-foreground">Copias semanales, manuales y por pedido.</p>
+          <p className="mt-2 text-sm text-primary">
+            La próxima copia de seguridad semanal es el {getNextWeeklyBackup()}.
           </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -113,32 +173,37 @@ function AdminBackups() {
           </div>
           <Button
             type="button"
-            disabled={isCreatingBackup}
+            disabled={creatingReason !== null}
             onClick={() => void handleCreateBackup("weekly-scheduled")}
           >
-            {isCreatingBackup ? (
+            {creatingReason === "weekly-scheduled" ? (
               <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <Plus className="size-4" />
             )}
-            {isCreatingBackup ? "Creando..." : "Crear copia semanal"}
+            {creatingReason === "weekly-scheduled" ? "Creando copia" : "Crear copia semanal"}
           </Button>
           <Button
             type="button"
             variant="outline"
-            disabled={isCreatingBackup}
+            disabled={creatingReason !== null}
             onClick={() => void handleCreateBackup("manual")}
           >
-            <Plus className="size-4" /> Crear copia manual
+            {creatingReason === "manual" ? (
+              <LoaderCircle className="size-4 animate-spin" />
+            ) : (
+              <Plus className="size-4" />
+            )}
+            {creatingReason === "manual" ? "Creando copia" : "Crear copia manual"}
           </Button>
         </div>
       </div>
 
       <div className="glass-panel overflow-hidden rounded-2xl border border-border/60">
-        <div className="hidden grid-cols-[1.4fr_1fr_1fr_0.7fr] gap-4 border-b border-border/60 bg-surface-2 px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground md:grid">
+        <div className="hidden grid-cols-[1.1fr_1.2fr_2fr_1.1fr] gap-4 border-b border-border/60 bg-surface-2 px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground md:grid">
           <span>Fecha</span>
+          <span>Tipo de copias</span>
           <span>Referencia</span>
-          <span>Motivo</span>
           <span>Tamaño</span>
         </div>
         <div className="divide-y divide-border/60">
@@ -146,15 +211,38 @@ function AdminBackups() {
             visibleBackups.map((backup: AdminBackupSummary) => (
               <div
                 key={backup.id}
-                className="grid gap-2 px-5 py-4 text-sm md:grid-cols-[1.4fr_1fr_1fr_0.7fr] md:items-center md:gap-4"
+                className="grid gap-2 px-5 py-4 text-sm md:grid-cols-[1.1fr_1.2fr_2fr_1.1fr] md:items-center md:gap-4"
               >
-                <div className="flex items-center gap-2">
-                  <Archive className="size-4 shrink-0 text-primary" />
-                  <span>{formatDate(backup.createdAt)}</span>
+                <span>{formatDate(backup.createdAt)}</span>
+                <span className="text-muted-foreground">{getBackupType(backup)}</span>
+                <span className="wrap-break-word text-muted-foreground">{getBackupReference(backup)}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">{formatBytes(backup.sizeBytes)}</span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8"
+                      title="Descargar copia"
+                      aria-label="Descargar copia"
+                      onClick={() => void downloadBackup(backup)}
+                    >
+                      <Download className="size-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-destructive hover:text-destructive"
+                      title="Enviar a la papelera"
+                      aria-label="Enviar a la papelera"
+                      onClick={() => void moveBackupToTrash(backup)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
                 </div>
-                <span className="break-all text-muted-foreground">{getBackupReference(backup)}</span>
-                <span className="text-muted-foreground">{backup.reason}</span>
-                <span className="text-muted-foreground">{formatBytes(backup.sizeBytes)}</span>
               </div>
             ))
           ) : (

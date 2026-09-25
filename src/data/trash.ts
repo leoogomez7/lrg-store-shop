@@ -18,6 +18,16 @@ export type TrashEntry =
   | (TrashEntryBase & {
       type: "proveedor";
       item: { name: string; phone: string; social: string };
+    })
+  | (TrashEntryBase & {
+      type: "backup";
+      item: {
+        id: string;
+        reason: string;
+        createdAt: string;
+        sizeBytes: number;
+        snapshotData: string;
+      };
     });
 
 const isExpired = (entry: TrashEntry) => new Date(entry.expiresAt).getTime() <= Date.now();

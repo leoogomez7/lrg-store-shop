@@ -494,6 +494,8 @@ export type AdminBackupSummary = {
   sizeBytes: number;
 };
 
+type AdminBackupTrashItem = AdminBackupSummary & { snapshotData: string };
+
 export const listAdminBackups = createServerFn({ method: "POST" })
   .validator(() => ({}))
   .handler(async (): Promise<AdminBackupSummary[]> => {
@@ -517,6 +519,85 @@ export const listAdminBackups = createServerFn({ method: "POST" })
       }
       return [{ id, reason, createdAt, sizeBytes: new TextEncoder().encode(snapshotData).length }];
     });
+  });
+
+export const loadAdminBackup = createServerFn({ method: "POST" })
+  .validator((data: { id: string }) => data)
+  .handler(async ({ data }): Promise<AdminBackupTrashItem | null> => {
+    const database = await ensureAdminTables();
+    if (!database) return null;
+    const result = await database.execute({
+      sql: "SELECT id, reason, snapshotData, createdAt FROM database_backups WHERE id = ?",
+      args: [data.id],
+    });
+    const row = result.rows[0];
+    const id = row?.["id"];
+    const reason = row?.["reason"];
+    const snapshotData = row?.["snapshotData"];
+    const createdAt = row?.["createdAt"];
+    if (
+      typeof id !== "string" ||
+      typeof reason !== "string" ||
+      typeof snapshotData !== "string" ||
+      typeof createdAt !== "string"
+    ) {
+      return null;
+    }
+    return { id, reason, createdAt, snapshotData, sizeBytes: new TextEncoder().encode(snapshotData).length };
+  });
+
+export const deleteAdminBackup = createServerFn({ method: "POST" })
+  .validator((data: { id: string }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return false;
+    const backup = await loadAdminBackup({ data: { id: data.id } });
+    if (!backup) return false;
+
+    const settings = await loadAdminSettings({ data: {} });
+    const trashSetting = settings.find((setting) => setting.settingKey === "lrg:trash");
+    let entries: Array<Record<string, unknown>> = [];
+    if (trashSetting) {
+      try {
+        const parsed = JSON.parse(trashSetting.settingValue) as unknown;
+        entries = Array.isArray(parsed)
+          ? parsed.filter((entry): entry is Record<string, unknown> => Boolean(entry && typeof entry === "object"))
+          : [];
+      } catch {
+        entries = [];
+      }
+    }
+    const deletedAt = new Date();
+    const trashEntry = {
+      type: "backup",
+      id: backup.id,
+      item: backup,
+      deletedAt: deletedAt.toISOString(),
+      expiresAt: new Date(deletedAt.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    const nextEntries = [
+      trashEntry,
+      ...entries.filter((entry) => !(entry.type === "backup" && entry.id === backup.id)),
+    ];
+    await database.execute({ sql: "DELETE FROM database_backups WHERE id = ?", args: [data.id] });
+    await saveAdminSetting({
+      data: { settingKey: "lrg:trash", settingValue: JSON.stringify(nextEntries) },
+    });
+    return true;
+  });
+
+export const restoreAdminBackup = createServerFn({ method: "POST" })
+  .validator((data: { backup: AdminBackupTrashItem }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return false;
+    await database.execute({
+      sql: `INSERT INTO database_backups (id, reason, snapshotData, createdAt)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(id) DO NOTHING`,
+      args: [data.backup.id, data.backup.reason, data.backup.snapshotData, data.backup.createdAt],
+    });
+    return true;
   });
 
 export const saveAdminOrders = createServerFn({ method: "POST" })

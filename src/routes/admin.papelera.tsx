@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, ContactRound, Package, RotateCcw, Search, ShoppingCart, Trash2, X } from "lucide-react";
+import { Archive, Check, ContactRound, Package, RotateCcw, Search, ShoppingCart, Trash2, X } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { orders, saveOrders } from "@/data/orders";
 import { products, saveProducts } from "@/data/products";
 import { applyTrashEntries, readTrash, removeFromTrash, type TrashEntry } from "@/data/trash";
-import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
+import { loadAdminSettings, restoreAdminBackup, saveAdminSetting } from "@/server/persistence";
 
 const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
 
@@ -108,7 +108,9 @@ function AdminTrash() {
           ? entry.item.name
           : entry.type === "pedido"
             ? entry.item.customer
-            : entry.item.name;
+            : entry.type === "proveedor"
+              ? entry.item.name
+              : entry.item.id;
       const itemId = entry.type === "proveedor" ? entry.id : entry.item.id;
       return [entry.id, entry.type, name, itemId].some((value) =>
         String(value).toLowerCase().includes(normalizedQuery),
@@ -146,7 +148,7 @@ function AdminTrash() {
         orders.push(entry.item);
         saveOrders(orders);
       }
-    } else {
+    } else if (entry.type === "proveedor") {
       const settings = await loadAdminSettings({ data: {} });
       const setting = settings.find((item) => item.settingKey === SUPPLIERS_STORAGE_KEY);
       let suppliers: Array<{ name: string; phone: string; social: string }> = [];
@@ -172,6 +174,8 @@ function AdminTrash() {
           },
         });
       }
+    } else {
+      await restoreAdminBackup({ data: { backup: entry.item } });
     }
     removeFromTrash(entry);
     void queryClient.invalidateQueries({
@@ -400,11 +404,14 @@ function AdminTrash() {
           paginatedEntries.map((entry) => {
             const isProduct = entry.type === "producto";
             const isOrder = entry.type === "pedido";
+            const isBackup = entry.type === "backup";
             const name = isProduct
               ? entry.item.name
               : isOrder
                 ? `${entry.item.id} · ${entry.item.customer}`
-                : entry.item.name;
+                : entry.type === "proveedor"
+                  ? entry.item.name
+                  : entry.item.id;
             return (
               <div
                 key={`${entry.type}-${entry.id}`}
@@ -443,6 +450,8 @@ function AdminTrash() {
                       <Package className="size-4" />
                     ) : isOrder ? (
                       <ShoppingCart className="size-4" />
+                    ) : isBackup ? (
+                      <Archive className="size-4" />
                     ) : (
                       <ContactRound className="size-4" />
                     )}
@@ -450,7 +459,13 @@ function AdminTrash() {
                   <div className="min-w-0">
                     <p className="truncate font-medium">{name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {isProduct ? "Producto" : isOrder ? "Pedido" : "Proveedor"} · Se elimina en{" "}
+                      {isProduct
+                        ? "Producto"
+                        : isOrder
+                          ? "Pedido"
+                          : isBackup
+                            ? "Copia de seguridad"
+                            : "Proveedor"} · Se elimina en{" "}
                       {getRemainingDays(entry.expiresAt)} días
                     </p>
                   </div>
