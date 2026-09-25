@@ -476,7 +476,7 @@ function AdminProducts() {
           "Producto generado automáticamente a partir del contenido del archivo cargado.",
         features: [],
         images: [],
-        createdAt: new Date().toISOString().slice(0, 10),
+        createdAt: new Date().toISOString(),
       } as Product;
     });
 
@@ -675,7 +675,7 @@ function AdminProducts() {
       id: newId,
       slug: newSlug,
       name: `${product.name} (Copia)`,
-      createdAt: new Date().toISOString().slice(0, 10),
+      createdAt: new Date().toISOString(),
     };
 
     // Add to in-memory dataset so public getters reflect it and update UI
@@ -908,7 +908,7 @@ function AdminProducts() {
           id: newId,
           slug: newSlug,
           name: `${product.name} (Copia)`,
-          createdAt: new Date().toISOString().slice(0, 10),
+          createdAt: new Date().toISOString(),
           hidden: Boolean(product.hidden),
         });
         continue;
@@ -937,7 +937,7 @@ function AdminProducts() {
         variantName: selectedVariant.name,
         variants: [duplicatedVariant],
         hidden: Boolean(product.hidden),
-        createdAt: new Date().toISOString().slice(0, 10),
+        createdAt: new Date().toISOString(),
       });
     }
 
@@ -1308,7 +1308,7 @@ function AdminProducts() {
           supplier: productForm.supplier,
           deliveryUnit: normalizedDeliveryUnit,
           deliveryAmount: productForm.deliveryAmount,
-          createdAt: new Date().toISOString().slice(0, 10),
+          createdAt: new Date().toISOString(),
         } as Product;
 
         (productsData as Product[]).push(newProduct);
