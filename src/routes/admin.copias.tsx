@@ -112,7 +112,7 @@ const getNextWeeklyBackup = () => {
 
 function PendingAdminBackups() {
   return (
-    <main className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
@@ -135,7 +135,7 @@ function PendingAdminBackups() {
         </div>
       </div>
 
-      <div className="glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
+      <div className="mt-4 glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
         <div className="hidden grid-cols-[1.1fr_1.2fr_2fr_1.1fr] gap-4 border-b border-border/60 bg-surface-2 px-5 py-3 text-center text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground md:grid">
           <span>Fecha</span>
           <span>Tipo de copias</span>
@@ -282,7 +282,7 @@ function AdminBackups() {
   const hasNextPage = safePage < totalPages - 1;
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
@@ -460,7 +460,7 @@ function AdminBackups() {
         </div>
       </div>
 
-      <div className="glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
+      <div className="mt-4 glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
         <Table
           hideScrollbarOnMobile
           alwaysShowScrollbarOnDesktop
