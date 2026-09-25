@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 function getBrandImage(brandSlug?: string) {
@@ -8,13 +9,6 @@ function getBrandImage(brandSlug?: string) {
     if (brandSlug === "web-design") return "/LRG Web Design PNG.png";
     if (brandSlug === "scents") return "/LRG Scents PNG.png";
   }
-  if (typeof document === "undefined") return "/LRG Store Shop PNG.png";
-  const arcade = document.querySelector(".theme-arcade");
-  const scents = document.querySelector(".theme-scents");
-  const webdesign = document.querySelector(".theme-webdesign");
-  if (arcade) return "/LRG Arcade PNG.png";
-  if (scents) return "/LRG Scents PNG.png";
-  if (webdesign) return "/LRG Web Design PNG.png";
   return "/LRG Store Shop PNG.png";
 }
 
@@ -29,13 +23,36 @@ export function BrandMark({
   label?: string;
   brandSlug?: string;
 }) {
-  const src = getBrandImage(brandSlug);
+  const [resolvedSrc, setResolvedSrc] = useState(() => getBrandImage(brandSlug));
+
+  useEffect(() => {
+    const nextSrc = getBrandImage(brandSlug);
+
+    if (typeof document === "undefined") {
+      setResolvedSrc(nextSrc);
+      return;
+    }
+
+    const arcade = document.querySelector(".theme-arcade");
+    const scents = document.querySelector(".theme-scents");
+    const webdesign = document.querySelector(".theme-webdesign");
+
+    const resolved = arcade
+      ? "/LRG Arcade PNG.png"
+      : scents
+        ? "/LRG Scents PNG.png"
+        : webdesign
+          ? "/LRG Web Design PNG.png"
+          : nextSrc;
+
+    setResolvedSrc(resolved);
+  }, [brandSlug]);
 
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <span className="relative grid size-9 place-items-center rounded-xl overflow-hidden">
         <img
-          src={src}
+          src={resolvedSrc}
           alt={label ?? "LRG Store Shop"}
           className={cn(
             "w-9 h-9 object-contain",
