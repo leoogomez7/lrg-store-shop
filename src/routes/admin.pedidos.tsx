@@ -739,7 +739,9 @@ function AdminOrders() {
       setEditableOrders(nextOrders);
 
       const currentOrderId = order.id;
-      const remainingQueue = bulkQuickEditOrderQueue.filter((orderId) => orderId !== currentOrderId);
+      const remainingQueue = bulkQuickEditOrderQueue.filter(
+        (orderId) => orderId !== currentOrderId,
+      );
       const nextQueuedOrderId = remainingQueue[0];
       setBulkQuickEditOrderQueue(remainingQueue);
       setQuickEditOrderId(null);
@@ -751,7 +753,9 @@ function AdminOrders() {
       });
 
       if (nextQueuedOrderId) {
-        const nextQuickEditOrder = editableOrders.find((candidate) => candidate.id === nextQueuedOrderId);
+        const nextQuickEditOrder = editableOrders.find(
+          (candidate) => candidate.id === nextQueuedOrderId,
+        );
         if (nextQuickEditOrder) {
           setSelectionMode(true);
           startQuickEditOrder(nextQuickEditOrder, isBulkQuickEditing);
@@ -947,7 +951,9 @@ function AdminOrders() {
       setAvailablePaymentMethodsByBrand(paymentMethodsByBrand);
       setAvailableShippingMethodsByBrand(shippingMethodsByBrand);
       setAvailablePaymentMethods(Array.from(new Set(Object.values(paymentMethodsByBrand).flat())));
-      setAvailableShippingMethods(Array.from(new Set(Object.values(shippingMethodsByBrand).flat())));
+      setAvailableShippingMethods(
+        Array.from(new Set(Object.values(shippingMethodsByBrand).flat())),
+      );
     });
   }, []);
 
@@ -975,13 +981,20 @@ function AdminOrders() {
 
   const paymentMethodOptions = useMemo(() => {
     const options = [
-      ...(orderForm ? availablePaymentMethodsByBrand[orderForm.brand] ?? [] : availablePaymentMethods),
+      ...(orderForm
+        ? (availablePaymentMethodsByBrand[orderForm.brand] ?? [])
+        : availablePaymentMethods),
     ];
     if (orderForm?.paymentMethod && !options.includes(orderForm.paymentMethod)) {
       options.push(orderForm.paymentMethod);
     }
     return Array.from(new Set(options));
-  }, [availablePaymentMethods, availablePaymentMethodsByBrand, orderForm?.brand, orderForm?.paymentMethod]);
+  }, [
+    availablePaymentMethods,
+    availablePaymentMethodsByBrand,
+    orderForm?.brand,
+    orderForm?.paymentMethod,
+  ]);
 
   const orderStoreSlugs = useMemo(
     () => (orderForm ? brandList.map((brand) => brand.slug) : []),
@@ -1021,18 +1034,20 @@ function AdminOrders() {
     });
     return {
       paymentStatus:
-        paymentStatuses.length > 0 && paymentStatuses.every((status) => status === paymentStatuses[0])
+        paymentStatuses.length > 0 &&
+        paymentStatuses.every((status) => status === paymentStatuses[0])
           ? (paymentStatuses[0] ?? "Pendiente")
           : "Pendiente",
       deliveryStatus:
-        deliveryStatuses.length > 0 && deliveryStatuses.every((status) => status === deliveryStatuses[0])
+        deliveryStatuses.length > 0 &&
+        deliveryStatuses.every((status) => status === deliveryStatuses[0])
           ? (deliveryStatuses[0] ?? "Pendiente")
           : "Pendiente",
     };
   };
 
   const getBrandDisplayName = useCallback((brandSlug?: BrandSlug) => {
-    return brandSlug ? brands[brandSlug]?.name ?? brandSlug : "";
+    return brandSlug ? (brands[brandSlug]?.name ?? brandSlug) : "";
   }, []);
 
   const getBrandFullName = useCallback((brandSlug?: BrandSlug) => {
@@ -1056,17 +1071,13 @@ function AdminOrders() {
     return {
       ...getStoreFormValues(form.items, store),
       paymentMethod:
-        storeItems[0]?.paymentMethod ??
-        (store === form.brand ? form.paymentMethod : ""),
+        storeItems[0]?.paymentMethod ?? (store === form.brand ? form.paymentMethod : ""),
       paymentStatus:
-        storeItems[0]?.paymentStatus ??
-        (store === form.brand ? form.paymentStatus : "Pendiente"),
+        storeItems[0]?.paymentStatus ?? (store === form.brand ? form.paymentStatus : "Pendiente"),
       shippingMethod:
-        storeItems[0]?.shippingMethod ??
-        (store === form.brand ? form.shippingMethod ?? "" : ""),
+        storeItems[0]?.shippingMethod ?? (store === form.brand ? (form.shippingMethod ?? "") : ""),
       deliveryStatus:
-        storeItems[0]?.deliveryStatus ??
-        (store === form.brand ? form.deliveryStatus : "Pendiente"),
+        storeItems[0]?.deliveryStatus ?? (store === form.brand ? form.deliveryStatus : "Pendiente"),
     };
   };
 
@@ -1090,7 +1101,7 @@ function AdminOrders() {
   const shippingMethodOptions = useMemo(() => {
     const options = [
       ...(orderForm
-        ? availableShippingMethodsByBrand[orderForm.brand] ?? []
+        ? (availableShippingMethodsByBrand[orderForm.brand] ?? [])
         : availableShippingMethods),
     ];
     if (orderForm?.shippingMethod && !options.includes(orderForm.shippingMethod)) {
@@ -1424,19 +1435,43 @@ function AdminOrders() {
           shippingMethod: item.shippingMethod ?? order.shippingMethod,
           paymentStatus: item.paymentStatus ?? getPaymentStatus(order.status),
           deliveryStatus: item.deliveryStatus ?? getDeliveryStatus(order.status),
-          supplier: item.supplier ?? getSupplierForItem(item.name, item.productId, item.variantId, item.brand ?? order.brand)?.supplier
-            ? {
-                name:
-                  (item.supplier ?? getSupplierForItem(item.name, item.productId, item.variantId, item.brand ?? order.brand)?.supplier)?.name ??
-                  "",
-                phone:
-                  (item.supplier ?? getSupplierForItem(item.name, item.productId, item.variantId, item.brand ?? order.brand)?.supplier)?.phone ??
-                  "",
-                social:
-                  (item.supplier ?? getSupplierForItem(item.name, item.productId, item.variantId, item.brand ?? order.brand)?.supplier)?.social ??
-                  "",
-              }
-            : undefined,
+          supplier:
+            (item.supplier ??
+            getSupplierForItem(item.name, item.productId, item.variantId, item.brand ?? order.brand)
+              ?.supplier)
+              ? {
+                  name:
+                    (
+                      item.supplier ??
+                      getSupplierForItem(
+                        item.name,
+                        item.productId,
+                        item.variantId,
+                        item.brand ?? order.brand,
+                      )?.supplier
+                    )?.name ?? "",
+                  phone:
+                    (
+                      item.supplier ??
+                      getSupplierForItem(
+                        item.name,
+                        item.productId,
+                        item.variantId,
+                        item.brand ?? order.brand,
+                      )?.supplier
+                    )?.phone ?? "",
+                  social:
+                    (
+                      item.supplier ??
+                      getSupplierForItem(
+                        item.name,
+                        item.productId,
+                        item.variantId,
+                        item.brand ?? order.brand,
+                      )?.supplier
+                    )?.social ?? "",
+                }
+              : undefined,
         };
       }),
       deliveryStatus:
@@ -1712,7 +1747,8 @@ function AdminOrders() {
   };
 
   const isOrderFormValid = orderForm
-    ? orderForm.items.length > 0 && orderForm.items.every(
+    ? orderForm.items.length > 0 &&
+      orderForm.items.every(
         (item) =>
           item.name &&
           item.confirmed &&
@@ -1744,10 +1780,15 @@ function AdminOrders() {
     }
     if (!isOrderFormValid) return;
     const selectedStoreForm = saveSelectedStoreValues(orderForm, selectedOrderStore);
-    const originalForm = JSON.parse(initialOrderFormSnapshot.current ?? "null") as EditableOrder | null;
+    const originalForm = JSON.parse(
+      initialOrderFormSnapshot.current ?? "null",
+    ) as EditableOrder | null;
     if (!originalForm) return;
     const mergedItems = selectedStoreForm.items;
-    const totals = computeOrderTotals(mergedItems, orderForm.total ? orderForm.expenses / orderForm.total : 0.65);
+    const totals = computeOrderTotals(
+      mergedItems,
+      orderForm.total ? orderForm.expenses / orderForm.total : 0.65,
+    );
     const orderToSave: EditableOrder = {
       ...selectedStoreForm,
       items: mergedItems,
@@ -1890,7 +1931,9 @@ function AdminOrders() {
     const variant = product?.variants?.find(
       (candidate) => candidate.id === variantId || candidate.name.toLowerCase() === normalizedName,
     );
-    return product ? { productName: product.name, supplier: variant?.supplier ?? product.supplier } : undefined;
+    return product
+      ? { productName: product.name, supplier: variant?.supplier ?? product.supplier }
+      : undefined;
   };
 
   return (
@@ -2277,688 +2320,725 @@ function AdminOrders() {
       />
 
       <div className="flex flex-col">
-      <div className="order-2 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
-        {selectedOrderIds.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {quickEditOrderId !== null ? (
-              <>
-                <Button
-                  size="sm"
-                  variant="default"
-                  onClick={() => {
-                    const currentOrder = editableOrders.find((order) => order.id === quickEditOrderId);
-                    if (currentOrder) saveQuickEditOrder(currentOrder);
-                  }}
-                >
-                  <Check className="size-4" /> Guardar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={cancelQuickEditOrder}
-                >
-                  <X className="size-4" /> Saltar
-                </Button>
-                <Button size="sm" variant="outline" onClick={cancelQuickEditSession}>
-                  <X className="size-4" /> Cancelar
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button size="sm" variant="outline" onClick={handleBulkQuickEditOrders}>
-                  <Edit3 className="size-4" /> Editar rápido
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleBulkEditOrders}>
-                  <Pencil className="size-4" /> Editar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() =>
-                    setConfirmState({
-                      open: true,
-                      title: "Eliminar pedidos seleccionados?",
-                      description: "Esta acción no se puede deshacer.",
-                      onConfirm: handleBulkDeleteOrders,
-                    })
-                  }
-                >
-                  <Trash2 className="size-4" /> Eliminar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setSelectionMode(false);
-                    setSelectedOrderIds([]);
-                  }}
-                >
-                  <X className="size-4" /> Cancelar
-                </Button>
-              </>
-            )}
-          </div>
-        ) : null}
-      </div>
+        <div className="order-2 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
+          {selectedOrderIds.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {quickEditOrderId !== null ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => {
+                      const currentOrder = editableOrders.find(
+                        (order) => order.id === quickEditOrderId,
+                      );
+                      if (currentOrder) saveQuickEditOrder(currentOrder);
+                    }}
+                  >
+                    <Check className="size-4" /> Guardar
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={cancelQuickEditOrder}>
+                    <X className="size-4" /> Saltar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={cancelQuickEditSession}>
+                    <X className="size-4" /> Cancelar
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button size="sm" variant="outline" onClick={handleBulkQuickEditOrders}>
+                    <Edit3 className="size-4" /> Editar rápido
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleBulkEditOrders}>
+                    <Pencil className="size-4" /> Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() =>
+                      setConfirmState({
+                        open: true,
+                        title: "Eliminar pedidos seleccionados?",
+                        description: "Esta acción no se puede deshacer.",
+                        onConfirm: handleBulkDeleteOrders,
+                      })
+                    }
+                  >
+                    <Trash2 className="size-4" /> Eliminar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectionMode(false);
+                      setSelectedOrderIds([]);
+                    }}
+                  >
+                    <X className="size-4" /> Cancelar
+                  </Button>
+                </>
+              )}
+            </div>
+          ) : null}
+        </div>
 
-      <div className="order-1 mt-4 rounded-2xl">
-        <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
-          <Table
-            hideScrollbarOnMobile
-            alwaysShowScrollbarOnDesktop
-            stickyHeader
-            stickyScrollbar
-            containerClassName={cn(
-              "overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]",
-            )}
-            className={cn(
-              "w-full table-fixed border-collapse text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
-              selectionMode ? "min-w-200" : "min-w-0",
-            )}
-          >
-            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
-              <TableRow>
-                <TableHead className="w-12 min-w-12 max-w-12 px-2">
-                  <div className="flex items-center justify-center">
-                    <Checkbox
-                      className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                      checked={
-                        allVisibleOrdersSelected
-                          ? true
-                          : someVisibleOrdersSelected
-                            ? "indeterminate"
-                            : false
-                      }
-                      onCheckedChange={(checked) => {
-                        const shouldSelect = checked === true || checked === "indeterminate";
-                        setSelectedOrderIds((current) => {
-                          const next = shouldSelect
-                            ? [...new Set([...current, ...visibleOrderIds])]
-                            : current.filter((id) => !visibleOrderIds.includes(id));
-                          setSelectionMode(next.length > 0);
-                          return next;
-                        });
-                      }}
-                      aria-label="Seleccionar pedidos visibles"
-                    />
-                  </div>
-                </TableHead>
-                <TableHead className="w-24 min-w-24 max-w-24">Pedido</TableHead>
-                <TableHead className="w-20">Fecha</TableHead>
-                <TableHead className="w-24">Estado de pago</TableHead>
-                <TableHead className="w-28">Núm. envío</TableHead>
-                <TableHead className="w-24">Estado de envío</TableHead>
-                <TableHead className="w-24">Fecha envío</TableHead>
-                <TableHead className="w-18">Gastos</TableHead>
-                <TableHead className="w-20">Total</TableHead>
-                <TableHead className="w-18">Ganancias</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleResults.map((order) => {
-                const isExpanded = expandedOrderId === order.id;
-                const nameParts = order.customer.split(" ");
-                const displayCustomer =
-                  nameParts.length > 1
-                    ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}`
-                    : order.customer;
-                const { deliveryStatus: displayDeliveryStatus, paymentStatus: displayPaymentStatus } =
-                  getOrderStatusByStore(order);
+        <div className="order-1 mt-4 rounded-2xl">
+          <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
+            <Table
+              hideScrollbarOnMobile
+              alwaysShowScrollbarOnDesktop
+              stickyHeader
+              stickyScrollbar
+              containerClassName={cn(
+                "overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]",
+              )}
+              className={cn(
+                "w-full table-fixed border-collapse text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
+                selectionMode ? "min-w-200" : "min-w-0",
+              )}
+            >
+              <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+                <TableRow>
+                  <TableHead className="w-12 min-w-12 max-w-12 px-2">
+                    <div className="flex items-center justify-center">
+                      <Checkbox
+                        className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                        checked={
+                          allVisibleOrdersSelected
+                            ? true
+                            : someVisibleOrdersSelected
+                              ? "indeterminate"
+                              : false
+                        }
+                        onCheckedChange={(checked) => {
+                          const shouldSelect = checked === true || checked === "indeterminate";
+                          setSelectedOrderIds((current) => {
+                            const next = shouldSelect
+                              ? [...new Set([...current, ...visibleOrderIds])]
+                              : current.filter((id) => !visibleOrderIds.includes(id));
+                            setSelectionMode(next.length > 0);
+                            return next;
+                          });
+                        }}
+                        aria-label="Seleccionar pedidos visibles"
+                      />
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-24 min-w-24 max-w-24">Pedido</TableHead>
+                  <TableHead className="w-20">Fecha</TableHead>
+                  <TableHead className="w-24">Estado de pago</TableHead>
+                  <TableHead className="w-28">Núm. envío</TableHead>
+                  <TableHead className="w-24">Estado de envío</TableHead>
+                  <TableHead className="w-24">Fecha envío</TableHead>
+                  <TableHead className="w-18">Gastos</TableHead>
+                  <TableHead className="w-20">Total</TableHead>
+                  <TableHead className="w-18">Ganancias</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleResults.map((order) => {
+                  const isExpanded = expandedOrderId === order.id;
+                  const nameParts = order.customer.split(" ");
+                  const displayCustomer =
+                    nameParts.length > 1
+                      ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}`
+                      : order.customer;
+                  const {
+                    deliveryStatus: displayDeliveryStatus,
+                    paymentStatus: displayPaymentStatus,
+                  } = getOrderStatusByStore(order);
 
-                const isQuickEditing = quickEditOrderId === order.id;
-                const quickDraft = quickEditOrderForm[order.id] ?? {
-                  deliveryStatus: displayDeliveryStatus,
-                  paymentStatus: displayPaymentStatus,
-                  shippingMethod: order.shippingMethod ?? "",
-                  shippingNumber: order.shippingNumber ?? "",
-                  paymentMethod: order.paymentMethod,
-                  deliveryDate: order.deliveryDate ?? "",
-                };
-                const quickEditHasChanges =
-                  JSON.stringify(quickDraft) !== quickEditOriginalSnapshots.current[order.id];
+                  const isQuickEditing = quickEditOrderId === order.id;
+                  const quickDraft = quickEditOrderForm[order.id] ?? {
+                    deliveryStatus: displayDeliveryStatus,
+                    paymentStatus: displayPaymentStatus,
+                    shippingMethod: order.shippingMethod ?? "",
+                    shippingNumber: order.shippingNumber ?? "",
+                    paymentMethod: order.paymentMethod,
+                    deliveryDate: order.deliveryDate ?? "",
+                  };
+                  const quickEditHasChanges =
+                    JSON.stringify(quickDraft) !== quickEditOriginalSnapshots.current[order.id];
 
-                return (
-                  <Fragment key={order.id}>
-                    <TableRow
-                      id={`pedido-${order.id}`}
-                      ref={(node) => {
-                        if (isQuickEditing) quickEditRowRef.current = node;
-                        if (isExpanded) expandedOrderRowRef.current = node;
-                      }}
-                      onClick={(event) => {
-                        if (
-                          selectionMode ||
-                          isQuickEditing ||
-                          (event.target as HTMLElement).closest(
-                            "button, input, [role=checkbox], [role=combobox], a",
+                  return (
+                    <Fragment key={order.id}>
+                      <TableRow
+                        id={`pedido-${order.id}`}
+                        ref={(node) => {
+                          if (isQuickEditing) quickEditRowRef.current = node;
+                          if (isExpanded) expandedOrderRowRef.current = node;
+                        }}
+                        onClick={(event) => {
+                          if (
+                            selectionMode ||
+                            isQuickEditing ||
+                            (event.target as HTMLElement).closest(
+                              "button, input, [role=checkbox], [role=combobox], a",
+                            )
                           )
-                        )
-                          return;
-                        setExpandedOrderId(isExpanded ? null : order.id);
-                      }}
-                      className={
-                        cn(
+                            return;
+                          setExpandedOrderId(isExpanded ? null : order.id);
+                        }}
+                        className={cn(
                           expandedOrderId === order.id && "scroll-mt-16",
                           highlightedOrderId === order.id
-                          ? "animate-pulse border border-amber-400/80 bg-linear-to-r from-amber-500/25 via-yellow-300/25 to-amber-500/25 shadow-[0_0_0_1px_rgba(251,191,36,0.55),0_0_18px_rgba(251,191,36,0.28)]"
-                          : !selectionMode && !isQuickEditing
-                            ? "cursor-pointer hover:bg-transparent"
-                            : undefined,
-                        )
-                      }
-                    >
-                      <TableCell className="w-12 min-w-12 max-w-12 px-2">
-                        <div className="flex items-center justify-center">
-                          <Checkbox
-                            className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                            checked={selectedOrderIds.includes(order.id)}
-                            onClick={(event) => event.stopPropagation()}
-                            onCheckedChange={(checked) => {
-                              const isChecked = checked === true;
-                              setSelectedOrderIds((current) => {
-                                const next = isChecked
-                                  ? current.includes(order.id)
-                                    ? current
-                                    : [...current, order.id]
-                                  : current.filter((id) => id !== order.id);
-                                setSelectionMode(next.length > 0);
-                                return next;
-                              });
-                            }}
-                            aria-label={`Seleccionar pedido ${order.id}`}
-                          />
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="w-24 min-w-24 max-w-24 text-center text-sm font-medium">
-                        <div className="flex min-w-0 items-center justify-center gap-1 text-center">
-                          <div className="flex min-w-0 flex-col items-center gap-1">
-                            <span className="min-w-0 break-all text-sm leading-tight">
-                              {order.id}
-                            </span>
-                            {order.isGuest && (
-                              <Badge
-                                variant="warning"
-                                className="shrink-0 px-1.5 py-0.5 text-[9px]"
-                              >
-                                Invitado
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">{formatDate(order.date)}</TableCell>
-                      <TableCell>
-                        {isQuickEditing ? (
-                          <Select
-                            value={quickDraft.paymentStatus}
-                            onValueChange={(value) =>
-                              setQuickEditOrderForm((current) => ({
-                                ...current,
-                                [order.id]: {
-                                  ...quickDraft,
-                                  paymentStatus: value as PaymentStatus,
-                                },
-                              }))
-                            }
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map(
-                                (paymentOption) => (
-                                  <SelectItem key={paymentOption} value={paymentOption}>
-                                    {paymentOption}
-                                  </SelectItem>
-                                ),
-                              )}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Badge
-                            className="capitalize"
-                            variant={paymentVariant[displayPaymentStatus]}
-                          >
-                            {displayPaymentStatus}
-                          </Badge>
+                            ? "animate-pulse border border-amber-400/80 bg-linear-to-r from-amber-500/25 via-yellow-300/25 to-amber-500/25 shadow-[0_0_0_1px_rgba(251,191,36,0.55),0_0_18px_rgba(251,191,36,0.28)]"
+                            : !selectionMode && !isQuickEditing
+                              ? "cursor-pointer hover:bg-transparent"
+                              : undefined,
                         )}
-                      </TableCell>
-                      <TableCell>
-                        {isQuickEditing ? (
-                          <span className="text-muted-foreground">-</span>
-                        ) : (
-                          <Input
-                            value={order.shippingNumber ?? ""}
-                            placeholder="-"
-                            disabled={!order.shippingNumber}
-                            readOnly
-                            className="w-full text-center"
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {isQuickEditing ? (
-                          <Select
-                            value={quickDraft.deliveryStatus}
-                            onValueChange={(value) =>
-                              setQuickEditOrderForm((current) => ({
-                                ...current,
-                                [order.id]: {
-                                  ...quickDraft,
-                                  deliveryStatus: value as DeliveryStatus,
-                                },
-                              }))
-                            }
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(["Pendiente", "Enviado"] as DeliveryStatus[]).map(
-                                (statusOption) => (
-                                  <SelectItem key={statusOption} value={statusOption}>
-                                    {statusOption}
-                                  </SelectItem>
-                                ),
-                              )}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Badge
-                            className="capitalize"
-                            variant={deliveryVariant[displayDeliveryStatus]}
-                          >
-                            {displayDeliveryStatus}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {isQuickEditing ? (
-                          <Input
-                            type="date"
-                            value={quickDraft.deliveryDate}
-                            onChange={(event) =>
-                              setQuickEditOrderForm((current) => ({
-                                ...current,
-                                [order.id]: {
-                                  ...quickDraft,
-                                  deliveryDate: event.target.value,
-                                },
-                              }))
-                            }
-                            className="w-full"
-                          />
-                        ) : order.deliveryDate ? (
-                          formatDate(order.deliveryDate)
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell>{formatPrice(order.expenses)}</TableCell>
-                      <TableCell>{formatPrice(order.total)}</TableCell>
-                      <TableCell>{formatPrice(order.profit)}</TableCell>
-                    </TableRow>
-
-                    {isExpanded && (
-                      <TableRow
-                        key={`${order.id}-details`}
-                        ref={expandedOrderId === order.id ? quickEditDetailRef : undefined}
                       >
-                        <TableCell colSpan={10} className="w-full bg-surface-2/90 p-0 sm:p-0">
-                          <div className="w-full min-w-0 space-y-4 overflow-hidden rounded-2xl bg-surface-2/90 p-3 text-sm sm:p-5">
-                            {isQuickEditing && !isBulkQuickEditing && (
-                              <div className="flex flex-wrap items-center justify-center gap-2 border-b border-border/50 pb-3">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => saveQuickEditOrder(order)}
-                                  disabled={!quickEditHasChanges || isSavingQuickEdit}
-                                  className="h-7 gap-1 bg-transparent px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40"
+                        <TableCell className="w-12 min-w-12 max-w-12 px-2">
+                          <div className="flex items-center justify-center">
+                            <Checkbox
+                              className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                              checked={selectedOrderIds.includes(order.id)}
+                              onClick={(event) => event.stopPropagation()}
+                              onCheckedChange={(checked) => {
+                                const isChecked = checked === true;
+                                setSelectedOrderIds((current) => {
+                                  const next = isChecked
+                                    ? current.includes(order.id)
+                                      ? current
+                                      : [...current, order.id]
+                                    : current.filter((id) => id !== order.id);
+                                  setSelectionMode(next.length > 0);
+                                  return next;
+                                });
+                              }}
+                              aria-label={`Seleccionar pedido ${order.id}`}
+                            />
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="w-24 min-w-24 max-w-24 text-center text-sm font-medium">
+                          <div className="flex min-w-0 items-center justify-center gap-1 text-center">
+                            <div className="flex min-w-0 flex-col items-center gap-1">
+                              <span className="min-w-0 break-all text-sm leading-tight">
+                                {order.id}
+                              </span>
+                              {order.isGuest && (
+                                <Badge
+                                  variant="warning"
+                                  className="shrink-0 px-1.5 py-0.5 text-[9px]"
                                 >
-                                  {isSavingQuickEdit ? (
-                                    <LoaderCircle className="size-3.5 animate-spin" />
-                                  ) : (
-                                    <Check className="size-3.5" />
-                                  )} {isSavingQuickEdit ? "Guardando..." : "Guardar"}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={cancelQuickEditOrder}
-                                  className="h-7 gap-1 bg-transparent px-2 text-xs text-destructive hover:bg-destructive/10"
-                                >
-                                  <X className="size-3.5" /> Cancelar
-                                </Button>
-                              </div>
-                            )}
-
-                            <p className="font-medium">Detalle del pedido</p>
-
-                            <div className="grid w-full min-w-0 max-w-full gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
-                              <div className="min-w-0 space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
-                                <div>
-                                  <span className="block text-xs text-muted-foreground">Cliente</span>
-                                  <span className="block wrap-break-word text-base font-medium">
-                                    {displayCustomer}
-                                  </span>
-                                  {order.isGuest && <Badge variant="warning">Invitado</Badge>}
-                                </div>
-                                <div>
-                                  <span className="block text-xs text-muted-foreground">Correo</span>
-                                  <span className="block break-all">{order.email || "—"}</span>
-                                </div>
-                                <div>
-                                  <span className="block text-xs text-muted-foreground">Celular</span>
-                                  <span className="block wrap-break-word">{order.phone || "—"}</span>
-                                </div>
-                              </div>
-
-                              <div className="min-w-0 space-y-3">
-                                <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
-                                  <ul className="grid min-w-0 gap-2 text-sm">
-                                    {order.items.slice(0, 4).map((item, itemIndex) => {
-                                      const product = allProducts.find(
-                                        (candidate) =>
-                                          candidate.id === item.productId ||
-                                          candidate.variantId === item.variantId ||
-                                          candidate.name === item.name,
-                                      );
-                                      const supplier = getSupplierForItem(
-                                        item.name,
-                                        item.productId,
-                                        item.variantId,
-                                      )?.supplier;
-                                      const itemBrand = item.brand ?? product?.brand ?? order.brand;
-                                      const resolvedVariantName =
-                                        item.variantName ??
-                                        product?.variantName ??
-                                        product?.variants?.find((variant) => variant.id === item.variantId)
-                                          ?.name;
-
-                                      return (
-                                        <li
-                                          key={`${item.name}-${item.variantId ?? itemIndex}`}
-                                          className="rounded-xl bg-surface p-3"
-                                        >
-                                          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-                                            <div className="min-w-0 text-left">
-                                              <div className="flex flex-wrap items-center gap-2">
-                                                <span className="inline-flex rounded-full border border-border/60 bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                                                  {getBrandFullName(itemBrand)}
-                                                </span>
-                                                <span className="wrap-break-word font-medium">
-                                                  {item.name}
-                                                </span>
-                                                {resolvedVariantName && (
-                                                  <span className="text-muted-foreground"> - {resolvedVariantName}</span>
-                                                )}
-                                              </div>
-                                              <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                                                <span>Proveedor: {supplier?.name ?? "Sin proveedor asignado"}</span>
-                                                <span>•</span>
-                                                <span>{item.quantity} unidades</span>
-                                                <span>•</span>
-                                                <span>{formatPrice(item.price)}</span>
-                                              </div>
-                                            </div>
-                                            <span className="shrink-0 text-right font-medium">
-                                              {formatPrice(item.price * item.quantity)}
-                                            </span>
-                                          </div>
-                                        </li>
-                                      );
-                                    })}
-                                  </ul>
-                                  {order.items.length > 4 && (
-                                    <div className="flex justify-center border-t border-border/50 pt-3">
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 gap-1 px-2 text-xs"
-                                        onClick={() => setProductListModalOrder(order)}
-                                      >
-                                        <Plus className="size-3.5" /> Ver más
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
-
-                              </div>
-                            </div>
-
-                            {(() => {
-                              const storeSlugs = Array.from(
-                                new Map(
-                                  order.items.map((item) => {
-                                    const product = allProducts.find(
-                                      (candidate) =>
-                                        candidate.id === item.productId || candidate.name === item.name,
-                                    );
-                                    const itemBrand = item.brand ?? product?.brand ?? order.brand;
-                                    return [itemBrand, itemBrand] as const;
-                                  }),
-                                ).values(),
-                              );
-
-                              return (
-                                <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                  {storeSlugs.map((brandSlug) => {
-                                    const itemsInBrand = order.items.filter((item) => {
-                                      const product = allProducts.find(
-                                        (candidate) =>
-                                          candidate.id === item.productId || candidate.name === item.name,
-                                      );
-                                      return (item.brand ?? product?.brand ?? order.brand) === brandSlug;
-                                    });
-                                    const suppliers = Array.from(
-                                      new Set(
-                                        itemsInBrand
-                                          .map((item) =>
-                                            getSupplierForItem(
-                                              item.name,
-                                              item.productId,
-                                              item.variantId,
-                                            )?.supplier?.name,
-                                          )
-                                          .filter((name): name is string => Boolean(name)),
-                                      ),
-                                    );
-                                    const paymentStatuses = [
-                                      ...new Set(
-                                        itemsInBrand.map(
-                                          (item) =>
-                                            item.paymentStatus ??
-                                            order.paymentStatus ??
-                                            getPaymentStatus(order.status),
-                                        ),
-                                      ),
-                                    ];
-                                    const deliveryStatuses = [
-                                      ...new Set(
-                                        itemsInBrand.map(
-                                          (item) =>
-                                            item.deliveryStatus ??
-                                            order.deliveryStatus ??
-                                            getDeliveryStatus(order.status),
-                                        ),
-                                      ),
-                                    ];
-                                    const storeDisplayName = getBrandFullName(brandSlug);
-                                    const getStoreMethod = (
-                                      method: "paymentMethod" | "shippingMethod",
-                                      orderMethod?: string,
-                                    ) => {
-                                      const itemMethods = [
-                                        ...new Set(
-                                          itemsInBrand
-                                            .map((item) => item[method])
-                                            .filter((value): value is string => Boolean(value)),
-                                        ),
-                                      ];
-                                      if (itemMethods.length === 1) return itemMethods[0];
-                                      if (itemMethods.length > 1) return "Mixto";
-
-                                      const legacyStoreMethod = (orderMethod ?? "")
-                                        .split(" | ")
-                                        .find((value) => value.startsWith(`${storeDisplayName}:`));
-                                      return legacyStoreMethod
-                                        ? legacyStoreMethod.slice(storeDisplayName.length + 1).trim()
-                                        : orderMethod || "—";
-                                    };
-
-                                    return (
-                                      <div
-                                        key={brandSlug}
-                                        className="rounded-xl border border-border/60 bg-surface/40 p-4"
-                                      >
-                                        <div className="mb-3 flex items-center justify-between gap-2">
-                                          <span className="text-sm font-semibold">
-                                            {getBrandFullName(brandSlug)}
-                                          </span>
-                                        </div>
-                                        <div className="space-y-2.5 text-sm">
-                                          {[
-                                            [
-                                              "Método de pago",
-                                              getStoreMethod("paymentMethod", order.paymentMethod),
-                                            ],
-                                            [
-                                              "Método de envío",
-                                              getStoreMethod("shippingMethod", order.shippingMethod),
-                                            ],
-                                            [
-                                              "Estado de pago",
-                                              paymentStatuses.length === 1
-                                                ? paymentStatuses[0]
-                                                : "Mixto",
-                                            ],
-                                            [
-                                              "Estado de envío",
-                                              deliveryStatuses.length === 1
-                                                ? deliveryStatuses[0]
-                                                : "Mixto",
-                                            ],
-                                            [
-                                              "Proveedor",
-                                              suppliers.length
-                                                ? suppliers.join(", ")
-                                                : "Sin proveedor asignado",
-                                            ],
-                                            ["Observaciones", order.extraInfo || "—"],
-                                          ].map(([label, value]) => (
-                                            <div
-                                              key={label}
-                                              className="flex items-start justify-between gap-3"
-                                            >
-                                              <span className="min-w-0 text-muted-foreground">{label}</span>
-                                              <span className="min-w-0 max-w-[60%] text-right wrap-break-word font-medium">
-                                                {String(value)}
-                                              </span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              );
-                            })()}
-
-                            <div className="flex flex-wrap justify-center gap-2 border-t border-border/50 pt-3">
-                              {!isQuickEditing ? (
-                                <>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setReceiptsOrder(order)}
-                                    className="h-8 gap-2 rounded-md px-3 text-xs"
-                                  >
-                                    <FileText className="size-4" /> Comprobantes de pago del cliente
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setDocumentsOrder(order);
-                                      setPendingAttachments([]);
-                                    }}
-                                    className="h-8 gap-2 rounded-md px-3 text-xs"
-                                  >
-                                    <Paperclip className="size-4" /> Subir archivos para el cliente
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => startQuickEditOrder(order)}
-                                    className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground"
-                                  >
-                                    <Edit3 className="size-4" /> Editar rápido
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => openEditOrderDialog(order)}
-                                    className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground"
-                                  >
-                                    <Pencil className="size-4" /> Editar
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      setConfirmState({
-                                        open: true,
-                                        title: `Eliminar pedido ${order.id}?`,
-                                        description: "Esta acción no se puede deshacer.",
-                                        onConfirm: () => handleDeleteOrder(order),
-                                      })
-                                    }
-                                    className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs text-destructive shadow-none hover:bg-destructive/10"
-                                  >
-                                    <Trash2 className="size-4" /> Eliminar
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setExpandedOrderId(null)}
-                                    className="h-8 gap-2 rounded-md px-3 text-xs"
-                                  >
-                                    <EyeOff className="size-4" /> Ocultar
-                                  </Button>
-                                </>
-                              ) : null}
+                                  Invitado
+                                </Badge>
+                              )}
                             </div>
                           </div>
                         </TableCell>
+                        <TableCell className="text-sm">{formatDate(order.date)}</TableCell>
+                        <TableCell>
+                          {isQuickEditing ? (
+                            <Select
+                              value={quickDraft.paymentStatus}
+                              onValueChange={(value) =>
+                                setQuickEditOrderForm((current) => ({
+                                  ...current,
+                                  [order.id]: {
+                                    ...quickDraft,
+                                    paymentStatus: value as PaymentStatus,
+                                  },
+                                }))
+                              }
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(["Pendiente", "Pagado", "Cancelado"] as PaymentStatus[]).map(
+                                  (paymentOption) => (
+                                    <SelectItem key={paymentOption} value={paymentOption}>
+                                      {paymentOption}
+                                    </SelectItem>
+                                  ),
+                                )}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge
+                              className="capitalize"
+                              variant={paymentVariant[displayPaymentStatus]}
+                            >
+                              {displayPaymentStatus}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isQuickEditing ? (
+                            <span className="text-muted-foreground">-</span>
+                          ) : (
+                            <Input
+                              value={order.shippingNumber ?? ""}
+                              placeholder="-"
+                              disabled={!order.shippingNumber}
+                              readOnly
+                              className="w-full text-center"
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isQuickEditing ? (
+                            <Select
+                              value={quickDraft.deliveryStatus}
+                              onValueChange={(value) =>
+                                setQuickEditOrderForm((current) => ({
+                                  ...current,
+                                  [order.id]: {
+                                    ...quickDraft,
+                                    deliveryStatus: value as DeliveryStatus,
+                                  },
+                                }))
+                              }
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(["Pendiente", "Enviado"] as DeliveryStatus[]).map(
+                                  (statusOption) => (
+                                    <SelectItem key={statusOption} value={statusOption}>
+                                      {statusOption}
+                                    </SelectItem>
+                                  ),
+                                )}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge
+                              className="capitalize"
+                              variant={deliveryVariant[displayDeliveryStatus]}
+                            >
+                              {displayDeliveryStatus}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isQuickEditing ? (
+                            <Input
+                              type="date"
+                              value={quickDraft.deliveryDate}
+                              onChange={(event) =>
+                                setQuickEditOrderForm((current) => ({
+                                  ...current,
+                                  [order.id]: {
+                                    ...quickDraft,
+                                    deliveryDate: event.target.value,
+                                  },
+                                }))
+                              }
+                              className="w-full"
+                            />
+                          ) : order.deliveryDate ? (
+                            formatDate(order.deliveryDate)
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell>{formatPrice(order.expenses)}</TableCell>
+                        <TableCell>{formatPrice(order.total)}</TableCell>
+                        <TableCell>{formatPrice(order.profit)}</TableCell>
                       </TableRow>
-                    )}
-                  </Fragment>
-                );
-              })}
-              {results.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={11}
-                    className="py-16 text-center text-sm text-muted-foreground"
-                  >
-                    No se encontraron pedidos.
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
+
+                      {isExpanded && (
+                        <TableRow
+                          key={`${order.id}-details`}
+                          ref={expandedOrderId === order.id ? quickEditDetailRef : undefined}
+                        >
+                          <TableCell
+                            colSpan={10}
+                            className="w-full max-w-0 overflow-hidden bg-surface-2/90 p-0 sm:p-0"
+                          >
+                            <div className="w-full max-w-[calc(100vw-2rem)] min-w-0 space-y-4 overflow-x-hidden overflow-y-visible rounded-2xl bg-surface-2/90 p-3 text-sm sm:max-w-full sm:p-5">
+                              {isQuickEditing && !isBulkQuickEditing && (
+                                <div className="flex flex-wrap items-center justify-center gap-2 border-b border-border/50 pb-3">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => saveQuickEditOrder(order)}
+                                    disabled={!quickEditHasChanges || isSavingQuickEdit}
+                                    className="h-7 gap-1 bg-transparent px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40"
+                                  >
+                                    {isSavingQuickEdit ? (
+                                      <LoaderCircle className="size-3.5 animate-spin" />
+                                    ) : (
+                                      <Check className="size-3.5" />
+                                    )}{" "}
+                                    {isSavingQuickEdit ? "Guardando..." : "Guardar"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={cancelQuickEditOrder}
+                                    className="h-7 gap-1 bg-transparent px-2 text-xs text-destructive hover:bg-destructive/10"
+                                  >
+                                    <X className="size-3.5" /> Cancelar
+                                  </Button>
+                                </div>
+                              )}
+
+                              <p className="font-medium">Detalle del pedido</p>
+
+                              <div className="grid w-full min-w-0 max-w-full gap-6 overflow-hidden lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+                                <div className="min-w-0 space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
+                                  <div>
+                                    <span className="block text-xs text-muted-foreground">
+                                      Cliente
+                                    </span>
+                                    <span className="block wrap-break-word text-base font-medium">
+                                      {displayCustomer}
+                                    </span>
+                                    {order.isGuest && <Badge variant="warning">Invitado</Badge>}
+                                  </div>
+                                  <div>
+                                    <span className="block text-xs text-muted-foreground">
+                                      Correo
+                                    </span>
+                                    <span className="block break-all">{order.email || "—"}</span>
+                                  </div>
+                                  <div>
+                                    <span className="block text-xs text-muted-foreground">
+                                      Celular
+                                    </span>
+                                    <span className="block wrap-break-word">
+                                      {order.phone || "—"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="min-w-0 space-y-3">
+                                  <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
+                                    <ul className="grid min-w-0 gap-2 text-sm">
+                                      {order.items.slice(0, 4).map((item, itemIndex) => {
+                                        const product = allProducts.find(
+                                          (candidate) =>
+                                            candidate.id === item.productId ||
+                                            candidate.variantId === item.variantId ||
+                                            candidate.name === item.name,
+                                        );
+                                        const supplier = getSupplierForItem(
+                                          item.name,
+                                          item.productId,
+                                          item.variantId,
+                                        )?.supplier;
+                                        const itemBrand =
+                                          item.brand ?? product?.brand ?? order.brand;
+                                        const resolvedVariantName =
+                                          item.variantName ??
+                                          product?.variantName ??
+                                          product?.variants?.find(
+                                            (variant) => variant.id === item.variantId,
+                                          )?.name;
+
+                                        return (
+                                          <li
+                                            key={`${item.name}-${item.variantId ?? itemIndex}`}
+                                            className="rounded-xl bg-surface p-3"
+                                          >
+                                            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                                              <div className="min-w-0 text-left">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                  <span className="inline-flex rounded-full border border-border/60 bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                                                    {getBrandFullName(itemBrand)}
+                                                  </span>
+                                                  <span className="wrap-break-word font-medium">
+                                                    {item.name}
+                                                  </span>
+                                                  {resolvedVariantName && (
+                                                    <span className="text-muted-foreground">
+                                                      {" "}
+                                                      - {resolvedVariantName}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                                                  <span>
+                                                    Proveedor:{" "}
+                                                    {supplier?.name ?? "Sin proveedor asignado"}
+                                                  </span>
+                                                  <span>•</span>
+                                                  <span>{item.quantity} unidades</span>
+                                                  <span>•</span>
+                                                  <span>{formatPrice(item.price)}</span>
+                                                </div>
+                                              </div>
+                                              <span className="shrink-0 text-right font-medium">
+                                                {formatPrice(item.price * item.quantity)}
+                                              </span>
+                                            </div>
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                    {order.items.length > 4 && (
+                                      <div className="flex justify-center border-t border-border/50 pt-3">
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 gap-1 px-2 text-xs"
+                                          onClick={() => setProductListModalOrder(order)}
+                                        >
+                                          <Plus className="size-3.5" /> Ver más
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {(() => {
+                                const storeSlugs = Array.from(
+                                  new Map(
+                                    order.items.map((item) => {
+                                      const product = allProducts.find(
+                                        (candidate) =>
+                                          candidate.id === item.productId ||
+                                          candidate.name === item.name,
+                                      );
+                                      const itemBrand = item.brand ?? product?.brand ?? order.brand;
+                                      return [itemBrand, itemBrand] as const;
+                                    }),
+                                  ).values(),
+                                );
+
+                                return (
+                                  <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                    {storeSlugs.map((brandSlug) => {
+                                      const itemsInBrand = order.items.filter((item) => {
+                                        const product = allProducts.find(
+                                          (candidate) =>
+                                            candidate.id === item.productId ||
+                                            candidate.name === item.name,
+                                        );
+                                        return (
+                                          (item.brand ?? product?.brand ?? order.brand) ===
+                                          brandSlug
+                                        );
+                                      });
+                                      const suppliers = Array.from(
+                                        new Set(
+                                          itemsInBrand
+                                            .map(
+                                              (item) =>
+                                                getSupplierForItem(
+                                                  item.name,
+                                                  item.productId,
+                                                  item.variantId,
+                                                )?.supplier?.name,
+                                            )
+                                            .filter((name): name is string => Boolean(name)),
+                                        ),
+                                      );
+                                      const paymentStatuses = [
+                                        ...new Set(
+                                          itemsInBrand.map(
+                                            (item) =>
+                                              item.paymentStatus ??
+                                              order.paymentStatus ??
+                                              getPaymentStatus(order.status),
+                                          ),
+                                        ),
+                                      ];
+                                      const deliveryStatuses = [
+                                        ...new Set(
+                                          itemsInBrand.map(
+                                            (item) =>
+                                              item.deliveryStatus ??
+                                              order.deliveryStatus ??
+                                              getDeliveryStatus(order.status),
+                                          ),
+                                        ),
+                                      ];
+                                      const storeDisplayName = getBrandFullName(brandSlug);
+                                      const getStoreMethod = (
+                                        method: "paymentMethod" | "shippingMethod",
+                                        orderMethod?: string,
+                                      ) => {
+                                        const itemMethods = [
+                                          ...new Set(
+                                            itemsInBrand
+                                              .map((item) => item[method])
+                                              .filter((value): value is string => Boolean(value)),
+                                          ),
+                                        ];
+                                        if (itemMethods.length === 1) return itemMethods[0];
+                                        if (itemMethods.length > 1) return "Mixto";
+
+                                        const legacyStoreMethod = (orderMethod ?? "")
+                                          .split(" | ")
+                                          .find((value) =>
+                                            value.startsWith(`${storeDisplayName}:`),
+                                          );
+                                        return legacyStoreMethod
+                                          ? legacyStoreMethod
+                                              .slice(storeDisplayName.length + 1)
+                                              .trim()
+                                          : orderMethod || "—";
+                                      };
+
+                                      return (
+                                        <div
+                                          key={brandSlug}
+                                          className="rounded-xl border border-border/60 bg-surface/40 p-4"
+                                        >
+                                          <div className="mb-3 flex items-center justify-between gap-2">
+                                            <span className="text-sm font-semibold">
+                                              {getBrandFullName(brandSlug)}
+                                            </span>
+                                          </div>
+                                          <div className="space-y-2.5 text-sm">
+                                            {[
+                                              [
+                                                "Método de pago",
+                                                getStoreMethod(
+                                                  "paymentMethod",
+                                                  order.paymentMethod,
+                                                ),
+                                              ],
+                                              [
+                                                "Método de envío",
+                                                getStoreMethod(
+                                                  "shippingMethod",
+                                                  order.shippingMethod,
+                                                ),
+                                              ],
+                                              [
+                                                "Estado de pago",
+                                                paymentStatuses.length === 1
+                                                  ? paymentStatuses[0]
+                                                  : "Mixto",
+                                              ],
+                                              [
+                                                "Estado de envío",
+                                                deliveryStatuses.length === 1
+                                                  ? deliveryStatuses[0]
+                                                  : "Mixto",
+                                              ],
+                                              [
+                                                "Proveedor",
+                                                suppliers.length
+                                                  ? suppliers.join(", ")
+                                                  : "Sin proveedor asignado",
+                                              ],
+                                              ["Observaciones", order.extraInfo || "—"],
+                                            ].map(([label, value]) => (
+                                              <div
+                                                key={label}
+                                                className="flex items-start justify-between gap-3"
+                                              >
+                                                <span className="min-w-0 text-muted-foreground">
+                                                  {label}
+                                                </span>
+                                                <span className="min-w-0 max-w-[60%] text-right wrap-break-word font-medium">
+                                                  {String(value)}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })()}
+
+                              <div className="flex flex-wrap justify-center gap-2 border-t border-border/50 pt-3">
+                                {!isQuickEditing ? (
+                                  <>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setReceiptsOrder(order)}
+                                      className="h-8 gap-2 rounded-md px-3 text-xs"
+                                    >
+                                      <FileText className="size-4" /> Comprobantes de pago del
+                                      cliente
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setDocumentsOrder(order);
+                                        setPendingAttachments([]);
+                                      }}
+                                      className="h-8 gap-2 rounded-md px-3 text-xs"
+                                    >
+                                      <Paperclip className="size-4" /> Subir archivos para el
+                                      cliente
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => startQuickEditOrder(order)}
+                                      className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground"
+                                    >
+                                      <Edit3 className="size-4" /> Editar rápido
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openEditOrderDialog(order)}
+                                      className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs shadow-none hover:bg-accent hover:text-accent-foreground"
+                                    >
+                                      <Pencil className="size-4" /> Editar
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        setConfirmState({
+                                          open: true,
+                                          title: `Eliminar pedido ${order.id}?`,
+                                          description: "Esta acción no se puede deshacer.",
+                                          onConfirm: () => handleDeleteOrder(order),
+                                        })
+                                      }
+                                      className="h-8 gap-2 rounded-md border border-input bg-background px-3 text-xs text-destructive shadow-none hover:bg-destructive/10"
+                                    >
+                                      <Trash2 className="size-4" /> Eliminar
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setExpandedOrderId(null)}
+                                      className="h-8 gap-2 rounded-md px-3 text-xs"
+                                    >
+                                      <EyeOff className="size-4" /> Ocultar
+                                    </Button>
+                                  </>
+                                ) : null}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                })}
+                {results.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={11}
+                      className="py-16 text-center text-sm text-muted-foreground"
+                    >
+                      No se encontraron pedidos.
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+              </TableBody>
+            </Table>
+          </div>
         </div>
-      </div>
       </div>
 
       <div className="mt-4 flex flex-col gap-3 pb-20">
@@ -3324,7 +3404,9 @@ function AdminOrders() {
                                     key={product.id}
                                     type="button"
                                     className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
-                                    onClick={() => updateOrderItemProduct(itemIndex, product.name, product)}
+                                    onClick={() =>
+                                      updateOrderItemProduct(itemIndex, product.name, product)
+                                    }
                                   >
                                     <span className="min-w-0 truncate">
                                       {product.name}
@@ -3362,7 +3444,13 @@ function AdminOrders() {
                         </div>
                         <div>
                           <Label>Precio</Label>
-                          <Input type="number" min={0} step={0.01} value={item.price * item.quantity} disabled />
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={item.price * item.quantity}
+                            disabled
+                          />
                         </div>
                         <div>
                           <Label>Número de envío</Label>
@@ -3382,9 +3470,7 @@ function AdminOrders() {
                         <div>
                           <Label>Proveedor</Label>
                           <Input
-                            value={
-                              item.supplier?.name ?? selectedSupplier?.name ?? ""
-                            }
+                            value={item.supplier?.name ?? selectedSupplier?.name ?? ""}
                             placeholder="-"
                             disabled
                           />
@@ -3469,7 +3555,6 @@ function AdminOrders() {
                   Agregar producto
                 </Button>
               </div>
-
             </div>
           ) : null}
 
@@ -3525,7 +3610,9 @@ function AdminOrders() {
                     disabled={isSavingOrder}
                     onClick={() => {
                       if (!orderForm) return;
-                      const orderToDelete = editableOrders.find((order) => order.id === orderForm.id);
+                      const orderToDelete = editableOrders.find(
+                        (order) => order.id === orderForm.id,
+                      );
                       if (!orderToDelete) return;
                       setConfirmState({
                         open: true,
@@ -3559,7 +3646,8 @@ function AdminOrders() {
                   className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50"
                   style={{ boxShadow: "none" }}
                 >
-                  <Save className="h-4 w-4 mr-2" /> {isSavingOrder ? "Guardando..." : "Guardar pedido"}
+                  <Save className="h-4 w-4 mr-2" />{" "}
+                  {isSavingOrder ? "Guardando..." : "Guardar pedido"}
                 </Button>
               </div>
             </div>
@@ -3584,13 +3672,18 @@ function AdminOrders() {
                   candidate.variantId === item.variantId ||
                   candidate.name === item.name,
               );
-              const supplier = getSupplierForItem(item.name, item.productId, item.variantId)?.supplier;
+              const supplier = getSupplierForItem(
+                item.name,
+                item.productId,
+                item.variantId,
+              )?.supplier;
               const itemBrand = item.brand ?? product?.brand ?? productListModalOrder.brand;
               const variantName =
                 item.variantName ??
                 product?.variantName ??
                 product?.variants?.find((variant) => variant.id === item.variantId)?.name;
-              const variantText = variantName && variantName !== item.name ? ` - ${variantName}` : "";
+              const variantText =
+                variantName && variantName !== item.name ? ` - ${variantName}` : "";
 
               return (
                 <div
@@ -3604,7 +3697,9 @@ function AdminOrders() {
                           {getBrandFullName(itemBrand)}
                         </span>
                         <span className="wrap-break-word font-medium">{item.name}</span>
-                        {variantText && <span className="text-muted-foreground">{variantText}</span>}
+                        {variantText && (
+                          <span className="text-muted-foreground">{variantText}</span>
+                        )}
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                         <span>Proveedor: {supplier?.name ?? "Sin proveedor asignado"}</span>

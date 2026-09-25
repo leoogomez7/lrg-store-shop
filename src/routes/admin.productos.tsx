@@ -3690,9 +3690,14 @@ function ProductEditDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="top-2 h-[calc(100dvh-1rem)] w-[calc(100vw-0.5rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-w-0 translate-y-0 touch-pan-y overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-4 pr-2 shadow-2xl md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-y-[-50%] sm:p-6"
+        tabIndex={-1}
+        className="top-2 box-border h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-w-0 translate-y-0 touch-pan-y overscroll-y-contain overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-4 pr-2 shadow-2xl md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-y-[-50%] sm:p-6"
         style={{ scrollbarGutter: "stable" }}
-        onOpenAutoFocus={(event) => event.preventDefault()}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          const dialogElement = event.currentTarget;
+          requestAnimationFrame(() => dialogElement.focus({ preventScroll: true }));
+        }}
       >
         <DialogHeader className="space-y-2">
           <div className="flex items-center justify-between gap-3">
