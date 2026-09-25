@@ -111,6 +111,7 @@ function AdminBackups() {
   const [sortOpen, setSortOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<BackupSort>("date_desc");
+  const [typesOpen, setTypesOpen] = useState(true);
   const [typeFilters, setTypeFilters] = useState<string[]>([]);
   const [datesOpen, setDatesOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
@@ -260,8 +261,19 @@ function AdminBackups() {
               </DialogHeader>
               <div className="space-y-5 pt-2">
                 <div className="space-y-3">
-                  <p className="text-sm font-medium">Tipo de copias</p>
-                  <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setTypesOpen((current) => !current)}
+                    className="flex items-center gap-1.5 text-left text-sm font-medium"
+                    aria-expanded={typesOpen}
+                  >
+                    <span>Tipo de copias</span>
+                    <ChevronDown
+                      className={`size-4 text-muted-foreground transition-transform ${typesOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {typesOpen ? (
+                    <div className="space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                       <Checkbox
                         checked={typeFilters.length === 0}
@@ -283,11 +295,13 @@ function AdminBackups() {
                         <Checkbox
                           checked={typeFilters.includes(type)}
                           onCheckedChange={(checked) => {
-                            setTypeFilters((current) =>
-                              checked === true
-                                ? [...current, type]
-                                : current.filter((value) => value !== type),
-                            );
+                            setTypeFilters((current) => {
+                              if (checked !== true) {
+                                return current.filter((value) => value !== type);
+                              }
+                              const next = [...new Set([...current, type])];
+                              return next.length === 3 ? [] : next;
+                            });
                             setPage(0);
                           }}
                           className="size-4 rounded-full"
@@ -296,13 +310,14 @@ function AdminBackups() {
                         {label}
                       </label>
                     ))}
-                  </div>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="space-y-3">
                   <button
                     type="button"
                     onClick={() => setDatesOpen((current) => !current)}
-                    className="flex w-full items-center justify-between text-left text-sm font-medium"
+                    className="flex items-center gap-1.5 text-left text-sm font-medium"
                     aria-expanded={datesOpen}
                   >
                     <span>Fechas</span>
@@ -501,7 +516,7 @@ function AdminBackups() {
           </div>
 
           <p className="text-center text-xs text-muted-foreground">
-            {visibleBackups.length} de {filteredBackups.length} elementos mostrados
+            {visibleBackups.length} de {filteredBackups.length} copias de seguridad mostradas
           </p>
         </div>
       ) : null}
