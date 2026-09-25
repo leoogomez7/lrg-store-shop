@@ -5,10 +5,9 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
 const AlertDialog = ({
-  modal = false,
   ...props
 }: React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Root>) => (
-  <AlertDialogPrimitive.Root modal={modal} {...props} />
+  <AlertDialogPrimitive.Root {...props} />
 );
 
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger;

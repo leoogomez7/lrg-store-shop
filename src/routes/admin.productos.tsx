@@ -3369,16 +3369,24 @@ function ProductEditDialog({
     if (!productForm || !files?.length) return;
 
     const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
-    if (!imageFiles.length) return;
+    if (!imageFiles.length) {
+      toast.error("El archivo seleccionado no es una imagen válida.");
+      return;
+    }
 
-    const imageDataUrls = await Promise.all(
-      imageFiles.map(async (file) => cropImageDataUrl(await fileToDataUrl(file))),
-    );
+    try {
+      const imageDataUrls = await Promise.all(
+        imageFiles.map(async (file) => cropImageDataUrl(await fileToDataUrl(file))),
+      );
 
-    setProductForm({
-      ...productForm,
-      images: [...productForm.images, ...imageDataUrls],
-    });
+      setProductForm({
+        ...productForm,
+        images: [...productForm.images, ...imageDataUrls],
+      });
+    } catch (error) {
+      console.error("Product image processing failed", error);
+      toast.error("No se pudo cargar una de las imágenes. Revisá que el archivo no esté corrupto.");
+    }
   };
 
   const handleRemoveImage = (index: number) => {
@@ -3666,7 +3674,7 @@ function ProductEditDialog({
         style={{ scrollbarGutter: "stable" }}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
-          const dialogElement = event.currentTarget;
+          const dialogElement = event.currentTarget as HTMLElement;
           requestAnimationFrame(() => dialogElement.focus({ preventScroll: true }));
         }}
       >

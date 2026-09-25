@@ -3,7 +3,7 @@ import { createAdminBackup } from "@/server/persistence";
 
 const getCronSecret = () =>
   import.meta.env["CRON_SECRET"]?.trim() ??
-  (typeof process !== "undefined" ? process.env.CRON_SECRET?.trim() : undefined);
+  (typeof process !== "undefined" ? process.env["CRON_SECRET"]?.trim() : undefined);
 
 export const Route = createFileRoute("/api/cron/backup")({
   server: {

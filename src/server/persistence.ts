@@ -209,8 +209,12 @@ async function createDatabaseBackup(reason: string) {
   const now = new Date().toISOString();
   const snapshotData = JSON.stringify({
     createdAt: now,
-    admin: Object.fromEntries(adminTables.map((table, index) => [table, adminResults[index].rows])),
-    user: Object.fromEntries(userTables.map((table, index) => [table, userResults[index]?.rows ?? []])),
+    admin: Object.fromEntries(
+      adminTables.map((table, index) => [table, adminResults[index]?.rows ?? []]),
+    ),
+    user: Object.fromEntries(
+      userTables.map((table, index) => [table, userResults[index]?.rows ?? []]),
+    ),
   });
   const backupId = `${reason}:${now}`;
 

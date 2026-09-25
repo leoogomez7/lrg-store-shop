@@ -221,7 +221,8 @@ function AdminBackups() {
         toast.error("No se pudo cargar la copia de seguridad");
         return;
       }
-      const blob = new Blob([detail.snapshotData], { type: "application/json" });
+      const snapshotData = detail.snapshotData ?? "{}";
+      const blob = new Blob([snapshotData], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

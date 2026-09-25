@@ -116,11 +116,20 @@ function cropUniformBorders(source: HTMLImageElement) {
 }
 
 export function cropImageDataUrl(image: string) {
-  return new Promise<string>((resolve) => {
+  return new Promise<string>((resolve, reject) => {
+    if (!image || typeof image !== "string") {
+      reject(new Error("La imagen está vacía o no es válida."));
+      return;
+    }
+
     const source = new Image();
     source.crossOrigin = "anonymous";
-    source.onload = () => resolve(cropUniformBorders(source) ?? image);
-    source.onerror = () => resolve(image);
+    source.onload = () => {
+      const cropped = cropUniformBorders(source);
+      resolve(cropped ?? image);
+    };
+    source.onerror = () =>
+      reject(new Error("La imagen no pudo procesarse. Revisá que el archivo no esté corrupto."));
     source.src = image;
   });
 }

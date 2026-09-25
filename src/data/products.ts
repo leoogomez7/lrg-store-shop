@@ -1,8 +1,36 @@
 import type { BrandSlug } from "@/config/brands";
-import { saveAdminProducts } from "@/server/persistence";
+
+const cloneSnapshot = <T>(items: T[]) =>
+  typeof structuredClone === "function" ? structuredClone(items) : JSON.parse(JSON.stringify(items));
+
+export function createProductSaveQueue<T>(persist: (items: T[]) => Promise<unknown>) {
+  let pending = Promise.resolve();
+
+  return (items: T[]) => {
+    const snapshot = cloneSnapshot(items);
+    const savePromise = pending
+      .then(() => persist(snapshot))
+      .catch((error) => {
+        console.error("Product save failed", error);
+        throw error;
+      });
+
+    pending = savePromise.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    return savePromise;
+  };
+}
+
+const productSaveQueue = createProductSaveQueue(async (products: Product[]) => {
+  const { saveAdminProducts } = await import("@/server/persistence");
+  return saveAdminProducts({ data: { products } });
+});
 
 export function saveProducts(products: Product[]) {
-  return saveAdminProducts({ data: { products } });
+  return productSaveQueue(products);
 }
 
 export type CurrencyCode = "ARS" | "USD";
