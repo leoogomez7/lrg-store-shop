@@ -2276,47 +2276,8 @@ function AdminOrders() {
         }}
       />
 
-      <div className="mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
-        <div className="flex flex-wrap items-center gap-2 leading-none">
-          <button
-            type="button"
-            className="text-sm font-medium leading-none text-foreground"
-            onClick={() => {
-              setSelectionMode((current) => {
-                if (current) setSelectedOrderIds([]);
-                return !current;
-              });
-            }}
-          >
-            Seleccionar
-          </button>
-          <Checkbox
-            className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-            checked={
-              allVisibleOrdersSelected ? true : someVisibleOrdersSelected ? "indeterminate" : false
-            }
-            onCheckedChange={(checked) => {
-              if (checked === false) {
-                setSelectionMode(false);
-                setSelectedOrderIds([]);
-                return;
-              }
-              setSelectionMode(true);
-              const shouldSelect = checked === true || checked === "indeterminate";
-              setSelectedOrderIds((current) =>
-                shouldSelect
-                  ? [...new Set([...current, ...visibleOrderIds])]
-                  : current.filter((id) => !visibleOrderIds.includes(id)),
-              );
-            }}
-            aria-label="Seleccionar pedidos visibles"
-          />
-          {selectedOrderIds.length > 0 ? (
-            <span className="text-xs text-muted-foreground">
-              {selectedOrderIds.length} seleccionados
-            </span>
-          ) : null}
-        </div>
+      <div className="flex flex-col">
+      <div className="order-2 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
         {selectedOrderIds.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             {quickEditOrderId !== null ? (
@@ -2380,7 +2341,7 @@ function AdminOrders() {
         ) : null}
       </div>
 
-      <div className="mt-4 rounded-2xl">
+      <div className="order-1 mt-4 rounded-2xl">
         <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
           <Table
             hideScrollbarOnMobile
@@ -2397,7 +2358,31 @@ function AdminOrders() {
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
-                <TableHead className="w-12 min-w-12 max-w-12 px-2"> </TableHead>
+                <TableHead className="w-12 min-w-12 max-w-12 px-2">
+                  <div className="flex items-center justify-center">
+                    <Checkbox
+                      className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                      checked={
+                        allVisibleOrdersSelected
+                          ? true
+                          : someVisibleOrdersSelected
+                            ? "indeterminate"
+                            : false
+                      }
+                      onCheckedChange={(checked) => {
+                        const shouldSelect = checked === true || checked === "indeterminate";
+                        setSelectedOrderIds((current) => {
+                          const next = shouldSelect
+                            ? [...new Set([...current, ...visibleOrderIds])]
+                            : current.filter((id) => !visibleOrderIds.includes(id));
+                          setSelectionMode(next.length > 0);
+                          return next;
+                        });
+                      }}
+                      aria-label="Seleccionar pedidos visibles"
+                    />
+                  </div>
+                </TableHead>
                 <TableHead className="w-24 min-w-24 max-w-24">Pedido</TableHead>
                 <TableHead className="w-20">Fecha</TableHead>
                 <TableHead className="w-24">Estado de pago</TableHead>
@@ -2652,7 +2637,7 @@ function AdminOrders() {
 
                             <p className="font-medium">Detalle del pedido</p>
 
-                            <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+                            <div className="grid w-full min-w-0 max-w-full gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
                               <div className="min-w-0 space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
                                 <div>
                                   <span className="block text-xs text-muted-foreground">Cliente</span>
@@ -2698,7 +2683,7 @@ function AdminOrders() {
                                           key={`${item.name}-${item.variantId ?? itemIndex}`}
                                           className="rounded-xl bg-surface p-3"
                                         >
-                                          <div className="flex min-w-0 items-start justify-between gap-3">
+                                          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                                             <div className="min-w-0 text-left">
                                               <div className="flex flex-wrap items-center gap-2">
                                                 <span className="inline-flex rounded-full border border-border/60 bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
@@ -2760,7 +2745,7 @@ function AdminOrders() {
                               );
 
                               return (
-                                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                                   {storeSlugs.map((brandSlug) => {
                                     const itemsInBrand = order.items.filter((item) => {
                                       const product = allProducts.find(
@@ -2973,6 +2958,7 @@ function AdminOrders() {
             </TableBody>
           </Table>
         </div>
+      </div>
       </div>
 
       <div className="mt-4 flex flex-col gap-3 pb-20">

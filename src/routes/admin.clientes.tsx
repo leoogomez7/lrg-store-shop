@@ -918,7 +918,7 @@ function CustomerRow({
                   key={o.id}
                   className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
                 >
-                  <div className="flex w-full min-w-0 items-center justify-between gap-2">
+                  <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-2">
                       <button
                         type="button"
@@ -931,7 +931,7 @@ function CustomerRow({
                         {formatPurchaseDate(o.date)}
                       </span>
                     </div>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
                       <Button
                         type="button"
                         variant="outline"
@@ -962,7 +962,7 @@ function CustomerRow({
                 return fifthOrder ? (
                   <>
                     <div className="flex min-h-[52px] min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm">
-                      <div className="flex w-full min-w-0 items-center justify-between gap-2">
+                      <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex min-w-0 items-center gap-2">
                           <button
                             type="button"
@@ -977,7 +977,7 @@ function CustomerRow({
                             {formatPurchaseDate(fifthOrder.date)}
                           </span>
                         </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
+                        <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
                           <Button
                             type="button"
                             variant="outline"

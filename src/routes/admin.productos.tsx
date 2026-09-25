@@ -2120,55 +2120,8 @@ function AdminProducts() {
         </div>
       </div>
 
-      <div className="mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
-        <div className="flex flex-wrap items-center gap-2 leading-none">
-          <button
-            type="button"
-            className="text-sm font-medium text-foreground leading-none"
-            onClick={() => {
-              setSelectionMode((current) => {
-                if (current) {
-                  clearBulkProductSelection();
-                  return false;
-                }
-                return true;
-              });
-            }}
-          >
-            Seleccionar
-          </button>
-          <Checkbox
-            className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-            checked={
-              allVisibleProductsSelected
-                ? true
-                : someVisibleProductsSelected
-                  ? "indeterminate"
-                  : false
-            }
-            onCheckedChange={(checked) => {
-              if (checked === false) {
-                clearBulkProductSelection();
-                return;
-              }
-              const shouldSelect = checked === true || checked === "indeterminate";
-              setSelectedProductIds((current) => {
-                const next = shouldSelect
-                  ? Array.from(new Set([...current, ...visibleProductSelectionKeys]))
-                  : current.filter((key) => !visibleProductSelectionKeys.includes(key));
-
-                setSelectionMode(next.length > 0);
-                return next;
-              });
-            }}
-            aria-label="Seleccionar productos visibles"
-          />
-          {selectedProductIds.length > 0 ? (
-            <span className="text-xs text-muted-foreground">
-              {selectedProductIds.length} seleccionados
-            </span>
-          ) : null}
-        </div>
+      <div className="flex flex-col">
+      <div className="order-3 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
         {selectedProductIds.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             {quickEditProductId !== null ? (
@@ -2239,8 +2192,8 @@ function AdminProducts() {
         ) : null}
       </div>
 
-      <FilterChipList chips={adminFilterChips} />
-      <div className="mt-4 rounded-2xl">
+      <div className="order-1"><FilterChipList chips={adminFilterChips} /></div>
+      <div className="order-2 mt-4 rounded-2xl">
         <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
           <Table
             hideScrollbarOnMobile
@@ -2254,7 +2207,31 @@ function AdminProducts() {
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
-                <TableHead className="w-12 min-w-12 max-w-12 px-2"> </TableHead>
+                <TableHead className="w-12 min-w-12 max-w-12 px-2">
+                  <div className="flex items-center justify-center">
+                    <Checkbox
+                      className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                      checked={
+                        allVisibleProductsSelected
+                          ? true
+                          : someVisibleProductsSelected
+                            ? "indeterminate"
+                            : false
+                      }
+                      onCheckedChange={(checked) => {
+                        const shouldSelect = checked === true || checked === "indeterminate";
+                        setSelectedProductIds((current) => {
+                          const next = shouldSelect
+                            ? Array.from(new Set([...current, ...visibleProductSelectionKeys]))
+                            : current.filter((key) => !visibleProductSelectionKeys.includes(key));
+                          setSelectionMode(next.length > 0);
+                          return next;
+                        });
+                      }}
+                      aria-label="Seleccionar productos visibles"
+                    />
+                  </div>
+                </TableHead>
                 <TableHead className="w-40 text-center">Producto</TableHead>
                 <TableHead className="w-20 text-center">Tienda</TableHead>
                 <TableHead className="w-16 text-center">Stock</TableHead>
@@ -2638,6 +2615,7 @@ function AdminProducts() {
             </TableBody>
           </Table>
         </div>
+      </div>
       </div>
       <div className="mt-4 flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-center gap-2">
@@ -3697,8 +3675,9 @@ function ProductEditDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="top-2 h-[calc(100dvh-1rem)] w-[calc(100vw-0.5rem)] max-w-5xl max-h-[calc(100dvh-1rem)] translate-y-0 touch-pan-y overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-4 pr-2 shadow-2xl md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-y-[-50%] sm:p-6"
+        className="top-2 h-[calc(100dvh-1rem)] w-[calc(100vw-0.5rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-w-0 translate-y-0 touch-pan-y overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-4 pr-2 shadow-2xl md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-y-[-50%] sm:p-6"
         style={{ scrollbarGutter: "stable" }}
+        onOpenAutoFocus={(event) => event.preventDefault()}
       >
         <DialogHeader className="space-y-2">
           <div className="flex items-center justify-between gap-3">
@@ -3734,7 +3713,7 @@ function ProductEditDialog({
           <DialogDescription>{modeDescription}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4 [&_input]:min-w-0 [&_textarea]:min-w-0">
           <div className="order-1 rounded-2xl border border-border/60 bg-surface/40 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">

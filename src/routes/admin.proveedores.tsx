@@ -1440,52 +1440,9 @@ function AdminSuppliers() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <div className="flex flex-col">
         <FilterChipList chips={filterChips} />
-        <div className="mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
-          <div className="flex flex-wrap items-center gap-2 leading-none">
-            <button
-              type="button"
-              className="text-sm font-medium text-foreground leading-none"
-              onClick={() => {
-                setSelectionMode((current) => {
-                  if (current) setSelectedSupplierKeys([]);
-                  return !current;
-                });
-              }}
-            >
-              Seleccionar
-            </button>
-            <Checkbox
-              className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-              checked={
-                allVisibleSuppliersSelected
-                  ? true
-                  : someVisibleSuppliersSelected
-                    ? "indeterminate"
-                    : false
-              }
-              onCheckedChange={(checked) => {
-                if (checked === false) {
-                  setSelectionMode(false);
-                  setSelectedSupplierKeys([]);
-                  return;
-                }
-                setSelectionMode(true);
-                const shouldSelect = checked === true || checked === "indeterminate";
-                setSelectedSupplierKeys((current) =>
-                  shouldSelect
-                    ? [...new Set([...current, ...visibleSupplierKeys])]
-                    : current.filter((key) => !visibleSupplierKeys.includes(key)),
-                );
-              }}
-              aria-label="Seleccionar proveedores visibles"
-            />
-            {selectedSupplierKeys.length > 0 ? (
-              <span className="text-xs text-muted-foreground">
-                {selectedSupplierKeys.length} seleccionados
-              </span>
-            ) : null}
-          </div>
+        <div className="order-2 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
           {selectedSupplierKeys.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
               {quickEditSupplierKey !== null ? (
@@ -1546,7 +1503,7 @@ function AdminSuppliers() {
           ) : null}
         </div>
 
-        <div className="mt-4 rounded-2xl">
+        <div className="order-1 mt-4 rounded-2xl">
           <div className="glass-panel min-w-0 overflow-visible rounded-2xl">
             <Table
               hideScrollbarOnMobile
@@ -1558,7 +1515,31 @@ function AdminSuppliers() {
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
-                              <TableHead className="w-12 min-w-12 max-w-12 px-2"> </TableHead>
+                              <TableHead className="w-12 min-w-12 max-w-12 px-2">
+                                <div className="flex items-center justify-center">
+                                  <Checkbox
+                                    className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                                    checked={
+                                      allVisibleSuppliersSelected
+                                        ? true
+                                        : someVisibleSuppliersSelected
+                                          ? "indeterminate"
+                                          : false
+                                    }
+                                    onCheckedChange={(checked) => {
+                                      const shouldSelect = checked === true || checked === "indeterminate";
+                                      setSelectedSupplierKeys((current) => {
+                                        const next = shouldSelect
+                                          ? [...new Set([...current, ...visibleSupplierKeys])]
+                                          : current.filter((key) => !visibleSupplierKeys.includes(key));
+                                        setSelectionMode(next.length > 0);
+                                        return next;
+                                      });
+                                    }}
+                                    aria-label="Seleccionar proveedores visibles"
+                                  />
+                                </div>
+                              </TableHead>
                   <TableHead className="w-[24%] min-w-[150px] pl-5">Nombre</TableHead>
                   <TableHead className="w-[16%] min-w-[110px]">Celular</TableHead>
                   <TableHead className="w-[18%] min-w-[120px]">Red social</TableHead>
@@ -1748,6 +1729,7 @@ function AdminSuppliers() {
               </TableBody>
             </Table>
           </div>
+        </div>
         </div>
         <div className="mt-4 flex flex-col gap-3 pb-20">
           <div className="flex flex-wrap items-center justify-center gap-2">
