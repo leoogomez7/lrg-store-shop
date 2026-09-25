@@ -2382,7 +2382,7 @@ function AdminOrders() {
           ) : null}
         </div>
 
-        <div className="order-1 rounded-2xl">
+        <div className="order-1 mt-4 rounded-2xl">
           <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
             <Table
               hideScrollbarOnMobile

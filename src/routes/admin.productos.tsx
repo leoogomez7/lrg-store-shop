@@ -1369,14 +1369,21 @@ function AdminProducts() {
     toast.success("Producto guardado");
     const currentProductId = productForm.id;
     const queueBeforeSave = bulkEditQueueRef.current;
-    const currentQueuePosition = queueBeforeSave.indexOf(currentProductId);
+    const isBulkEditing = queueBeforeSave.length > 0;
+
+    if (!isBulkEditing) {
+      closeProductEditor();
+      return;
+    }
+
     const remainingQueue = queueBeforeSave.filter((productId) => productId !== currentProductId);
-    const nextBulkSelectionKey =
-      currentQueuePosition >= 0
-        ? (queueBeforeSave.find(
-            (productId, index) => index > currentQueuePosition && productId !== currentProductId,
-          ) ?? remainingQueue[0])
-        : undefined;
+    const nextBulkSelectionKey = remainingQueue[0];
+
+    setSelectedProductIds((current) =>
+      current.filter(
+        (selectionKey) => getProductIdFromSelectionKey(selectionKey) !== currentProductId,
+      ),
+    );
 
     bulkEditQueueRef.current = remainingQueue;
     bulkEditPositionRef.current = 0;
@@ -2219,7 +2226,7 @@ function AdminProducts() {
         <div className="order-1">
           <FilterChipList chips={adminFilterChips} />
         </div>
-        <div className="order-2 rounded-2xl">
+        <div className="order-2 mt-4 rounded-2xl">
           <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
             <Table
               hideScrollbarOnMobile
