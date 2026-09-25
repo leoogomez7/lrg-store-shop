@@ -1,12 +1,30 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Archive, Check, ContactRound, Package, RotateCcw, Search, ShoppingCart, Trash2, X } from "lucide-react";
+import {
+  Archive,
+  Check,
+  ContactRound,
+  Package,
+  RotateCcw,
+  Search,
+  ShoppingCart,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { orders, saveOrders } from "@/data/orders";
 import { products, saveProducts } from "@/data/products";
 import { applyTrashEntries, readTrash, removeFromTrash, type TrashEntry } from "@/data/trash";
@@ -88,6 +106,11 @@ function AdminTrash() {
 
   const toggleAllSelection = (checked: boolean) => {
     const allKeys = filteredEntries.map(getEntryKey);
+    if (!checked) {
+      clearSelection();
+      return;
+    }
+    setSelectionMode("delete");
     setSelectedDeleteKeys(checked ? allKeys : []);
     setSelectedRestoreKeys(checked ? allKeys : []);
   };
@@ -248,7 +271,9 @@ function AdminTrash() {
   };
 
   const deleteSelectedPermanently = () => {
-    const selectedEntries = entries.filter((entry) => selectedDeleteKeys.includes(getEntryKey(entry)));
+    const selectedEntries = entries.filter((entry) =>
+      selectedDeleteKeys.includes(getEntryKey(entry)),
+    );
     if (!selectedEntries.length) return;
 
     selectedEntries.forEach((entry) => {
@@ -279,7 +304,9 @@ function AdminTrash() {
   };
 
   const restoreSelectedEntries = async () => {
-    const selectedEntries = entries.filter((entry) => selectedRestoreKeys.includes(getEntryKey(entry)));
+    const selectedEntries = entries.filter((entry) =>
+      selectedRestoreKeys.includes(getEntryKey(entry)),
+    );
     if (!selectedEntries.length) return;
 
     for (const entry of selectedEntries) {
@@ -351,163 +378,190 @@ function AdminTrash() {
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" onClick={emptyTrash}>
-          <Trash2 className="size-4" /> Vaciar papelera
-        </Button>
-        <Button type="button" variant="outline" onClick={restoreAllEntries}>
-          <RotateCcw className="size-4" /> Restaurar todos
-        </Button>
-      </div>
-
-      <div className="relative mt-6">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar elemento eliminado"
-          aria-label="Buscar elemento eliminado"
-          className="h-10 w-full rounded-xl border border-input bg-background/80 pl-9 pr-3 text-sm outline-none transition focus-visible:ring-1 focus-visible:ring-ring"
-        />
-      </div>
-
-      <div className="mt-3 flex min-h-11 items-center justify-between gap-3">
-        <div className="flex min-h-10 items-center gap-2">
-          <button
-            type="button"
-            className="text-sm font-medium text-foreground"
-            onClick={() => {
-              if (selectionMode) clearSelection();
-              else enterSelectionMode("delete");
-            }}
-          >
-            Seleccionar
-          </button>
-          <Checkbox
-            checked={(() => {
-              if (filteredEntries.length === 0 || selectedDeleteKeys.length === 0) return false;
-              if (selectedDeleteKeys.length < filteredEntries.length) return "indeterminate";
-              return true;
-            })()}
-            onCheckedChange={(checked) => {
-              if (checked === true || checked === "indeterminate") enterSelectionMode("delete");
-              else clearSelection();
-            }}
-            aria-label="Seleccionar todos"
+      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar elemento eliminado"
+            aria-label="Buscar elemento eliminado"
+            className="h-10 w-full rounded-xl border border-input bg-background/80 pl-9 pr-3 text-sm outline-none transition focus-visible:ring-1 focus-visible:ring-ring"
           />
-          {selectionMode && selectedDeleteKeys.length > 0 ? (
-            <span className="text-xs text-muted-foreground">
-              {selectedDeleteKeys.length} seleccionados
-            </span>
-          ) : null}
-          {selectionMode && selectedDeleteKeys.length > 0 ? (
-            <>
-              <Button type="button" variant="default" onClick={restoreSelectedEntries}>
-                <RotateCcw className="size-4" /> Restaurar seleccionados
-              </Button>
-              <Button type="button" variant="destructive" onClick={deleteSelectedPermanently}>
-                <Trash2 className="size-4" /> Eliminar seleccionados
-              </Button>
-              <Button type="button" variant="outline" onClick={clearSelection}>
-                <X className="size-4" /> Cancelar
-              </Button>
-            </>
-          ) : null}
         </div>
-        <span className="text-right text-sm text-muted-foreground">
-          {filteredEntries.length} elementos
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" onClick={emptyTrash}>
+            <Trash2 className="size-4" /> Vaciar papelera
+          </Button>
+          <Button type="button" variant="outline" onClick={restoreAllEntries}>
+            <RotateCcw className="size-4" /> Restaurar todos
+          </Button>
+          <span className="ml-auto whitespace-nowrap text-right text-sm text-muted-foreground">
+            {filteredEntries.length} elementos
+          </span>
+        </div>
       </div>
 
-      <div className="mt-5 space-y-3">
-        {isLoading ? (
-          <div className="glass-panel rounded-2xl p-8 text-center text-sm text-muted-foreground">
-            Cargando elementos eliminados...
-          </div>
-        ) : entries.length === 0 ? (
-          <div className="glass-panel rounded-2xl p-8 text-center text-sm text-muted-foreground">
-            La papelera está vacía.
-          </div>
-        ) : filteredEntries.length === 0 ? (
-          <div className="glass-panel rounded-2xl p-8 text-center text-sm text-muted-foreground">
-            No se encontraron elementos eliminados.
-          </div>
-        ) : (
-          paginatedEntries.map((entry) => {
-            const isProduct = entry.type === "producto";
-            const isOrder = entry.type === "pedido";
-            const isBackup = entry.type === "backup";
-            const name = isProduct
-              ? entry.item.name
-              : isOrder
-                ? `${entry.item.id} · ${entry.item.customer}`
-                : entry.type === "proveedor"
-                  ? entry.item.name
-                  : formatBackupName(entry.item.reason, entry.item.createdAt);
-            return (
-              <div
-                key={`${entry.type}-${entry.id}`}
-                className="glass-panel flex flex-wrap items-center justify-between gap-4 rounded-2xl p-4"
-              >
-                <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="mt-5 glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
+        <Table
+          hideScrollbarOnMobile
+          alwaysShowScrollbarOnDesktop
+          containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+          className="min-w-248 text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
+        >
+          <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+            <TableRow>
+              <TableHead className="w-12 min-w-12 max-w-12 px-2">
+                <div className="flex items-center justify-center">
                   <Checkbox
                     checked={
-                      selectionMode === "restore"
-                        ? selectedRestoreKeys.includes(getEntryKey(entry))
-                        : selectedDeleteKeys.includes(getEntryKey(entry))
+                      filteredEntries.length > 0 &&
+                      filteredEntries.every((entry) =>
+                        selectedDeleteKeys.includes(getEntryKey(entry)),
+                      )
+                        ? true
+                        : filteredEntries.some((entry) =>
+                              selectedDeleteKeys.includes(getEntryKey(entry)),
+                            )
+                          ? "indeterminate"
+                          : false
                     }
-                    onCheckedChange={(checked) => {
-                      const entryKey = getEntryKey(entry);
-                      setSelectionMode("delete");
-                      const updateSelection = (current: string[]) =>
-                        checked === true
-                          ? [...new Set([...current, entryKey])]
-                          : current.filter((key) => key !== entryKey);
-                      setSelectedDeleteKeys(updateSelection);
-                      setSelectedRestoreKeys(updateSelection);
-                    }}
-                    aria-label={`Seleccionar ${name}`}
+                    onCheckedChange={(checked) => toggleAllSelection(checked === true)}
+                    aria-label="Seleccionar elementos visibles"
                   />
-                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2">
-                    {isProduct ? (
-                      <Package className="size-4" />
-                    ) : isOrder ? (
-                      <ShoppingCart className="size-4" />
-                    ) : isBackup ? (
-                      <Archive className="size-4" />
-                    ) : (
-                      <ContactRound className="size-4" />
-                    )}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{name}</p>
-                    <p className="text-xs text-muted-foreground">
+                </div>
+              </TableHead>
+              <TableHead className="w-14 text-center">Icono</TableHead>
+              <TableHead>Nombre</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Eliminación en</TableHead>
+              <TableHead className="text-center">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                  Cargando elementos eliminados...
+                </TableCell>
+              </TableRow>
+            ) : entries.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                  La papelera está vacía.
+                </TableCell>
+              </TableRow>
+            ) : filteredEntries.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                  No se encontraron elementos eliminados.
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedEntries.map((entry) => {
+                const isProduct = entry.type === "producto";
+                const isOrder = entry.type === "pedido";
+                const isBackup = entry.type === "backup";
+                const name = isProduct
+                  ? entry.item.name
+                  : isOrder
+                    ? `${entry.item.id} · ${entry.item.customer}`
+                    : entry.type === "proveedor"
+                      ? entry.item.name
+                      : formatBackupName(entry.item.reason, entry.item.createdAt);
+                return (
+                  <TableRow key={`${entry.type}-${entry.id}`}>
+                    <TableCell className="w-12 min-w-12 max-w-12 px-2">
+                      <div className="flex items-center justify-center">
+                        <Checkbox
+                          checked={
+                            selectionMode === "restore"
+                              ? selectedRestoreKeys.includes(getEntryKey(entry))
+                              : selectedDeleteKeys.includes(getEntryKey(entry))
+                          }
+                          onCheckedChange={(checked) => {
+                            const entryKey = getEntryKey(entry);
+                            setSelectionMode("delete");
+                            const updateSelection = (current: string[]) =>
+                              checked === true
+                                ? [...new Set([...current, entryKey])]
+                                : current.filter((key) => key !== entryKey);
+                            setSelectedDeleteKeys(updateSelection);
+                            setSelectedRestoreKeys(updateSelection);
+                          }}
+                          aria-label={`Seleccionar ${name}`}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="w-14 text-center">
+                      <span className="mx-auto grid size-9 place-items-center rounded-lg bg-surface-2">
+                        {isProduct ? (
+                          <Package className="size-4" />
+                        ) : isOrder ? (
+                          <ShoppingCart className="size-4" />
+                        ) : isBackup ? (
+                          <Archive className="size-4" />
+                        ) : (
+                          <ContactRound className="size-4" />
+                        )}
+                      </span>
+                    </TableCell>
+                    <TableCell className="max-w-72 truncate font-medium">{name}</TableCell>
+                    <TableCell>
                       {isProduct
                         ? "Producto"
                         : isOrder
                           ? "Pedido"
                           : isBackup
                             ? "Copia de seguridad"
-                            : "Proveedor"} · Se elimina en{" "}
+                            : "Proveedor"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-muted-foreground">
                       {getRemainingDays(entry.expiresAt)} días
-                    </p>
-                  </div>
-                </div>
-                {!selectionMode ? (
-                  <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
-                    <Button className="shrink-0" size="sm" variant="outline" onClick={() => restoreEntry(entry)}>
-                      <RotateCcw className="size-4" /> Restaurar
-                    </Button>
-                    <Button className="shrink-0" size="sm" variant="destructive" onClick={() => setEntryToDelete(entry)}>
-                      <Trash2 className="size-4" /> Eliminar
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })
-        )}
+                    </TableCell>
+                    <TableCell>
+                      {!selectionMode ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <Button
+                            className="shrink-0"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => restoreEntry(entry)}
+                          >
+                            <RotateCcw className="size-4" /> Restaurar
+                          </Button>
+                          <Button
+                            className="shrink-0"
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setEntryToDelete(entry)}
+                          >
+                            <Trash2 className="size-4" /> Eliminar
+                          </Button>
+                        </div>
+                      ) : null}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
       </div>
+
+      {selectionMode && (selectedDeleteKeys.length > 0 || selectedRestoreKeys.length > 0) ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="default" size="sm" onClick={restoreSelectedEntries}>
+            <RotateCcw className="size-4" /> Restaurar seleccionados
+          </Button>
+          <Button type="button" variant="destructive" size="sm" onClick={deleteSelectedPermanently}>
+            <Trash2 className="size-4" /> Eliminar seleccionados
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={clearSelection}>
+            <X className="size-4" /> Cancelar
+          </Button>
+        </div>
+      ) : null}
 
       {!isLoading && filteredEntries.length > 0 ? (
         <div className="mt-2 flex flex-col gap-3 pb-20">
@@ -605,7 +659,9 @@ function AdminTrash() {
             ? "Este elemento no podrá restaurarse después."
             : confirmState.description
         }
-        confirmLabel={entryToDelete !== null ? "Eliminar definitivamente" : confirmState.confirmLabel}
+        confirmLabel={
+          entryToDelete !== null ? "Eliminar definitivamente" : confirmState.confirmLabel
+        }
         cancelLabel="Cancelar"
         onConfirm={() => {
           if (entryToDelete) {
