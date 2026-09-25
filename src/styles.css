@@ -254,8 +254,7 @@ input[type="password"]::-webkit-textfield-decoration-container {
   }
 
   body[data-scroll-locked] {
-    padding-right: 0 !important;
-    overflow-y: scroll !important;
+    overflow-y: hidden;
   }
 
   @supports (height: 100dvh) {
