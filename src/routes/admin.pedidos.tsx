@@ -2777,6 +2777,26 @@ function AdminOrders() {
                                           .filter((name): name is string => Boolean(name)),
                                       ),
                                     );
+                                    const paymentStatuses = [
+                                      ...new Set(
+                                        itemsInBrand.map(
+                                          (item) =>
+                                            item.paymentStatus ??
+                                            order.paymentStatus ??
+                                            getPaymentStatus(order.status),
+                                        ),
+                                      ),
+                                    ];
+                                    const deliveryStatuses = [
+                                      ...new Set(
+                                        itemsInBrand.map(
+                                          (item) =>
+                                            item.deliveryStatus ??
+                                            order.deliveryStatus ??
+                                            getDeliveryStatus(order.status),
+                                        ),
+                                      ),
+                                    ];
 
                                     return (
                                       <div
@@ -2792,6 +2812,18 @@ function AdminOrders() {
                                           {[
                                             ["Método de pago", order.paymentMethod || "—"],
                                             ["Método de envío", order.shippingMethod || "—"],
+                                            [
+                                              "Estado de pago",
+                                              paymentStatuses.length === 1
+                                                ? paymentStatuses[0]
+                                                : "Mixto",
+                                            ],
+                                            [
+                                              "Estado de envío",
+                                              deliveryStatuses.length === 1
+                                                ? deliveryStatuses[0]
+                                                : "Mixto",
+                                            ],
                                             [
                                               "Proveedor",
                                               suppliers.length
