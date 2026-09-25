@@ -595,7 +595,7 @@ function AdminBackups() {
       ) : null}
 
       {filteredBackups.length > 0 ? (
-        <div className="mt-3 flex flex-col gap-3 pb-8">
+        <div className="mt-3 flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               type="button"
@@ -644,7 +644,7 @@ function AdminBackups() {
               value={pageSizeInput}
               placeholder="Cantidad"
               onChange={(event) => setPageSizeInput(event.target.value)}
-              className="h-8 w-20 bg-background/50"
+              className="h-8 w-20 bg-background/50 text-center"
             />
             {(() => {
               const value = Number(pageSizeInput);

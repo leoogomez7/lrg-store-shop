@@ -1613,13 +1613,13 @@ function AccountPageContent({
             </Table>
           </div>
 
-          <div className="mt-4 hidden flex-col gap-3 lg:flex">
+          <div className="mt-3 hidden flex-col gap-3 lg:flex">
             <div className="flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={() => setOrdersPage(0)}
                 disabled={!hasPreviousPage || !canEditOrdersPageSize}
-                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:opacity-60"
+                className="h-9 px-4 disabled:opacity-60"
               >
                 Principio
               </button>
@@ -1628,7 +1628,7 @@ function AccountPageContent({
                   <button
                     key={index}
                     type="button"
-                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                     onClick={() => setOrdersPage(index)}
                     disabled={!canEditOrdersPageSize}
                   >
@@ -1640,7 +1640,7 @@ function AccountPageContent({
                 type="button"
                 onClick={() => setOrdersPage(totalOrdersPages - 1)}
                 disabled={!hasNextPage || !canEditOrdersPageSize}
-                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937] disabled:opacity-60"
+                className="h-9 px-4 disabled:opacity-60"
               >
                 Último
               </button>
@@ -1654,7 +1654,7 @@ function AccountPageContent({
                 max={1000}
                 value={ordersPageSizeInput}
                 onChange={(e) => setOrdersPageSizeInput(e.target.value)}
-                className="h-8 w-20 bg-background/50 text-foreground"
+                className="h-8 w-20 bg-background/50 text-center text-foreground"
               />
               {(() => {
                 const v = Number(ordersPageSizeInput);
@@ -2836,10 +2836,7 @@ function AccountPageContent({
           )}
         >
           <div
-            className={cn(
-              "flex h-screen flex-col p-5",
-              sidebarCollapsed && "items-center px-3",
-            )}
+            className={cn("flex h-screen flex-col p-5", sidebarCollapsed && "items-center px-3")}
           >
             <div
               className={cn(

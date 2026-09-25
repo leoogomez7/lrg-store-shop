@@ -1695,10 +1695,21 @@ function AdminSuppliers() {
                           </TableCell>
                         </TableRow>
                         {isExpanded ? (
-                          <TableRow>
-                            <TableCell colSpan={6} className="w-full bg-muted/30 p-0 text-left">
+                          <TableRow className="max-md:fixed max-md:inset-2 max-md:z-50 max-md:block max-md:overflow-y-auto max-md:rounded-2xl max-md:border max-md:border-border/70 max-md:bg-background max-md:shadow-2xl">
+                            <TableCell
+                              colSpan={6}
+                              className="w-full bg-muted/30 p-0 text-left max-md:block max-md:w-full"
+                            >
                               <>
-                                <div className="px-4 py-3">
+                                <div className="relative px-4 py-3 max-md:pt-12">
+                                  <button
+                                    type="button"
+                                    className="absolute right-2 top-2 z-10 grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
+                                    onClick={() => setExpandedSupplierKey(null)}
+                                    aria-label="Cerrar detalle del proveedor"
+                                  >
+                                    <X className="size-4" />
+                                  </button>
                                   <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
                                     {sortedProducts.slice(0, 8).map((product) => (
                                       <div
@@ -1751,7 +1762,7 @@ function AdminSuppliers() {
             </div>
           </div>
         </div>
-        <div className="mt-3 flex flex-col gap-3 pb-8">
+        <div className="mt-3 flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               type="button"
@@ -1800,7 +1811,7 @@ function AdminSuppliers() {
               value={pageSizeInput}
               placeholder="Cantidad"
               onChange={(event) => setPageSizeInput(event.target.value)}
-              className="h-8 w-20 bg-background/50"
+              className="h-8 w-20 bg-background/50 text-center"
             />
 
             {(() => {

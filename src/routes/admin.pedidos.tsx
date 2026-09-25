@@ -2647,12 +2647,24 @@ function AdminOrders() {
                         <TableRow
                           key={`${order.id}-details`}
                           ref={expandedOrderId === order.id ? quickEditDetailRef : undefined}
+                          className={cn(
+                            !isQuickEditing &&
+                              "max-md:fixed max-md:inset-2 max-md:z-50 max-md:block max-md:overflow-y-auto max-md:rounded-2xl max-md:border max-md:border-border/70 max-md:bg-background max-md:shadow-2xl",
+                          )}
                         >
                           <TableCell
                             colSpan={10}
-                            className="w-full max-w-0 overflow-hidden bg-surface-2/90 p-0 sm:p-0"
+                            className={cn(
+                              "w-full max-w-0 overflow-hidden bg-surface-2/90 p-0 sm:p-0",
+                              !isQuickEditing && "max-md:block max-md:w-full max-md:max-w-none",
+                            )}
                           >
-                            <div className="w-full max-w-[calc(100vw-2rem)] min-w-0 space-y-4 overflow-x-hidden overflow-y-visible rounded-2xl bg-surface-2/90 p-3 text-sm sm:max-w-full sm:p-5">
+                            <div
+                              className={cn(
+                                "w-full max-w-[calc(100vw-2rem)] min-w-0 space-y-4 overflow-x-hidden overflow-y-visible rounded-2xl bg-surface-2/90 p-3 text-sm sm:max-w-full sm:p-5",
+                                !isQuickEditing && "max-md:max-w-none max-md:rounded-none",
+                              )}
+                            >
                               {isQuickEditing && !isBulkQuickEditing && (
                                 <div className="flex flex-wrap items-center justify-center gap-2 border-b border-border/50 pb-3">
                                   <Button
@@ -3043,7 +3055,7 @@ function AdminOrders() {
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 pb-20">
+      <div className="mt-3 flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             type="button"
@@ -3051,7 +3063,7 @@ function AdminOrders() {
             size="sm"
             onClick={() => setPage(0)}
             disabled={!hasPreviousPage}
-            className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+            className="h-9 px-4"
           >
             Principio
           </Button>
@@ -3060,7 +3072,7 @@ function AdminOrders() {
               <button
                 key={index}
                 type="button"
-                className={`rounded-full border-0 px-3 py-1 outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                 onClick={() => setPage(index)}
               >
                 {index + 1}
@@ -3073,7 +3085,7 @@ function AdminOrders() {
             size="sm"
             onClick={() => setPage(totalPages - 1)}
             disabled={!hasNextPage}
-            className="h-9 rounded-full border-0 bg-[#111827] px-4 text-white shadow-none hover:bg-[#1f2937]"
+            className="h-9 px-4"
           >
             Último
           </Button>
@@ -3088,7 +3100,7 @@ function AdminOrders() {
             value={pageSizeInput}
             placeholder="Cantidad"
             onChange={(e) => setPageSizeInput(e.target.value)}
-            className="h-8 w-20 bg-background/50"
+            className="h-8 w-20 bg-background/50 text-center"
           />
 
           {(() => {

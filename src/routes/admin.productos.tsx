@@ -2632,7 +2632,7 @@ function AdminProducts() {
           </div>
         </div>
       </div>
-      <div className="mt-3 flex flex-col gap-3 pb-8">
+      <div className="mt-3 flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             type="button"
@@ -2677,7 +2677,7 @@ function AdminProducts() {
             value={pageSizeInput}
             placeholder="Cantidad"
             onChange={(e) => setPageSizeInput(e.target.value)}
-            className="h-8 w-20 bg-background/50"
+            className="h-8 w-20 bg-background/50 text-center"
           />
 
           {(() => {
@@ -3691,7 +3691,7 @@ function ProductEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         tabIndex={-1}
-        className="top-2 box-border h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-w-0 translate-y-0 touch-pan-y overscroll-y-contain overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-4 pr-2 shadow-2xl md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-y-[-50%] sm:p-6"
+        className="top-2 box-border grid h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-w-0 min-h-0 translate-y-0 touch-pan-y overscroll-y-contain overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-3 pr-2 shadow-2xl [&>*]:min-w-0 md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-y-[-50%] sm:p-6"
         style={{ scrollbarGutter: "stable" }}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
@@ -3700,10 +3700,10 @@ function ProductEditDialog({
         }}
       >
         <DialogHeader className="space-y-2">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <DialogTitle>{modeTitle}</DialogTitle>
             {hasBulkNavigation ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex max-w-full flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <Button
                   type="button"
                   variant="outline"
@@ -3733,7 +3733,7 @@ function ProductEditDialog({
           <DialogDescription>{modeDescription}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex min-w-0 flex-col gap-4 [&_input]:min-w-0 [&_textarea]:min-w-0">
+        <div className="flex w-full min-w-0 max-w-full flex-col gap-4 [&_input]:min-w-0 [&_textarea]:min-w-0">
           <div className="order-1 rounded-2xl border border-border/60 bg-surface/40 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
@@ -4116,7 +4116,7 @@ function ProductEditDialog({
                 </div>
                 <Input
                   type="number"
-                  value={isNewProduct && activeCommission === 0 ? "" : activeCommission}
+                  value={activeCommission === 0 ? "" : activeCommission}
                   onChange={(event) =>
                     updateActivePricing({
                       comision: event.target.value === "" ? 0 : Number(event.target.value),
@@ -4545,8 +4545,8 @@ function ProductEditDialog({
                   <Button type="button" onClick={handleAddFeature} className="whitespace-nowrap">
                     <Plus className="h-4 w-4" /> Agregar
                   </Button>
-                  <label className="inline-flex h-9 min-w-[13rem] shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
-                    <span className="text-[11px] leading-none sm:text-sm">
+                  <label className="inline-flex h-auto min-h-9 w-full min-w-0 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-3 py-2 sm:h-9 sm:w-auto sm:min-w-[13rem] sm:shrink-0 sm:whitespace-nowrap sm:py-1">
+                    <span className="min-w-0 text-left text-[11px] leading-tight sm:text-sm sm:leading-none">
                       Aplicar a todas las variantes
                     </span>
                     <Switch

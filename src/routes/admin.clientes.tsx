@@ -739,7 +739,7 @@ function AdminClients() {
         </Table>
       </div>
 
-      <div className="mt-3 flex w-full max-w-full flex-col gap-3 overflow-hidden pb-8">
+      <div className="mt-3 flex w-full max-w-full flex-col gap-3 overflow-hidden">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             type="button"
@@ -784,7 +784,7 @@ function AdminClients() {
             value={pageSizeInput}
             placeholder="Cantidad"
             onChange={(e) => setPageSizeInput(e.target.value)}
-            className="h-8 w-20 bg-background/50"
+            className="h-8 w-20 bg-background/50 text-center"
           />
 
           {(() => {
@@ -910,9 +910,20 @@ function CustomerRow({
       </TableRow>
 
       {open && (
-        <TableRow>
-          <TableCell colSpan={5} className="w-full max-w-0 overflow-hidden p-2">
-            <div className="mx-auto grid w-full max-w-[calc(100vw-2rem)] grid-cols-1 items-stretch gap-2 overflow-hidden sm:max-w-5xl sm:grid-cols-2">
+        <TableRow className="max-md:fixed max-md:inset-2 max-md:z-50 max-md:block max-md:overflow-y-auto max-md:rounded-2xl max-md:border max-md:border-border/70 max-md:bg-background max-md:shadow-2xl">
+          <TableCell
+            colSpan={5}
+            className="w-full max-w-0 overflow-hidden p-2 max-md:block max-md:w-full max-md:max-w-none"
+          >
+            <div className="relative mx-auto grid w-full max-w-[calc(100vw-2rem)] grid-cols-1 items-stretch gap-2 overflow-hidden max-md:max-w-none max-md:pt-10 sm:max-w-5xl sm:grid-cols-2">
+              <button
+                type="button"
+                className="absolute right-1 top-1 z-10 grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
+                onClick={() => onOpenChange(false)}
+                aria-label="Cerrar detalle del cliente"
+              >
+                <X className="size-4" />
+              </button>
               {customer.orders.slice(0, 4).map((o) => (
                 <div
                   key={o.id}
