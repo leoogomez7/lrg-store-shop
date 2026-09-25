@@ -160,6 +160,11 @@ function ProductosPage() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<number>(16);
   const [pageSizeInput, setPageSizeInput] = useState<string>("16");
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [page, pageSize]);
+
   const selectedCategoryValues = useMemo(
     () => getCategoryFilterValues(categories, filters.categories),
     [categories, filters.categories],

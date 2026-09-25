@@ -73,6 +73,11 @@ function AdminTrash() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(16);
   const [pageSizeInput, setPageSizeInput] = useState("16");
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [page, pageSize]);
+
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     title: string;

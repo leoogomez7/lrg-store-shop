@@ -8,19 +8,13 @@ export function createProductSaveQueue<T>(persist: (items: T[]) => Promise<unkno
 
   return (items: T[]) => {
     const snapshot = cloneSnapshot(items);
-    const savePromise = pending
-      .then(() => persist(snapshot))
-      .catch((error) => {
-        console.error("Product save failed", error);
-        throw error;
-      });
+    const savePromise = pending.then(() => persist(snapshot));
 
-    pending = savePromise.then(
-      () => undefined,
-      () => undefined,
-    );
+    pending = savePromise.catch(() => undefined);
 
-    return savePromise;
+    return savePromise.finally(() => {
+      // preserve the original rejection for callers while allowing the queue to continue serially
+    });
   };
 }
 

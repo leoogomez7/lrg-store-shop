@@ -547,6 +547,11 @@ function AdminOrders() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [page, pageSize]);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);

@@ -45,11 +45,33 @@ test("queued saves preserve the snapshot at the time of each save", async () => 
   } satisfies Product];
 
   const firstProduct = firstProducts[0]!;
-  const secondSave = saveQueue(secondProducts);
   const firstSave = saveQueue(firstProducts);
+  const secondSave = saveQueue(secondProducts);
   firstProduct.name = "mutated-before-second-save";
 
   await Promise.all([firstSave, secondSave]);
 
   assert.deepEqual(savedSnapshots, ["GTA VI - PS5", "Cyberpunk 2077"]);
+});
+
+test("queued saves rethrow persistence failures so the UI can surface the error", async () => {
+  const saveQueue = createProductSaveQueue(async () => {
+    throw new Error("persist failed");
+  });
+
+  await assert.rejects(() => saveQueue([{ 
+    id: "1",
+    name: "Product",
+    slug: "product",
+    brand: "arcade",
+    category: "consolas",
+    price: 0,
+    stock: 0,
+    rating: 0,
+    reviews: 0,
+    short: "",
+    description: "",
+    features: [],
+    createdAt: "2026-01-01",
+  } satisfies Product]), /persist failed/);
 });

@@ -235,6 +235,11 @@ function AdminSuppliers() {
   const [page, setPage] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(16);
   const [pageSizeInput, setPageSizeInput] = React.useState("16");
+
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [page, pageSize]);
+
   const [selectedSupplierKeys, setSelectedSupplierKeys] = React.useState<string[]>([]);
   const [bulkSupplierEditQueue, setBulkSupplierEditQueue] = React.useState<string[]>([]);
   const [bulkSupplierEditPosition, setBulkSupplierEditPosition] = React.useState(0);

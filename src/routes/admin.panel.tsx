@@ -281,6 +281,11 @@ function AdminDashboard() {
   const [stockPage, setStockPage] = useState(0);
   const [stockPageSize, setStockPageSize] = useState<number>(16);
   const [stockPageSizeInput, setStockPageSizeInput] = useState<string>("16");
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [stockPage, stockPageSize]);
+
   const stockPages = Math.max(1, Math.ceil(searchedStockItems.length / stockPageSize));
   const currentStockItems = searchedStockItems.slice(
     stockPage * stockPageSize,
@@ -293,6 +298,11 @@ function AdminDashboard() {
   const [ordersPage, setOrdersPage] = useState(0);
   const [ordersPageSize, setOrdersPageSize] = useState<number>(16);
   const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("16");
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [ordersPage, ordersPageSize]);
+
   const ordersPages = Math.max(1, Math.ceil(recentOrders.length / ordersPageSize));
   const currentOrders = recentOrders.slice(
     ordersPage * ordersPageSize,

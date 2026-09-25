@@ -1247,7 +1247,17 @@ function AdminProducts() {
   const persistProduct = async () => {
     if (!productForm) return;
 
-    const processedImages = await Promise.all(productForm.images.map(cropImageDataUrl));
+    const processedImages = await Promise.all(
+      productForm.images.map(async (image) => {
+        try {
+          return await cropImageDataUrl(image);
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "No se pudo procesar una imagen.";
+          throw new Error(message);
+        }
+      }),
+    );
 
     let savedProductId = productForm.id;
 
@@ -1365,6 +1375,10 @@ function AdminProducts() {
     setIsSavingProduct(true);
     try {
       await persistProduct();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "No se pudo guardar el producto.";
+      toast.error(message);
     } finally {
       setIsSavingProduct(false);
     }

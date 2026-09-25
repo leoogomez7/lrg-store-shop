@@ -327,6 +327,11 @@ function AccountPageContent({
   const [ordersPage, setOrdersPage] = useState(0);
   const [ordersPageSize, setOrdersPageSize] = useState<number>(16);
   const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("16");
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [ordersPage, ordersPageSize]);
+
   const [ordersSort, setOrdersSort] = useState<OrdersSort>("date-desc");
   const [showOrdersSort, setShowOrdersSort] = useState(false);
   const [showOrdersFilters, setShowOrdersFilters] = useState(false);
