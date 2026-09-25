@@ -210,9 +210,9 @@ function AdminBackups() {
                 <span>{formatDate(backup.createdAt)}</span>
                 <span className="text-muted-foreground">{getBackupType(backup)}</span>
                 <span className="wrap-break-word text-muted-foreground">{getBackupReference(backup)}</span>
-                <div className="flex items-center justify-center gap-2">
+                <div className="relative flex items-center justify-center gap-2 pr-20">
                   <span className="text-muted-foreground">{formatBytes(backup.sizeBytes)}</span>
-                  <div className="flex items-center gap-1">
+                  <div className="absolute right-0 flex items-center gap-1">
                     <Button
                       type="button"
                       variant="ghost"
