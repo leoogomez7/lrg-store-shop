@@ -502,22 +502,22 @@ export const listAdminBackups = createServerFn({ method: "POST" })
     const database = await ensureAdminTables();
     if (!database) return [];
     const result = await database.execute(
-      "SELECT id, reason, snapshotData, createdAt FROM database_backups ORDER BY createdAt DESC",
+      "SELECT id, reason, length(snapshotData) AS sizeBytes, createdAt FROM database_backups ORDER BY createdAt DESC",
     );
     return result.rows.flatMap((row) => {
       const id = row["id"];
       const reason = row["reason"];
-      const snapshotData = row["snapshotData"];
+      const sizeBytes = row["sizeBytes"];
       const createdAt = row["createdAt"];
       if (
         typeof id !== "string" ||
         typeof reason !== "string" ||
-        typeof snapshotData !== "string" ||
+        typeof sizeBytes !== "number" ||
         typeof createdAt !== "string"
       ) {
         return [];
       }
-      return [{ id, reason, createdAt, sizeBytes: new TextEncoder().encode(snapshotData).length }];
+      return [{ id, reason, createdAt, sizeBytes }];
     });
   });
 
