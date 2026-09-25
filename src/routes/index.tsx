@@ -306,8 +306,8 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             </Button>
           </div>
 
-          <section className="mt-6 p-4 sm:p-6">
-            <div className="flex flex-col gap-4 rounded-[1.75rem] border border-border/60 bg-surface/90 p-4 shadow-sm">
+          <section className="mt-6 flex w-full justify-center">
+            <div className="flex w-full max-w-4xl flex-col gap-4 rounded-[1.75rem] border border-border/60 bg-surface/90 p-4 shadow-sm sm:p-6">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-3 text-primary">
