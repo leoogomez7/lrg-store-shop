@@ -306,141 +306,143 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             </Button>
           </div>
 
-          <section className="mt-6 flex w-full justify-center">
-            <div className="flex w-full max-w-4xl flex-col gap-4 rounded-[1.75rem] border border-border/60 bg-surface/90 p-4 shadow-sm sm:p-6">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-3 text-primary">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <Star key={index} className="size-4 fill-current" />
-                    ))}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-semibold text-foreground">
-                      Reseñas verificadas en Trustpilot
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      4.9/5 según clientes reales · +24 opiniones
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <a
-                    href={trustpilotUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-9 items-center gap-1 rounded-2xl border border-border/70 bg-surface/90 px-3 text-sm font-semibold leading-none text-primary transition duration-200 hover:border-primary/70 hover:bg-background/95 hover:text-primary"
-                  >
-                    Ver más opiniones
-                    <ArrowUpRight className="size-4" />
-                  </a>
-                  <a
-                    href={trustpilotUrl_Evaluate}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-9 items-center gap-1 rounded-2xl border border-border/70 bg-surface/90 px-3 text-sm font-semibold leading-none text-primary transition duration-200 hover:border-primary/70 hover:bg-background/95 hover:text-primary"
-                  >
-                    Opinar sobre nosotros
-                    <ArrowUpRight className="size-4" />
-                  </a>
-                </div>
+          <div className="mt-6 flex w-full flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-foreground">Ordenar por</span>
+            <Select
+              value={`${sortBy}-${sortDirection}`}
+              onValueChange={(value) => {
+                switch (value) {
+                  case "date-newest":
+                    setSortBy("date");
+                    setSortDirection("newest");
+                    break;
+                  case "date-oldest":
+                    setSortBy("date");
+                    setSortDirection("oldest");
+                    break;
+                  case "rating-highest":
+                    setSortBy("rating");
+                    setSortDirection("highest");
+                    break;
+                  case "rating-lowest":
+                    setSortBy("rating");
+                    setSortDirection("lowest");
+                    break;
+                }
+              }}
+            >
+              <SelectTrigger className="h-8 w-auto min-w-10rem max-w-14rem" />
+              <SelectContent>
+                <SelectItem value="date-newest">Más reciente</SelectItem>
+                <SelectItem value="date-oldest">Más antiguo</SelectItem>
+                <SelectItem value="rating-highest">Mayor puntuación</SelectItem>
+                <SelectItem value="rating-lowest">Menor puntuación</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <article
+              className="group relative flex h-full min-h-[16.5rem] flex-col justify-between overflow-hidden rounded-[2rem] border border-border/60 bg-background/80 p-5 shadow-[0_20px_60px_rgba(10,15,35,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/70 hover:bg-background/95"
+              style={{ width: "100%" }}
+            >
+              <div className="absolute left-0 top-0 h-2 w-28 rounded-br-full bg-linear-to-r from-primary to-transparent opacity-90" />
+              <div className="absolute left-0 top-0 h-full w-1 bg-linear-to-b from-primary to-transparent opacity-80" />
+
+              <div className="relative z-10 flex items-center gap-3 text-primary">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Star key={index} className="size-4 fill-current" />
+                ))}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2">
-                <span className="text-sm font-semibold text-foreground">Ordenar por</span>
-                <Select
-                  value={`${sortBy}-${sortDirection}`}
-                  onValueChange={(value) => {
-                    switch (value) {
-                      case "date-newest":
-                        setSortBy("date");
-                        setSortDirection("newest");
-                        break;
-                      case "date-oldest":
-                        setSortBy("date");
-                        setSortDirection("oldest");
-                        break;
-                      case "rating-highest":
-                        setSortBy("rating");
-                        setSortDirection("highest");
-                        break;
-                      case "rating-lowest":
-                        setSortBy("rating");
-                        setSortDirection("lowest");
-                        break;
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-auto max-w-14rem min-w-10rem h-8" />
-                  <SelectContent>
-                    <SelectItem value="date-newest">Más reciente</SelectItem>
-                    <SelectItem value="date-oldest">Más antiguo</SelectItem>
-                    <SelectItem value="rating-highest">Mayor puntuación</SelectItem>
-                    <SelectItem value="rating-lowest">Menor puntuación</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="relative z-10 mt-4">
+                <h3 className="text-base font-semibold text-foreground leading-tight">
+                  Reseñas verificadas en Trustpilot
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  4.9/5 según clientes reales · +24 opiniones
+                </p>
               </div>
-            </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              {sortedReviews.map((review, index) => (
-                <article
-                  key={`${review.name}-${index}`}
-                  className="group relative overflow-hidden rounded-[2rem] border border-border/60 bg-background/80 p-5 shadow-[0_20px_60px_rgba(10,15,35,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/70 hover:bg-background/95"
-                  style={{ width: "100%" }}
+              <div className="relative z-10 mt-6 flex flex-wrap gap-2">
+                <a
+                  href={trustpilotUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-9 items-center gap-1 rounded-2xl border border-border/70 bg-surface/90 px-3 text-sm font-semibold leading-none text-primary transition duration-200 hover:border-primary/70 hover:bg-background/95 hover:text-primary"
                 >
-                  <div className="absolute left-0 top-0 h-2 w-28 rounded-br-full bg-linear-to-r from-primary to-transparent opacity-90" />
-                  <div className="absolute left-0 top-0 h-full w-1 bg-linear-to-b from-primary to-transparent opacity-80" />
-                  <div className="relative z-10 flex items-center gap-3 text-primary mb-4">
-                    {Array.from({ length: review.rating }).map((_, index) => (
-                      <Star key={`${review.name}-${index}`} className="size-4 fill-current" />
-                    ))}
-                  </div>
+                  Ver más opiniones
+                  <ArrowUpRight className="size-4" />
+                </a>
+                <a
+                  href={trustpilotUrl_Evaluate}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-9 items-center gap-1 rounded-2xl border border-border/70 bg-surface/90 px-3 text-sm font-semibold leading-none text-primary transition duration-200 hover:border-primary/70 hover:bg-background/95 hover:text-primary"
+                >
+                  Opinar sobre nosotros
+                  <ArrowUpRight className="size-4" />
+                </a>
+              </div>
+            </article>
 
-                  <div className="relative z-10">
-                    <h3 className="font-semibold text-foreground text-base leading-tight">
-                      {review.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mb-2">{review.date}</p>
-                    <div className="h-px w-16 rounded-full bg-primary/20 mb-4" />
-                  </div>
+            {sortedReviews.map((review, index) => (
+              <article
+                key={`${review.name}-${index}`}
+                className="group relative flex h-full min-h-[16.5rem] flex-col justify-between overflow-hidden rounded-[2rem] border border-border/60 bg-background/80 p-5 shadow-[0_20px_60px_rgba(10,15,35,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/70 hover:bg-background/95"
+                style={{ width: "100%" }}
+              >
+                <div className="absolute left-0 top-0 h-2 w-28 rounded-br-full bg-linear-to-r from-primary to-transparent opacity-90" />
+                <div className="absolute left-0 top-0 h-full w-1 bg-linear-to-b from-primary to-transparent opacity-80" />
+                <div className="relative z-10 flex items-center gap-3 text-primary">
+                  {Array.from({ length: review.rating }).map((_, index) => (
+                    <Star key={`${review.name}-${index}`} className="size-4 fill-current" />
+                  ))}
+                </div>
 
-                  <div className="relative z-10 flex-1">
-                    <p className="text-sm leading-relaxed text-muted-foreground">{review.text}</p>
-                  </div>
+                <div className="relative z-10 mt-4">
+                  <h3 className="text-base font-semibold text-foreground leading-tight">
+                    {review.title}
+                  </h3>
+                  <p className="mt-2 text-xs text-muted-foreground">{review.date}</p>
+                  <div className="mt-4 h-px w-16 rounded-full bg-primary/20" />
+                </div>
 
-                  <div className="relative z-10 my-5 h-px w-full bg-linear-to-r from-border/30 via-border/10 to-transparent" />
+                <div className="relative z-10 mt-5 flex-1">
+                  <p className="text-sm leading-relaxed text-muted-foreground">{review.text}</p>
+                </div>
 
-                  <div className="relative z-10 flex items-center gap-2 text-xs">
-                    <span className="font-semibold text-foreground leading-none">
-                      {review.name}
-                    </span>
-                    <span className="h-4 w-px bg-border/20" />
-                    <a
-                      href={review.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 leading-none text-muted-foreground transition-colors hover:text-primary"
-                      aria-label={`Ver reseña de ${review.name}`}
-                    >
-                      <ShieldCheck className="size-3.5" />
-                      Verificado
-                    </a>
-                    <a
-                      href={review.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="ml-auto inline-flex h-9 items-center gap-1 rounded-2xl border border-border/70 bg-surface/90 px-3 text-sm font-semibold leading-none text-primary transition duration-200 hover:border-primary/70 hover:bg-background/95 hover:text-primary"
-                      aria-label={`Abrir opinión de ${review.name}`}
-                    >
-                      Abrir opinión
-                      <ArrowUpRight className="size-3" />
-                    </a>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
+                <div className="relative z-10 my-5 h-px w-full bg-linear-to-r from-border/30 via-border/10 to-transparent" />
+
+                <div className="relative z-10 flex items-center gap-2 text-xs">
+                  <span className="font-semibold text-foreground leading-none">
+                    {review.name}
+                  </span>
+                  <span className="h-4 w-px bg-border/20" />
+                  <a
+                    href={review.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 leading-none text-muted-foreground transition-colors hover:text-primary"
+                    aria-label={`Ver reseña de ${review.name}`}
+                  >
+                    <ShieldCheck className="size-3.5" />
+                    Verificado
+                  </a>
+                  <a
+                    href={review.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ml-auto inline-flex h-9 items-center gap-1 rounded-2xl border border-border/70 bg-surface/90 px-3 text-sm font-semibold leading-none text-primary transition duration-200 hover:border-primary/70 hover:bg-background/95 hover:text-primary"
+                    aria-label={`Abrir opinión de ${review.name}`}
+                  >
+                    Abrir opinión
+                    <ArrowUpRight className="size-3" />
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
         </main>
       </div>
       <BrandFooter
