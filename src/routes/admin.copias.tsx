@@ -338,9 +338,6 @@ function AdminBackups() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setBackupToDelete(null)}>
-              Cancelar
-            </Button>
             <Button
               type="button"
               variant="destructive"
