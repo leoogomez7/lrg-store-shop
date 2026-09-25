@@ -111,7 +111,7 @@ function AdminBackups() {
   const [sortOpen, setSortOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<BackupSort>("date_desc");
-  const [typesOpen, setTypesOpen] = useState(true);
+  const [typesOpen, setTypesOpen] = useState(false);
   const [typeFilters, setTypeFilters] = useState<string[]>([]);
   const [datesOpen, setDatesOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
