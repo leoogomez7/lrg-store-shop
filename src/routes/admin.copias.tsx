@@ -153,8 +153,8 @@ function AdminBackups() {
   const hasNextPage = safePage < totalPages - 1;
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 p-4 text-center sm:p-6 lg:p-8">
-      <div className="flex flex-col items-center gap-4">
+    <main className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Copias de seguridad</h1>
@@ -163,8 +163,8 @@ function AdminBackups() {
             La próxima copia de seguridad semanal es el {getNextWeeklyBackup()}.
           </p>
         </div>
-        <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row">
-          <div className="relative w-full max-w-xs">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <div className="relative w-full sm:w-64">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -193,8 +193,8 @@ function AdminBackups() {
         </div>
       </div>
 
-      <div className="glass-panel mx-auto w-full max-w-6xl overflow-hidden rounded-2xl border border-border/60 text-left">
-        <div className="hidden grid-cols-[1.1fr_1.2fr_2fr_1.1fr] gap-4 border-b border-border/60 bg-surface-2 px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground md:grid">
+      <div className="glass-panel mx-auto w-full max-w-6xl overflow-hidden rounded-2xl border border-border/60">
+        <div className="hidden grid-cols-[1.1fr_1.2fr_2fr_1.1fr] gap-4 border-b border-border/60 bg-surface-2 px-5 py-3 text-center text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground md:grid">
           <span>Fecha</span>
           <span>Tipo de copias</span>
           <span>Referencia</span>
@@ -205,12 +205,12 @@ function AdminBackups() {
             visibleBackups.map((backup: AdminBackupSummary) => (
               <div
                 key={backup.id}
-                className="grid gap-2 px-5 py-4 text-sm md:grid-cols-[1.1fr_1.2fr_2fr_1.1fr] md:items-center md:gap-4"
+                className="grid gap-2 px-5 py-4 text-center text-sm md:grid-cols-[1.1fr_1.2fr_2fr_1.1fr] md:items-center md:gap-4"
               >
                 <span>{formatDate(backup.createdAt)}</span>
                 <span className="text-muted-foreground">{getBackupType(backup)}</span>
                 <span className="wrap-break-word text-muted-foreground">{getBackupReference(backup)}</span>
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center justify-center gap-2">
                   <span className="text-muted-foreground">{formatBytes(backup.sizeBytes)}</span>
                   <div className="flex items-center gap-1">
                     <Button
