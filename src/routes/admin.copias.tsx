@@ -340,7 +340,7 @@ function AdminBackups() {
       <Dialog open={backupToDelete !== null} onOpenChange={(open) => !open && setBackupToDelete(null)}>
         <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Enviar copia a la papelera</DialogTitle>
+            <DialogTitle>Enviar copia de seguridad a la papelera</DialogTitle>
             <DialogDescription>
               ¿Querés enviar esta copia de seguridad a la papelera? Podrás restaurarla desde allí.
             </DialogDescription>
@@ -359,7 +359,7 @@ function AdminBackups() {
               ) : (
                 <Trash2 className="size-4" />
               )}
-              {isDeletingBackup ? "Eliminando..." : "Enviar a papelera"}
+              {isDeletingBackup ? "Eliminando..." : "Eliminar copia de seguridad"}
             </Button>
           </DialogFooter>
         </DialogContent>
