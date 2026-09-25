@@ -1254,104 +1254,56 @@ function AdminProducts() {
     const normalizedBrand: BrandSlug = productForm.brand || "arcade";
     const normalizedDeliveryUnit: DeliveryUnit = productForm.deliveryUnit || "inmediata";
 
-    setEditableProducts((current) => {
-      const updated = current.map((item) =>
-        item.id === productForm.id
-          ? {
-              ...item,
-              name: productForm.name,
-              brand: normalizedBrand,
-              category: productForm.category,
-              subcategory: productForm.subcategory || undefined,
-              price: productForm.price,
-              priceCurrency: productForm.priceCurrency,
-              comision: productForm.comision,
-              comisionCurrency: productForm.comisionCurrency,
-              gastos: productForm.gastos,
-              gastosCurrency: productForm.gastosCurrency,
-              stock: productForm.stock,
-              stockUnlimited: productForm.stockUnlimited,
-              description: productForm.description,
-              features: productForm.features,
-              includes: productForm.includes,
-              images: processedImages,
-              variants: productForm.variants,
-              supplier: productForm.supplier,
-              deliveryUnit: normalizedDeliveryUnit,
-              deliveryAmount: productForm.deliveryAmount,
-            }
-          : item,
-      );
+    const updatedProduct = {
+      name: productForm.name,
+      brand: normalizedBrand,
+      category: productForm.category,
+      subcategory: productForm.subcategory || undefined,
+      price: productForm.price,
+      priceCurrency: productForm.priceCurrency,
+      comision: productForm.comision,
+      comisionCurrency: productForm.comisionCurrency,
+      gastos: productForm.gastos,
+      gastosCurrency: productForm.gastosCurrency,
+      usdRate: productForm.usdRate,
+      stock: productForm.stock,
+      stockUnlimited: productForm.stockUnlimited,
+      description: productForm.description,
+      features: productForm.features,
+      includes: productForm.includes,
+      images: processedImages,
+      variants: productForm.variants,
+      supplier: productForm.supplier,
+      deliveryUnit: normalizedDeliveryUnit,
+      deliveryAmount: productForm.deliveryAmount,
+    };
 
-      if (!editingProduct) {
-        savedProductId = `new-${Date.now()}`;
-        const newProduct = {
+    let nextProducts: Product[];
+    if (editingProduct) {
+      nextProducts = (productsData as Product[]).map((product) =>
+        product.id === productForm.id ? { ...product, ...updatedProduct } : product,
+      );
+    } else {
+      savedProductId = `new-${Date.now()}`;
+      nextProducts = [
+        ...(productsData as Product[]),
+        {
+          ...updatedProduct,
           id: savedProductId,
           slug: productForm.name
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/(^-|-$)/g, ""),
-          brand: normalizedBrand,
-          name: productForm.name,
-          category: productForm.category,
-          subcategory: productForm.subcategory || undefined,
-          price: productForm.price,
-          priceCurrency: productForm.priceCurrency,
-          comision: productForm.comision,
-          comisionCurrency: productForm.comisionCurrency,
-          gastos: productForm.gastos,
-          gastosCurrency: productForm.gastosCurrency,
-          usdRate: productForm.usdRate,
-          stock: productForm.stock,
-          stockUnlimited: productForm.stockUnlimited,
           rating: 0,
           reviews: 0,
           short: productForm.description,
-          description: productForm.description,
-          features: productForm.features,
-          includes: productForm.includes,
-          images: processedImages,
-          variants: productForm.variants,
-          supplier: productForm.supplier,
-          deliveryUnit: normalizedDeliveryUnit,
-          deliveryAmount: productForm.deliveryAmount,
           createdAt: new Date().toISOString(),
-        } as Product;
+        } as Product,
+      ];
+    }
 
-        (productsData as Product[]).push(newProduct);
-        return [...current, newProduct];
-      }
-
-      const existingIndex = (productsData as Product[]).findIndex(
-        (item) => item.id === productForm.id,
-      );
-      if (existingIndex !== -1) {
-        const existing = (productsData as Product[])[existingIndex] as Product;
-        existing.name = productForm.name;
-        existing.brand = normalizedBrand;
-        existing.category = productForm.category;
-        existing.subcategory = productForm.subcategory || undefined;
-        existing.price = productForm.price;
-        existing.priceCurrency = productForm.priceCurrency;
-        existing.comision = productForm.comision;
-        existing.comisionCurrency = productForm.comisionCurrency;
-        existing.gastos = productForm.gastos;
-        existing.gastosCurrency = productForm.gastosCurrency;
-        existing.usdRate = productForm.usdRate;
-        existing.stock = productForm.stock;
-        existing.stockUnlimited = productForm.stockUnlimited;
-        existing.description = productForm.description;
-        existing.features = productForm.features;
-        existing.includes = productForm.includes;
-        existing.images = processedImages;
-        existing.variants = productForm.variants;
-        existing.supplier = productForm.supplier;
-        existing.deliveryUnit = normalizedDeliveryUnit;
-        existing.deliveryAmount = productForm.deliveryAmount;
-      }
-
-      return updated;
-    });
+    productsData.splice(0, productsData.length, ...nextProducts);
+    setEditableProducts(nextProducts);
 
     if (savedProductId) {
       setDiscounts((current) => ({
@@ -1360,12 +1312,8 @@ function AdminProducts() {
       }));
     }
 
-    await saveProducts(productsData as Product[]);
-    queryClient.setQueryData(catalogQueries.allAdmin().queryKey, [...productsData]);
-    void queryClient.invalidateQueries({
-      queryKey: ["products"],
-      refetchType: "active",
-    });
+    await saveProducts(nextProducts);
+    queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
     toast.success("Producto guardado");
     const currentProductId = productForm.id;
     const queueBeforeSave = bulkEditQueueRef.current;
