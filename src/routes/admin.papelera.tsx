@@ -22,6 +22,20 @@ export const Route = createFileRoute("/admin/papelera")({
 const getRemainingDays = (expiresAt: string) =>
   Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
 
+const formatBackupName = (reason: string, createdAt: string) => {
+  const type =
+    reason === "weekly-scheduled"
+      ? "Copia semanal"
+      : reason === "manual"
+        ? "Copia manual"
+        : "Copia por pedido";
+  const date = new Intl.DateTimeFormat("es-AR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(createdAt));
+  return `${type} · ${date}`;
+};
+
 function AdminTrash() {
   const queryClient = useQueryClient();
   const [entries, setEntries] = useState<TrashEntry[]>([]);
@@ -110,7 +124,7 @@ function AdminTrash() {
             ? entry.item.customer
             : entry.type === "proveedor"
               ? entry.item.name
-              : entry.item.id;
+              : formatBackupName(entry.item.reason, entry.item.createdAt);
       const itemId = entry.type === "proveedor" ? entry.id : entry.item.id;
       return [entry.id, entry.type, name, itemId].some((value) =>
         String(value).toLowerCase().includes(normalizedQuery),
@@ -411,7 +425,7 @@ function AdminTrash() {
                 ? `${entry.item.id} · ${entry.item.customer}`
                 : entry.type === "proveedor"
                   ? entry.item.name
-                  : entry.item.id;
+                  : formatBackupName(entry.item.reason, entry.item.createdAt);
             return (
               <div
                 key={`${entry.type}-${entry.id}`}

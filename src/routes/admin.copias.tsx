@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Check, Download, LoaderCircle, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowUpDown, Check, Download, Filter, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   createAdminBackup,
@@ -58,6 +59,17 @@ const getBackupType = (backup: AdminBackupSummary) => {
   return "Copia por pedido";
 };
 
+const sortOptions = [
+  ["date_desc", "Fecha: más reciente"],
+  ["date_asc", "Fecha: más antigua"],
+  ["type_asc", "Tipo de copias: A-Z"],
+  ["type_desc", "Tipo de copias: Z-A"],
+  ["size_desc", "Tamaño: mayor peso"],
+  ["size_asc", "Tamaño: menor peso"],
+] as const;
+
+type BackupSort = (typeof sortOptions)[number][0];
+
 const getNextWeeklyBackup = () => {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Argentina/Buenos_Aires",
@@ -85,7 +97,12 @@ function AdminBackups() {
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [isDeletingBackup, setIsDeletingBackup] = useState(false);
   const [backupToDelete, setBackupToDelete] = useState<AdminBackupSummary | null>(null);
-  const [query, setQuery] = useState("");
+  const [sortOpen, setSortOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<BackupSort>("date_desc");
+  const [typeFilters, setTypeFilters] = useState<string[]>([]);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [pageSizeInput, setPageSizeInput] = useState("10");
@@ -145,14 +162,32 @@ function AdminBackups() {
   };
 
   const filteredBackups = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return backups;
-    return backups.filter((backup) =>
-      [backup.id, backup.reason, backup.createdAt].some((value) =>
-        value.toLowerCase().includes(normalizedQuery),
-      ),
-    );
-  }, [backups, query]);
+    const filtered = backups.filter((backup) => {
+      const type = getBackupType(backup);
+      const date = backup.createdAt.slice(0, 10);
+      if (typeFilters.length > 0 && !typeFilters.includes(type)) return false;
+      if (dateFrom && date < dateFrom) return false;
+      if (dateTo && date > dateTo) return false;
+      return true;
+    });
+
+    return [...filtered].sort((left, right) => {
+      switch (sortOrder) {
+        case "date_asc":
+          return left.createdAt.localeCompare(right.createdAt);
+        case "type_asc":
+          return getBackupType(left).localeCompare(getBackupType(right), "es");
+        case "type_desc":
+          return getBackupType(right).localeCompare(getBackupType(left), "es");
+        case "size_asc":
+          return left.sizeBytes - right.sizeBytes;
+        case "size_desc":
+          return right.sizeBytes - left.sizeBytes;
+        default:
+          return right.createdAt.localeCompare(left.createdAt);
+      }
+    });
+  }, [backups, dateFrom, dateTo, sortOrder, typeFilters]);
 
   const totalPages = Math.max(1, Math.ceil(filteredBackups.length / pageSize));
   const safePage = Math.min(page, totalPages - 1);
@@ -172,18 +207,114 @@ function AdminBackups() {
           </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <div className="relative w-full sm:w-64">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setPage(0);
-              }}
-              placeholder="Buscar copia"
-              className="pl-9"
-            />
-          </div>
+          <Dialog open={sortOpen} onOpenChange={setSortOpen}>
+            <DialogTrigger asChild>
+              <Button type="button" variant="outline" className="h-9 gap-1.5 px-2.5">
+                <ArrowUpDown className="size-4" /> Ordenar por
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+              <DialogHeader>
+                <DialogTitle>Ordenar por</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-1 pt-2">
+                {sortOptions.map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setSortOrder(value);
+                      setPage(0);
+                      setSortOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2 ${sortOrder === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"}`}
+                  >
+                    <span>{label}</span>
+                    {sortOrder === value && <span aria-hidden="true">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <DialogTrigger asChild>
+              <Button type="button" variant="outline" className="h-9 gap-1.5 px-2.5">
+                <Filter className="size-4" /> Filtros
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+              <DialogHeader>
+                <DialogTitle>Filtros</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-5 pt-2">
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">Tipo de copias</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {Object.entries({
+                      "Copia manual": "Copias manuales",
+                      "Copia semanal": "Copias semanales",
+                      "Copia por pedido": "Copias por pedidos",
+                    }).map(([type, label]) => (
+                      <label key={type} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={typeFilters.includes(type)}
+                          onChange={(event) => {
+                            setTypeFilters((current) =>
+                              event.target.checked
+                                ? [...current, type]
+                                : current.filter((value) => value !== type),
+                            );
+                            setPage(0);
+                          }}
+                          className="size-4 accent-primary"
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="px-0 text-xs"
+                    onClick={() => setTypeFilters([])}
+                  >
+                    Todos
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">Fechas</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-1 text-xs text-muted-foreground">
+                      Desde
+                      <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+                    </label>
+                    <label className="space-y-1 text-xs text-muted-foreground">
+                      Hasta
+                      <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+                    </label>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between border-t border-border/50 pt-4">
+                  <span className="text-xs text-muted-foreground">{filteredBackups.length} copias encontradas</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setTypeFilters([]);
+                      setDateFrom("");
+                      setDateTo("");
+                      setPage(0);
+                    }}
+                  >
+                    Limpiar
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Button
             type="button"
             variant="outline"
