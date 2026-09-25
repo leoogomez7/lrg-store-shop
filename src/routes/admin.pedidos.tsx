@@ -2386,11 +2386,13 @@ function AdminOrders() {
           <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
             <Table
               hideScrollbarOnMobile
-              alwaysShowScrollbarOnDesktop
+              hideScrollbar={!selectionMode}
+              alwaysShowScrollbarOnDesktop={selectionMode}
               stickyHeader
               stickyScrollbar
               containerClassName={cn(
-                "overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]",
+                "overflow-y-visible [-webkit-overflow-scrolling:touch]",
+                selectionMode ? "overscroll-x-contain overflow-x-auto" : "overflow-x-hidden",
               )}
               className={cn(
                 "w-full table-fixed border-collapse text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",

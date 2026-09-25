@@ -399,9 +399,9 @@ function AdminTrash() {
       <div className="mt-5 glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
         <Table
           hideScrollbarOnMobile
-          alwaysShowScrollbarOnDesktop
-          containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-          className="min-w-248 table-fixed text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
+          hideScrollbar
+          containerClassName="overflow-x-hidden overflow-y-visible"
+          className="w-full min-w-0 table-fixed text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
@@ -426,10 +426,10 @@ function AdminTrash() {
                 </div>
               </TableHead>
               <TableHead className="w-14 text-center">Icono</TableHead>
-              <TableHead className="w-72">Nombre</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Eliminación en</TableHead>
-              <TableHead className="w-52">Acciones</TableHead>
+              <TableHead className="w-64">Nombre</TableHead>
+              <TableHead className="w-24 min-w-24 max-w-24">Tipo</TableHead>
+              <TableHead className="w-28 min-w-28 max-w-28">Eliminación en</TableHead>
+              <TableHead className="w-52 min-w-52 max-w-52">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -500,8 +500,8 @@ function AdminTrash() {
                         )}
                       </span>
                     </TableCell>
-                    <TableCell className="w-72 max-w-72 truncate font-medium">{name}</TableCell>
-                    <TableCell>
+                    <TableCell className="w-64 max-w-64 truncate font-medium">{name}</TableCell>
+                    <TableCell className="w-24 min-w-24 max-w-24">
                       {isProduct
                         ? "Producto"
                         : isOrder
