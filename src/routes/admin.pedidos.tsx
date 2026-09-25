@@ -602,6 +602,7 @@ function AdminOrders() {
       }
     >
   >({});
+  const [isSavingQuickEdit, setIsSavingQuickEdit] = useState(false);
   const [isBulkQuickEditing, setIsBulkQuickEditing] = useState(false);
   const quickEditRowRef = useRef<HTMLTableRowElement | null>(null);
   const expandedOrderRowRef = useRef<HTMLTableRowElement | null>(null);
@@ -697,72 +698,72 @@ function AdminOrders() {
   const saveQuickEditOrder = async (order: Order) => {
     const draft = quickEditOrderForm[order.id];
     if (!draft) return;
+    setIsSavingQuickEdit(true);
 
-    const nextStatus = mergeOrderStatus(draft.deliveryStatus, draft.paymentStatus);
-    const updatedItems = order.items.map((item) => ({
-      ...item,
-      deliveryStatus: draft.deliveryStatus,
-      paymentStatus: draft.paymentStatus,
-    }));
-    const wasCanceled = order.status === "cancelado";
-    const willCancel = nextStatus === "cancelado" && !wasCanceled;
-    const willRestore = nextStatus !== "cancelado" && wasCanceled;
+    try {
+      const nextStatus = mergeOrderStatus(draft.deliveryStatus, draft.paymentStatus);
+      const wasCanceled = order.status === "cancelado";
+      const willCancel = nextStatus === "cancelado" && !wasCanceled;
+      const willRestore = nextStatus !== "cancelado" && wasCanceled;
 
-    if (willCancel) {
-      await import("@/services/catalog.service").then(({ adjustProductStockForOrder }) =>
-        adjustProductStockForOrder(order, 1),
-      );
-    }
-    if (willRestore) {
-      await import("@/services/catalog.service").then(({ adjustProductStockForOrder }) =>
-        adjustProductStockForOrder(order, -1),
-      );
-    }
-
-    const nextOrders = editableOrders.map((currentOrder) =>
-      currentOrder.id === order.id
-        ? {
-            ...currentOrder,
-            items: currentOrder.items.map((item) => ({
-              ...item,
-              paymentStatus: draft.paymentStatus,
-              deliveryStatus: draft.deliveryStatus,
-            })),
-            deliveryStatus: draft.deliveryStatus,
-            paymentStatus: draft.paymentStatus,
-            shippingMethod: draft.shippingMethod || undefined,
-            paymentMethod: draft.paymentMethod,
-            deliveryDate: draft.deliveryDate || undefined,
-            status: nextStatus,
-          }
-        : currentOrder,
-    );
-    await saveOrders(nextOrders);
-    setEditableOrders(nextOrders);
-
-    const currentOrderId = order.id;
-    const remainingQueue = bulkQuickEditOrderQueue.filter((orderId) => orderId !== currentOrderId);
-    const nextQueuedOrderId = remainingQueue[0];
-    setBulkQuickEditOrderQueue(remainingQueue);
-    setQuickEditOrderId(null);
-    setQuickEditOrderForm((current) => {
-      const next = { ...current };
-      delete next[order.id];
-      delete quickEditOriginalSnapshots.current[order.id];
-      return next;
-    });
-
-    if (nextQueuedOrderId) {
-      const nextQuickEditOrder = editableOrders.find((candidate) => candidate.id === nextQueuedOrderId);
-      if (nextQuickEditOrder) {
-        setSelectionMode(true);
-        startQuickEditOrder(nextQuickEditOrder, isBulkQuickEditing);
-        return;
+      if (willCancel) {
+        await import("@/services/catalog.service").then(({ adjustProductStockForOrder }) =>
+          adjustProductStockForOrder(order, 1),
+        );
       }
-    }
+      if (willRestore) {
+        await import("@/services/catalog.service").then(({ adjustProductStockForOrder }) =>
+          adjustProductStockForOrder(order, -1),
+        );
+      }
 
-    setIsBulkQuickEditing(false);
-    setSelectionMode(selectedOrderIds.length > 0);
+      const nextOrders = editableOrders.map((currentOrder) =>
+        currentOrder.id === order.id
+          ? {
+              ...currentOrder,
+              items: currentOrder.items.map((item) => ({
+                ...item,
+                paymentStatus: draft.paymentStatus,
+                deliveryStatus: draft.deliveryStatus,
+              })),
+              deliveryStatus: draft.deliveryStatus,
+              paymentStatus: draft.paymentStatus,
+              shippingMethod: draft.shippingMethod || undefined,
+              paymentMethod: draft.paymentMethod,
+              deliveryDate: draft.deliveryDate || undefined,
+              status: nextStatus,
+            }
+          : currentOrder,
+      );
+      await saveOrders(nextOrders);
+      setEditableOrders(nextOrders);
+
+      const currentOrderId = order.id;
+      const remainingQueue = bulkQuickEditOrderQueue.filter((orderId) => orderId !== currentOrderId);
+      const nextQueuedOrderId = remainingQueue[0];
+      setBulkQuickEditOrderQueue(remainingQueue);
+      setQuickEditOrderId(null);
+      setQuickEditOrderForm((current) => {
+        const next = { ...current };
+        delete next[order.id];
+        delete quickEditOriginalSnapshots.current[order.id];
+        return next;
+      });
+
+      if (nextQueuedOrderId) {
+        const nextQuickEditOrder = editableOrders.find((candidate) => candidate.id === nextQueuedOrderId);
+        if (nextQuickEditOrder) {
+          setSelectionMode(true);
+          startQuickEditOrder(nextQuickEditOrder, isBulkQuickEditing);
+          return;
+        }
+      }
+
+      setIsBulkQuickEditing(false);
+      setSelectionMode(selectedOrderIds.length > 0);
+    } finally {
+      setIsSavingQuickEdit(false);
+    }
   };
 
   const addDocuments = async (files: FileList | null) => {
@@ -2628,10 +2629,14 @@ function AdminOrders() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => saveQuickEditOrder(order)}
-                                  disabled={!quickEditHasChanges}
+                                  disabled={!quickEditHasChanges || isSavingQuickEdit}
                                   className="h-7 gap-1 bg-transparent px-2 text-xs text-green-600 hover:bg-green-100/80 hover:text-green-700 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-green-700/40"
                                 >
-                                  <Check className="size-3.5" /> Guardar
+                                  {isSavingQuickEdit ? (
+                                    <LoaderCircle className="size-3.5 animate-spin" />
+                                  ) : (
+                                    <Check className="size-3.5" />
+                                  )} {isSavingQuickEdit ? "Guardando..." : "Guardar"}
                                 </Button>
                                 <Button
                                   type="button"
