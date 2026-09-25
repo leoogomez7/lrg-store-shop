@@ -1481,7 +1481,7 @@ function AccountPageContent({
           </div>
 
           <FilterChipList chips={orderFilterChips} />
-          <div className="glass-panel mt-4 overflow-visible rounded-2xl">
+          <div className="glass-panel overflow-visible rounded-2xl">
             <Table
               hideScrollbarOnMobile
               alwaysShowScrollbarOnDesktop
@@ -1613,7 +1613,7 @@ function AccountPageContent({
             </Table>
           </div>
 
-          <div className="mt-3 hidden flex-col gap-3 lg:flex">
+          <div className="mt-0 hidden flex-col gap-3 lg:flex">
             <div className="flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"

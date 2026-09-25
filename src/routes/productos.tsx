@@ -414,14 +414,16 @@ function ProductosPage() {
             {results.length > 0 && (
               <div className="mt-0 flex flex-col gap-3">
                 <div className="flex flex-wrap items-center justify-center gap-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setPage(0)}
                     disabled={!hasPreviousPage}
-                    className="h-9 px-4 disabled:opacity-60"
+                    className="h-9 px-4"
                   >
                     Principio
-                  </button>
+                  </Button>
                   <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
                     {Array.from({ length: totalPages }, (_, index) => (
                       <button
@@ -434,14 +436,16 @@ function ProductosPage() {
                       </button>
                     ))}
                   </div>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setPage(totalPages - 1)}
                     disabled={!hasNextPage}
-                    className="h-9 px-4 disabled:opacity-60"
+                    className="h-9 px-4"
                   >
                     Último
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-center gap-3">

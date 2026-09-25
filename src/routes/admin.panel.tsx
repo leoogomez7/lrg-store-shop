@@ -312,7 +312,7 @@ function AdminDashboard() {
   };
 
   return (
-    <main className="mx-auto min-w-0 w-full max-w-[1600px] overflow-x-clip px-4 py-6 sm:px-6">
+    <main className="mx-auto min-w-0 w-full max-w-[1600px] overflow-x-clip px-4 py-6 pb-0 sm:px-6">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Métricas</p>
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
         <div>
@@ -562,7 +562,7 @@ function AdminDashboard() {
         {/* Sectores ya están resumidos en las tarjetas. */}
       </section>
 
-      <section className="mt-8 grid gap-6 pb-20">
+      <section className="mt-8 grid gap-6">
         <div>
           <h2 className="mb-3 font-display text-xl font-semibold">Últimos pedidos</h2>
           <div className="glass-panel mt-4 overflow-visible rounded-2xl">
@@ -610,7 +610,7 @@ function AdminDashboard() {
               </TableBody>
             </Table>
           </div>
-          <div className="mt-3 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden pb-8 sm:w-full">
+          <div className="mt-0 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full">
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
@@ -743,7 +743,7 @@ function AdminDashboard() {
               ) : null}
             </ul>
           </div>
-          <div className="mt-3 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden pb-8 sm:w-full">
+          <div className="mt-0 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full">
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"

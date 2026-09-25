@@ -243,7 +243,7 @@ function CatalogPage() {
   }, [page, totalPages]);
 
   return (
-    <main className="w-full px-4 pb-8 pt-20 sm:px-6 lg:px-8">
+    <main className="w-full px-4 pb-0 pt-20 sm:px-6 lg:px-8">
       <header className="max-w-2xl">
         <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Catálogo</p>
         <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">{brand.name}</h1>
@@ -382,14 +382,16 @@ function CatalogPage() {
       {results.length > 0 && (
         <div className="mt-0 flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setPage(0)}
               disabled={!hasPreviousPage}
-              className="h-9 px-4 disabled:opacity-60"
+              className="h-9 px-4"
             >
               Principio
-            </button>
+            </Button>
             <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
               {Array.from({ length: totalPages }, (_, index) => (
                 <button
@@ -402,14 +404,16 @@ function CatalogPage() {
                 </button>
               ))}
             </div>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setPage(totalPages - 1)}
               disabled={!hasNextPage}
-              className="h-9 px-4 disabled:opacity-60"
+              className="h-9 px-4"
             >
               Último
-            </button>
+            </Button>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
