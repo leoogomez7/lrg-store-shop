@@ -3054,7 +3054,7 @@ function AdminOrders() {
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeOrderEditor()}>
         <DialogContent
           key={isCreatingOrder ? "new-order-dialog" : "edit-order-dialog"}
-          className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-hidden p-4 shadow-none md:overflow-y-auto md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:w-[calc(100vw-2rem)] sm:p-6"
+          className="h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain p-4 shadow-none md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:h-auto sm:w-[calc(100vw-2rem)] sm:p-6"
         >
           <DialogHeader>
             <div className="flex items-center justify-between gap-3">

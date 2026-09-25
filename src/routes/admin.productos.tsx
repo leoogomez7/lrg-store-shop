@@ -3697,7 +3697,7 @@ function ProductEditDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-4 pr-2 shadow-2xl md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:w-[calc(100vw-2rem)] sm:p-6"
+        className="h-[calc(100dvh-1rem)] w-[calc(100vw-0.5rem)] max-w-5xl max-h-[calc(100dvh-1rem)] touch-pan-y overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-4 pr-2 shadow-2xl md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:h-auto sm:w-[calc(100vw-2rem)] sm:p-6"
         style={{ scrollbarGutter: "stable" }}
       >
         <DialogHeader className="space-y-2">

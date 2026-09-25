@@ -1487,7 +1487,7 @@ function AccountPageContent({
               alwaysShowScrollbarOnDesktop
               stickyHeader
               stickyScrollbar
-              containerClassName="touch-pan-x touch-pan-y overflow-x-auto overflow-y-visible"
+              containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible"
               className="w-full text-sm [&_td]:text-center [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2"
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">

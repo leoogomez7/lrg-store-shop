@@ -360,7 +360,7 @@ function AdminBrands() {
           if (!open) closeEditor();
         }}
       >
-        <DialogContent>
+        <DialogContent onOpenAutoFocus={(event) => event.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Editar {editingFieldLabel}</DialogTitle>
             <DialogDescription>

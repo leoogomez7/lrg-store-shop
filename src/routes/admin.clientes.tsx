@@ -703,7 +703,7 @@ function AdminClients() {
           alwaysShowScrollbarOnDesktop
           stickyHeader
           stickyScrollbar
-          containerClassName="overflow-x-auto overflow-y-visible touch-pan-x touch-pan-y overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+          containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
           className="min-w-[42rem] w-full table-auto text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">

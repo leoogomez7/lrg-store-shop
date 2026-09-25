@@ -292,7 +292,8 @@ function AdminBackups() {
             La próxima copia de seguridad semanal es el {getNextWeeklyBackup()}.
           </p>
         </div>
-        <div className="flex w-full min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:w-auto sm:overflow-visible sm:pb-0">
+        <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:overflow-visible sm:pb-0">
           <Dialog open={sortOpen} onOpenChange={setSortOpen}>
             <DialogTrigger asChild>
               <Button type="button" variant="outline" className="h-9 shrink-0 gap-1.5 whitespace-nowrap px-2.5">
@@ -441,6 +442,7 @@ function AdminBackups() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -462,7 +464,7 @@ function AdminBackups() {
         <Table
           hideScrollbarOnMobile
           alwaysShowScrollbarOnDesktop
-          containerClassName="overflow-x-auto overflow-y-visible touch-pan-x touch-pan-y overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+          containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
           className="min-w-[54rem] text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">

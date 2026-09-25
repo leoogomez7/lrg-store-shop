@@ -1023,7 +1023,8 @@ function AdminSuppliers() {
             <Plus className="size-4" />
             Nuevo proveedor
           </Button>
-          <div className="order-3 flex basis-full min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:basis-auto sm:flex-wrap sm:justify-end sm:overflow-visible sm:pb-0 sm:shrink-0">
+          <div className="order-3 flex basis-full min-w-0 flex-col items-stretch gap-2 sm:basis-auto sm:flex-row sm:items-center sm:justify-end sm:shrink-0">
+            <div className="flex min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:overflow-visible sm:pb-0">
             <Dialog open={sortOpen} onOpenChange={setSortOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9 shrink-0 gap-1.5 whitespace-nowrap px-2.5">
@@ -1275,6 +1276,8 @@ function AdminSuppliers() {
                 </div>
               </DialogContent>
             </Dialog>
+            </div>
+            <div className="flex min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:overflow-visible sm:pb-0">
 
             <Button
               onClick={exportExcel}
@@ -1290,11 +1293,15 @@ function AdminSuppliers() {
               <FileText className="size-4" />
               Exportar PDF
             </Button>
+            </div>
           </div>
         </div>
 
         <Dialog open={newSupplierOpen} onOpenChange={(open) => !open && closeSupplierEditor()}>
-          <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto">
+          <DialogContent
+            className="w-[calc(100vw-1rem)] max-w-2xl max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto"
+            onOpenAutoFocus={(event) => event.preventDefault()}
+          >
             <DialogHeader>
               <div className="flex items-center justify-between gap-3">
                 <DialogTitle>

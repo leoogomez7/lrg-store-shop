@@ -582,8 +582,8 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           </div>
         </aside>
 
-        <div className={cn("min-w-0 flex-1", sidebarCollapsed ? "lg:pl-20" : "lg:pl-64")}>
-          <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/70 px-4 py-3 backdrop-blur-xl lg:hidden">
+        <div className={cn("min-w-0 flex-1 pt-16 lg:pt-0", sidebarCollapsed ? "lg:pl-20" : "lg:pl-64")}>
+          <header className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur-xl lg:hidden">
             <DropdownMenu open={adminUserMenuOpen} onOpenChange={setAdminUserMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <button

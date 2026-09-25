@@ -385,7 +385,7 @@ function AdminTrash() {
           </button>
           <Checkbox
             checked={(() => {
-              if (filteredEntries.length === 0) return false;
+              if (filteredEntries.length === 0 || selectedDeleteKeys.length === 0) return false;
               if (selectedDeleteKeys.length < filteredEntries.length) return "indeterminate";
               return true;
             })()}
@@ -449,7 +449,7 @@ function AdminTrash() {
                 key={`${entry.type}-${entry.id}`}
                 className="glass-panel flex flex-wrap items-center justify-between gap-4 rounded-2xl p-4"
               >
-                <div className="flex min-w-0 items-center gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
                   <Checkbox
                     checked={
                       selectionMode === "restore"
@@ -494,11 +494,11 @@ function AdminTrash() {
                   </div>
                 </div>
                 {!selectionMode ? (
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => restoreEntry(entry)}>
+                  <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
+                    <Button className="shrink-0" size="sm" variant="outline" onClick={() => restoreEntry(entry)}>
                       <RotateCcw className="size-4" /> Restaurar
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => setEntryToDelete(entry)}>
+                    <Button className="shrink-0" size="sm" variant="destructive" onClick={() => setEntryToDelete(entry)}>
                       <Trash2 className="size-4" /> Eliminar
                     </Button>
                   </div>

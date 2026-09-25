@@ -571,8 +571,8 @@ function AdminDashboard() {
               alwaysShowScrollbarOnDesktop
               stickyHeader
               stickyScrollbar
-              className="w-full min-w-fit text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
-              containerClassName="overflow-x-auto overflow-y-visible overscroll-x-contain touch-pan-x touch-pan-y [-webkit-overflow-scrolling:touch]"
+              className="w-full min-w-[40rem] text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
+              containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
@@ -610,7 +610,7 @@ function AdminDashboard() {
               </TableBody>
             </Table>
           </div>
-          <div className="mt-4 flex w-full max-w-full flex-col gap-3 overflow-hidden">
+          <div className="mt-4 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full">
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
@@ -711,14 +711,14 @@ function AdminDashboard() {
               />
             </div>
           </div>
-          <div className="glass-panel mt-4 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-2xl touch-pan-x touch-pan-y [-webkit-overflow-scrolling:touch]">
-            <ul className="min-w-md divide-y divide-border/60">
+          <div className="glass-panel mt-4 w-full overflow-hidden rounded-2xl">
+            <ul className="w-full divide-y divide-border/60">
               {currentStockItems.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-2 px-5 py-2">
-                  <span className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-                    <span className="min-w-0 truncate">{item.name}</span>
+                <li key={item.id} className="flex min-w-0 items-center justify-between gap-2 px-4 py-2 sm:px-5">
+                  <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm">
+                    <span className="min-w-0 wrap-break-word">{item.name}</span>
                     {item.variantName ? (
-                      <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+                      <span className="max-w-full shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
                         {item.variantName}
                       </span>
                     ) : null}
@@ -740,7 +740,7 @@ function AdminDashboard() {
               ) : null}
             </ul>
           </div>
-          <div className="mt-4 flex w-full max-w-full flex-col gap-3 overflow-hidden">
+          <div className="mt-4 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full">
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
