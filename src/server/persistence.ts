@@ -146,6 +146,14 @@ function ensureAdminTables() {
         snapshotData TEXT NOT NULL,
         createdAt TEXT NOT NULL
       )`,
+        `CREATE TABLE IF NOT EXISTS database_backup_trash (
+        id TEXT PRIMARY KEY,
+        reason TEXT NOT NULL,
+        snapshotData TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
+        deletedAt TEXT NOT NULL,
+        expiresAt TEXT NOT NULL
+      )`,
         `CREATE TABLE IF NOT EXISTS site_visitors (
         visitorId TEXT PRIMARY KEY,
         visits INTEGER NOT NULL DEFAULT 0,
@@ -172,6 +180,7 @@ function ensureAdminTables() {
 async function createDatabaseBackup(reason: string) {
   const adminDatabase = await ensureAdminTables();
   if (!adminDatabase) return false;
+  await migrateLegacyBackupTrash(adminDatabase);
 
   const adminTables = [
     "admins",
@@ -186,7 +195,13 @@ async function createDatabaseBackup(reason: string) {
   ];
   const userTables = ["users", "user_carts", "guest_carts", "favorites", "addresses", "customer_orders"];
   const [adminResults, userDatabase] = await Promise.all([
-    Promise.all(adminTables.map((table) => adminDatabase.execute(`SELECT * FROM ${table}`))),
+    Promise.all(
+      adminTables.map((table) =>
+        table === "admin_settings"
+          ? adminDatabase.execute("SELECT settingKey, settingValue, updatedAt FROM admin_settings WHERE settingKey != 'lrg:trash'")
+          : adminDatabase.execute(`SELECT * FROM ${table}`),
+      ),
+    ),
     ensureUserTables(),
   ]);
   const userResults = userDatabase
@@ -208,10 +223,64 @@ async function createDatabaseBackup(reason: string) {
   return true;
 }
 
+async function migrateLegacyBackupTrash(database: NonNullable<Awaited<ReturnType<typeof ensureAdminTables>>>) {
+  const settings = await database.execute({
+    sql: "SELECT settingValue FROM admin_settings WHERE settingKey = ?",
+    args: ["lrg:trash"],
+  });
+  const raw = settings.rows[0]?.["settingValue"];
+  if (typeof raw !== "string" || raw.length < 2) return;
+
+  let entries: unknown;
+  try {
+    entries = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  if (!Array.isArray(entries)) return;
+
+  const backupEntries = entries.filter(
+    (entry): entry is { type: "backup"; id: string; item: { reason: string; createdAt: string; snapshotData?: string }; deletedAt: string; expiresAt: string } =>
+      Boolean(
+        entry &&
+          typeof entry === "object" &&
+          (entry as { type?: unknown }).type === "backup" &&
+          typeof (entry as { id?: unknown }).id === "string" &&
+          typeof (entry as { deletedAt?: unknown }).deletedAt === "string" &&
+          typeof (entry as { expiresAt?: unknown }).expiresAt === "string",
+      ),
+  );
+  if (!backupEntries.length) return;
+
+  await database.batch(
+    backupEntries.map((entry) => ({
+      sql: `INSERT INTO database_backup_trash (id, reason, snapshotData, createdAt, deletedAt, expiresAt)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO NOTHING`,
+      args: [
+        entry.id,
+        entry.item.reason,
+        entry.item.snapshotData ?? "{}",
+        entry.item.createdAt || entry.deletedAt,
+        entry.deletedAt,
+        entry.expiresAt,
+      ],
+    })),
+    "write",
+  );
+
+  const remainingEntries = entries.filter((entry) => !backupEntries.includes(entry as (typeof backupEntries)[number]));
+  await database.execute({
+    sql: "UPDATE admin_settings SET settingValue = ?, updatedAt = ? WHERE settingKey = ?",
+    args: [JSON.stringify(remainingEntries), new Date().toISOString(), "lrg:trash"],
+  });
+}
+
 export const initializeDatabase = createServerFn({ method: "POST" })
   .validator(() => ({}))
   .handler(async () => {
-    await Promise.all([ensureUserTables(), ensureAdminTables()]);
+    const adminDatabase = await ensureAdminTables();
+    await Promise.all([ensureUserTables(), adminDatabase ? migrateLegacyBackupTrash(adminDatabase) : null]);
 
     return true;
   });
@@ -494,7 +563,7 @@ export type AdminBackupSummary = {
   sizeBytes: number;
 };
 
-type AdminBackupTrashItem = AdminBackupSummary & { snapshotData: string };
+type AdminBackupTrashItem = AdminBackupSummary & { snapshotData?: string };
 
 export const listAdminBackups = createServerFn({ method: "POST" })
   .validator(() => ({}))
@@ -551,39 +620,47 @@ export const deleteAdminBackup = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const database = await ensureAdminTables();
     if (!database) return false;
-    const backup = await loadAdminBackup({ data: { id: data.id } });
-    if (!backup) return false;
-
-    const settings = await loadAdminSettings({ data: {} });
-    const trashSetting = settings.find((setting) => setting.settingKey === "lrg:trash");
-    let entries: Array<Record<string, unknown>> = [];
-    if (trashSetting) {
-      try {
-        const parsed = JSON.parse(trashSetting.settingValue) as unknown;
-        entries = Array.isArray(parsed)
-          ? parsed.filter((entry): entry is Record<string, unknown> => Boolean(entry && typeof entry === "object"))
-          : [];
-      } catch {
-        entries = [];
-      }
-    }
-    const deletedAt = new Date();
-    const trashEntry = {
-      type: "backup",
-      id: backup.id,
-      item: backup,
-      deletedAt: deletedAt.toISOString(),
-      expiresAt: new Date(deletedAt.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-    };
-    const nextEntries = [
-      trashEntry,
-      ...entries.filter((entry) => !(entry.type === "backup" && entry.id === backup.id)),
-    ];
-    await database.execute({ sql: "DELETE FROM database_backups WHERE id = ?", args: [data.id] });
-    await saveAdminSetting({
-      data: { settingKey: "lrg:trash", settingValue: JSON.stringify(nextEntries) },
+    const metadata = await database.execute({
+      sql: "SELECT id, reason, createdAt, length(snapshotData) AS sizeBytes FROM database_backups WHERE id = ?",
+      args: [data.id],
     });
+    if (metadata.rows.length === 0) return false;
+    const deletedAt = new Date();
+    const deletedAtValue = deletedAt.toISOString();
+    const expiresAtValue = new Date(deletedAt.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString();
+    const moved = await database.execute({
+      sql: `INSERT INTO database_backup_trash (id, reason, snapshotData, createdAt, deletedAt, expiresAt)
+            SELECT id, reason, snapshotData, createdAt, ?, ?
+            FROM database_backups WHERE id = ?`,
+      args: [deletedAtValue, expiresAtValue, data.id],
+    });
+    if (moved.rowsAffected === 0) return false;
+    await database.execute({ sql: "DELETE FROM database_backups WHERE id = ?", args: [data.id] });
+
     return true;
+  });
+
+export const listAdminBackupTrash = createServerFn({ method: "POST" })
+  .validator(() => ({}))
+  .handler(async () => {
+    const database = await ensureAdminTables();
+    if (!database) return [];
+    await migrateLegacyBackupTrash(database);
+    const result = await database.execute(
+      "SELECT id, reason, createdAt, sizeBytes, deletedAt, expiresAt FROM (SELECT id, reason, createdAt, length(snapshotData) AS sizeBytes, deletedAt, expiresAt FROM database_backup_trash) WHERE expiresAt > ? ORDER BY deletedAt DESC",
+      [new Date().toISOString()],
+    );
+    return result.rows.flatMap((row) => {
+      const id = row["id"];
+      const reason = row["reason"];
+      const createdAt = row["createdAt"];
+      const sizeBytes = row["sizeBytes"];
+      const deletedAt = row["deletedAt"];
+      const expiresAt = row["expiresAt"];
+      return typeof id === "string" && typeof reason === "string" && typeof createdAt === "string" && typeof sizeBytes === "number" && typeof deletedAt === "string" && typeof expiresAt === "string"
+        ? [{ type: "backup" as const, id, item: { id, reason, createdAt, sizeBytes }, deletedAt, expiresAt }]
+        : [];
+    });
   });
 
 export const restoreAdminBackup = createServerFn({ method: "POST" })
@@ -591,12 +668,31 @@ export const restoreAdminBackup = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const database = await ensureAdminTables();
     if (!database) return false;
+    if (!data.backup.snapshotData) {
+      const restored = await database.execute({
+        sql: `INSERT INTO database_backups (id, reason, snapshotData, createdAt)
+              SELECT id, reason, snapshotData, createdAt FROM database_backup_trash WHERE id = ?`,
+        args: [data.backup.id],
+      });
+      if (restored.rowsAffected === 0) return false;
+      await database.execute({ sql: "DELETE FROM database_backup_trash WHERE id = ?", args: [data.backup.id] });
+      return true;
+    }
     await database.execute({
       sql: `INSERT INTO database_backups (id, reason, snapshotData, createdAt)
             VALUES (?, ?, ?, ?)
             ON CONFLICT(id) DO NOTHING`,
       args: [data.backup.id, data.backup.reason, data.backup.snapshotData, data.backup.createdAt],
     });
+    return true;
+  });
+
+export const deleteAdminBackupTrash = createServerFn({ method: "POST" })
+  .validator((data: { id: string }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return false;
+    await database.execute({ sql: "DELETE FROM database_backup_trash WHERE id = ?", args: [data.id] });
     return true;
   });
 

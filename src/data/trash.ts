@@ -26,7 +26,7 @@ export type TrashEntry =
         reason: string;
         createdAt: string;
         sizeBytes: number;
-        snapshotData: string;
+        snapshotData?: string;
       };
     });
 

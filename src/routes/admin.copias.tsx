@@ -16,7 +16,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { LoadingState } from "@/components/common/loading-state";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +35,7 @@ import {
 
 export const Route = createFileRoute("/admin/copias")({
   loader: ({ context }) => context.queryClient.ensureQueryData(backupsQuery),
-  pendingComponent: () => <LoadingState label="Cargando copias de seguridad..." />,
+  pendingComponent: PendingAdminBackups,
   head: () => ({ meta: [{ title: "Administrador" }] }),
   component: AdminBackups,
 });
@@ -101,6 +100,47 @@ const getNextWeeklyBackup = () => {
     timeStyle: "short",
   }).format(new Date(`${current.toISOString().slice(0, 10)}T00:00:00-03:00`));
 };
+
+function PendingAdminBackups() {
+  return (
+    <main className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Copias de seguridad</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Copias semanales, manuales y por pedido.</p>
+          <p className="mt-2 text-sm text-primary">
+            La próxima copia de seguridad semanal es el {getNextWeeklyBackup()}.
+          </p>
+        </div>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button type="button" variant="outline" disabled className="h-9 gap-1.5 px-2.5">
+            <ArrowUpDown className="size-4" /> Ordenar por
+          </Button>
+          <Button type="button" variant="outline" disabled className="h-9 gap-1.5 px-2.5">
+            <Filter className="size-4" /> Filtros
+          </Button>
+          <Button type="button" variant="outline" disabled className="min-w-44 whitespace-nowrap">
+            <Plus className="size-4" /> Crear copia manual
+          </Button>
+        </div>
+      </div>
+
+      <div className="glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
+        <div className="hidden grid-cols-[1.1fr_1.2fr_2fr_1.1fr] gap-4 border-b border-border/60 bg-surface-2 px-5 py-3 text-center text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground md:grid">
+          <span>Fecha</span>
+          <span>Tipo de copias</span>
+          <span>Referencia</span>
+          <span>Tamaño</span>
+        </div>
+        <div className="flex min-h-40 items-center justify-center gap-3 px-5 py-12 text-center text-sm text-muted-foreground">
+          <LoaderCircle className="size-5 animate-spin" />
+          <span>Cargando copias de seguridad...</span>
+        </div>
+      </div>
+    </main>
+  );
+}
 
 function AdminBackups() {
   const queryClient = useQueryClient();
@@ -320,7 +360,7 @@ function AdminBackups() {
                     className="flex items-center gap-1.5 text-left text-sm font-medium"
                     aria-expanded={datesOpen}
                   >
-                    <span>Fechas</span>
+                    <span>Fecha</span>
                     <ChevronDown
                       className={`size-4 text-muted-foreground transition-transform ${datesOpen ? "rotate-180" : ""}`}
                     />
@@ -349,7 +389,7 @@ function AdminBackups() {
                   ) : null}
                 </div>
                 <div className="flex items-center justify-between border-t border-border/50 pt-4">
-                  <span className="text-xs text-muted-foreground">{filteredBackups.length} copias encontradas</span>
+                  <span className="text-xs text-muted-foreground">{filteredBackups.length} copias de seguridad encontradas</span>
                   <Button
                     type="button"
                     variant="ghost"

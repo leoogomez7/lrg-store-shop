@@ -10,7 +10,13 @@ import { Input } from "@/components/ui/input";
 import { orders, saveOrders } from "@/data/orders";
 import { products, saveProducts } from "@/data/products";
 import { applyTrashEntries, readTrash, removeFromTrash, type TrashEntry } from "@/data/trash";
-import { loadAdminSettings, restoreAdminBackup, saveAdminSetting } from "@/server/persistence";
+import {
+  deleteAdminBackupTrash,
+  listAdminBackupTrash,
+  loadAdminSettings,
+  restoreAdminBackup,
+  saveAdminSetting,
+} from "@/server/persistence";
 
 const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
 
@@ -87,8 +93,8 @@ function AdminTrash() {
 
   useEffect(() => {
     let active = true;
-    void loadAdminSettings({ data: {} })
-      .then((settings) => {
+    void Promise.all([loadAdminSettings({ data: {} }), listAdminBackupTrash({ data: {} })])
+      .then(([settings, backupEntries]) => {
         const trashSetting = settings.find((setting) => setting.settingKey === "lrg:trash");
         let loadedEntries: TrashEntry[] = [];
         if (trashSetting) {
@@ -99,7 +105,7 @@ function AdminTrash() {
           }
         }
         applyTrashEntries(loadedEntries);
-        if (active) setEntries(readTrash());
+        if (active) setEntries([...backupEntries, ...readTrash()]);
       })
       .catch(() => {
         if (active) setEntries([]);
@@ -191,7 +197,7 @@ function AdminTrash() {
     } else {
       await restoreAdminBackup({ data: { backup: entry.item } });
     }
-    removeFromTrash(entry);
+    if (entry.type !== "backup") removeFromTrash(entry);
     void queryClient.invalidateQueries({
       queryKey:
         entry.type === "producto"
@@ -222,7 +228,11 @@ function AdminTrash() {
       }
     }
 
-    removeFromTrash(entryToDelete);
+    if (entryToDelete.type === "backup") {
+      void deleteAdminBackupTrash({ data: { id: entryToDelete.id } });
+    } else {
+      removeFromTrash(entryToDelete);
+    }
     void queryClient.invalidateQueries({
       queryKey:
         entryToDelete.type === "producto"
@@ -255,7 +265,11 @@ function AdminTrash() {
           saveOrders(orders);
         }
       }
-      removeFromTrash(entry);
+      if (entry.type === "backup") {
+        void deleteAdminBackupTrash({ data: { id: entry.id } });
+      } else {
+        removeFromTrash(entry);
+      }
     });
 
     setEntries((current) =>
@@ -312,7 +326,11 @@ function AdminTrash() {
               saveOrders(orders);
             }
           }
-          removeFromTrash(entry);
+          if (entry.type === "backup") {
+            void deleteAdminBackupTrash({ data: { id: entry.id } });
+          } else {
+            removeFromTrash(entry);
+          }
         });
 
         setEntries([]);
