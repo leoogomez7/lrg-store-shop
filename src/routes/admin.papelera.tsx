@@ -13,6 +13,7 @@ import { applyTrashEntries, readTrash, removeFromTrash, type TrashEntry } from "
 import {
   deleteAdminBackupTrash,
   listAdminBackupTrash,
+  loadAdminSettings,
   loadAdminTrashSetting,
   restoreAdminBackup,
   saveAdminSetting,
@@ -93,7 +94,7 @@ function AdminTrash() {
 
   useEffect(() => {
     let active = true;
-    void Promise.all([loadAdminSettings({ data: {} }), listAdminBackupTrash({ data: {} })])
+    void Promise.all([loadAdminTrashSetting({ data: {} }), listAdminBackupTrash({ data: {} })])
       .then(([trashValue, backupEntries]) => {
         let loadedEntries: TrashEntry[] = [];
         if (trashValue) {
