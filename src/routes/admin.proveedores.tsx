@@ -1551,7 +1551,7 @@ function AdminSuppliers() {
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
-                              <TableHead className="sticky left-0 z-20 w-12 min-w-12 max-w-12 bg-surface-2 px-2"> </TableHead>
+                              <TableHead className="w-12 min-w-12 max-w-12 px-2"> </TableHead>
                   <TableHead className="w-[24%] min-w-[150px] pl-5">Nombre</TableHead>
                   <TableHead className="w-[16%] min-w-[110px]">Celular</TableHead>
                   <TableHead className="w-[18%] min-w-[120px]">Red social</TableHead>
@@ -1594,7 +1594,7 @@ function AdminSuppliers() {
                             : undefined
                         }
                       >
-                        <TableCell className="sticky left-0 z-10 w-12 min-w-12 max-w-12 bg-background px-2">
+                        <TableCell className="w-12 min-w-12 max-w-12 px-2">
                           <div className="flex items-center justify-center">
                             <Checkbox
                               className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
