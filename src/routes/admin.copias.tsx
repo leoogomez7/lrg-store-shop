@@ -1,9 +1,21 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { ArrowUpDown, Check, Download, Filter, LoaderCircle, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowUpDown,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  Download,
+  Filter,
+  LoaderCircle,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { LoadingState } from "@/components/common/loading-state";
 import {
@@ -101,6 +113,7 @@ function AdminBackups() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<BackupSort>("date_desc");
   const [typeFilters, setTypeFilters] = useState<string[]>([]);
+  const [datesOpen, setDatesOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(0);
@@ -249,52 +262,80 @@ function AdminBackups() {
               <div className="space-y-5 pt-2">
                 <div className="space-y-3">
                   <p className="text-sm font-medium">Tipo de copias</p>
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Checkbox
+                        checked={typeFilters.length === 0}
+                        onCheckedChange={() => {
+                          setTypeFilters([]);
+                          setPage(0);
+                        }}
+                        className="size-4 rounded-full"
+                        aria-label="Todas las copias"
+                      />
+                      Todos
+                    </label>
                     {Object.entries({
                       "Copia manual": "Copias manuales",
                       "Copia semanal": "Copias semanales",
                       "Copia por pedido": "Copias por pedidos",
                     }).map(([type, label]) => (
-                      <label key={type} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <input
-                          type="checkbox"
+                      <label key={type} className="flex items-center gap-2 text-sm text-foreground">
+                        <Checkbox
                           checked={typeFilters.includes(type)}
-                          onChange={(event) => {
+                          onCheckedChange={(checked) => {
                             setTypeFilters((current) =>
-                              event.target.checked
+                              checked === true
                                 ? [...current, type]
                                 : current.filter((value) => value !== type),
                             );
                             setPage(0);
                           }}
-                          className="size-4 accent-primary"
+                          className="size-4 rounded-full"
+                          aria-label={label}
                         />
                         {label}
                       </label>
                     ))}
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="px-0 text-xs"
-                    onClick={() => setTypeFilters([])}
-                  >
-                    Todos
-                  </Button>
                 </div>
                 <div className="space-y-3">
-                  <p className="text-sm font-medium">Fechas</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="space-y-1 text-xs text-muted-foreground">
-                      Desde
-                      <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-                    </label>
-                    <label className="space-y-1 text-xs text-muted-foreground">
-                      Hasta
-                      <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
-                    </label>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDatesOpen((current) => !current)}
+                    className="flex w-full items-center justify-between text-left text-sm font-medium"
+                    aria-expanded={datesOpen}
+                  >
+                    <span className="flex items-center gap-2">
+                      <CalendarDays className="size-4 text-foreground" />
+                      Fechas
+                    </span>
+                    <ChevronDown
+                      className={`size-4 text-muted-foreground transition-transform ${datesOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {datesOpen ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="space-y-1 text-xs text-muted-foreground">
+                        Desde
+                        <Input
+                          type="date"
+                          value={dateFrom}
+                          onChange={(event) => setDateFrom(event.target.value)}
+                          className="scheme-dark"
+                        />
+                      </label>
+                      <label className="space-y-1 text-xs text-muted-foreground">
+                        Hasta
+                        <Input
+                          type="date"
+                          value={dateTo}
+                          onChange={(event) => setDateTo(event.target.value)}
+                          className="scheme-dark"
+                        />
+                      </label>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex items-center justify-between border-t border-border/50 pt-4">
                   <span className="text-xs text-muted-foreground">{filteredBackups.length} copias encontradas</span>
@@ -302,6 +343,7 @@ function AdminBackups() {
                     type="button"
                     variant="ghost"
                     size="sm"
+                    className="h-8 gap-1.5 px-0 text-sm font-medium text-muted-foreground hover:bg-transparent hover:text-foreground"
                     onClick={() => {
                       setTypeFilters([]);
                       setDateFrom("");
@@ -309,7 +351,7 @@ function AdminBackups() {
                       setPage(0);
                     }}
                   >
-                    Limpiar
+                    <X className="size-3.5" /> Limpiar
                   </Button>
                 </div>
               </div>
