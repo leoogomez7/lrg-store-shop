@@ -94,17 +94,25 @@ const DELETED_SUPPLIERS_STORAGE_KEY = "lrg:deletedSuppliers";
 const getSupplierKey = (supplier: Pick<StandaloneSupplier, "name" | "phone" | "social">) =>
   [supplier.name, supplier.phone, supplier.social].map((value) => value.trim()).join("|");
 
-const getSupplierIdentity = (supplier: Pick<StandaloneSupplier, "id" | "name" | "phone" | "social">) =>
-  supplier.id ?? getSupplierKey(supplier);
+const getSupplierIdentity = (
+  supplier: Pick<StandaloneSupplier, "id" | "name" | "phone" | "social">,
+) => supplier.id ?? getSupplierKey(supplier);
 
 const matchesSupplierKey = (
-  supplier: Partial<StandaloneSupplier> | { name: string; phone: string; social: string } | null | undefined,
+  supplier:
+    | Partial<StandaloneSupplier>
+    | { name: string; phone: string; social: string }
+    | null
+    | undefined,
   supplierKey: string,
 ) => {
   if (!supplier) return false;
   const supplierId = "id" in supplier ? supplier.id : undefined;
-  return (supplierId !== undefined && supplierId === supplierKey) ||
-    getSupplierKey(supplier as Pick<StandaloneSupplier, "name" | "phone" | "social">) === supplierKey;
+  return (
+    (supplierId !== undefined && supplierId === supplierKey) ||
+    getSupplierKey(supplier as Pick<StandaloneSupplier, "name" | "phone" | "social">) ===
+      supplierKey
+  );
 };
 
 const withSupplierIdentity = (supplier: StandaloneSupplier) => ({
@@ -147,7 +155,8 @@ const replaceSupplierRecord = (
   nextSupplier: StandaloneSupplier,
 ) => {
   const withoutTarget = suppliers.filter(
-    (supplier) => !(supplier.id === supplierKey || getSupplierKey(normalizeSupplier(supplier)) === supplierKey),
+    (supplier) =>
+      !(supplier.id === supplierKey || getSupplierKey(normalizeSupplier(supplier)) === supplierKey),
   );
   return dedupeSuppliers([...withoutTarget, nextSupplier]);
 };
@@ -188,7 +197,9 @@ function AdminSuppliers() {
       try {
         const parsed = JSON.parse(deletedSetting.settingValue) as unknown;
         setDeletedSupplierKeys(
-          Array.isArray(parsed) ? parsed.filter((key): key is string => typeof key === "string") : [],
+          Array.isArray(parsed)
+            ? parsed.filter((key): key is string => typeof key === "string")
+            : [],
         );
       } catch {
         setDeletedSupplierKeys([]);
@@ -227,7 +238,9 @@ function AdminSuppliers() {
   const [selectedSupplierKeys, setSelectedSupplierKeys] = React.useState<string[]>([]);
   const [bulkSupplierEditQueue, setBulkSupplierEditQueue] = React.useState<string[]>([]);
   const [bulkSupplierEditPosition, setBulkSupplierEditPosition] = React.useState(0);
-  const [bulkSupplierEditCompletedKeys, setBulkSupplierEditCompletedKeys] = React.useState<string[]>([]);
+  const [bulkSupplierEditCompletedKeys, setBulkSupplierEditCompletedKeys] = React.useState<
+    string[]
+  >([]);
   const [selectionMode, setSelectionMode] = React.useState(false);
   const [quickEditSupplierKey, setQuickEditSupplierKey] = React.useState<string | null>(null);
   const [quickEditSupplier, setQuickEditSupplier] = React.useState<StandaloneSupplier | null>(null);
@@ -235,7 +248,9 @@ function AdminSuppliers() {
   const [quickEditSupplierQueue, setQuickEditSupplierQueue] = React.useState<string[]>([]);
   const [editingSupplierKey, setEditingSupplierKey] = React.useState<string | null>(null);
   const [supplierDeleteConfirmOpen, setSupplierDeleteConfirmOpen] = React.useState(false);
-  const [pendingSupplierDelete, setPendingSupplierDelete] = React.useState<(() => void) | null>(null);
+  const [pendingSupplierDelete, setPendingSupplierDelete] = React.useState<(() => void) | null>(
+    null,
+  );
   const supplierFormKey = `${newSupplier.name.trim()}|${newSupplier.phone.trim()}|${newSupplier.social.trim()}`;
   const supplierFormHasChanges = !editingSupplierKey || supplierFormKey !== editingSupplierKey;
 
@@ -308,12 +323,12 @@ function AdminSuppliers() {
                 (product.variants?.length
                   ? Boolean(
                       assignment.variantName &&
-                        (itemName === assignment.variantName.toLowerCase() ||
-                          itemVariantName === assignment.variantName.toLowerCase()),
+                      (itemName === assignment.variantName.toLowerCase() ||
+                        itemVariantName === assignment.variantName.toLowerCase()),
                     )
                   : itemName === assignment.productName.toLowerCase());
-                    if (countedOrderItems.has(orderItemKey)) continue;
-                    countedOrderItems.add(orderItemKey);
+              if (countedOrderItems.has(orderItemKey)) continue;
+              countedOrderItems.add(orderItemKey);
               if (!matchesById && !matchesLegacy) continue;
 
               const itemGastos = item.gastos ?? assignment.gastos;
@@ -498,7 +513,8 @@ function AdminSuppliers() {
 
       if (nextKey) {
         const nextRow =
-          filteredRows.find((row) => row.key === nextKey) ?? rows.find((row) => row.key === nextKey);
+          filteredRows.find((row) => row.key === nextKey) ??
+          rows.find((row) => row.key === nextKey);
         if (nextRow) {
           const nextPosition = bulkSupplierEditQueue.indexOf(nextKey);
           setBulkSupplierEditPosition(nextPosition);
@@ -595,33 +611,32 @@ function AdminSuppliers() {
     );
 
     const nextStandaloneSuppliers = dedupeSuppliers([
-      ...standaloneSuppliers.filter(
-        (supplier) => !matchesSupplierKey(supplier, supplierKey),
-      ),
+      ...standaloneSuppliers.filter((supplier) => !matchesSupplierKey(supplier, supplierKey)),
       normalized,
     ]);
 
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
       supplier:
-        product.supplier &&
-        matchesSupplierKey(product.supplier, supplierKey)
+        product.supplier && matchesSupplierKey(product.supplier, supplierKey)
           ? { ...product.supplier, ...normalized, id: normalized.id ?? getSupplierKey(normalized) }
           : product.supplier,
       variants: product.variants?.map((variant) => ({
         ...variant,
         supplier:
-          variant.supplier &&
-          matchesSupplierKey(variant.supplier, supplierKey)
-            ? { ...variant.supplier, ...normalized, id: normalized.id ?? getSupplierKey(normalized) }
+          variant.supplier && matchesSupplierKey(variant.supplier, supplierKey)
+            ? {
+                ...variant.supplier,
+                ...normalized,
+                id: normalized.id ?? getSupplierKey(normalized),
+              }
             : variant.supplier,
       })),
     }));
     const nextOrders = orders.map((order) => ({
       ...order,
       items: order.items.map((item) =>
-        item.supplier &&
-        matchesSupplierKey(item.supplier, supplierKey)
+        item.supplier && matchesSupplierKey(item.supplier, supplierKey)
           ? { ...item, supplier: { ...item.supplier, ...normalized } }
           : item,
       ),
@@ -677,23 +692,18 @@ function AdminSuppliers() {
       });
     }
     const nextStandaloneSuppliers = dedupeSuppliers(
-      standaloneSuppliers.filter(
-        (supplier) =>
-          !matchesSupplierKey(supplier, supplierKey),
-      ),
+      standaloneSuppliers.filter((supplier) => !matchesSupplierKey(supplier, supplierKey)),
     );
     const nextProducts = (products as Product[]).map((product) => ({
       ...product,
       supplier:
-        product.supplier &&
-        matchesSupplierKey(product.supplier, supplierKey)
+        product.supplier && matchesSupplierKey(product.supplier, supplierKey)
           ? undefined
           : product.supplier,
       variants: product.variants?.map((variant) => ({
         ...variant,
         supplier:
-          variant.supplier &&
-          matchesSupplierKey(variant.supplier, supplierKey)
+          variant.supplier && matchesSupplierKey(variant.supplier, supplierKey)
             ? undefined
             : variant.supplier,
       })),
@@ -756,7 +766,9 @@ function AdminSuppliers() {
 
   const deleteSelectedSuppliers = () => {
     const selectedKeysSnapshot = [...selectedSupplierKeys];
-    const selectedRowsSnapshot = filteredRows.filter((row) => selectedKeysSnapshot.includes(row.key));
+    const selectedRowsSnapshot = filteredRows.filter((row) =>
+      selectedKeysSnapshot.includes(row.key),
+    );
     setSelectedSupplierKeys([]);
     setSelectionMode(false);
 
@@ -778,8 +790,7 @@ function AdminSuppliers() {
 
     const nextStandaloneSuppliers = dedupeSuppliers(
       standaloneSuppliers.filter(
-        (supplier) =>
-          !selectedRows.some((row) => matchesSupplierKey(supplier, row.key)),
+        (supplier) => !selectedRows.some((row) => matchesSupplierKey(supplier, row.key)),
       ),
     );
     const nextProducts = (products as Product[]).map((product) => ({
@@ -820,7 +831,9 @@ function AdminSuppliers() {
     queryClient.setQueryData(orderQueries.list().queryKey, nextOrders);
 
     if (linkedCount > 0) {
-      toast.success(`Proveedor/es eliminado/s. Se desvincularon ${linkedCount} referencias de productos/variantes.`);
+      toast.success(
+        `Proveedor/es eliminado/s. Se desvincularon ${linkedCount} referencias de productos/variantes.`,
+      );
     }
   };
 
@@ -848,7 +861,12 @@ function AdminSuppliers() {
         (sum, currency) => sum + row.salesByCurrency[currency],
         0,
       );
-      const searchableValues = [row.name, row.phone, row.social, ...row.products.map((entry) => entry.name)];
+      const searchableValues = [
+        row.name,
+        row.phone,
+        row.social,
+        ...row.products.map((entry) => entry.name),
+      ];
       return (
         searchableValues.some((value) => value.toLowerCase().includes(query.toLowerCase())) &&
         (!storeFilter.length || row.stores.some((store) => storeFilter.includes(store))) &&
@@ -1025,274 +1043,280 @@ function AdminSuppliers() {
           </Button>
           <div className="order-3 flex basis-full min-w-0 flex-col items-stretch gap-2 sm:basis-auto sm:flex-row sm:items-center sm:justify-end sm:shrink-0">
             <div className="flex min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:overflow-visible sm:pb-0">
-            <Dialog open={sortOpen} onOpenChange={setSortOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 shrink-0 gap-1.5 whitespace-nowrap px-2.5">
-                  <ArrowUpDown className="size-4" /> Ordenar por
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Ordenar por</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-1 pt-2">
-                  {sortOptions.map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => {
-                        setSortOrder(value);
-                        setSortOpen(false);
-                      }}
-                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2 ${sortOrder === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"}`}
-                    >
-                      <span>{label}</span>
-                      {sortOrder === value && <Check className="size-4" />}
-                    </button>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
-            <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
-              <DialogContent className="max-h-[min(92vh,48rem)] max-w-2xl overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
-                <DialogHeader>
-                  <DialogTitle>Filtros</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-6 pt-2">
-                  <div className="space-y-3">
-                    <button
-                      type="button"
-                      onClick={() => setStoreOpen((current) => !current)}
-                      className="flex items-center gap-2 text-sm font-medium"
-                      aria-expanded={storeOpen}
-                    >
-                      <span>Productos en tiendas</span>
-                      {storeFilter.length > 0 && (
-                        <Badge variant="secondary">{storeFilter.length}</Badge>
-                      )}
-                      {storeOpen ? (
-                        <ChevronUp className="size-4" />
-                      ) : (
-                        <ChevronDown className="size-4" />
-                      )}
-                    </button>
-                    {storeOpen && (
-                      <div className="space-y-2.5">
-                        {[["all", "Todos"] as const, ...storeOptions].map(([value, label]) => (
-                          <label
-                            key={value}
-                            className="flex cursor-pointer items-start gap-3 text-sm"
-                          >
-                            <Checkbox
-                              checked={
-                                value === "all"
-                                  ? storeFilter.length === 0
-                                  : storeFilter.includes(value)
-                              }
-                              onCheckedChange={(checked) =>
-                                setStoreFilter((current) =>
-                                  toggleFilterSelection(
-                                    current,
-                                    value,
-                                    checked === true,
-                                    storeOptions.map(([option]) => option),
-                                  ),
-                                )
-                              }
-                            />
-                            <span className="font-medium">{label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
+              <Dialog open={sortOpen} onOpenChange={setSortOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0 gap-1.5 whitespace-nowrap px-2.5"
+                  >
+                    <ArrowUpDown className="size-4" /> Ordenar por
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Ordenar por</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-1 pt-2">
+                    {sortOptions.map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          setSortOrder(value);
+                          setSortOpen(false);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2 ${sortOrder === value ? "bg-surface-2 text-foreground" : "text-muted-foreground"}`}
+                      >
+                        <span>{label}</span>
+                        {sortOrder === value && <Check className="size-4" />}
+                      </button>
+                    ))}
                   </div>
-
-                  <div className="space-y-3">
-                    <button
-                      type="button"
-                      onClick={() => setSalesOpen((current) => !current)}
-                      className="flex items-center gap-2 text-sm font-medium"
-                      aria-expanded={salesOpen}
-                    >
-                      <span>Total vendido</span>
-                      {salesOpen ? (
-                        <ChevronUp className="size-4" />
-                      ) : (
-                        <ChevronDown className="size-4" />
-                      )}
-                    </button>
-                    {salesOpen && (
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap gap-4">
-                          {(["ARS", "USD"] as const).map((currency) => (
-                            <label key={currency} className="flex items-center gap-2 text-sm">
+                </DialogContent>
+              </Dialog>
+              <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+                <DialogContent className="max-h-[min(92vh,48rem)] max-w-2xl overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Filtros</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-6 pt-2">
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setStoreOpen((current) => !current)}
+                        className="flex items-center gap-2 text-sm font-medium"
+                        aria-expanded={storeOpen}
+                      >
+                        <span>Productos en tiendas</span>
+                        {storeFilter.length > 0 && (
+                          <Badge variant="secondary">{storeFilter.length}</Badge>
+                        )}
+                        {storeOpen ? (
+                          <ChevronUp className="size-4" />
+                        ) : (
+                          <ChevronDown className="size-4" />
+                        )}
+                      </button>
+                      {storeOpen && (
+                        <div className="space-y-2.5">
+                          {[["all", "Todos"] as const, ...storeOptions].map(([value, label]) => (
+                            <label
+                              key={value}
+                              className="flex cursor-pointer items-start gap-3 text-sm"
+                            >
                               <Checkbox
-                                checked={currencyFilter.includes(currency)}
+                                checked={
+                                  value === "all"
+                                    ? storeFilter.length === 0
+                                    : storeFilter.includes(value)
+                                }
                                 onCheckedChange={(checked) =>
-                                  setCurrencyFilter((current) =>
-                                    checked
-                                      ? Array.from(new Set([...current, currency]))
-                                      : current.length === 1
-                                        ? current
-                                        : current.filter((item) => item !== currency),
+                                  setStoreFilter((current) =>
+                                    toggleFilterSelection(
+                                      current,
+                                      value,
+                                      checked === true,
+                                      storeOptions.map(([option]) => option),
+                                    ),
                                   )
                                 }
                               />
-                              <span>{currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}</span>
+                              <span className="font-medium">{label}</span>
                             </label>
                           ))}
                         </div>
-                        <div className="flex items-center justify-between gap-3 text-xs font-medium">
-                          <label className="flex items-center gap-2">
-                            Desde{" "}
-                            <Input
-                              type="number"
-                              min={0}
-                              max={salesMax}
-                              value={salesMin}
-                              onChange={(event) =>
-                                setSalesMin(
-                                  Math.min(Math.max(0, Number(event.target.value) || 0), salesMax),
-                                )
-                              }
-                              className="h-8 w-24"
-                            />
-                          </label>
-                          <label className="flex items-center gap-2">
-                            Hasta{" "}
-                            <Input
-                              type="number"
-                              min={0}
-                              max={salesLimit}
-                              value={salesMax}
-                              onChange={(event) =>
-                                setSalesMax(
-                                  Math.max(
-                                    Math.min(salesLimit, Number(event.target.value) || 0),
-                                    salesMin,
-                                  ),
-                                )
-                              }
-                              className="h-8 w-24"
-                            />
-                          </label>
-                        </div>
-                        <Slider
-                          min={0}
-                          max={salesLimit}
-                          step={Math.max(1, Math.round(salesLimit / 100))}
-                          value={[salesMin, salesMax]}
-                          onValueChange={(value) => {
-                            setSalesMin(value[0] ?? 0);
-                            setSalesMax(value[1] ?? salesLimit);
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-3">
-                    <button
-                      type="button"
-                      onClick={() => setQuantityOpen((current) => !current)}
-                      className="flex items-center gap-2 text-sm font-medium"
-                      aria-expanded={quantityOpen}
-                    >
-                      <span>Total de cantidad vendida</span>
-                      {quantityOpen ? (
-                        <ChevronUp className="size-4" />
-                      ) : (
-                        <ChevronDown className="size-4" />
                       )}
-                    </button>
-                    {quantityOpen && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-3 text-xs font-medium">
-                          <label className="flex items-center gap-2">
-                            Desde{" "}
-                            <Input
-                              type="number"
-                              min={0}
-                              max={quantityMax}
-                              value={quantityMin}
-                              onChange={(event) =>
-                                setQuantityMin(
-                                  Math.min(
-                                    Math.max(0, Number(event.target.value) || 0),
-                                    quantityMax,
-                                  ),
-                                )
-                              }
-                              className="h-8 w-24"
-                            />
-                          </label>
-                          <label className="flex items-center gap-2">
-                            Hasta{" "}
-                            <Input
-                              type="number"
-                              min={0}
-                              max={quantityLimit}
-                              value={quantityMax}
-                              onChange={(event) =>
-                                setQuantityMax(
-                                  Math.max(
-                                    Math.min(quantityLimit, Number(event.target.value) || 0),
-                                    quantityMin,
-                                  ),
-                                )
-                              }
-                              className="h-8 w-24"
-                            />
-                          </label>
-                        </div>
-                        <Slider
-                          min={0}
-                          max={quantityLimit}
-                          step={1}
-                          value={[quantityMin, quantityMax]}
-                          onValueChange={(value) => {
-                            setQuantityMin(value[0] ?? 0);
-                            setQuantityMax(value[1] ?? quantityLimit);
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="flex items-center justify-between border-t border-border/50 pt-4">
-                    <p className="text-xs text-muted-foreground">
-                      {filteredRows.length} proveedores encontrados
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={resetFilters}
-                      disabled={activeFilterCount === 0}
-                      className="h-8 px-2 text-xs"
-                    >
-                      <X className="mr-1 size-3.5" /> Limpiar
-                    </Button>
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setSalesOpen((current) => !current)}
+                        className="flex items-center gap-2 text-sm font-medium"
+                        aria-expanded={salesOpen}
+                      >
+                        <span>Total vendido</span>
+                        {salesOpen ? (
+                          <ChevronUp className="size-4" />
+                        ) : (
+                          <ChevronDown className="size-4" />
+                        )}
+                      </button>
+                      {salesOpen && (
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap gap-4">
+                            {(["ARS", "USD"] as const).map((currency) => (
+                              <label key={currency} className="flex items-center gap-2 text-sm">
+                                <Checkbox
+                                  checked={currencyFilter.includes(currency)}
+                                  onCheckedChange={(checked) =>
+                                    setCurrencyFilter((current) =>
+                                      checked
+                                        ? Array.from(new Set([...current, currency]))
+                                        : current.length === 1
+                                          ? current
+                                          : current.filter((item) => item !== currency),
+                                    )
+                                  }
+                                />
+                                <span>{currency === "ARS" ? "$ (ARS)" : "USD (Dólar)"}</span>
+                              </label>
+                            ))}
+                          </div>
+                          <div className="flex items-center justify-between gap-3 text-xs font-medium">
+                            <label className="flex items-center gap-2">
+                              Desde{" "}
+                              <Input
+                                type="number"
+                                min={0}
+                                max={salesMax}
+                                value={salesMin}
+                                onChange={(event) =>
+                                  setSalesMin(
+                                    Math.min(
+                                      Math.max(0, Number(event.target.value) || 0),
+                                      salesMax,
+                                    ),
+                                  )
+                                }
+                                className="h-8 w-24"
+                              />
+                            </label>
+                            <label className="flex items-center gap-2">
+                              Hasta{" "}
+                              <Input
+                                type="number"
+                                min={0}
+                                max={salesLimit}
+                                value={salesMax}
+                                onChange={(event) =>
+                                  setSalesMax(
+                                    Math.max(
+                                      Math.min(salesLimit, Number(event.target.value) || 0),
+                                      salesMin,
+                                    ),
+                                  )
+                                }
+                                className="h-8 w-24"
+                              />
+                            </label>
+                          </div>
+                          <Slider
+                            min={0}
+                            max={salesLimit}
+                            step={Math.max(1, Math.round(salesLimit / 100))}
+                            value={[salesMin, salesMax]}
+                            onValueChange={(value) => {
+                              setSalesMin(value[0] ?? 0);
+                              setSalesMax(value[1] ?? salesLimit);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setQuantityOpen((current) => !current)}
+                        className="flex items-center gap-2 text-sm font-medium"
+                        aria-expanded={quantityOpen}
+                      >
+                        <span>Total de cantidad vendida</span>
+                        {quantityOpen ? (
+                          <ChevronUp className="size-4" />
+                        ) : (
+                          <ChevronDown className="size-4" />
+                        )}
+                      </button>
+                      {quantityOpen && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between gap-3 text-xs font-medium">
+                            <label className="flex items-center gap-2">
+                              Desde{" "}
+                              <Input
+                                type="number"
+                                min={0}
+                                max={quantityMax}
+                                value={quantityMin}
+                                onChange={(event) =>
+                                  setQuantityMin(
+                                    Math.min(
+                                      Math.max(0, Number(event.target.value) || 0),
+                                      quantityMax,
+                                    ),
+                                  )
+                                }
+                                className="h-8 w-24"
+                              />
+                            </label>
+                            <label className="flex items-center gap-2">
+                              Hasta{" "}
+                              <Input
+                                type="number"
+                                min={0}
+                                max={quantityLimit}
+                                value={quantityMax}
+                                onChange={(event) =>
+                                  setQuantityMax(
+                                    Math.max(
+                                      Math.min(quantityLimit, Number(event.target.value) || 0),
+                                      quantityMin,
+                                    ),
+                                  )
+                                }
+                                className="h-8 w-24"
+                              />
+                            </label>
+                          </div>
+                          <Slider
+                            min={0}
+                            max={quantityLimit}
+                            step={1}
+                            value={[quantityMin, quantityMax]}
+                            onValueChange={(value) => {
+                              setQuantityMin(value[0] ?? 0);
+                              setQuantityMax(value[1] ?? quantityLimit);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-border/50 pt-4">
+                      <p className="text-xs text-muted-foreground">
+                        {filteredRows.length} proveedores encontrados
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={resetFilters}
+                        disabled={activeFilterCount === 0}
+                        className="h-8 px-2 text-xs"
+                      >
+                        <X className="mr-1 size-3.5" /> Limpiar
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
             </div>
             <div className="flex min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:overflow-visible sm:pb-0">
-
-            <Button
-              onClick={exportExcel}
-              className="inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
-            >
-              <Sheet className="size-4" />
-              Exportar Excel
-            </Button>
-            <Button
-              onClick={exportPdf}
-              className="inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
-            >
-              <FileText className="size-4" />
-              Exportar PDF
-            </Button>
+              <Button
+                onClick={exportExcel}
+                className="inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
+              >
+                <Sheet className="size-4" />
+                Exportar Excel
+              </Button>
+              <Button
+                onClick={exportPdf}
+                className="inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
+              >
+                <FileText className="size-4" />
+                Exportar PDF
+              </Button>
             </div>
           </div>
         </div>
@@ -1441,297 +1465,293 @@ function AdminSuppliers() {
           </DialogContent>
         </Dialog>
         <div className="flex flex-col">
-        <FilterChipList chips={filterChips} />
-        <div className="order-2 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
-          {selectedSupplierKeys.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2">
-              {quickEditSupplierKey !== null ? (
-                <>
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={() => {
-                      if (quickEditSupplierKey && quickEditSupplier) {
-                        saveSupplierChanges(quickEditSupplierKey, quickEditSupplier);
-                      }
-                    }}
-                  >
-                    <Check className="size-4" /> Guardar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={cancelQuickEditSupplier}
-                  >
-                    <X className="size-4" /> Saltar
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={cancelQuickEditSupplierSession}>
-                    <X className="size-4" /> Cancelar
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button size="sm" variant="outline" onClick={startBulkQuickEditSuppliers}>
-                    <Edit3 className="size-4" /> Editar rápido
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={editSelectedSupplier}>
-                    <Pencil className="size-4" /> Editar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => {
-                      setPendingSupplierDelete(() => deleteSelectedSuppliers);
-                      setSupplierDeleteConfirmOpen(true);
-                    }}
-                  >
-                    <Trash2 className="size-4" /> Eliminar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setSelectionMode(false);
-                      setSelectedSupplierKeys([]);
-                    }}
-                  >
-                    <X className="size-4" /> Cancelar
-                  </Button>
-                </>
-              )}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="order-1 mt-4 rounded-2xl">
-          <div className="glass-panel min-w-0 overflow-visible rounded-2xl">
-            <Table
-              hideScrollbarOnMobile
-              alwaysShowScrollbarOnDesktop
-              stickyHeader
-              stickyScrollbar
-              containerClassName="overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-              className="min-w-[52rem] w-full table-auto text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1"
-            >
-              <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
-                <TableRow>
-                              <TableHead className="w-12 min-w-12 max-w-12 px-2">
-                                <div className="flex items-center justify-center">
-                                  <Checkbox
-                                    className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                                    checked={
-                                      allVisibleSuppliersSelected
-                                        ? true
-                                        : someVisibleSuppliersSelected
-                                          ? "indeterminate"
-                                          : false
-                                    }
-                                    onCheckedChange={(checked) => {
-                                      const shouldSelect = checked === true || checked === "indeterminate";
-                                      setSelectedSupplierKeys((current) => {
-                                        const next = shouldSelect
-                                          ? [...new Set([...current, ...visibleSupplierKeys])]
-                                          : current.filter((key) => !visibleSupplierKeys.includes(key));
-                                        setSelectionMode(next.length > 0);
-                                        return next;
-                                      });
-                                    }}
-                                    aria-label="Seleccionar proveedores visibles"
-                                  />
-                                </div>
-                              </TableHead>
-                  <TableHead className="w-[24%] min-w-[150px] pl-5">Nombre</TableHead>
-                  <TableHead className="w-[16%] min-w-[110px]">Celular</TableHead>
-                  <TableHead className="w-[18%] min-w-[120px]">Red social</TableHead>
-                  <TableHead className="w-[22%] min-w-[140px]">Total vendido</TableHead>
-                  <TableHead className="w-[20%] min-w-[120px]">Cantidad vendida</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleRows.map((row) => {
-                  const isExpanded = expandedSupplierKey === row.key;
-                  const isQuickEditing = quickEditSupplierKey === row.key;
-                  const sortedProducts = [...row.products].sort((a, b) =>
-                    a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
-                  );
-                  const quickSupplier = quickEditSupplier ?? {
-                    name: row.name,
-                    phone: row.phone,
-                    social: row.social,
-                  };
-                  return (
-                    <React.Fragment key={row.key}>
-                      <TableRow
-                        onClick={(event) => {
-                          if (
-                            selectionMode ||
-                            isQuickEditing ||
-                            (event.target as HTMLElement).closest(
-                              "button, input, [role=combobox], a",
-                            )
-                          )
-                            return;
-                          if (quickEditSupplierKey !== null && quickEditSupplierKey !== row.key) {
-                            cancelQuickEditSupplier();
-                          }
-                          setExpandedSupplierKey(isExpanded ? null : row.key);
-                        }}
-                        className={
-                          !selectionMode && !isQuickEditing
-                            ? "cursor-pointer hover:bg-transparent"
-                            : undefined
+          <FilterChipList chips={filterChips} />
+          <div className="order-2 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
+            {selectedSupplierKeys.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {quickEditSupplierKey !== null ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => {
+                        if (quickEditSupplierKey && quickEditSupplier) {
+                          saveSupplierChanges(quickEditSupplierKey, quickEditSupplier);
                         }
-                      >
-                        <TableCell className="w-12 min-w-12 max-w-12 px-2">
-                          <div className="flex items-center justify-center">
-                            <Checkbox
-                              className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                              checked={selectedSupplierKeys.includes(row.key)}
-                              onCheckedChange={(checked) => {
-                                const isChecked = checked === true;
-                                setSelectedSupplierKeys((current) => {
-                                  const next = isChecked
-                                    ? [...new Set([...current, row.key])]
-                                    : current.filter((key) => key !== row.key);
-                                  setSelectionMode(next.length > 0);
-                                  return next;
-                                });
-                              }}
-                              aria-label={`Seleccionar proveedor ${row.name}`}
-                            />
-                          </div>
-                        </TableCell>
+                      }}
+                    >
+                      <Check className="size-4" /> Guardar
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={cancelQuickEditSupplier}>
+                      <X className="size-4" /> Saltar
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={cancelQuickEditSupplierSession}>
+                      <X className="size-4" /> Cancelar
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button size="sm" variant="outline" onClick={startBulkQuickEditSuppliers}>
+                      <Edit3 className="size-4" /> Editar rápido
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={editSelectedSupplier}>
+                      <Pencil className="size-4" /> Editar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        setPendingSupplierDelete(() => deleteSelectedSuppliers);
+                        setSupplierDeleteConfirmOpen(true);
+                      }}
+                    >
+                      <Trash2 className="size-4" /> Eliminar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectionMode(false);
+                        setSelectedSupplierKeys([]);
+                      }}
+                    >
+                      <X className="size-4" /> Cancelar
+                    </Button>
+                  </>
+                )}
+              </div>
+            ) : null}
+          </div>
 
-                        <TableCell className="pl-5 text-center text-sm font-medium text-foreground">
-                          {isQuickEditing ? (
-                            <Input
-                              value={quickSupplier.name}
-                              onChange={(event) =>
-                                setQuickEditSupplier({ ...quickSupplier, name: event.target.value })
-                              }
-                              className="h-9"
-                            />
-                          ) : (
-                            row.name
-                          )}
-                        </TableCell>
-                        <TableCell className="w-36 min-w-36 text-center text-sm text-foreground">
-                          {isQuickEditing ? (
-                            <Input
-                              value={quickSupplier.phone}
-                              onChange={(event) =>
-                                setQuickEditSupplier({
-                                  ...quickSupplier,
-                                  phone: event.target.value,
-                                })
-                              }
-                              className="h-9"
-                            />
-                          ) : (
-                            row.phone
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center text-sm text-foreground">
-                          {isQuickEditing ? (
-                            <Input
-                              value={quickSupplier.social}
-                              onChange={(event) =>
-                                setQuickEditSupplier({
-                                  ...quickSupplier,
-                                  social: event.target.value,
-                                })
-                              }
-                              className="h-9"
-                            />
-                          ) : (
-                            row.social
-                          )}
-                        </TableCell>
-                        <TableCell className="min-w-32 text-center">
-                          <div className="flex flex-col items-center justify-center gap-1 leading-none text-foreground">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <span className="text-[11px] font-medium text-muted-foreground">
-                                $
-                              </span>
-                              <span className="text-sm">
-                                {formatNumber(row.salesByCurrency.ARS)}
-                              </span>
+          <div className="order-1 mt-4 rounded-2xl">
+            <div className="glass-panel min-w-0 overflow-visible rounded-2xl">
+              <Table
+                hideScrollbarOnMobile
+                alwaysShowScrollbarOnDesktop
+                stickyHeader
+                stickyScrollbar
+                containerClassName="overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+                className="min-w-[52rem] w-full table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1"
+              >
+                <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+                  <TableRow>
+                    <TableHead className="w-12 min-w-12 max-w-12 px-2 text-center">
+                      <div className="flex items-center justify-center">
+                        <Checkbox
+                          className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                          checked={
+                            allVisibleSuppliersSelected
+                              ? true
+                              : someVisibleSuppliersSelected
+                                ? "indeterminate"
+                                : false
+                          }
+                          onCheckedChange={(checked) => {
+                            const shouldSelect = checked === true || checked === "indeterminate";
+                            setSelectedSupplierKeys((current) => {
+                              const next = shouldSelect
+                                ? [...new Set([...current, ...visibleSupplierKeys])]
+                                : current.filter((key) => !visibleSupplierKeys.includes(key));
+                              setSelectionMode(next.length > 0);
+                              return next;
+                            });
+                          }}
+                          aria-label="Seleccionar proveedores visibles"
+                        />
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-[24%] min-w-[150px] pl-5">Nombre</TableHead>
+                    <TableHead className="w-[16%] min-w-[110px]">Celular</TableHead>
+                    <TableHead className="w-[18%] min-w-[120px]">Red social</TableHead>
+                    <TableHead className="w-[22%] min-w-[140px]">Total vendido</TableHead>
+                    <TableHead className="w-[20%] min-w-[120px]">Cantidad vendida</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleRows.map((row) => {
+                    const isExpanded = expandedSupplierKey === row.key;
+                    const isQuickEditing = quickEditSupplierKey === row.key;
+                    const sortedProducts = [...row.products].sort((a, b) =>
+                      a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+                    );
+                    const quickSupplier = quickEditSupplier ?? {
+                      name: row.name,
+                      phone: row.phone,
+                      social: row.social,
+                    };
+                    return (
+                      <React.Fragment key={row.key}>
+                        <TableRow
+                          onClick={(event) => {
+                            if (
+                              selectionMode ||
+                              isQuickEditing ||
+                              (event.target as HTMLElement).closest(
+                                "button, input, [role=combobox], a",
+                              )
+                            )
+                              return;
+                            if (quickEditSupplierKey !== null && quickEditSupplierKey !== row.key) {
+                              cancelQuickEditSupplier();
+                            }
+                            setExpandedSupplierKey(isExpanded ? null : row.key);
+                          }}
+                          className={
+                            !selectionMode && !isQuickEditing
+                              ? "cursor-pointer hover:bg-transparent"
+                              : undefined
+                          }
+                        >
+                          <TableCell className="w-12 min-w-12 max-w-12 px-2 text-center">
+                            <div className="flex items-center justify-center">
+                              <Checkbox
+                                className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                                checked={selectedSupplierKeys.includes(row.key)}
+                                onCheckedChange={(checked) => {
+                                  const isChecked = checked === true;
+                                  setSelectedSupplierKeys((current) => {
+                                    const next = isChecked
+                                      ? [...new Set([...current, row.key])]
+                                      : current.filter((key) => key !== row.key);
+                                    setSelectionMode(next.length > 0);
+                                    return next;
+                                  });
+                                }}
+                                aria-label={`Seleccionar proveedor ${row.name}`}
+                              />
                             </div>
-                            <div className="flex items-center justify-center gap-1.5">
-                              <span className="text-[11px] font-medium text-muted-foreground">
-                                USD
-                              </span>
-                              <span className="text-sm">
-                                {formatNumber(row.salesByCurrency.USD)}
-                              </span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center text-sm text-foreground">
-                          {row.soldQuantity}
-                        </TableCell>
-                      </TableRow>
-                      {isExpanded ? (
-                        <TableRow>
-                          <TableCell
-                            colSpan={6}
-                            className="w-full bg-muted/30 p-0 text-left"
-                          >
-                            <>
-                              <div className="px-4 py-3">
-                                <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                                  {sortedProducts.slice(0, 8).map((product) => (
-                                    <div
-                                      key={`${product.name}-${product.variantName ?? "base"}`}
-                                      className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-background/35 px-3 py-2 text-xs text-foreground"
-                                    >
-                                      <span className="min-w-0 wrap-break-word font-medium">
-                                        {product.name}
-                                        {product.variantName ? ` · ${product.variantName}` : ""}
-                                      </span>
-                                      <span className="shrink-0 text-right text-muted-foreground">
-                                        Cantidad vendida: {product.quantity}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                                {row.products.length === 0 && (
-                                  <p className="text-sm text-muted-foreground">
-                                    Este proveedor todavía no tiene productos vendidos.
-                                  </p>
-                                )}
-                                {sortedProducts.length > 8 && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setProductsModalSupplier(row)}
-                                    className="mt-2 px-2 text-xs"
-                                  >
-                                    Ver más
-                                  </Button>
-                                )}
+                          </TableCell>
+
+                          <TableCell className="pl-5 text-center text-sm font-medium text-foreground">
+                            {isQuickEditing ? (
+                              <Input
+                                value={quickSupplier.name}
+                                onChange={(event) =>
+                                  setQuickEditSupplier({
+                                    ...quickSupplier,
+                                    name: event.target.value,
+                                  })
+                                }
+                                className="h-9"
+                              />
+                            ) : (
+                              row.name
+                            )}
+                          </TableCell>
+                          <TableCell className="w-36 min-w-36 text-center text-sm text-foreground">
+                            {isQuickEditing ? (
+                              <Input
+                                value={quickSupplier.phone}
+                                onChange={(event) =>
+                                  setQuickEditSupplier({
+                                    ...quickSupplier,
+                                    phone: event.target.value,
+                                  })
+                                }
+                                className="h-9"
+                              />
+                            ) : (
+                              row.phone
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center text-sm text-foreground">
+                            {isQuickEditing ? (
+                              <Input
+                                value={quickSupplier.social}
+                                onChange={(event) =>
+                                  setQuickEditSupplier({
+                                    ...quickSupplier,
+                                    social: event.target.value,
+                                  })
+                                }
+                                className="h-9"
+                              />
+                            ) : (
+                              row.social
+                            )}
+                          </TableCell>
+                          <TableCell className="min-w-32 text-center">
+                            <div className="flex flex-col items-center justify-center gap-1 leading-none text-foreground">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <span className="text-[11px] font-medium text-muted-foreground">
+                                  $
+                                </span>
+                                <span className="text-sm">
+                                  {formatNumber(row.salesByCurrency.ARS)}
+                                </span>
                               </div>
-                            </>
+                              <div className="flex items-center justify-center gap-1.5">
+                                <span className="text-[11px] font-medium text-muted-foreground">
+                                  USD
+                                </span>
+                                <span className="text-sm">
+                                  {formatNumber(row.salesByCurrency.USD)}
+                                </span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center text-sm text-foreground">
+                            {row.soldQuantity}
                           </TableCell>
                         </TableRow>
-                      ) : null}
-                    </React.Fragment>
-                  );
-                })}
-                {filteredRows.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-16 text-muted-foreground">
-                      No se encontraron proveedores.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                        {isExpanded ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="w-full bg-muted/30 p-0 text-left">
+                              <>
+                                <div className="px-4 py-3">
+                                  <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                                    {sortedProducts.slice(0, 8).map((product) => (
+                                      <div
+                                        key={`${product.name}-${product.variantName ?? "base"}`}
+                                        className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-background/35 px-3 py-2 text-xs text-foreground"
+                                      >
+                                        <span className="min-w-0 wrap-break-word font-medium">
+                                          {product.name}
+                                          {product.variantName ? ` · ${product.variantName}` : ""}
+                                        </span>
+                                        <span className="shrink-0 text-right text-muted-foreground">
+                                          Cantidad vendida: {product.quantity}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {row.products.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">
+                                      Este proveedor todavía no tiene productos vendidos.
+                                    </p>
+                                  )}
+                                  {sortedProducts.length > 8 && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setProductsModalSupplier(row)}
+                                      className="mt-2 px-2 text-xs"
+                                    >
+                                      Ver más
+                                    </Button>
+                                  )}
+                                </div>
+                              </>
+                            </TableCell>
+                          </TableRow>
+                        ) : null}
+                      </React.Fragment>
+                    );
+                  })}
+                  {filteredRows.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-16 text-muted-foreground">
+                        No se encontraron proveedores.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
-        </div>
-        <div className="mt-4 flex flex-col gap-3 pb-20">
+        <div className="mt-3 flex flex-col gap-3 pb-8">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               type="button"

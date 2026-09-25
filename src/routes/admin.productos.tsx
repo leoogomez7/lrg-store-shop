@@ -2121,503 +2121,518 @@ function AdminProducts() {
       </div>
 
       <div className="flex flex-col">
-      <div className="order-3 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
-        {selectedProductIds.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {quickEditProductId !== null ? (
-              <>
-                <Button
-                  size="sm"
-                  variant="default"
-                  onClick={() => {
-                    const currentProduct = editableProducts.find(
-                      (product) => product.id === quickEditProductId,
-                    );
-                    const currentVariant = quickEditVariantId
-                      ? currentProduct?.variants?.find(
-                          (variant) => variant.id === quickEditVariantId,
-                        )
-                      : undefined;
-                    if (currentProduct) {
-                      saveQuickEdit(currentProduct, currentVariant);
-                    }
-                  }}
-                >
-                  <Check className="size-4" /> Guardar
-                </Button>
-                <Button size="sm" variant="destructive" onClick={cancelQuickEdit}>
-                  <X className="size-4" /> Saltar
-                </Button>
-                <Button size="sm" variant="outline" onClick={cancelQuickEditSession}>
-                  <X className="size-4" /> Cancelar
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button size="sm" variant="outline" onClick={handleBulkQuickEditProducts}>
-                  <Edit3 className="size-4" /> Editar rápido
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleBulkEditProducts}>
-                  <Pencil className="size-4" /> Editar
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(false)}>
-                  <Eye className="size-4" /> Disponible
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => handleBulkToggleProducts(true)}>
-                  <EyeOff className="size-4" /> No disponible
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleBulkDuplicateProducts}>
-                  <Copy className="size-4" /> Duplicar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() =>
-                    setConfirmState({
-                      open: true,
-                      title: "Eliminar productos seleccionados?",
-                      description: "Esta acción no se puede deshacer.",
-                      onConfirm: handleBulkDeleteProducts,
-                    })
-                  }
-                >
-                  <Trash2 className="size-4" /> Eliminar
-                </Button>
-                <Button size="sm" variant="outline" onClick={clearBulkSelection}>
-                  <X className="size-4" /> Cancelar
-                </Button>
-              </>
-            )}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="order-1"><FilterChipList chips={adminFilterChips} /></div>
-      <div className="order-2 mt-4 rounded-2xl">
-        <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
-          <Table
-            hideScrollbarOnMobile
-            alwaysShowScrollbarOnDesktop
-            stickyHeader
-            stickyScrollbar
-            containerClassName="overflow-x-auto overflow-y-visible"
-            className={cn(
-              "w-full min-w-[72rem] text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2",
-            )}
-          >
-            <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
-              <TableRow>
-                <TableHead className="w-12 min-w-12 max-w-12 px-2">
-                  <div className="flex items-center justify-center">
-                    <Checkbox
-                      className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                      checked={
-                        allVisibleProductsSelected
-                          ? true
-                          : someVisibleProductsSelected
-                            ? "indeterminate"
-                            : false
+        <div className="order-3 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
+          {selectedProductIds.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {quickEditProductId !== null ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => {
+                      const currentProduct = editableProducts.find(
+                        (product) => product.id === quickEditProductId,
+                      );
+                      const currentVariant = quickEditVariantId
+                        ? currentProduct?.variants?.find(
+                            (variant) => variant.id === quickEditVariantId,
+                          )
+                        : undefined;
+                      if (currentProduct) {
+                        saveQuickEdit(currentProduct, currentVariant);
                       }
-                      onCheckedChange={(checked) => {
-                        const shouldSelect = checked === true || checked === "indeterminate";
-                        setSelectedProductIds((current) => {
-                          const next = shouldSelect
-                            ? Array.from(new Set([...current, ...visibleProductSelectionKeys]))
-                            : current.filter((key) => !visibleProductSelectionKeys.includes(key));
-                          setSelectionMode(next.length > 0);
-                          return next;
-                        });
-                      }}
-                      aria-label="Seleccionar productos visibles"
-                    />
-                  </div>
-                </TableHead>
-                <TableHead className="w-40 text-center">Producto</TableHead>
-                <TableHead className="w-20 text-center">Tienda</TableHead>
-                <TableHead className="w-16 text-center">Stock</TableHead>
-                <TableHead className="w-24 text-center">Mi comisión</TableHead>
-                <TableHead className="w-20 text-center">Gastos</TableHead>
-                <TableHead className="w-20 text-center">Precio</TableHead>
-                <TableHead className="w-20 text-center">Descuento</TableHead>
-                <TableHead className="w-24 text-center">Precio tienda</TableHead>
-                <TableHead className="w-24 text-center">Ganancias</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {displayRows.map(({ product, variant }) => {
-                const discount = variant?.discount ?? discounts[product.id] ?? 0;
-                const displayPrice = variant?.price ?? product.price;
-                const isUnlimitedStock = variant?.stockUnlimited ?? product.stockUnlimited ?? false;
-                const displayStock = isUnlimitedStock ? "∞" : (variant?.stock ?? product.stock);
-                const displayComision = variant?.comision ?? product.comision ?? 0;
-                const displayGastos = variant?.gastos ?? product.gastos ?? 0;
-                const displayPriceCurrency =
-                  variant?.priceCurrency ?? product.priceCurrency ?? "ARS";
-                const displayComisionCurrency =
-                  variant?.comisionCurrency ?? product.comisionCurrency ?? "ARS";
-                const displayGastosCurrency =
-                  variant?.gastosCurrency ?? product.gastosCurrency ?? "ARS";
-                const displayUsdRate = product.usdRate ?? 0;
-                const discountedPrice = displayPrice * (1 - discount / 100);
-                const discountedPriceInArs =
-                  displayPriceCurrency === "USD"
-                    ? discountedPrice * displayUsdRate
-                    : discountedPrice;
-                const gastosInArs =
-                  displayGastosCurrency === "USD" ? displayGastos * displayUsdRate : displayGastos;
-                const displayProfit =
-                  displayPriceCurrency === displayGastosCurrency
-                    ? discountedPrice - displayGastos
-                    : discountedPriceInArs - gastosInArs;
-                const displayProfitCurrency =
-                  displayPriceCurrency === displayGastosCurrency ? displayPriceCurrency : "ARS";
-                const quickEditKey = getQuickEditKey(product, variant);
-                const isQuickEditing =
-                  quickEditProductId === product.id && quickEditVariantId === (variant?.id ?? null);
-                const quickDraft = quickEditForm[quickEditKey] ?? {
-                  brand: product.brand,
-                  name: product.name,
-                  category: product.category,
-                  price: product.price,
-                  comision: product.comision ?? 0,
-                  comisionCurrency: product.comisionCurrency ?? "ARS",
-                  gastos: product.gastos ?? 0,
-                  gastosCurrency: product.gastosCurrency ?? "ARS",
-                  stock: product.stock,
-                  discount,
-                  variantName: variant?.name ?? "",
-                };
-                const activeQuickBrand = quickDraft.brand ?? product.brand;
-
-                return (
-                  <TableRow
-                    key={`${product.id}-${variant?.id ?? "base"}`}
-                    onClick={(event) => {
-                      if (
-                        selectionMode ||
-                        isQuickEditing ||
-                        (event.target as HTMLElement).closest(
-                          "button, input, [role=checkbox], [role=combobox], a",
-                        )
-                      )
-                        return;
-                      openEditProductDialog(product, variant);
                     }}
-                    className={cn(
-                      !selectionMode && !isQuickEditing && "cursor-pointer hover:bg-transparent",
-                    )}
                   >
-                    <TableCell className="w-12 min-w-12 max-w-12 px-2">
-                      <div className="flex items-center justify-center">
-                        <Checkbox
-                          className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                          checked={selectedProductIds.includes(
-                            getProductSelectionKey(product, variant),
-                          )}
-                          onCheckedChange={(checked) => {
-                            const isChecked = checked === true;
-                            const selectionKey = getProductSelectionKey(product, variant);
-                            setSelectedProductIds((current) => {
-                              const next = isChecked
-                                ? [...new Set([...current, selectionKey])]
-                                : current.filter((key) => key !== selectionKey);
-                              setSelectionMode(next.length > 0);
-                              return next;
-                            });
-                          }}
-                          aria-label={`Seleccionar ${product.name}${variant ? ` ${variant.name}` : ""}`}
-                        />
-                      </div>
-                    </TableCell>
+                    <Check className="size-4" /> Guardar
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={cancelQuickEdit}>
+                    <X className="size-4" /> Saltar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={cancelQuickEditSession}>
+                    <X className="size-4" /> Cancelar
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button size="sm" variant="outline" onClick={handleBulkQuickEditProducts}>
+                    <Edit3 className="size-4" /> Editar rápido
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleBulkEditProducts}>
+                    <Pencil className="size-4" /> Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleBulkToggleProducts(false)}
+                  >
+                    <Eye className="size-4" /> Disponible
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleBulkToggleProducts(true)}
+                  >
+                    <EyeOff className="size-4" /> No disponible
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleBulkDuplicateProducts}>
+                    <Copy className="size-4" /> Duplicar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() =>
+                      setConfirmState({
+                        open: true,
+                        title: "Eliminar productos seleccionados?",
+                        description: "Esta acción no se puede deshacer.",
+                        onConfirm: handleBulkDeleteProducts,
+                      })
+                    }
+                  >
+                    <Trash2 className="size-4" /> Eliminar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={clearBulkSelection}>
+                    <X className="size-4" /> Cancelar
+                  </Button>
+                </>
+              )}
+            </div>
+          ) : null}
+        </div>
 
-                    {isQuickEditing ? (
-                      <>
-                        <TableCell className="min-w-64 align-middle text-center">
-                          <div className="flex min-w-60 flex-col gap-2 text-left">
-                            <div className="flex items-center gap-2">
-                              <Input
-                                value={quickDraft.name}
-                                onChange={(event) =>
-                                  setQuickEditForm((current) => ({
-                                    ...current,
-                                    [quickEditKey]: { ...quickDraft, name: event.target.value },
-                                  }))
-                                }
-                                className="w-full min-w-52 text-center"
-                              />
-                            </div>
-                            {variant ? (
+        <div className="order-1">
+          <FilterChipList chips={adminFilterChips} />
+        </div>
+        <div className="order-2 mt-4 rounded-2xl">
+          <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
+            <Table
+              hideScrollbarOnMobile
+              alwaysShowScrollbarOnDesktop
+              stickyHeader
+              stickyScrollbar
+              containerClassName="overflow-x-auto overflow-y-visible"
+              className={cn(
+                "w-full min-w-[72rem] table-fixed text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2",
+              )}
+            >
+              <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+                <TableRow>
+                  <TableHead className="w-12 min-w-12 max-w-12 px-2 text-center">
+                    <div className="flex items-center justify-center">
+                      <Checkbox
+                        className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                        checked={
+                          allVisibleProductsSelected
+                            ? true
+                            : someVisibleProductsSelected
+                              ? "indeterminate"
+                              : false
+                        }
+                        onCheckedChange={(checked) => {
+                          const shouldSelect = checked === true || checked === "indeterminate";
+                          setSelectedProductIds((current) => {
+                            const next = shouldSelect
+                              ? Array.from(new Set([...current, ...visibleProductSelectionKeys]))
+                              : current.filter((key) => !visibleProductSelectionKeys.includes(key));
+                            setSelectionMode(next.length > 0);
+                            return next;
+                          });
+                        }}
+                        aria-label="Seleccionar productos visibles"
+                      />
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-40 text-center">Producto</TableHead>
+                  <TableHead className="w-20 text-center">Tienda</TableHead>
+                  <TableHead className="w-16 text-center">Stock</TableHead>
+                  <TableHead className="w-24 text-center">Mi comisión</TableHead>
+                  <TableHead className="w-20 text-center">Gastos</TableHead>
+                  <TableHead className="w-20 text-center">Precio</TableHead>
+                  <TableHead className="w-20 text-center">Descuento</TableHead>
+                  <TableHead className="w-24 text-center">Precio tienda</TableHead>
+                  <TableHead className="w-24 text-center">Ganancias</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {displayRows.map(({ product, variant }) => {
+                  const discount = variant?.discount ?? discounts[product.id] ?? 0;
+                  const displayPrice = variant?.price ?? product.price;
+                  const isUnlimitedStock =
+                    variant?.stockUnlimited ?? product.stockUnlimited ?? false;
+                  const displayStock = isUnlimitedStock ? "∞" : (variant?.stock ?? product.stock);
+                  const displayComision = variant?.comision ?? product.comision ?? 0;
+                  const displayGastos = variant?.gastos ?? product.gastos ?? 0;
+                  const displayPriceCurrency =
+                    variant?.priceCurrency ?? product.priceCurrency ?? "ARS";
+                  const displayComisionCurrency =
+                    variant?.comisionCurrency ?? product.comisionCurrency ?? "ARS";
+                  const displayGastosCurrency =
+                    variant?.gastosCurrency ?? product.gastosCurrency ?? "ARS";
+                  const displayUsdRate = product.usdRate ?? 0;
+                  const discountedPrice = displayPrice * (1 - discount / 100);
+                  const discountedPriceInArs =
+                    displayPriceCurrency === "USD"
+                      ? discountedPrice * displayUsdRate
+                      : discountedPrice;
+                  const gastosInArs =
+                    displayGastosCurrency === "USD"
+                      ? displayGastos * displayUsdRate
+                      : displayGastos;
+                  const displayProfit =
+                    displayPriceCurrency === displayGastosCurrency
+                      ? discountedPrice - displayGastos
+                      : discountedPriceInArs - gastosInArs;
+                  const displayProfitCurrency =
+                    displayPriceCurrency === displayGastosCurrency ? displayPriceCurrency : "ARS";
+                  const quickEditKey = getQuickEditKey(product, variant);
+                  const isQuickEditing =
+                    quickEditProductId === product.id &&
+                    quickEditVariantId === (variant?.id ?? null);
+                  const quickDraft = quickEditForm[quickEditKey] ?? {
+                    brand: product.brand,
+                    name: product.name,
+                    category: product.category,
+                    price: product.price,
+                    comision: product.comision ?? 0,
+                    comisionCurrency: product.comisionCurrency ?? "ARS",
+                    gastos: product.gastos ?? 0,
+                    gastosCurrency: product.gastosCurrency ?? "ARS",
+                    stock: product.stock,
+                    discount,
+                    variantName: variant?.name ?? "",
+                  };
+                  const activeQuickBrand = quickDraft.brand ?? product.brand;
+
+                  return (
+                    <TableRow
+                      key={`${product.id}-${variant?.id ?? "base"}`}
+                      onClick={(event) => {
+                        if (
+                          selectionMode ||
+                          isQuickEditing ||
+                          (event.target as HTMLElement).closest(
+                            "button, input, [role=checkbox], [role=combobox], a",
+                          )
+                        )
+                          return;
+                        openEditProductDialog(product, variant);
+                      }}
+                      className={cn(
+                        !selectionMode && !isQuickEditing && "cursor-pointer hover:bg-transparent",
+                      )}
+                    >
+                      <TableCell className="w-12 min-w-12 max-w-12 px-2 text-center">
+                        <div className="flex items-center justify-center">
+                          <Checkbox
+                            className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                            checked={selectedProductIds.includes(
+                              getProductSelectionKey(product, variant),
+                            )}
+                            onCheckedChange={(checked) => {
+                              const isChecked = checked === true;
+                              const selectionKey = getProductSelectionKey(product, variant);
+                              setSelectedProductIds((current) => {
+                                const next = isChecked
+                                  ? [...new Set([...current, selectionKey])]
+                                  : current.filter((key) => key !== selectionKey);
+                                setSelectionMode(next.length > 0);
+                                return next;
+                              });
+                            }}
+                            aria-label={`Seleccionar ${product.name}${variant ? ` ${variant.name}` : ""}`}
+                          />
+                        </div>
+                      </TableCell>
+
+                      {isQuickEditing ? (
+                        <>
+                          <TableCell className="min-w-64 align-middle text-center">
+                            <div className="flex min-w-60 flex-col gap-2 text-left">
                               <div className="flex items-center gap-2">
-                                <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
-                                  Variante
-                                </span>
                                 <Input
-                                  value={quickDraft.variantName}
+                                  value={quickDraft.name}
                                   onChange={(event) =>
                                     setQuickEditForm((current) => ({
                                       ...current,
-                                      [quickEditKey]: {
-                                        ...quickDraft,
-                                        variantName: event.target.value,
-                                      },
+                                      [quickEditKey]: { ...quickDraft, name: event.target.value },
                                     }))
                                   }
-                                  className="w-full min-w-44 text-center"
+                                  className="w-full min-w-52 text-center"
                                 />
                               </div>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                        <TableCell className="min-w-48 align-middle">
-                          <Select
-                            value={activeQuickBrand}
-                            onValueChange={(value) => {
-                              const nextBrand = value as BrandSlug;
-                              const nextCategory =
-                                brands[nextBrand].categories[0]?.slug ?? quickDraft.category;
-                              setQuickEditForm((current) => ({
-                                ...current,
-                                [quickEditKey]: {
-                                  ...quickDraft,
-                                  brand: nextBrand,
-                                  category: nextCategory,
-                                },
-                              }));
-                            }}
-                          >
-                            <SelectTrigger className="w-full min-w-44">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {brandList.map((brand) => (
-                                <SelectItem key={brand.slug} value={brand.slug}>
-                                  {brand.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="min-w-32 align-middle">
-                          <Input
-                            type="number"
-                            min={0}
-                            value={quickDraft.stock}
-                            onChange={(event) =>
-                              setQuickEditForm((current) => ({
-                                ...current,
-                                [quickEditKey]: {
-                                  ...quickDraft,
-                                  stock: Number(event.target.value),
-                                },
-                              }))
-                            }
-                            className="w-full min-w-28 text-center"
-                          />
-                        </TableCell>
-                        <TableCell className="min-w-36 align-middle">
-                          <div className="flex flex-col gap-2">
+                              {variant ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
+                                    Variante
+                                  </span>
+                                  <Input
+                                    value={quickDraft.variantName}
+                                    onChange={(event) =>
+                                      setQuickEditForm((current) => ({
+                                        ...current,
+                                        [quickEditKey]: {
+                                          ...quickDraft,
+                                          variantName: event.target.value,
+                                        },
+                                      }))
+                                    }
+                                    className="w-full min-w-44 text-center"
+                                  />
+                                </div>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell className="min-w-48 align-middle">
                             <Select
-                              value={quickDraft.comisionCurrency}
-                              onValueChange={(value) =>
+                              value={activeQuickBrand}
+                              onValueChange={(value) => {
+                                const nextBrand = value as BrandSlug;
+                                const nextCategory =
+                                  brands[nextBrand].categories[0]?.slug ?? quickDraft.category;
                                 setQuickEditForm((current) => ({
                                   ...current,
                                   [quickEditKey]: {
                                     ...quickDraft,
-                                    comisionCurrency: value as CurrencyCode,
+                                    brand: nextBrand,
+                                    category: nextCategory,
                                   },
-                                }))
-                              }
+                                }));
+                              }}
                             >
-                              <SelectTrigger className="h-8 w-full min-w-32">
+                              <SelectTrigger className="w-full min-w-44">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="ARS">$ (ARS)</SelectItem>
-                                <SelectItem value="USD">USD</SelectItem>
+                                {brandList.map((brand) => (
+                                  <SelectItem key={brand.slug} value={brand.slug}>
+                                    {brand.name}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
-                            <Input
-                              type="number"
-                              value={quickDraft.comision}
-                              onChange={(event) =>
-                                setQuickEditForm((current) => ({
-                                  ...current,
-                                  [quickEditKey]: {
-                                    ...quickDraft,
-                                    comision: Number(event.target.value),
-                                  },
-                                }))
-                              }
-                              className="w-full min-w-32 text-center"
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell className="min-w-36 align-middle">
-                          <div className="flex flex-col gap-2">
-                            <Select
-                              value={quickDraft.gastosCurrency}
-                              onValueChange={(value) =>
-                                setQuickEditForm((current) => ({
-                                  ...current,
-                                  [quickEditKey]: {
-                                    ...quickDraft,
-                                    gastosCurrency: value as CurrencyCode,
-                                  },
-                                }))
-                              }
-                            >
-                              <SelectTrigger className="h-8 w-full min-w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="ARS">$ (ARS)</SelectItem>
-                                <SelectItem value="USD">USD</SelectItem>
-                              </SelectContent>
-                            </Select>
+                          </TableCell>
+                          <TableCell className="min-w-32 align-middle">
                             <Input
                               type="number"
                               min={0}
-                              value={quickDraft.gastos}
+                              value={quickDraft.stock}
                               onChange={(event) =>
                                 setQuickEditForm((current) => ({
                                   ...current,
                                   [quickEditKey]: {
                                     ...quickDraft,
-                                    gastos: Number(event.target.value),
+                                    stock: Number(event.target.value),
                                   },
                                 }))
                               }
-                              className="w-full min-w-32 text-center"
+                              className="w-full min-w-28 text-center"
                             />
-                          </div>
-                        </TableCell>
-                        <TableCell className="min-w-32 align-middle">
-                          <div className="flex h-9 items-center justify-center text-sm text-foreground">
-                            {formatPrice(quickDraft.price)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-middle">
-                          <Input
-                            type="text"
-                            inputMode="decimal"
-                            value={`${quickDraft.discount}%`}
-                            onChange={(event) =>
-                              setQuickEditForm((current) => ({
-                                ...current,
-                                [quickEditKey]: {
-                                  ...quickDraft,
-                                  discount: Math.max(
-                                    0,
-                                    Math.min(
-                                      100,
-                                      Number(event.target.value.replace(/[^0-9.]/g, "")) || 0,
+                          </TableCell>
+                          <TableCell className="min-w-36 align-middle">
+                            <div className="flex flex-col gap-2">
+                              <Select
+                                value={quickDraft.comisionCurrency}
+                                onValueChange={(value) =>
+                                  setQuickEditForm((current) => ({
+                                    ...current,
+                                    [quickEditKey]: {
+                                      ...quickDraft,
+                                      comisionCurrency: value as CurrencyCode,
+                                    },
+                                  }))
+                                }
+                              >
+                                <SelectTrigger className="h-8 w-full min-w-32">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="ARS">$ (ARS)</SelectItem>
+                                  <SelectItem value="USD">USD</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Input
+                                type="number"
+                                value={quickDraft.comision}
+                                onChange={(event) =>
+                                  setQuickEditForm((current) => ({
+                                    ...current,
+                                    [quickEditKey]: {
+                                      ...quickDraft,
+                                      comision: Number(event.target.value),
+                                    },
+                                  }))
+                                }
+                                className="w-full min-w-32 text-center"
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell className="min-w-36 align-middle">
+                            <div className="flex flex-col gap-2">
+                              <Select
+                                value={quickDraft.gastosCurrency}
+                                onValueChange={(value) =>
+                                  setQuickEditForm((current) => ({
+                                    ...current,
+                                    [quickEditKey]: {
+                                      ...quickDraft,
+                                      gastosCurrency: value as CurrencyCode,
+                                    },
+                                  }))
+                                }
+                              >
+                                <SelectTrigger className="h-8 w-full min-w-32">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="ARS">$ (ARS)</SelectItem>
+                                  <SelectItem value="USD">USD</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Input
+                                type="number"
+                                min={0}
+                                value={quickDraft.gastos}
+                                onChange={(event) =>
+                                  setQuickEditForm((current) => ({
+                                    ...current,
+                                    [quickEditKey]: {
+                                      ...quickDraft,
+                                      gastos: Number(event.target.value),
+                                    },
+                                  }))
+                                }
+                                className="w-full min-w-32 text-center"
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell className="min-w-32 align-middle">
+                            <div className="flex h-9 items-center justify-center text-sm text-foreground">
+                              {formatPrice(quickDraft.price)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-middle">
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              value={`${quickDraft.discount}%`}
+                              onChange={(event) =>
+                                setQuickEditForm((current) => ({
+                                  ...current,
+                                  [quickEditKey]: {
+                                    ...quickDraft,
+                                    discount: Math.max(
+                                      0,
+                                      Math.min(
+                                        100,
+                                        Number(event.target.value.replace(/[^0-9.]/g, "")) || 0,
+                                      ),
                                     ),
-                                  ),
-                                },
-                              }))
-                            }
-                            className="w-24 border-0 bg-transparent px-0 text-center text-foreground shadow-none"
-                          />
-                        </TableCell>
-                        <TableCell className="align-middle">
-                          {formatPrice(
-                            Math.max(0, quickDraft.price * (1 - quickDraft.discount / 100)),
-                          )}
-                        </TableCell>
-                        <TableCell className="align-middle">
-                          {formatPrice(
-                            quickDraft.price * (1 - quickDraft.discount / 100) - quickDraft.gastos,
-                          )}
-                        </TableCell>
-                      </>
-                    ) : (
-                      <>
-                        <TableCell className="min-w-64 text-center">
-                          <div className="flex min-w-0 flex-wrap items-center justify-center gap-2 text-left">
-                            <span className="min-w-0 wrap-break-word font-medium">
-                              {product.name}
-                            </span>
-                            {variant ? (
-                              <span className="inline-flex items-center text-[10px] uppercase tracking-wider">
-                                <span className="rounded-full border border-border px-1.5 py-0.5 text-muted-foreground">
-                                  {variant.name}
+                                  },
+                                }))
+                              }
+                              className="w-24 border-0 bg-transparent px-0 text-center text-foreground shadow-none"
+                            />
+                          </TableCell>
+                          <TableCell className="align-middle">
+                            {formatPrice(
+                              Math.max(0, quickDraft.price * (1 - quickDraft.discount / 100)),
+                            )}
+                          </TableCell>
+                          <TableCell className="align-middle">
+                            {formatPrice(
+                              quickDraft.price * (1 - quickDraft.discount / 100) -
+                                quickDraft.gastos,
+                            )}
+                          </TableCell>
+                        </>
+                      ) : (
+                        <>
+                          <TableCell className="min-w-64 text-center">
+                            <div className="flex min-w-0 flex-wrap items-center justify-center gap-2 text-left">
+                              <span className="min-w-0 wrap-break-word font-medium">
+                                {product.name}
+                              </span>
+                              {variant ? (
+                                <span className="inline-flex items-center text-[10px] uppercase tracking-wider">
+                                  <span className="rounded-full border border-border px-1.5 py-0.5 text-muted-foreground">
+                                    {variant.name}
+                                  </span>
                                 </span>
-                              </span>
-                            ) : null}
-                            {(variant ? Boolean(variant.hidden) : Boolean(product.hidden)) ? (
-                              <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                                Oculto
-                              </span>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {getBrandShortName(product.brand)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge
-                            variant={
-                              displayStock === "∞"
-                                ? "success"
-                                : Number(displayStock) === 0
-                                  ? "destructive"
-                                  : Number(displayStock) <= 4
-                                    ? "warning"
-                                    : "success"
-                            }
+                              ) : null}
+                              {(variant ? Boolean(variant.hidden) : Boolean(product.hidden)) ? (
+                                <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                                  Oculto
+                                </span>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {getBrandShortName(product.brand)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge
+                              variant={
+                                displayStock === "∞"
+                                  ? "success"
+                                  : Number(displayStock) === 0
+                                    ? "destructive"
+                                    : Number(displayStock) <= 4
+                                      ? "warning"
+                                      : "success"
+                              }
+                            >
+                              {displayStock}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {formatPrice(displayComision, displayComisionCurrency)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {formatPrice(displayGastos, displayGastosCurrency)}
+                          </TableCell>
+                          <TableCell className="text-center">{formatPrice(displayPrice)}</TableCell>
+                          <TableCell
+                            className="text-center"
+                            onClick={(event) => event.stopPropagation()}
                           >
-                            {displayStock}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {formatPrice(displayComision, displayComisionCurrency)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {formatPrice(displayGastos, displayGastosCurrency)}
-                        </TableCell>
-                        <TableCell className="text-center">{formatPrice(displayPrice)}</TableCell>
-                        <TableCell
-                          className="text-center"
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <Input
-                            type="text"
-                            value={`${pendingDiscounts[product.id] || discount}%`}
-                            placeholder="0%"
-                            className="w-24 border-0 bg-transparent px-0 text-center shadow-none"
-                            readOnly
-                            tabIndex={-1}
-                            onFocus={(e) => (e.currentTarget as HTMLInputElement).blur()}
-                            onMouseDown={(e) => e.preventDefault()}
-                          />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {formatPrice(Math.max(0, discountedPrice))}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {formatPrice(displayProfit, displayProfitCurrency)}
-                        </TableCell>
-                      </>
-                    )}
+                            <Input
+                              type="text"
+                              value={`${pendingDiscounts[product.id] || discount}%`}
+                              placeholder="0%"
+                              className="w-24 border-0 bg-transparent px-0 text-center shadow-none"
+                              readOnly
+                              tabIndex={-1}
+                              onFocus={(e) => (e.currentTarget as HTMLInputElement).blur()}
+                              onMouseDown={(e) => e.preventDefault()}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {formatPrice(Math.max(0, discountedPrice))}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {formatPrice(displayProfit, displayProfitCurrency)}
+                          </TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  );
+                })}
+                {results.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={11}
+                      className="py-16 text-center text-sm text-muted-foreground"
+                    >
+                      No se encontraron productos.
+                    </TableCell>
                   </TableRow>
-                );
-              })}
-              {results.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={11}
-                    className="py-16 text-center text-sm text-muted-foreground"
-                  >
-                    No se encontraron productos.
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
+                ) : null}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
-      </div>
-      <div className="mt-4 flex flex-col gap-3">
+      <div className="mt-3 flex flex-col gap-3 pb-8">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             type="button"
@@ -2625,7 +2640,7 @@ function AdminProducts() {
             size="sm"
             onClick={() => setPage(0)}
             disabled={!hasPreviousPage}
-            className="h-9 rounded-xl border border-input bg-[#1f2937] px-4 text-sm text-white shadow-none hover:bg-[#111827]"
+            className="h-9 px-4"
           >
             Principio
           </Button>
@@ -2634,7 +2649,7 @@ function AdminProducts() {
               <button
                 key={index}
                 type="button"
-                className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#1f2937] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                 onClick={() => setPage(index)}
               >
                 {index + 1}
@@ -2647,7 +2662,7 @@ function AdminProducts() {
             size="sm"
             onClick={() => setPage(totalPages - 1)}
             disabled={!hasNextPage}
-            className="h-9 rounded-xl border border-input bg-[#1f2937] px-4 text-sm text-white shadow-none hover:bg-[#111827]"
+            className="h-9 px-4"
           >
             Último
           </Button>
@@ -4889,45 +4904,49 @@ function ProductEditDialog({
           <div className="flex w-full items-center justify-between gap-2">
             <span />
             <div className="flex items-center gap-2">
-            <div className="flex gap-2">
-              {onDelete ? (
+              <div className="flex gap-2">
+                {onDelete ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={onDelete}
+                    disabled={isSaving}
+                    className="gap-2"
+                  >
+                    <Trash2 className="size-4" /> Eliminar
+                  </Button>
+                ) : null}
                 <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={onDelete}
+                  variant="secondary"
+                  onClick={() => {
+                    if (hasChanges) {
+                      setConfirmExitOpen(true);
+                    } else {
+                      setProductForm(null);
+                      onOpenChange(false);
+                    }
+                  }}
                   disabled={isSaving}
-                  className="gap-2"
+                  className="rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none"
+                  style={{ boxShadow: "none" }}
                 >
-                  <Trash2 className="size-4" /> Eliminar
+                  <X className="h-4 w-4 mr-2" /> Cancelar
                 </Button>
-              ) : null}
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  if (hasChanges) {
-                    setConfirmExitOpen(true);
-                  } else {
-                    setProductForm(null);
-                    onOpenChange(false);
-                  }
-                }}
-                disabled={isSaving}
-                className="rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none"
-                style={{ boxShadow: "none" }}
-              >
-                <X className="h-4 w-4 mr-2" /> Cancelar
-              </Button>
-              <Button
-                variant="default"
-                disabled={!canSave || isSaving}
-                onClick={() => setConfirmSaveOpen(true)}
-                className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50"
-                style={{ boxShadow: "none" }}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? "Guardando..." : isNewProduct ? "Guardar producto" : "Guardar cambios"}
-              </Button>
-            </div>
+                <Button
+                  variant="default"
+                  disabled={!canSave || isSaving}
+                  onClick={() => setConfirmSaveOpen(true)}
+                  className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50"
+                  style={{ boxShadow: "none" }}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {isSaving
+                    ? "Guardando..."
+                    : isNewProduct
+                      ? "Guardar producto"
+                      : "Guardar cambios"}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogFooter>

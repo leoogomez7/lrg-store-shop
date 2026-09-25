@@ -739,7 +739,7 @@ function AdminClients() {
         </Table>
       </div>
 
-      <div className="mt-4 flex w-full max-w-full flex-col gap-3 overflow-hidden">
+      <div className="mt-3 flex w-full max-w-full flex-col gap-3 overflow-hidden pb-8">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             type="button"
@@ -747,7 +747,7 @@ function AdminClients() {
             size="sm"
             onClick={() => setPage(0)}
             disabled={!hasPreviousPage}
-            className="h-9 rounded-xl border border-input bg-[#1f2937] px-4 text-sm text-white shadow-none hover:bg-[#111827]"
+            className="h-9 px-4"
           >
             Principio
           </Button>
@@ -756,7 +756,7 @@ function AdminClients() {
               <button
                 key={index}
                 type="button"
-                className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-[#1f2937] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                 onClick={() => setPage(index)}
               >
                 {index + 1}
@@ -769,7 +769,7 @@ function AdminClients() {
             size="sm"
             onClick={() => setPage(totalPages - 1)}
             disabled={!hasNextPage}
-            className="h-9 rounded-xl border border-input bg-[#1f2937] px-4 text-sm text-white shadow-none hover:bg-[#111827]"
+            className="h-9 px-4"
           >
             Último
           </Button>

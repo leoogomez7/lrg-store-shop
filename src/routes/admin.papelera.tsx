@@ -372,9 +372,6 @@ function AdminTrash() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="mt-2 text-3xl font-semibold">Papelera</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Los elementos se eliminan automáticamente después de 10 días.
-          </p>
         </div>
       </div>
 
@@ -396,9 +393,6 @@ function AdminTrash() {
           <Button type="button" variant="outline" onClick={restoreAllEntries}>
             <RotateCcw className="size-4" /> Restaurar todos
           </Button>
-          <span className="ml-auto whitespace-nowrap text-right text-sm text-muted-foreground">
-            {filteredEntries.length} elementos
-          </span>
         </div>
       </div>
 
@@ -407,11 +401,11 @@ function AdminTrash() {
           hideScrollbarOnMobile
           alwaysShowScrollbarOnDesktop
           containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-          className="min-w-248 text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3"
+          className="min-w-248 table-fixed text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
-              <TableHead className="w-12 min-w-12 max-w-12 px-2">
+              <TableHead className="w-12 min-w-12 max-w-12 px-2 text-center">
                 <div className="flex items-center justify-center">
                   <Checkbox
                     checked={
@@ -432,10 +426,10 @@ function AdminTrash() {
                 </div>
               </TableHead>
               <TableHead className="w-14 text-center">Icono</TableHead>
-              <TableHead>Nombre</TableHead>
+              <TableHead className="w-72">Nombre</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Eliminación en</TableHead>
-              <TableHead className="text-center">Acciones</TableHead>
+              <TableHead className="w-52">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -471,7 +465,7 @@ function AdminTrash() {
                       : formatBackupName(entry.item.reason, entry.item.createdAt);
                 return (
                   <TableRow key={`${entry.type}-${entry.id}`}>
-                    <TableCell className="w-12 min-w-12 max-w-12 px-2">
+                    <TableCell className="w-12 min-w-12 max-w-12 px-2 text-center">
                       <div className="flex items-center justify-center">
                         <Checkbox
                           checked={
@@ -506,7 +500,7 @@ function AdminTrash() {
                         )}
                       </span>
                     </TableCell>
-                    <TableCell className="max-w-72 truncate font-medium">{name}</TableCell>
+                    <TableCell className="w-72 max-w-72 truncate font-medium">{name}</TableCell>
                     <TableCell>
                       {isProduct
                         ? "Producto"
@@ -519,27 +513,25 @@ function AdminTrash() {
                     <TableCell className="whitespace-nowrap text-muted-foreground">
                       {getRemainingDays(entry.expiresAt)} días
                     </TableCell>
-                    <TableCell>
-                      {!selectionMode ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            className="shrink-0"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => restoreEntry(entry)}
-                          >
-                            <RotateCcw className="size-4" /> Restaurar
-                          </Button>
-                          <Button
-                            className="shrink-0"
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => setEntryToDelete(entry)}
-                          >
-                            <Trash2 className="size-4" /> Eliminar
-                          </Button>
-                        </div>
-                      ) : null}
+                    <TableCell className="w-52">
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          className="shrink-0"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => restoreEntry(entry)}
+                        >
+                          <RotateCcw className="size-4" /> Restaurar
+                        </Button>
+                        <Button
+                          className="shrink-0"
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setEntryToDelete(entry)}
+                        >
+                          <Trash2 className="size-4" /> Eliminar
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -550,7 +542,7 @@ function AdminTrash() {
       </div>
 
       {selectionMode && (selectedDeleteKeys.length > 0 || selectedRestoreKeys.length > 0) ? (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <Button type="button" variant="default" size="sm" onClick={restoreSelectedEntries}>
             <RotateCcw className="size-4" /> Restaurar seleccionados
           </Button>
@@ -563,8 +555,12 @@ function AdminTrash() {
         </div>
       ) : null}
 
+      <p className="mt-4 text-sm text-muted-foreground">
+        Los elementos se eliminan automáticamente después de 10 días.
+      </p>
+
       {!isLoading && filteredEntries.length > 0 ? (
-        <div className="mt-2 flex flex-col gap-3 pb-20">
+        <div className="mt-3 flex flex-col gap-3 pb-8">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               type="button"

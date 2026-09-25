@@ -610,7 +610,7 @@ function AdminDashboard() {
               </TableBody>
             </Table>
           </div>
-          <div className="mt-4 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full">
+          <div className="mt-3 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden pb-8 sm:w-full">
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
@@ -618,7 +618,7 @@ function AdminDashboard() {
                 size="sm"
                 onClick={() => setOrdersPage(0)}
                 disabled={ordersPage === 0 || ordersPages === 0}
-                className="h-9 rounded-xl border border-input bg-[#1f2937] px-4 text-sm text-white shadow-none hover:bg-[#111827]"
+                className="h-9 px-4"
               >
                 Principio
               </Button>
@@ -627,7 +627,7 @@ function AdminDashboard() {
                   <button
                     key={index}
                     type="button"
-                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-[#1f2937] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                     onClick={() => setOrdersPage(index)}
                     disabled={ordersPages === 0}
                   >
@@ -641,7 +641,7 @@ function AdminDashboard() {
                 size="sm"
                 onClick={() => setOrdersPage(ordersPages - 1)}
                 disabled={ordersPage >= ordersPages - 1 || ordersPages === 0}
-                className="h-9 rounded-xl border border-input bg-[#1f2937] px-4 text-sm text-white shadow-none hover:bg-[#111827]"
+                className="h-9 px-4"
               >
                 Último
               </Button>
@@ -714,7 +714,10 @@ function AdminDashboard() {
           <div className="glass-panel mt-4 w-full overflow-hidden rounded-2xl">
             <ul className="w-full divide-y divide-border/60">
               {currentStockItems.map((item) => (
-                <li key={item.id} className="flex min-w-0 items-center justify-between gap-2 px-4 py-2 sm:px-5">
+                <li
+                  key={item.id}
+                  className="flex min-w-0 items-center justify-between gap-2 px-4 py-2 sm:px-5"
+                >
                   <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm">
                     <span className="min-w-0 wrap-break-word">{item.name}</span>
                     {item.variantName ? (
@@ -740,7 +743,7 @@ function AdminDashboard() {
               ) : null}
             </ul>
           </div>
-          <div className="mt-4 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full">
+          <div className="mt-3 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden pb-8 sm:w-full">
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
@@ -748,7 +751,7 @@ function AdminDashboard() {
                 size="sm"
                 onClick={() => setStockPage(0)}
                 disabled={stockPage === 0 || stockPages === 0}
-                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937]"
+                className="h-9 px-4"
               >
                 Principio
               </Button>
@@ -757,7 +760,7 @@ function AdminDashboard() {
                   <button
                     key={index}
                     type="button"
-                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === stockPage ? "bg-[#111827] text-white shadow-none" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === stockPage ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
                     onClick={() => setStockPage(index)}
                     disabled={stockPages === 0}
                   >
@@ -771,7 +774,7 @@ function AdminDashboard() {
                 size="sm"
                 onClick={() => setStockPage(stockPages - 1)}
                 disabled={stockPage >= stockPages - 1 || stockPages === 0}
-                className="h-9 rounded-xl border border-input bg-[#111827] px-4 text-sm text-white shadow-none hover:bg-[#1f2937]"
+                className="h-9 px-4"
               >
                 Último
               </Button>
