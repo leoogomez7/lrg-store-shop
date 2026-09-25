@@ -83,6 +83,7 @@ function AdminBackups() {
   const queryClient = useQueryClient();
   const { data: backups } = useSuspenseQuery(backupsQuery);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
+  const [isDeletingBackup, setIsDeletingBackup] = useState(false);
   const [backupToDelete, setBackupToDelete] = useState<AdminBackupSummary | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
@@ -126,14 +127,21 @@ function AdminBackups() {
   };
 
   const moveBackupToTrash = async (backup: AdminBackupSummary) => {
-    const deleted = await deleteAdminBackup({ data: { id: backup.id } });
-    if (!deleted) {
+    setIsDeletingBackup(true);
+    try {
+      const deleted = await deleteAdminBackup({ data: { id: backup.id } });
+      if (!deleted) {
+        toast.error("No se pudo enviar la copia a la papelera");
+        return;
+      }
+      await queryClient.invalidateQueries({ queryKey: backupsQuery.queryKey });
+      setBackupToDelete(null);
+      toast.success("Copia enviada a la papelera");
+    } catch {
       toast.error("No se pudo enviar la copia a la papelera");
-      return;
+    } finally {
+      setIsDeletingBackup(false);
     }
-    await queryClient.invalidateQueries({ queryKey: backupsQuery.queryKey });
-    setBackupToDelete(null);
-    toast.success("Copia enviada a la papelera");
   };
 
   const filteredBackups = useMemo(() => {
@@ -154,7 +162,7 @@ function AdminBackups() {
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Copias de seguridad</h1>
@@ -341,11 +349,17 @@ function AdminBackups() {
             <Button
               type="button"
               variant="destructive"
-              onClick={() => {
+              disabled={isDeletingBackup}
+              onClick={async () => {
                 if (backupToDelete) void moveBackupToTrash(backupToDelete);
               }}
             >
-              <Trash2 className="size-4" /> Enviar a papelera
+              {isDeletingBackup ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}
+              {isDeletingBackup ? "Eliminando..." : "Enviar a papelera"}
             </Button>
           </DialogFooter>
         </DialogContent>
