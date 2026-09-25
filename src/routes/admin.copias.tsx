@@ -293,7 +293,7 @@ function AdminBackups() {
           </p>
         </div>
         <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <div className="flex min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:overflow-visible sm:pb-0">
+          <div className="order-2 flex min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:order-none sm:overflow-visible sm:pb-0">
           <Dialog open={sortOpen} onOpenChange={setSortOpen}>
             <DialogTrigger asChild>
               <Button type="button" variant="outline" className="h-9 shrink-0 gap-1.5 whitespace-nowrap px-2.5">
@@ -448,7 +448,7 @@ function AdminBackups() {
             variant="outline"
             disabled={isCreatingBackup}
             onClick={() => void handleCreateBackup()}
-            className="h-9 min-w-44 shrink-0 whitespace-nowrap"
+            className="order-1 h-9 min-w-44 shrink-0 whitespace-nowrap sm:order-none"
           >
             {isCreatingBackup ? (
               <LoaderCircle className="size-4 animate-spin" />

@@ -2388,7 +2388,7 @@ function AdminOrders() {
             stickyHeader
             stickyScrollbar
             containerClassName={cn(
-              "touch-pan-x overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]",
+              "overscroll-x-contain overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch]",
             )}
             className={cn(
               "w-full table-fixed border-collapse text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",

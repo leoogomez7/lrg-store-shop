@@ -501,6 +501,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                   size="icon"
                   onClick={() => setSidebarCollapsed(true)}
                   title="Minimizar menú"
+                  className="bg-amber-500 text-white hover:bg-amber-600 hover:text-white"
                 >
                   <PanelLeftClose className="size-4" />
                 </Button>
@@ -513,7 +514,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 size="icon"
                 onClick={() => setSidebarCollapsed(false)}
                 title="Expandir menú"
-                className="mb-2"
+                className="mb-2 bg-amber-500 text-white hover:bg-amber-600 hover:text-white"
               >
                 <PanelLeftOpen className="size-4" />
               </Button>
