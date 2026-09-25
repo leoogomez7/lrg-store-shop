@@ -260,6 +260,28 @@ input[type="password"]::-webkit-textfield-decoration-container {
     --removed-body-scroll-bar-size: 0px !important;
   }
 
+  @media (max-width: 767px) {
+    html {
+      overflow-y: auto;
+      scrollbar-gutter: auto;
+    }
+
+    body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      scrollbar-gutter: auto;
+    }
+
+    html body[data-scroll-locked] {
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+      margin-right: 0 !important;
+      padding-right: 0 !important;
+    }
+  }
+
   @supports (height: 100dvh) {
     body {
       min-height: 100dvh;

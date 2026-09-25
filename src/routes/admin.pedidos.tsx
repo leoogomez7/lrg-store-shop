@@ -2802,6 +2802,28 @@ function AdminOrders() {
                                         ),
                                       ),
                                     ];
+                                    const storeDisplayName = getBrandFullName(brandSlug);
+                                    const getStoreMethod = (
+                                      method: "paymentMethod" | "shippingMethod",
+                                      orderMethod?: string,
+                                    ) => {
+                                      const itemMethods = [
+                                        ...new Set(
+                                          itemsInBrand
+                                            .map((item) => item[method])
+                                            .filter((value): value is string => Boolean(value)),
+                                        ),
+                                      ];
+                                      if (itemMethods.length === 1) return itemMethods[0];
+                                      if (itemMethods.length > 1) return "Mixto";
+
+                                      const legacyStoreMethod = (orderMethod ?? "")
+                                        .split(" | ")
+                                        .find((value) => value.startsWith(`${storeDisplayName}:`));
+                                      return legacyStoreMethod
+                                        ? legacyStoreMethod.slice(storeDisplayName.length + 1).trim()
+                                        : orderMethod || "—";
+                                    };
 
                                     return (
                                       <div
@@ -2815,8 +2837,14 @@ function AdminOrders() {
                                         </div>
                                         <div className="space-y-2.5 text-sm">
                                           {[
-                                            ["Método de pago", order.paymentMethod || "—"],
-                                            ["Método de envío", order.shippingMethod || "—"],
+                                            [
+                                              "Método de pago",
+                                              getStoreMethod("paymentMethod", order.paymentMethod),
+                                            ],
+                                            [
+                                              "Método de envío",
+                                              getStoreMethod("shippingMethod", order.shippingMethod),
+                                            ],
                                             [
                                               "Estado de pago",
                                               paymentStatuses.length === 1

@@ -755,14 +755,19 @@ function AdminSuppliers() {
   };
 
   const deleteSelectedSuppliers = () => {
+    const selectedKeysSnapshot = [...selectedSupplierKeys];
+    const selectedRowsSnapshot = filteredRows.filter((row) => selectedKeysSnapshot.includes(row.key));
+    setSelectedSupplierKeys([]);
+    setSelectionMode(false);
+
     const selectedKeys = new Set(selectedSupplierKeys);
-    const selectedRows = filteredRows.filter((row) => selectedKeys.has(row.key));
+    const selectedRows = selectedRowsSnapshot;
     const linkedEntries = filteredRows
-      .filter((row) => selectedKeys.has(row.key))
+      .filter((row) => selectedKeysSnapshot.includes(row.key))
       .map((row) => ({ row, usage: countSupplierLinkedItems(row.key) }));
 
     filteredRows
-      .filter((row) => selectedKeys.has(row.key))
+      .filter((row) => selectedKeysSnapshot.includes(row.key))
       .forEach((row) =>
         moveToTrash({
           type: "proveedor",
@@ -801,7 +806,6 @@ function AdminSuppliers() {
     );
 
     setStandaloneSuppliers(nextStandaloneSuppliers);
-    setSelectedSupplierKeys([]);
     saveDeletedSupplierKeys([...deletedSupplierKeys, ...selectedKeys]);
     void saveAdminSetting({
       data: {
@@ -1019,10 +1023,10 @@ function AdminSuppliers() {
             <Plus className="size-4" />
             Nuevo proveedor
           </Button>
-          <div className="order-3 flex basis-full flex-col gap-2 sm:basis-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 sm:shrink-0">
+          <div className="order-3 flex basis-full min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:basis-auto sm:flex-wrap sm:justify-end sm:overflow-visible sm:pb-0 sm:shrink-0">
             <Dialog open={sortOpen} onOpenChange={setSortOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5 px-2.5">
+                <Button variant="outline" size="sm" className="h-9 shrink-0 gap-1.5 whitespace-nowrap px-2.5">
                   <ArrowUpDown className="size-4" /> Ordenar por
                 </Button>
               </DialogTrigger>
@@ -1274,14 +1278,14 @@ function AdminSuppliers() {
 
             <Button
               onClick={exportExcel}
-              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
+              className="inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
             >
               <Sheet className="size-4" />
               Exportar Excel
             </Button>
             <Button
               onClick={exportPdf}
-              className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
+              className="inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-red-700"
             >
               <FileText className="size-4" />
               Exportar PDF
@@ -1547,7 +1551,7 @@ function AdminSuppliers() {
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
-                  <TableHead className="w-12 min-w-12 max-w-12 px-2"> </TableHead>
+                              <TableHead className="sticky left-0 z-20 w-12 min-w-12 max-w-12 bg-surface-2 px-2"> </TableHead>
                   <TableHead className="w-[24%] min-w-[150px] pl-5">Nombre</TableHead>
                   <TableHead className="w-[16%] min-w-[110px]">Celular</TableHead>
                   <TableHead className="w-[18%] min-w-[120px]">Red social</TableHead>
@@ -1590,7 +1594,7 @@ function AdminSuppliers() {
                             : undefined
                         }
                       >
-                        <TableCell className="w-12 min-w-12 max-w-12 px-2">
+                        <TableCell className="sticky left-0 z-10 w-12 min-w-12 max-w-12 bg-background px-2">
                           <div className="flex items-center justify-center">
                             <Checkbox
                               className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"

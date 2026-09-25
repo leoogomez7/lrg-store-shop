@@ -774,7 +774,10 @@ function AdminProducts() {
   };
 
   const handleBulkDeleteProducts = async () => {
-    const selectedEntries = getSelectedProductEntries(selectedProductIds);
+    const selectedEntriesSnapshot = getSelectedProductEntries(selectedProductIds);
+    clearBulkProductSelection();
+
+    const selectedEntries = selectedEntriesSnapshot;
     const selectedProductIdsSet = new Set(
       selectedEntries.filter((entry) => !entry.variantId).map((entry) => entry.productId),
     );
@@ -826,11 +829,11 @@ function AdminProducts() {
     toast.success(
       `${selectedEntries.length} elemento${selectedEntries.length === 1 ? "" : "s"} eliminado${selectedEntries.length === 1 ? "" : "s"}`,
     );
-    clearBulkProductSelection();
   };
 
   const handleBulkToggleProducts = async (hidden: boolean) => {
     const selectedEntries = getSelectedProductEntries(selectedProductIds);
+    clearBulkProductSelection();
     if (!selectedEntries.length) return;
 
     const nextProducts = (productsData as Product[]).map((product) => {
@@ -883,11 +886,11 @@ function AdminProducts() {
     toast.success(hidden ? "Productos ocultados" : "Productos disponibles", {
       description: `${hiddenProductsCount} ocultos · ${availableProductsCount} disponibles`,
     });
-    clearBulkProductSelection();
   };
 
   const handleBulkDuplicateProducts = async () => {
     const selectedEntries = getSelectedProductEntries(selectedProductIds);
+    clearBulkProductSelection();
     if (!selectedEntries.length) return;
 
     const duplicates: Product[] = [];
@@ -950,7 +953,6 @@ function AdminProducts() {
     toast.success(
       `${duplicates.length} elemento${duplicates.length === 1 ? "" : "s"} duplicado${duplicates.length === 1 ? "" : "s"}`,
     );
-    clearBulkProductSelection();
   };
 
   const clearBulkSelection = () => {
@@ -2247,13 +2249,12 @@ function AdminProducts() {
             stickyScrollbar
             containerClassName="overflow-x-auto overflow-y-visible"
             className={cn(
-              "w-full text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2",
-              selectionMode ? "min-w-208" : "min-w-max",
+              "w-full min-w-[72rem] text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2",
             )}
           >
             <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
               <TableRow>
-                <TableHead className="w-12 min-w-12 max-w-12 px-2"> </TableHead>
+                <TableHead className="sticky left-0 z-20 w-12 min-w-12 max-w-12 bg-surface-2 px-2"> </TableHead>
                 <TableHead className="w-40 text-center">Producto</TableHead>
                 <TableHead className="w-20 text-center">Tienda</TableHead>
                 <TableHead className="w-16 text-center">Stock</TableHead>
@@ -2329,7 +2330,7 @@ function AdminProducts() {
                       !selectionMode && !isQuickEditing && "cursor-pointer hover:bg-transparent",
                     )}
                   >
-                    <TableCell className="w-12 min-w-12 max-w-12 px-2">
+                    <TableCell className="sticky left-0 z-10 w-12 min-w-12 max-w-12 bg-background px-2">
                       <div className="flex items-center justify-center">
                         <Checkbox
                           className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"

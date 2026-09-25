@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import {
@@ -376,12 +376,6 @@ function AccountPageContent({
     });
     navigate({ to: "/login", replace: true });
   };
-  const handleBuyProducts = (event: MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-    setMobileMenuOpen(false);
-    navigate({ to: "/productos", replace: true });
-  };
-
   const accountNavItems = [
     { key: "home", label: "Inicio", icon: House, route: "/", exact: true },
     {
@@ -2920,7 +2914,7 @@ function AccountPageContent({
               <Link
                 to="/productos"
                 preload="intent"
-                onClick={handleBuyProducts}
+                onClick={() => setMobileMenuOpen(false)}
                 title={sidebarCollapsed ? "Comprar productos" : undefined}
                 className={cn(
                   "group relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-left text-sm text-muted-foreground transition-all duration-300 ease-out before:absolute before:inset-0 before:rounded-xl before:bg-linear-to-r before:from-white/10 before:via-white/5 before:to-transparent before:opacity-0 before:transition-all before:duration-300 before:content-[''] hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] hover:text-foreground hover:before:opacity-100",
@@ -3026,7 +3020,7 @@ function AccountPageContent({
                   <Link
                     to="/productos"
                     preload="intent"
-                    onClick={handleBuyProducts}
+                    onClick={() => setMobileMenuOpen(false)}
                     className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
                   >
                     <ShoppingBag className="size-4 shrink-0" />

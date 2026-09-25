@@ -385,7 +385,7 @@ function AdminTrash() {
           </button>
           <Checkbox
             checked={(() => {
-              if (!selectionMode || filteredEntries.length === 0) return false;
+              if (filteredEntries.length === 0) return false;
               if (selectedDeleteKeys.length < filteredEntries.length) return "indeterminate";
               return true;
             })()}
@@ -450,33 +450,24 @@ function AdminTrash() {
                 className="glass-panel flex flex-wrap items-center justify-between gap-4 rounded-2xl p-4"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  {selectionMode ? (
-                    <Checkbox
-                      checked={
-                        selectionMode === "delete"
-                          ? selectedDeleteKeys.includes(getEntryKey(entry))
-                          : selectedRestoreKeys.includes(getEntryKey(entry))
-                      }
-                      onCheckedChange={(checked) => {
-                        const entryKey = getEntryKey(entry);
-                        if (selectionMode === "delete") {
-                          const updateSelection = (current: string[]) =>
-                            checked === true
-                              ? [...new Set([...current, entryKey])]
-                              : current.filter((key) => key !== entryKey);
-                          setSelectedDeleteKeys(updateSelection);
-                          setSelectedRestoreKeys(updateSelection);
-                          return;
-                        }
-                        setSelectedRestoreKeys((current) =>
-                          checked === true
-                            ? [...new Set([...current, entryKey])]
-                            : current.filter((key) => key !== entryKey),
-                        );
-                      }}
-                      aria-label={`Seleccionar ${name}`}
-                    />
-                  ) : null}
+                  <Checkbox
+                    checked={
+                      selectionMode === "restore"
+                        ? selectedRestoreKeys.includes(getEntryKey(entry))
+                        : selectedDeleteKeys.includes(getEntryKey(entry))
+                    }
+                    onCheckedChange={(checked) => {
+                      const entryKey = getEntryKey(entry);
+                      setSelectionMode("delete");
+                      const updateSelection = (current: string[]) =>
+                        checked === true
+                          ? [...new Set([...current, entryKey])]
+                          : current.filter((key) => key !== entryKey);
+                      setSelectedDeleteKeys(updateSelection);
+                      setSelectedRestoreKeys(updateSelection);
+                    }}
+                    aria-label={`Seleccionar ${name}`}
+                  />
                   <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2">
                     {isProduct ? (
                       <Package className="size-4" />

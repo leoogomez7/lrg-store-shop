@@ -312,9 +312,9 @@ function AdminDashboard() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
+    <main className="mx-auto min-w-0 w-full max-w-[1600px] overflow-x-clip px-4 py-6 sm:px-6">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Métricas</p>
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="mt-2 text-3xl font-semibold">Panel Administrativo</h1>
         </div>
@@ -322,7 +322,7 @@ function AdminDashboard() {
           value={ecosystem}
           onValueChange={(value) => setEcosystem(value as "todos" | BrandSlug)}
         >
-          <SelectTrigger className="w-55">
+          <SelectTrigger className="w-full sm:w-55">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -572,7 +572,7 @@ function AdminDashboard() {
               stickyHeader
               stickyScrollbar
               className="w-full min-w-fit text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
-              containerClassName="overflow-x-auto overflow-y-visible overscroll-x-contain touch-pan-y [-webkit-overflow-scrolling:touch]"
+              containerClassName="overflow-x-auto overflow-y-visible overscroll-x-contain touch-pan-x touch-pan-y [-webkit-overflow-scrolling:touch]"
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
@@ -610,7 +610,7 @@ function AdminDashboard() {
               </TableBody>
             </Table>
           </div>
-          <div className="mt-4 flex w-full flex-col gap-3">
+          <div className="mt-4 flex w-full max-w-full flex-col gap-3 overflow-hidden">
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
@@ -711,7 +711,7 @@ function AdminDashboard() {
               />
             </div>
           </div>
-          <div className="glass-panel mt-4 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-2xl touch-pan-y [-webkit-overflow-scrolling:touch]">
+          <div className="glass-panel mt-4 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-2xl touch-pan-x touch-pan-y [-webkit-overflow-scrolling:touch]">
             <ul className="min-w-md divide-y divide-border/60">
               {currentStockItems.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-2 px-5 py-2">
@@ -740,7 +740,7 @@ function AdminDashboard() {
               ) : null}
             </ul>
           </div>
-          <div className="mt-4 flex w-full flex-col gap-3">
+          <div className="mt-4 flex w-full max-w-full flex-col gap-3 overflow-hidden">
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"

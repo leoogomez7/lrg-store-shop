@@ -17,6 +17,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -160,6 +168,30 @@ function AdminBackups() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [pageSizeInput, setPageSizeInput] = useState("10");
+  const [selectedBackupIds, setSelectedBackupIds] = useState<string[]>([]);
+
+  const clearBackupSelection = () => setSelectedBackupIds([]);
+
+  const toggleBackupSelection = (backupId: string, checked: boolean) => {
+    setSelectedBackupIds((current) =>
+      checked ? [...new Set([...current, backupId])] : current.filter((id) => id !== backupId),
+    );
+  };
+
+  const toggleAllBackups = (checked: boolean) => {
+    setSelectedBackupIds(checked ? visibleBackups.map((backup) => backup.id) : []);
+  };
+
+  const deleteSelectedBackups = async () => {
+    const selectedIds = new Set(selectedBackupIds);
+    const selectedBackups = backups.filter((backup) => selectedIds.has(backup.id));
+    for (const backup of selectedBackups) {
+      await deleteAdminBackup({ data: { id: backup.id } });
+    }
+    clearBackupSelection();
+    await queryClient.invalidateQueries({ queryKey: backupsQuery.queryKey });
+    toast.success("Copias enviadas a la papelera");
+  };
 
   const handleCreateBackup = async () => {
     setIsCreatingBackup(true);
@@ -260,10 +292,10 @@ function AdminBackups() {
             La próxima copia de seguridad semanal es el {getNextWeeklyBackup()}.
           </p>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+        <div className="flex w-full min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:w-auto sm:overflow-visible sm:pb-0">
           <Dialog open={sortOpen} onOpenChange={setSortOpen}>
             <DialogTrigger asChild>
-              <Button type="button" variant="outline" className="h-9 gap-1.5 px-2.5">
+              <Button type="button" variant="outline" className="h-9 shrink-0 gap-1.5 whitespace-nowrap px-2.5">
                 <ArrowUpDown className="size-4" /> Ordenar por
               </Button>
             </DialogTrigger>
@@ -292,7 +324,7 @@ function AdminBackups() {
           </Dialog>
           <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
             <DialogTrigger asChild>
-              <Button type="button" variant="outline" className="h-9 gap-1.5 px-2.5">
+              <Button type="button" variant="outline" className="h-9 shrink-0 gap-1.5 whitespace-nowrap px-2.5">
                 <Filter className="size-4" /> Filtros
               </Button>
             </DialogTrigger>
@@ -414,7 +446,7 @@ function AdminBackups() {
             variant="outline"
             disabled={isCreatingBackup}
             onClick={() => void handleCreateBackup()}
-            className="min-w-44 whitespace-nowrap"
+            className="h-9 min-w-44 shrink-0 whitespace-nowrap"
           >
             {isCreatingBackup ? (
               <LoaderCircle className="size-4 animate-spin" />
@@ -427,58 +459,82 @@ function AdminBackups() {
       </div>
 
       <div className="glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
-        <div className="hidden grid-cols-[1.1fr_1.2fr_2fr_1.1fr] gap-4 border-b border-border/60 bg-surface-2 px-5 py-3 text-center text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground md:grid">
-          <span>Fecha</span>
-          <span>Tipo de copias</span>
-          <span>Referencia</span>
-          <span>Tamaño</span>
-        </div>
-        <div className="divide-y divide-border/60">
-          {visibleBackups.length > 0 ? (
-            visibleBackups.map((backup: AdminBackupSummary) => (
-              <div
-                key={backup.id}
-                className="grid gap-2 px-5 py-4 text-center text-sm md:grid-cols-[1.1fr_1.2fr_2fr_1.1fr] md:items-center md:gap-4"
-              >
-                <span>{formatDate(backup.createdAt)}</span>
-                <span className="text-muted-foreground">{getBackupType(backup)}</span>
-                <span className="wrap-break-word text-muted-foreground">{getBackupReference(backup)}</span>
-                <div className="relative flex items-center justify-center gap-2 pr-20">
-                  <span className="text-muted-foreground">{formatBytes(backup.sizeBytes)}</span>
-                  <div className="absolute right-0 flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-8"
-                      title="Descargar copia"
-                      aria-label="Descargar copia"
-                      onClick={() => void downloadBackup(backup)}
-                    >
+        <Table
+          hideScrollbarOnMobile
+          alwaysShowScrollbarOnDesktop
+          containerClassName="overflow-x-auto overflow-y-visible touch-pan-x touch-pan-y overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+          className="min-w-[54rem] text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
+        >
+          <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
+            <TableRow>
+              <TableHead className="sticky left-0 z-20 w-12 min-w-12 max-w-12 bg-surface-2 px-2">
+                <div className="flex items-center justify-center">
+                  <Checkbox
+                    checked={
+                      visibleBackups.length > 0 &&
+                      visibleBackups.every((backup) => selectedBackupIds.includes(backup.id))
+                        ? true
+                        : visibleBackups.some((backup) => selectedBackupIds.includes(backup.id))
+                          ? "indeterminate"
+                          : false
+                    }
+                    onCheckedChange={(checked) => toggleAllBackups(checked === true)}
+                    aria-label="Seleccionar copias visibles"
+                  />
+                </div>
+              </TableHead>
+              <TableHead>Fecha</TableHead>
+              <TableHead>Tipo de copias</TableHead>
+              <TableHead>Referencia</TableHead>
+              <TableHead>Tamaño</TableHead>
+              <TableHead>Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visibleBackups.length > 0 ? visibleBackups.map((backup: AdminBackupSummary) => (
+              <TableRow key={backup.id}>
+                <TableCell className="sticky left-0 z-10 w-12 min-w-12 max-w-12 bg-background px-2">
+                  <div className="flex items-center justify-center">
+                    <Checkbox
+                      checked={selectedBackupIds.includes(backup.id)}
+                      onCheckedChange={(checked) => toggleBackupSelection(backup.id, checked === true)}
+                      aria-label={`Seleccionar ${getBackupType(backup)}`}
+                    />
+                  </div>
+                </TableCell>
+                <TableCell className="whitespace-nowrap">{formatDate(backup.createdAt)}</TableCell>
+                <TableCell>{getBackupType(backup)}</TableCell>
+                <TableCell className="max-w-72 wrap-break-word text-muted-foreground">{getBackupReference(backup)}</TableCell>
+                <TableCell className="whitespace-nowrap text-muted-foreground">{formatBytes(backup.sizeBytes)}</TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-center gap-1">
+                    <Button type="button" variant="ghost" size="icon" className="size-8" title="Descargar copia" aria-label="Descargar copia" onClick={() => void downloadBackup(backup)}>
                       <Download className="size-4" />
                     </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 text-destructive hover:text-destructive"
-                      title="Enviar a la papelera"
-                      aria-label="Enviar a la papelera"
-                      onClick={() => setBackupToDelete(backup)}
-                    >
+                    <Button type="button" variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive" title="Enviar a la papelera" aria-label="Enviar a la papelera" onClick={() => setBackupToDelete(backup)}>
                       <Trash2 className="size-4" />
                     </Button>
                   </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-              No hay copias de seguridad registradas.
-            </div>
-          )}
-        </div>
+                </TableCell>
+              </TableRow>
+            )) : (
+              <TableRow><TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">No hay copias de seguridad registradas.</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
+
+      {selectedBackupIds.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">{selectedBackupIds.length} seleccionadas</span>
+          <Button type="button" variant="destructive" size="sm" onClick={() => void deleteSelectedBackups()}>
+            <Trash2 className="size-4" /> Enviar seleccionadas a la papelera
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={clearBackupSelection}>
+            <X className="size-4" /> Cancelar
+          </Button>
+        </div>
+      ) : null}
 
       {filteredBackups.length > 0 ? (
         <div className="mt-2 flex flex-col gap-3 pb-20">
