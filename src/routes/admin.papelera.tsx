@@ -13,7 +13,7 @@ import { applyTrashEntries, readTrash, removeFromTrash, type TrashEntry } from "
 import {
   deleteAdminBackupTrash,
   listAdminBackupTrash,
-  loadAdminSettings,
+  loadAdminTrashSetting,
   restoreAdminBackup,
   saveAdminSetting,
 } from "@/server/persistence";
@@ -94,12 +94,11 @@ function AdminTrash() {
   useEffect(() => {
     let active = true;
     void Promise.all([loadAdminSettings({ data: {} }), listAdminBackupTrash({ data: {} })])
-      .then(([settings, backupEntries]) => {
-        const trashSetting = settings.find((setting) => setting.settingKey === "lrg:trash");
+      .then(([trashValue, backupEntries]) => {
         let loadedEntries: TrashEntry[] = [];
-        if (trashSetting) {
+        if (trashValue) {
           try {
-            loadedEntries = JSON.parse(trashSetting.settingValue) as TrashEntry[];
+            loadedEntries = JSON.parse(trashValue) as TrashEntry[];
           } catch {
             loadedEntries = [];
           }

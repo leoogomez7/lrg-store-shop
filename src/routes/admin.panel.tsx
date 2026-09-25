@@ -42,6 +42,7 @@ import { loadSiteStats } from "@/server/persistence";
 
 const siteStatsQuery = {
   queryKey: ["site-stats"],
+  staleTime: 5 * 60 * 1000,
   queryFn: () => loadSiteStats({ data: {} }),
 };
 

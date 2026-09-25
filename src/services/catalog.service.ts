@@ -196,34 +196,47 @@ export const catalogQueries = {
   settings: () =>
     queryOptions({
       queryKey: ["admin-settings"],
+      staleTime: 5 * 60 * 1000,
       queryFn: () => loadAdminSettings({ data: {} }),
     }),
   byBrand: (brand: BrandSlug) =>
     queryOptions({
       queryKey: ["products", brand],
-      queryFn: () =>
-        listAdminProducts({ data: {} }).then((loaded) => catalogService.listByBrand(brand, loaded)),
+      staleTime: 5 * 60 * 1000,
+      queryFn: ({ client }) =>
+        client
+          .ensureQueryData(catalogQueries.allAdmin())
+          .then((loaded) => catalogService.listByBrand(brand, loaded)),
     }),
   detail: (brand: BrandSlug, slug: string) =>
     queryOptions({
       queryKey: ["product", brand, slug],
-      queryFn: () =>
-        listAdminProducts({ data: {} }).then((loaded) => catalogService.detail(brand, slug, loaded)),
+      staleTime: 5 * 60 * 1000,
+      queryFn: ({ client }) =>
+        client
+          .ensureQueryData(catalogQueries.allAdmin())
+          .then((loaded) => catalogService.detail(brand, slug, loaded)),
     }),
   related: (brand: BrandSlug, slug: string) =>
     queryOptions({
       queryKey: ["product", brand, slug, "related"],
-      queryFn: () =>
-        listAdminProducts({ data: {} }).then((loaded) => catalogService.related(brand, slug, loaded)),
+      staleTime: 5 * 60 * 1000,
+      queryFn: ({ client }) =>
+        client
+          .ensureQueryData(catalogQueries.allAdmin())
+          .then((loaded) => catalogService.related(brand, slug, loaded)),
     }),
   all: () =>
     queryOptions({
       queryKey: ["products", "all"],
-      queryFn: () => catalogService.listAll(),
+      staleTime: 5 * 60 * 1000,
+      queryFn: ({ client }) =>
+        client.ensureQueryData(catalogQueries.allAdmin()).then((loaded) => expandCatalogProducts(loaded)),
     }),
   allAdmin: () =>
     queryOptions({
       queryKey: ["products", "all", "admin"],
+      staleTime: 5 * 60 * 1000,
       queryFn: () => catalogService.listAllAdmin(),
     }),
 };
@@ -232,11 +245,13 @@ export const orderQueries = {
   list: () =>
     queryOptions({
       queryKey: ["orders"],
+      staleTime: 5 * 60 * 1000,
       queryFn: () => orderService.list(),
     }),
   revenue: () =>
     queryOptions({
       queryKey: ["orders", "revenue"],
+      staleTime: 5 * 60 * 1000,
       queryFn: () => orderService.revenue(),
     }),
 };

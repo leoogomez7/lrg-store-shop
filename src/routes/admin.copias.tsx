@@ -42,6 +42,7 @@ export const Route = createFileRoute("/admin/copias")({
 
 const backupsQuery = {
   queryKey: ["admin-backups"],
+  staleTime: 60 * 1000,
   queryFn: () => listAdminBackups({ data: {} }),
 };
 

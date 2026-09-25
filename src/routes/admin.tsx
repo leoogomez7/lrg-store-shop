@@ -150,7 +150,12 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
   useEffect(() => {
     if (!hasVerifiedAdminAccess) return;
-    void queryClient.prefetchQuery(catalogQueries.allAdmin());
+    void Promise.all([
+      queryClient.prefetchQuery(catalogQueries.allAdmin()),
+      queryClient.prefetchQuery(orderQueries.list()),
+      queryClient.prefetchQuery(orderQueries.revenue()),
+      queryClient.prefetchQuery(catalogQueries.settings()),
+    ]);
   }, [hasVerifiedAdminAccess, queryClient]);
 
   const AdminUserMenu = () => (

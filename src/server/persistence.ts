@@ -180,7 +180,6 @@ function ensureAdminTables() {
 async function createDatabaseBackup(reason: string) {
   const adminDatabase = await ensureAdminTables();
   if (!adminDatabase) return false;
-  await migrateLegacyBackupTrash(adminDatabase);
 
   const adminTables = [
     "admins",
@@ -390,7 +389,9 @@ export const loadAdminSettings = createServerFn({ method: "POST" })
   .handler(async () => {
     const database = await ensureAdminTables();
     if (!database) return [];
-    const result = await database.execute("SELECT settingKey, settingValue FROM admin_settings");
+    const result = await database.execute(
+      "SELECT settingKey, settingValue FROM admin_settings WHERE settingKey != 'lrg:trash'",
+    );
     return result.rows.flatMap((row) => {
       const settingKey = row["settingKey"];
       const settingValue = row["settingValue"];
@@ -398,6 +399,19 @@ export const loadAdminSettings = createServerFn({ method: "POST" })
         ? [{ settingKey, settingValue } satisfies AdminSetting]
         : [];
     });
+  });
+
+export const loadAdminTrashSetting = createServerFn({ method: "POST" })
+  .validator(() => ({}))
+  .handler(async () => {
+    const database = await ensureAdminTables();
+    if (!database) return null;
+    const result = await database.execute({
+      sql: "SELECT settingValue FROM admin_settings WHERE settingKey = ?",
+      args: ["lrg:trash"],
+    });
+    const value = result.rows[0]?.["settingValue"];
+    return typeof value === "string" ? value : null;
   });
 
 export const ensureAdminSettings = createServerFn({ method: "POST" })
@@ -645,7 +659,6 @@ export const listAdminBackupTrash = createServerFn({ method: "POST" })
   .handler(async () => {
     const database = await ensureAdminTables();
     if (!database) return [];
-    await migrateLegacyBackupTrash(database);
     const result = await database.execute(
       "SELECT id, reason, createdAt, sizeBytes, deletedAt, expiresAt FROM (SELECT id, reason, createdAt, length(snapshotData) AS sizeBytes, deletedAt, expiresAt FROM database_backup_trash) WHERE expiresAt > ? ORDER BY deletedAt DESC",
       [new Date().toISOString()],
