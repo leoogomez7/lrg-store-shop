@@ -262,7 +262,7 @@ function ProductosPage() {
     <div className="theme-webdesign min-h-screen bg-background text-foreground">
       <div className="aurora-bg" />
       <div className="relative">
-        <div className="mx-auto flex w-full max-w-7xl flex-col px-4 pt-16 pb-4 sm:px-6">
+        <div className="flex w-full flex-col px-4 pt-16 pb-4 sm:px-6 lg:px-8">
           <BrandHeader
             brand={webDesignConfig}
             displayBrandName="LRG Store Shop"

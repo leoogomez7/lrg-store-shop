@@ -1113,7 +1113,7 @@ function AdminProducts() {
     const nextVariantName = draft.variantName.trim() || variant?.name || "";
     const nextCategory = draft.category.trim() || product.category;
     const nextPrice = Number(draft.price) || product.price;
-    const nextComision = Math.max(0, Number(draft.comision) || 0);
+    const nextComision = Number(draft.comision) || 0;
     const nextComisionCurrency = draft.comisionCurrency;
     const nextGastos = Math.max(0, Number(draft.gastos) || 0);
     const nextGastosCurrency = draft.gastosCurrency;
@@ -2460,7 +2460,6 @@ function AdminProducts() {
                             </Select>
                             <Input
                               type="number"
-                              min={0}
                               value={quickDraft.comision}
                               onChange={(event) =>
                                 setQuickEditForm((current) => ({
@@ -3628,7 +3627,7 @@ function ProductEditDialog({
   const priceValue = String(productForm.price);
   const gastosValue = String(productForm.gastos);
   const discountValue = String(productForm.discount);
-  const comisionValue = String(productForm.comision);
+  const comisionValue = productForm.comision === 0 ? "" : String(productForm.comision);
   const stockValue = String(productForm.stock);
   const deliveryAmountValue = String(productForm.deliveryAmount);
   const conversionHint =
@@ -3922,7 +3921,6 @@ function ProductEditDialog({
                     <Input
                       id="new-comision"
                       type="number"
-                      min={0}
                       value={comisionValue}
                       onFocus={(event) => event.target.select()}
                       onChange={(event) =>
