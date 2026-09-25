@@ -719,24 +719,26 @@ function AdminOrders() {
       );
     }
 
-    setEditableOrders((currentOrders) => {
-      const nextOrders = currentOrders.map((currentOrder) =>
-        currentOrder.id === order.id
-          ? {
-              ...currentOrder,
-              items: updatedItems,
-              deliveryStatus: draft.deliveryStatus,
+    const nextOrders = editableOrders.map((currentOrder) =>
+      currentOrder.id === order.id
+        ? {
+            ...currentOrder,
+            items: currentOrder.items.map((item) => ({
+              ...item,
               paymentStatus: draft.paymentStatus,
-              shippingMethod: draft.shippingMethod || undefined,
-              paymentMethod: draft.paymentMethod,
-              deliveryDate: draft.deliveryDate || undefined,
-              status: nextStatus,
-            }
-          : currentOrder,
-      );
-      saveOrders(nextOrders);
-      return nextOrders;
-    });
+              deliveryStatus: draft.deliveryStatus,
+            })),
+            deliveryStatus: draft.deliveryStatus,
+            paymentStatus: draft.paymentStatus,
+            shippingMethod: draft.shippingMethod || undefined,
+            paymentMethod: draft.paymentMethod,
+            deliveryDate: draft.deliveryDate || undefined,
+            status: nextStatus,
+          }
+        : currentOrder,
+    );
+    await saveOrders(nextOrders);
+    setEditableOrders(nextOrders);
 
     const currentOrderId = order.id;
     const remainingQueue = bulkQuickEditOrderQueue.filter((orderId) => orderId !== currentOrderId);
