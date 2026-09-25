@@ -241,7 +241,7 @@ function BrandHeaderContent({
       <header
         className={`${headerThemeClass} fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl`}
       >
-        <div className="mx-auto flex h-16 w-full max-w-7xl min-w-0 items-center gap-1 overflow-visible px-2 sm:gap-4 sm:px-6">
+        <div className="flex h-16 w-full min-w-0 items-center gap-1 overflow-visible px-4 sm:gap-4 sm:px-6 lg:px-8">
           <Link
             to={displayBrandName ? "/productos" : "/"}
             className="shrink-0"

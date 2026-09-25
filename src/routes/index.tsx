@@ -222,7 +222,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
       <div className="aurora-bg" />
       <div className="pointer-events-none absolute inset-0 grid-lines opacity-60" />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pt-16 pb-8 sm:px-6">
+      <div className="relative flex min-h-screen w-full flex-col px-4 pt-16 pb-8 sm:px-6 lg:px-8">
         <BrandHeader
           brand={webDesignConfig}
           displayBrandName="LRG Store Shop"

@@ -236,7 +236,7 @@ function BrandFooterContent({
 
   return (
     <footer className="mt-10 border-t border-border/60 bg-surface/40 sm:mt-12">
-      <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-5">
+      <div className="grid w-full gap-10 px-4 py-14 sm:px-6 lg:grid-cols-5 lg:px-8">
         {categories.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold">Categorías</h3>
@@ -368,7 +368,7 @@ function BrandFooterContent({
       <div className="border-t border-border/60 py-6">
         <Link
           to="/"
-          className="mx-auto block max-w-7xl px-4 text-xs text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+          className="block w-full px-4 text-xs text-muted-foreground transition-colors hover:text-foreground sm:px-6 lg:px-8"
         >
           © {new Date().getFullYear()} LRG Store Shop ·{" "}
           {section === "admin" ? "LRG Store Shop" : brand.name}. Todos los derechos reservados.
