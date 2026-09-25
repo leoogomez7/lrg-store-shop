@@ -3,7 +3,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import {
   ArrowUpDown,
-  CalendarDays,
   Check,
   ChevronDown,
   Download,
@@ -306,10 +305,7 @@ function AdminBackups() {
                     className="flex w-full items-center justify-between text-left text-sm font-medium"
                     aria-expanded={datesOpen}
                   >
-                    <span className="flex items-center gap-2">
-                      <CalendarDays className="size-4 text-foreground" />
-                      Fechas
-                    </span>
+                    <span>Fechas</span>
                     <ChevronDown
                       className={`size-4 text-muted-foreground transition-transform ${datesOpen ? "rotate-180" : ""}`}
                     />
@@ -322,7 +318,7 @@ function AdminBackups() {
                           type="date"
                           value={dateFrom}
                           onChange={(event) => setDateFrom(event.target.value)}
-                          className="scheme-dark"
+                          className="scheme-dark h-9 w-full max-w-52"
                         />
                       </label>
                       <label className="space-y-1 text-xs text-muted-foreground">
@@ -331,7 +327,7 @@ function AdminBackups() {
                           type="date"
                           value={dateTo}
                           onChange={(event) => setDateTo(event.target.value)}
-                          className="scheme-dark"
+                          className="scheme-dark h-9 w-full max-w-52"
                         />
                       </label>
                     </div>
