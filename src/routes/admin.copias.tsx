@@ -292,9 +292,7 @@ function AdminBackups() {
   const hasNextPage = safePage < totalPages - 1;
 
   return (
-    <main
-      className={`mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 ${filteredBackups.length === 0 ? "pb-8" : "pb-0"}`}
-    >
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
@@ -500,7 +498,9 @@ function AdminBackups() {
         </div>
       ) : null}
 
-      <div className="mt-4 glass-panel w-full overflow-visible rounded-2xl border border-border/60">
+      <div
+        className={`mt-4 glass-panel w-full overflow-visible rounded-2xl border border-border/60 ${filteredBackups.length === 0 ? "mb-4" : ""}`}
+      >
         <Table
           hideScrollbarOnMobile
           containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
@@ -586,7 +586,7 @@ function AdminBackups() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="py-16! text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="py-3 text-center text-sm text-muted-foreground">
                   No hay copias de seguridad registradas.
                 </TableCell>
               </TableRow>
