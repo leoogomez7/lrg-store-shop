@@ -1618,7 +1618,7 @@ function AccountPageContent({
             </Table>
           </div>
 
-          <div className="mt-0 hidden flex-col gap-3 lg:flex">
+          <div className="mt-4 hidden flex-col gap-3 lg:-mt-7 lg:flex">
             <div className="flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"

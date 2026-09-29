@@ -744,7 +744,7 @@ function AdminClients() {
         </Table>
       </div>
 
-      <div className="mt-0 flex w-full max-w-full flex-col gap-3 overflow-hidden">
+      <div className="mt-4 flex w-full max-w-full flex-col gap-3 overflow-hidden md:-mt-7">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             type="button"

@@ -620,7 +620,7 @@ function AdminDashboard() {
               </TableBody>
             </Table>
           </div>
-          <div className="mt-0 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full">
+          <div className="mt-4 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full md:-mt-7">
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
@@ -753,7 +753,7 @@ function AdminDashboard() {
               ) : null}
             </ul>
           </div>
-          <div className="mt-0 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full">
+          <div className="mt-4 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full">
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
