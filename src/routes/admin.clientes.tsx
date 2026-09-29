@@ -702,10 +702,9 @@ function AdminClients() {
       </div>
 
       <FilterChipList chips={filterChips} />
-      <div className="glass-panel mt-4 w-full max-w-full overflow-hidden rounded-2xl">
+      <div className="glass-panel mt-4 w-full max-w-full overflow-visible rounded-2xl">
         <Table
           hideScrollbarOnMobile
-          alwaysShowScrollbarOnDesktop
           stickyHeader
           stickyScrollbar
           containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
@@ -744,7 +743,7 @@ function AdminClients() {
         </Table>
       </div>
 
-      <div className="mt-4 flex w-full max-w-full flex-col gap-3 overflow-hidden md:-mt-7">
+      <div className="mt-4 flex w-full max-w-full flex-col gap-3 overflow-hidden pb-4">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             type="button"

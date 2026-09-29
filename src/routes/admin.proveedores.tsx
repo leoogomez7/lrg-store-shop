@@ -1532,7 +1532,6 @@ function AdminSuppliers() {
             <div className="glass-panel min-w-0 overflow-visible rounded-2xl">
               <Table
                 hideScrollbarOnMobile
-                alwaysShowScrollbarOnDesktop
                 stickyHeader
                 stickyScrollbar
                 containerClassName="overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
@@ -1767,7 +1766,7 @@ function AdminSuppliers() {
             </div>
           </div>
         </div>
-        <div className="mt-4 flex flex-col gap-3 md:-mt-7">
+        <div className="mt-4 flex flex-col gap-3 pb-4">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               type="button"

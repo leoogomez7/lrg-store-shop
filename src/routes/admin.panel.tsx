@@ -578,7 +578,6 @@ function AdminDashboard() {
           <div className="glass-panel mt-4 overflow-visible rounded-2xl">
             <Table
               hideScrollbarOnMobile
-              alwaysShowScrollbarOnDesktop
               stickyHeader
               stickyScrollbar
               className="min-w-[40rem] w-full text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
@@ -620,7 +619,7 @@ function AdminDashboard() {
               </TableBody>
             </Table>
           </div>
-          <div className="mt-4 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full md:-mt-7">
+          <div className="mt-4 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full">
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
@@ -753,7 +752,7 @@ function AdminDashboard() {
               ) : null}
             </ul>
           </div>
-          <div className="mt-4 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full">
+          <div className="mt-4 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden pb-4 sm:w-full">
             <div className="flex w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"

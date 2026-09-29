@@ -485,10 +485,9 @@ function AdminBackups() {
         </div>
       </div>
 
-      <div className="mt-4 glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
+      <div className="mt-4 glass-panel w-full overflow-visible rounded-2xl border border-border/60">
         <Table
           hideScrollbarOnMobile
-          alwaysShowScrollbarOnDesktop
           containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
           className="min-w-[54rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
         >
@@ -601,7 +600,7 @@ function AdminBackups() {
       ) : null}
 
       {filteredBackups.length > 0 ? (
-        <div className="mt-4 flex flex-col gap-3 md:-mt-7">
+        <div className="mt-4 flex flex-col gap-3 pb-4">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               type="button"
