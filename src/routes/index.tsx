@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/select";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
-import { getStoreShopContact } from "@/config/brands";
 import { webDesignConfig } from "@/config/brands/web-design.config";
 import { SectorsContent } from "@/components/sectors-content";
 
@@ -142,8 +141,6 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     "newest",
   );
   const [constructionNoticeOpen, setConstructionNoticeOpen] = useState(true);
-  const storeShopContact = getStoreShopContact();
-
   function parseSpanishDate(dateStr: string): Date {
     const months: { [key: string]: number } = {
       enero: 1,
@@ -445,11 +442,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           </div>
         </main>
       </div>
-      <BrandFooter
-        brand={{ ...webDesignConfig, name: "LRG Store Shop" }}
-        storeContact={storeShopContact}
-        section="admin"
-      />
+      <BrandFooter brand={{ ...webDesignConfig, name: "LRG Store Shop" }} section="admin" />
     </div>
   );
 }
