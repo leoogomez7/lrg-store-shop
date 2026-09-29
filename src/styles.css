@@ -13,13 +13,16 @@
 }
 
 @media (min-width: 768px) {
-  .desktop-no-spinner {
+  input[type="number"].desktop-no-spinner {
     appearance: textfield;
+    -moz-appearance: textfield;
   }
 
-  .desktop-no-spinner::-webkit-inner-spin-button,
-  .desktop-no-spinner::-webkit-outer-spin-button {
+  input[type="number"].desktop-no-spinner::-webkit-inner-spin-button,
+  input[type="number"].desktop-no-spinner::-webkit-outer-spin-button {
+    display: none;
     margin: 0;
+    -webkit-appearance: none;
     appearance: none;
   }
 }

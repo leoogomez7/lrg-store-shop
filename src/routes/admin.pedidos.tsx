@@ -3110,7 +3110,7 @@ function AdminOrders() {
             value={pageSizeInput}
             placeholder="Cantidad"
             onChange={(e) => setPageSizeInput(e.target.value)}
-            className="h-8 w-20 bg-background/50 text-center"
+            className="h-8 w-20 bg-background/50 text-center desktop-no-spinner"
           />
 
           {(() => {

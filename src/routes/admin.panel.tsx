@@ -664,7 +664,7 @@ function AdminDashboard() {
                 max={1000}
                 value={ordersPageSizeInput}
                 onChange={(e) => setOrdersPageSizeInput(e.target.value)}
-                className="h-8 w-20 bg-background/50"
+                className="h-8 w-20 bg-background/50 desktop-no-spinner"
               />
               {(() => {
                 const v = Number(ordersPageSizeInput);
@@ -797,7 +797,7 @@ function AdminDashboard() {
                 max={1000}
                 value={stockPageSizeInput}
                 onChange={(e) => setStockPageSizeInput(e.target.value)}
-                className="h-8 w-20 bg-background/50"
+                className="h-8 w-20 bg-background/50 desktop-no-spinner"
               />
               {(() => {
                 const v = Number(stockPageSizeInput);

@@ -643,7 +643,7 @@ function AdminBackups() {
               value={pageSizeInput}
               placeholder="Cantidad"
               onChange={(event) => setPageSizeInput(event.target.value)}
-              className="h-8 w-20 bg-background/50 text-center"
+              className="h-8 w-20 bg-background/50 text-center desktop-no-spinner"
             />
             {(() => {
               const value = Number(pageSizeInput);

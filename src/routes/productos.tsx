@@ -52,13 +52,13 @@ export const Route = createFileRoute("/productos")({
   },
   head: () => ({
     meta: [
-      { title: "Todos los productos — LRG Store Shop" },
+      { title: "LRG Store Shop" },
       {
         name: "description",
         content:
           "Explorá todos los productos del ecosistema LRG Store Shop: gaming, perfumería árabe y diseño web.",
       },
-      { property: "og:title", content: "Todos los productos — LRG Store Shop" },
+      { property: "og:title", content: "LRG Store Shop" },
       {
         property: "og:description",
         content:
@@ -462,7 +462,7 @@ function ProductosPage() {
                     value={pageSizeInput}
                     placeholder="Cantidad"
                     onChange={(e) => setPageSizeInput(e.target.value)}
-                    className="h-8 w-20 bg-background/50 text-center"
+                    className="h-8 w-20 bg-background/50 text-center desktop-no-spinner"
                   />
                   {(() => {
                     const v = Number(pageSizeInput);

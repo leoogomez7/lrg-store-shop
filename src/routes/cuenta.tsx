@@ -1659,7 +1659,7 @@ function AccountPageContent({
                 max={1000}
                 value={ordersPageSizeInput}
                 onChange={(e) => setOrdersPageSizeInput(e.target.value)}
-                className="h-8 w-20 bg-background/50 text-center text-foreground"
+                className="h-8 w-20 bg-background/50 text-center text-foreground desktop-no-spinner"
               />
               {(() => {
                 const v = Number(ordersPageSizeInput);
