@@ -751,23 +751,26 @@ function AdminSuppliers() {
     openSupplierEditor(nextRow);
   };
 
-  const countSupplierLinkedItems = (supplierKey: string) => {
-    let linkedProducts = 0;
-    let linkedVariants = 0;
+  const countSupplierLinkedItems = React.useCallback(
+    (supplierKey: string) => {
+      let linkedProducts = 0;
+      let linkedVariants = 0;
 
-    for (const product of products) {
-      if (product.supplier && matchesSupplierKey(product.supplier, supplierKey)) {
-        linkedProducts += 1;
-      }
-      for (const variant of product.variants ?? []) {
-        if (variant.supplier && matchesSupplierKey(variant.supplier, supplierKey)) {
-          linkedVariants += 1;
+      for (const product of products) {
+        if (product.supplier && matchesSupplierKey(product.supplier, supplierKey)) {
+          linkedProducts += 1;
+        }
+        for (const variant of product.variants ?? []) {
+          if (variant.supplier && matchesSupplierKey(variant.supplier, supplierKey)) {
+            linkedVariants += 1;
+          }
         }
       }
-    }
 
-    return { linkedProducts, linkedVariants };
-  };
+      return { linkedProducts, linkedVariants };
+    },
+    [products],
+  );
 
   const deleteSelectedSuppliers = () => {
     const selectedKeysSnapshot = [...selectedSupplierKeys];
@@ -858,7 +861,7 @@ function AdminSuppliers() {
       },
       { productLinks: 0, variantLinks: 0, total: 0 },
     );
-  }, [selectedSupplierKeys, products]);
+  }, [selectedSupplierKeys, countSupplierLinkedItems]);
 
   const filteredRows = rows
     .filter((row) => {
@@ -1474,7 +1477,7 @@ function AdminSuppliers() {
           <div
             className={cn(
               selectedSupplierKeys.length > 0 &&
-                "order-2 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3",
+                "order-1 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3",
             )}
           >
             {selectedSupplierKeys.length > 0 ? (
@@ -1533,7 +1536,7 @@ function AdminSuppliers() {
             ) : null}
           </div>
 
-          <div className="order-1 mt-4 rounded-2xl">
+          <div className="order-2 mt-4 rounded-2xl">
             <div className="glass-panel min-w-0 overflow-visible rounded-2xl">
               <Table
                 hideScrollbarOnMobile

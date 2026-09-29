@@ -499,6 +499,45 @@ const mergeOrderStatus = (
   return "pendiente";
 };
 
+const getOrderStatusByStore = (order: Order) => {
+  const stores = Array.from(new Set(order.items.map((item) => item.brand ?? order.brand)));
+  const paymentStatuses = stores.map((store) => {
+    const storeItems = order.items.filter((item) => (item.brand ?? order.brand) === store);
+    const statuses = storeItems.map(
+      (item) =>
+        item.paymentStatus ??
+        (order as Order & { paymentStatus?: PaymentStatus }).paymentStatus ??
+        getPaymentStatus(order.status),
+    );
+    return statuses.every((status) => status === statuses[0])
+      ? (statuses[0] ?? "Pendiente")
+      : "Pendiente";
+  });
+  const deliveryStatuses = stores.map((store) => {
+    const storeItems = order.items.filter((item) => (item.brand ?? order.brand) === store);
+    const statuses = storeItems.map(
+      (item) =>
+        item.deliveryStatus ??
+        (order as Order & { deliveryStatus?: DeliveryStatus }).deliveryStatus ??
+        getDeliveryStatus(order.status),
+    );
+    return statuses.every((status) => status === statuses[0])
+      ? (statuses[0] ?? "Pendiente")
+      : "Pendiente";
+  });
+  return {
+    paymentStatus:
+      paymentStatuses.length > 0 && paymentStatuses.every((status) => status === paymentStatuses[0])
+        ? (paymentStatuses[0] ?? "Pendiente")
+        : "Pendiente",
+    deliveryStatus:
+      deliveryStatuses.length > 0 &&
+      deliveryStatuses.every((status) => status === deliveryStatuses[0])
+        ? (deliveryStatuses[0] ?? "Pendiente")
+        : "Pendiente",
+  };
+};
+
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
 const searchSchema = z.object({ pedido: z.string().optional() });
@@ -626,7 +665,7 @@ function AdminOrders() {
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [sortMenuOpen]);
 
-  const startQuickEditOrder = (order: Order, bulk = false) => {
+  const startQuickEditOrder = useCallback((order: Order, bulk = false) => {
     const storeStatuses = getOrderStatusByStore(order);
     const draft = {
       deliveryStatus: storeStatuses.deliveryStatus,
@@ -644,7 +683,7 @@ function AdminOrders() {
       ...current,
       [order.id]: draft,
     }));
-  };
+  }, []);
 
   const cancelQuickEditOrder = useCallback(() => {
     const currentOrderId = quickEditOrderId;
@@ -680,6 +719,7 @@ function AdminOrders() {
     isBulkQuickEditing,
     quickEditOrderId,
     selectedOrderIds.length,
+    startQuickEditOrder,
   ]);
 
   const cancelQuickEditSession = useCallback(() => {
@@ -994,12 +1034,7 @@ function AdminOrders() {
       options.push(orderForm.paymentMethod);
     }
     return Array.from(new Set(options));
-  }, [
-    availablePaymentMethods,
-    availablePaymentMethodsByBrand,
-    orderForm?.brand,
-    orderForm?.paymentMethod,
-  ]);
+  }, [availablePaymentMethods, availablePaymentMethodsByBrand, orderForm]);
 
   const orderStoreSlugs = useMemo(
     () => (orderForm ? brandList.map((brand) => brand.slug) : []),
@@ -1010,46 +1045,6 @@ function AdminOrders() {
 
   const getStoreItems = (items: EditableOrderItem[], store: BrandSlug) =>
     items.filter((item) => getItemStore(item) === store);
-
-  const getOrderStatusByStore = (order: Order) => {
-    const stores = Array.from(new Set(order.items.map((item) => item.brand ?? order.brand)));
-    const paymentStatuses = stores.map((store) => {
-      const storeItems = order.items.filter((item) => (item.brand ?? order.brand) === store);
-      const statuses = storeItems.map(
-        (item) =>
-          item.paymentStatus ??
-          (order as Order & { paymentStatus?: PaymentStatus }).paymentStatus ??
-          getPaymentStatus(order.status),
-      );
-      return statuses.every((status) => status === statuses[0])
-        ? (statuses[0] ?? "Pendiente")
-        : "Pendiente";
-    });
-    const deliveryStatuses = stores.map((store) => {
-      const storeItems = order.items.filter((item) => (item.brand ?? order.brand) === store);
-      const statuses = storeItems.map(
-        (item) =>
-          item.deliveryStatus ??
-          (order as Order & { deliveryStatus?: DeliveryStatus }).deliveryStatus ??
-          getDeliveryStatus(order.status),
-      );
-      return statuses.every((status) => status === statuses[0])
-        ? (statuses[0] ?? "Pendiente")
-        : "Pendiente";
-    });
-    return {
-      paymentStatus:
-        paymentStatuses.length > 0 &&
-        paymentStatuses.every((status) => status === paymentStatuses[0])
-          ? (paymentStatuses[0] ?? "Pendiente")
-          : "Pendiente",
-      deliveryStatus:
-        deliveryStatuses.length > 0 &&
-        deliveryStatuses.every((status) => status === deliveryStatuses[0])
-          ? (deliveryStatuses[0] ?? "Pendiente")
-          : "Pendiente",
-    };
-  };
 
   const getBrandDisplayName = useCallback((brandSlug?: BrandSlug) => {
     return brandSlug ? (brands[brandSlug]?.name ?? brandSlug) : "";
@@ -1113,12 +1108,7 @@ function AdminOrders() {
       options.push(orderForm.shippingMethod);
     }
     return Array.from(new Set(options));
-  }, [
-    availableShippingMethods,
-    availableShippingMethodsByBrand,
-    orderForm?.brand,
-    orderForm?.shippingMethod,
-  ]);
+  }, [availableShippingMethods, availableShippingMethodsByBrand, orderForm]);
 
   const getOrderCurrencies = useCallback(
     (order: Order) =>
@@ -2328,7 +2318,7 @@ function AdminOrders() {
         <div
           className={cn(
             selectedOrderIds.length > 0 &&
-              "order-2 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3",
+              "order-1 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3",
           )}
         >
           {selectedOrderIds.length > 0 ? (
@@ -2392,7 +2382,7 @@ function AdminOrders() {
           ) : null}
         </div>
 
-        <div className="order-1 mt-4 rounded-2xl">
+        <div className="order-2 mt-4 rounded-2xl">
           <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
             <Table
               hideScrollbarOnMobile

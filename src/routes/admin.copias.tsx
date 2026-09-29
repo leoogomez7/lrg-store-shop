@@ -484,6 +484,25 @@ function AdminBackups() {
         </div>
       </div>
 
+      {selectedBackupIds.length > 0 ? (
+        <div className="mt-3 mb-2 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {selectedBackupIds.length} seleccionadas
+          </span>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => void deleteSelectedBackups()}
+          >
+            <Trash2 className="size-4" /> Enviar seleccionadas a la papelera
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={clearBackupSelection}>
+            <X className="size-4" /> Cancelar
+          </Button>
+        </div>
+      ) : null}
+
       <div className="mt-4 glass-panel w-full overflow-visible rounded-2xl border border-border/60">
         <Table
           hideScrollbarOnMobile
@@ -578,25 +597,6 @@ function AdminBackups() {
           </TableBody>
         </Table>
       </div>
-
-      {selectedBackupIds.length > 0 ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            {selectedBackupIds.length} seleccionadas
-          </span>
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            onClick={() => void deleteSelectedBackups()}
-          >
-            <Trash2 className="size-4" /> Enviar seleccionadas a la papelera
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={clearBackupSelection}>
-            <X className="size-4" /> Cancelar
-          </Button>
-        </div>
-      ) : null}
 
       {filteredBackups.length > 0 ? (
         <div className="mt-4 flex flex-col gap-3 pb-4">

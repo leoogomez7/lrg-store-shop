@@ -402,6 +402,20 @@ function AdminTrash() {
         </div>
       </div>
 
+      {selectionMode && (selectedDeleteKeys.length > 0 || selectedRestoreKeys.length > 0) ? (
+        <div className="mt-3 mb-2 flex flex-wrap items-center gap-2">
+          <Button type="button" variant="default" size="sm" onClick={restoreSelectedEntries}>
+            <RotateCcw className="size-4" /> Restaurar seleccionados
+          </Button>
+          <Button type="button" variant="destructive" size="sm" onClick={deleteSelectedPermanently}>
+            <Trash2 className="size-4" /> Eliminar seleccionados
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={clearSelection}>
+            <X className="size-4" /> Cancelar
+          </Button>
+        </div>
+      ) : null}
+
       <div className="mt-4 glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
         <Table
           hideScrollbarOnMobile
@@ -546,20 +560,6 @@ function AdminTrash() {
           </TableBody>
         </Table>
       </div>
-
-      {selectionMode && (selectedDeleteKeys.length > 0 || selectedRestoreKeys.length > 0) ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Button type="button" variant="default" size="sm" onClick={restoreSelectedEntries}>
-            <RotateCcw className="size-4" /> Restaurar seleccionados
-          </Button>
-          <Button type="button" variant="destructive" size="sm" onClick={deleteSelectedPermanently}>
-            <Trash2 className="size-4" /> Eliminar seleccionados
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={clearSelection}>
-            <X className="size-4" /> Cancelar
-          </Button>
-        </div>
-      ) : null}
 
       {!isLoading && filteredEntries.length > 0 ? (
         <div className="mt-4 flex flex-col gap-3 pb-4">
