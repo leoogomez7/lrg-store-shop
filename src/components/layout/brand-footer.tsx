@@ -243,7 +243,7 @@ function BrandFooterContent({
         section === "admin" || isCatalogPage || isAccountOrdersPage ? "mt-0" : "mt-10 sm:mt-12",
       )}
     >
-      <div className="grid w-full gap-10 px-4 pt-0 pb-14 sm:px-6 lg:grid-cols-5 lg:px-8">
+      <div className="grid w-full gap-10 px-4 pt-4 pb-14 sm:px-6 lg:grid-cols-5 lg:px-8">
         {categories.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold">Categorías</h3>
