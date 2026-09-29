@@ -7,7 +7,15 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { Component, Suspense, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
+import {
+  Component,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type ErrorInfo,
+  type ReactNode,
+} from "react";
 import { AlertTriangle, LoaderCircle } from "lucide-react";
 
 import appCss from "../styles.css?url";
@@ -43,7 +51,7 @@ import {
   loadAdminSettings,
   recordSiteVisit,
 } from "../server/persistence";
-import { orderQueries } from "../services/catalog.service";
+import { catalogQueries, orderQueries } from "../services/catalog.service";
 import { getAuthRole } from "../lib/auth-role";
 
 function NotFoundComponent() {
@@ -158,6 +166,9 @@ function DelayedNavigationLoading() {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  loader: async ({ context }) => ({
+    settings: await context.queryClient.ensureQueryData(catalogQueries.settings()),
+  }),
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -360,6 +371,13 @@ function CustomerOrderStatusNotice() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { settings } = Route.useLoaderData();
+  const settingsApplied = useRef(false);
+  if (!settingsApplied.current) {
+    applyAdminSettings(settings);
+    refreshBrandData();
+    settingsApplied.current = true;
+  }
   const { clientId, domain } = getKindeConfig();
   const redirectUri = getKindeRedirectUri("/login");
   const hasKindConfig = hasKindeConfig();

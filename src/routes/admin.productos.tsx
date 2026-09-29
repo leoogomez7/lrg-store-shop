@@ -2105,7 +2105,12 @@ function AdminProducts() {
       </div>
 
       <div className="flex flex-col">
-        <div className="order-2 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3">
+        <div
+          className={cn(
+            selectedProductIds.length > 0 &&
+              "order-2 mt-2 flex min-h-9 basis-full flex-wrap items-center gap-3",
+          )}
+        >
           {selectedProductIds.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
               {quickEditProductId !== null ? (

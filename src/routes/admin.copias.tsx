@@ -117,9 +117,7 @@ const getNextWeeklyBackup = () => {
 
 function PendingAdminBackups() {
   return (
-    <main
-      className={`mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 ${filteredBackups.length === 0 ? "pb-8" : "pb-0"}`}
-    >
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
@@ -294,7 +292,9 @@ function AdminBackups() {
   const hasNextPage = safePage < totalPages - 1;
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
+    <main
+      className={`mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 ${filteredBackups.length === 0 ? "pb-8" : "pb-0"}`}
+    >
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
@@ -486,9 +486,6 @@ function AdminBackups() {
 
       {selectedBackupIds.length > 0 ? (
         <div className="mt-3 mb-2 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            {selectedBackupIds.length} seleccionadas
-          </span>
           <Button
             type="button"
             variant="destructive"
