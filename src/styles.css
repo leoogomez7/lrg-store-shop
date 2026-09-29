@@ -252,7 +252,7 @@ input[type="password"]::-webkit-textfield-decoration-container {
     -webkit-font-smoothing: antialiased;
     overflow-x: clip;
     overflow-y: scroll;
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
     height: 100%;
     min-height: 100%;
     scrollbar-gutter: stable;

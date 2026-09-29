@@ -6,6 +6,7 @@ import {
   createRootRouteWithContext,
   HeadContent,
   Scripts,
+  useRouterState,
 } from "@tanstack/react-router";
 import {
   Component,
@@ -372,12 +373,18 @@ function CustomerOrderStatusNotice() {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { settings } = Route.useLoaderData();
+  const locationHref = useRouterState({ select: (state) => state.location.href });
   const settingsApplied = useRef(false);
   if (!settingsApplied.current) {
     applyAdminSettings(settings);
     refreshBrandData();
     settingsApplied.current = true;
   }
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [locationHref]);
+
   const { clientId, domain } = getKindeConfig();
   const redirectUri = getKindeRedirectUri("/login");
   const hasKindConfig = hasKindeConfig();
