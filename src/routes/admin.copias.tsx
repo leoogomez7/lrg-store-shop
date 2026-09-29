@@ -117,7 +117,9 @@ const getNextWeeklyBackup = () => {
 
 function PendingAdminBackups() {
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
+    <main
+      className={`mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 ${filteredBackups.length === 0 ? "pb-8" : "pb-0"}`}
+    >
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
@@ -249,9 +251,9 @@ function AdminBackups() {
       }
       await queryClient.invalidateQueries({ queryKey: backupsQuery.queryKey });
       setBackupToDelete(null);
-      toast.success("Copia enviada a la papelera");
+      toast.success("Copia de seguridad enviada a la papelera");
     } catch {
-      toast.error("No se pudo enviar la copia a la papelera");
+      toast.error("No se pudo enviar la copia de seguridad a la papelera");
     } finally {
       setIsDeletingBackup(false);
     }
@@ -568,7 +570,7 @@ function AdminBackups() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="py-16! text-center text-sm text-muted-foreground">
                   No hay copias de seguridad registradas.
                 </TableCell>
               </TableRow>

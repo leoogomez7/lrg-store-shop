@@ -372,9 +372,7 @@ function AdminTrash() {
   };
 
   return (
-    <main
-      className={`mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 ${entries.length === 0 || filteredEntries.length === 0 ? "pb-8" : "pb-0"}`}
-    >
+    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Eliminaciones</p>
@@ -449,13 +447,13 @@ function AdminTrash() {
               </TableRow>
             ) : entries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-16! text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
                   La papelera está vacía.
                 </TableCell>
               </TableRow>
             ) : filteredEntries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-16! text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
                   No se encontraron elementos eliminados.
                 </TableCell>
               </TableRow>
