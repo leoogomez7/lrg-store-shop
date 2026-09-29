@@ -29,7 +29,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { brandList } from "@/config/brands";
+import { brandList, getStoreShopContact } from "@/config/brands";
 import { webDesignConfig } from "@/config/brands/web-design.config";
 import { catalogQueries } from "@/services/catalog.service";
 import { applyAdminSettings, refreshBrandData } from "@/config/brands";
@@ -498,7 +498,10 @@ function ProductosPage() {
           </main>
         </div>
 
-        <BrandFooter brand={webDesignConfig} section="store-shop" />
+        <BrandFooter
+          brand={{ ...webDesignConfig, name: "LRG Store Shop" }}
+          storeContact={getStoreShopContact()}
+        />
       </div>
     </div>
   );
