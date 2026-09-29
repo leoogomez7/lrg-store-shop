@@ -3065,7 +3065,7 @@ function AdminOrders() {
         </div>
       </div>
 
-      <div className={cn("mt-4 flex flex-col gap-3", selectionMode && "md:-mt-7")}>
+      <div className={cn("mt-4 flex flex-col gap-3 pb-4", selectionMode && "md:-mt-7")}>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             type="button"
