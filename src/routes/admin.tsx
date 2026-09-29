@@ -134,6 +134,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [adminSettingsLoaded, setAdminSettingsLoaded] = useState(false);
   const [initialPasswordVerified, setInitialPasswordVerified] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(
     () =>
@@ -238,6 +239,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    setAdminSettingsLoaded(false);
     void loadAdminSettings({ data: {} })
       .then((settings) => {
         applyAdminSettings(settings);
@@ -252,7 +254,8 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
         refreshBrandData();
         window.dispatchEvent(new Event("lrg-brand-data-updated"));
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => setAdminSettingsLoaded(true));
   }, [isAuthenticated]);
 
   async function unlockAdmin(event: FormEvent<HTMLFormElement>) {
@@ -683,7 +686,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             </div>
           </header>
           <Outlet />
-          <BrandFooter brand={webDesignConfig} section="admin" />
+          {adminSettingsLoaded ? <BrandFooter brand={webDesignConfig} section="admin" /> : null}
         </div>
       </div>
       <AdminEntryNotice />

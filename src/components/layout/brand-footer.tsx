@@ -90,6 +90,8 @@ function ContactItem({
   item: StoreShopContactItem;
   icon: React.ComponentType<{ className?: string }>;
 }) {
+  if (!item.text.trim()) return null;
+
   const content = (
     <>
       {item.logo ? (
@@ -217,6 +219,17 @@ function BrandFooterContent({
       : isAuthenticated
         ? accountMenu
         : [];
+  const contactItems = [storeContact.email, storeContact.phone, storeContact.location];
+  const socialItems = [
+    storeContact.socials.instagram,
+    storeContact.socials.whatsapp,
+    storeContact.socials.tiktok,
+    storeContact.socials.facebook,
+  ];
+  const reviewItems = [storeContact.socials.trustpilot, storeContact.socials.google];
+  const hasContactItems = contactItems.some((item) => item.text.trim());
+  const hasSocialItems = socialItems.some((item) => item.text.trim());
+  const hasReviewItems = reviewItems.some((item) => item.text.trim());
   const renderLink = (
     label: string,
     to: string | undefined,
@@ -351,26 +364,38 @@ function BrandFooterContent({
             )}
           </ul>
         </div>
-        <div>
-          <h3 className="text-sm font-semibold">Contacto</h3>
-          <div className="mt-4 flex flex-col items-start gap-2.5">
-            <ContactItem item={storeContact.email} icon={Mail} />
-            <ContactItem item={storeContact.phone} icon={Phone} />
-            <ContactItem item={storeContact.location} icon={MapPin} />
+        {(hasContactItems || hasSocialItems || hasReviewItems) && (
+          <div>
+            <h3 className="text-sm font-semibold">Contacto</h3>
+            {hasContactItems && (
+              <div className="mt-4 flex flex-col items-start gap-2.5">
+                <ContactItem item={storeContact.email} icon={Mail} />
+                <ContactItem item={storeContact.phone} icon={Phone} />
+                <ContactItem item={storeContact.location} icon={MapPin} />
+              </div>
+            )}
+            {hasSocialItems && (
+              <>
+                <h3 className="mt-5 text-sm font-semibold">Redes sociales</h3>
+                <div className="mt-3 flex flex-col items-start gap-2">
+                  <ContactItem item={storeContact.socials.instagram} icon={Instagram} />
+                  <ContactItem item={storeContact.socials.whatsapp} icon={WhatsAppIcon} />
+                  <ContactItem item={storeContact.socials.tiktok} icon={TikTokIcon} />
+                  <ContactItem item={storeContact.socials.facebook} icon={Facebook} />
+                </div>
+              </>
+            )}
+            {hasReviewItems && (
+              <>
+                <h3 className="mt-5 text-sm font-semibold">Reseñas</h3>
+                <div className="mt-3 flex flex-col items-start gap-2">
+                  <ContactItem item={storeContact.socials.trustpilot} icon={TrustpilotIcon} />
+                  <ContactItem item={storeContact.socials.google} icon={GoogleIcon} />
+                </div>
+              </>
+            )}
           </div>
-          <h3 className="mt-5 text-sm font-semibold">Redes sociales</h3>
-          <div className="mt-3 flex flex-col items-start gap-2">
-            <ContactItem item={storeContact.socials.instagram} icon={Instagram} />
-            <ContactItem item={storeContact.socials.whatsapp} icon={WhatsAppIcon} />
-            <ContactItem item={storeContact.socials.tiktok} icon={TikTokIcon} />
-            <ContactItem item={storeContact.socials.facebook} icon={Facebook} />
-          </div>
-          <h3 className="mt-5 text-sm font-semibold">Reseñas</h3>
-          <div className="mt-3 flex flex-col items-start gap-2">
-            <ContactItem item={storeContact.socials.trustpilot} icon={TrustpilotIcon} />
-            <ContactItem item={storeContact.socials.google} icon={GoogleIcon} />
-          </div>
-        </div>
+        )}
       </div>
       <div className="border-t border-border/60 py-6">
         <Link

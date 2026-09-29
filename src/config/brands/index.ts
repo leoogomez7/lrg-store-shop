@@ -362,24 +362,16 @@ export const storeShopListing = { slug: "store-shop" as const, name: "LRG Store 
 export const getStoreNavigation = () => [storeShopListing, ...brandList];
 
 const defaultStoreShopContact: StoreShopContact = {
-  email: { text: "lrgwebdesign@gmail.com", href: "mailto:lrgwebdesign@gmail.com", logo: "" },
-  phone: { text: "+5491132965583", href: "tel:+5491132965583", logo: "" },
-  location: {
-    text: "Merlo, Buenos Aires, Argentina",
-    href: "https://www.google.com/maps/search/?api=1&query=Merlo%2C%20Buenos%20Aires%2C%20Argentina",
-    logo: "",
-  },
+  email: { text: "", href: "", logo: "" },
+  phone: { text: "", href: "", logo: "" },
+  location: { text: "", href: "", logo: "" },
   socials: {
-    instagram: { text: "Instagram", href: "", logo: "" },
-    whatsapp: { text: "WhatsApp", href: "", logo: "" },
-    tiktok: { text: "TikTok", href: "", logo: "" },
-    facebook: { text: "Facebook", href: "", logo: "" },
-    trustpilot: {
-      text: "Trustpilot",
-      href: "https://es.trustpilot.com/review/psplusargentinaps4.empretienda.com.ar",
-      logo: "",
-    },
-    google: { text: "Google", href: "", logo: "" },
+    instagram: { text: "", href: "", logo: "" },
+    whatsapp: { text: "", href: "", logo: "" },
+    tiktok: { text: "", href: "", logo: "" },
+    facebook: { text: "", href: "", logo: "" },
+    trustpilot: { text: "", href: "", logo: "" },
+    google: { text: "", href: "", logo: "" },
   },
 };
 
