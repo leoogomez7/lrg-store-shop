@@ -708,7 +708,7 @@ function AdminClients() {
           stickyHeader
           stickyScrollbar
           containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-          className="min-w-[42rem] w-full table-auto text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
+          className="min-w-42rem w-full table-auto text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
@@ -976,7 +976,7 @@ function CustomerRow({
                 const fifthOrder = customer.orders[4];
                 return fifthOrder ? (
                   <>
-                    <div className="flex min-h-[52px] min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm">
+                    <div className="flex min-h-52px min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm">
                       <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex min-w-0 items-center gap-2">
                           <button
@@ -1023,7 +1023,7 @@ function CustomerRow({
                       <Button
                         type="button"
                         variant="outline"
-                        className="flex min-h-[52px] items-center justify-center rounded-xl border border-border/60 px-3 py-2 text-sm"
+                        className="flex min-h-52px items-center justify-center rounded-xl border border-border/60 px-3 py-2 text-sm"
                         onClick={() => setAllPurchasesOpen(true)}
                       >
                         <Plus className="size-3.5" /> Ver más

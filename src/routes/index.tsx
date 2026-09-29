@@ -343,7 +343,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
 
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             <article
-              className="group relative flex h-full min-h-[16.5rem] flex-col justify-between overflow-hidden rounded-[2rem] border border-border/60 bg-background/80 p-5 shadow-[0_20px_60px_rgba(10,15,35,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/70 hover:bg-background/95"
+              className="group relative flex h-full min-h-16.5rem flex-col justify-between overflow-hidden rounded-[2rem] border border-border/60 bg-background/80 p-5 shadow-[0_20px_60px_rgba(10,15,35,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/70 hover:bg-background/95"
               style={{ width: "100%" }}
             >
               <div className="absolute left-0 top-0 h-2 w-28 rounded-br-full bg-linear-to-r from-primary to-transparent opacity-90" />
@@ -389,7 +389,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             {sortedReviews.map((review, index) => (
               <article
                 key={`${review.name}-${index}`}
-                className="group relative flex h-full min-h-[16.5rem] flex-col justify-between overflow-hidden rounded-[2rem] border border-border/60 bg-background/80 p-5 shadow-[0_20px_60px_rgba(10,15,35,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/70 hover:bg-background/95"
+                className="group relative flex h-full min-h-16.5rem flex-col justify-between overflow-hidden rounded-[2rem] border border-border/60 bg-background/80 p-5 shadow-[0_20px_60px_rgba(10,15,35,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/70 hover:bg-background/95"
                 style={{ width: "100%" }}
               >
                 <div className="absolute left-0 top-0 h-2 w-28 rounded-br-full bg-linear-to-r from-primary to-transparent opacity-90" />

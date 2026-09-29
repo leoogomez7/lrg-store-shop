@@ -1540,7 +1540,7 @@ function AdminSuppliers() {
                 stickyHeader
                 stickyScrollbar
                 containerClassName="overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-                className="min-w-[52rem] w-full table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1"
+                className="min-w-52rem w-full table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1"
               >
                 <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                   <TableRow>
@@ -1569,11 +1569,11 @@ function AdminSuppliers() {
                         />
                       </div>
                     </TableHead>
-                    <TableHead className="w-[24%] min-w-[150px] pl-5">Nombre</TableHead>
-                    <TableHead className="w-[16%] min-w-[110px]">Celular</TableHead>
-                    <TableHead className="w-[18%] min-w-[120px]">Red social</TableHead>
-                    <TableHead className="w-[22%] min-w-[140px]">Total vendido</TableHead>
-                    <TableHead className="w-[20%] min-w-[120px]">Cantidad vendida</TableHead>
+                    <TableHead className="w-[24%] min-w-150px pl-5">Nombre</TableHead>
+                    <TableHead className="w-[16%] min-w-110px">Celular</TableHead>
+                    <TableHead className="w-[18%] min-w-120px">Red social</TableHead>
+                    <TableHead className="w-[22%] min-w-140px">Total vendido</TableHead>
+                    <TableHead className="w-[20%] min-w-120px">Cantidad vendida</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

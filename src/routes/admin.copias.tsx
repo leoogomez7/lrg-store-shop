@@ -299,7 +299,7 @@ function AdminBackups() {
           </p>
         </div>
         <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <div className="order-2 flex min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:order-none sm:overflow-visible sm:pb-0">
+          <div className="order-2 flex min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:order-0 sm:overflow-visible sm:pb-0">
             <Dialog open={sortOpen} onOpenChange={setSortOpen}>
               <DialogTrigger asChild>
                 <Button
@@ -467,7 +467,7 @@ function AdminBackups() {
             variant="outline"
             disabled={isCreatingBackup}
             onClick={() => void handleCreateBackup()}
-            className="order-1 h-9 min-w-44 shrink-0 whitespace-nowrap sm:order-none"
+            className="order-1 h-9 min-w-44 shrink-0 whitespace-nowrap sm:order-0"
           >
             {isCreatingBackup ? (
               <LoaderCircle className="size-4 animate-spin" />
@@ -483,7 +483,7 @@ function AdminBackups() {
         <Table
           hideScrollbarOnMobile
           containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-          className="min-w-[54rem] table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
+          className="min-w-54rem table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>

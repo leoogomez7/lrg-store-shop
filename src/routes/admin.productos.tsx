@@ -2196,7 +2196,7 @@ function AdminProducts() {
               stickyScrollbar
               containerClassName="overflow-x-auto overflow-y-visible"
               className={cn(
-                "w-full min-w-[72rem] table-fixed text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2",
+                "w-full min-w-72rem table-fixed text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2",
               )}
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -3683,7 +3683,7 @@ function ProductEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         tabIndex={-1}
-        className="top-2 box-border grid h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-w-0 min-h-0 translate-y-0 touch-pan-y overscroll-y-contain overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-3 pr-2 shadow-2xl [&>*]:min-w-0 md:[scrollbar-width:thin] md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-y-[-50%] sm:p-6"
+        className="top-2 box-border grid h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-w-0 min-h-0 translate-y-0 touch-pan-y overscroll-y-contain overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-3 pr-2 shadow-2xl &>*:min-w-0 md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-y-[-50%] sm:p-6"
         style={{ scrollbarGutter: "stable" }}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
@@ -4537,7 +4537,7 @@ function ProductEditDialog({
                   <Button type="button" onClick={handleAddFeature} className="whitespace-nowrap">
                     <Plus className="h-4 w-4" /> Agregar
                   </Button>
-                  <label className="inline-flex h-auto min-h-9 w-full min-w-0 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-3 py-2 sm:h-9 sm:w-auto sm:min-w-[13rem] sm:shrink-0 sm:whitespace-nowrap sm:py-1">
+                  <label className="inline-flex h-auto min-h-9 w-full min-w-0 items-center justify-between gap-2 rounded-2xl border border-border/60 bg-background/80 px-3 py-2 sm:h-9 sm:w-auto sm:min-w-13rem sm:shrink-0 sm:whitespace-nowrap sm:py-1">
                     <span className="min-w-0 text-left text-[11px] leading-tight sm:text-sm sm:leading-none">
                       Aplicar a todas las variantes
                     </span>
@@ -4754,14 +4754,14 @@ function ProductEditDialog({
                   <Textarea
                     value={descriptionDraft}
                     rows={3}
-                    className="min-h-[90px] flex-1"
+                    className="min-h-90px flex-1"
                     onChange={(event) => {
                       setDescriptionDraft(event.target.value);
                       setDescriptionConfirmed(false);
                     }}
                     placeholder="Descripción de esta variante"
                   />
-                  <div className="flex w-full flex-col gap-2 sm:w-[15rem]">
+                  <div className="flex w-full flex-col gap-2 sm:w-15rem">
                     <Button
                       type="button"
                       size="sm"
