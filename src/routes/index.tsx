@@ -231,7 +231,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             style={{ transition: "opacity 600ms ease" }}
           >
             <span aria-hidden="true"></span>
-            Bienvenido LRG Store Shop
+            Bienvenido a LRG Store Shop
           </span>
 
           <h1
