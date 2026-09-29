@@ -61,7 +61,7 @@ import { webDesignConfig } from "@/config/brands/web-design.config";
 import { KINDE_LOGOUT_REDIRECT_URI, getKindeRedirectUri } from "@/lib/kinde";
 import { verifyAdminFinalPassword, verifyAdminPassword } from "@/server/admin-auth";
 import { loadAdminSettings } from "@/server/persistence";
-import { applyAdminSettings, refreshBrandData } from "@/config/brands";
+import { applyAdminSettings, getStoreShopContact, refreshBrandData } from "@/config/brands";
 import { applyTrashEntries } from "@/data/trash";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 import { formatDate } from "@/lib/format";
@@ -105,6 +105,12 @@ function AdminLayout() {
 }
 
 function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | null }) {
+  const { settings } = Route.useLoaderData();
+  const [footerStoreContact, setFooterStoreContact] = useState(() => {
+    applyAdminSettings(settings);
+    refreshBrandData();
+    return getStoreShopContact();
+  });
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -153,6 +159,18 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   const [passwordError, setPasswordError] = useState("");
   const [finalPasswordError, setFinalPasswordError] = useState("");
   const hasVerifiedAdminAccess = isAuthenticated && adminUnlocked;
+
+  useEffect(() => {
+    applyAdminSettings(settings);
+    refreshBrandData();
+    setFooterStoreContact(getStoreShopContact());
+  }, [settings]);
+
+  useEffect(() => {
+    const syncFooterContact = () => setFooterStoreContact(getStoreShopContact());
+    window.addEventListener("lrg-brand-data-updated", syncFooterContact);
+    return () => window.removeEventListener("lrg-brand-data-updated", syncFooterContact);
+  }, []);
 
   useEffect(() => {
     if (!hasVerifiedAdminAccess) return;
@@ -588,7 +606,9 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           </div>
         </aside>
 
-        <div className={cn("min-w-0 flex-1 pt-16 lg:pt-0", sidebarCollapsed ? "lg:pl-20" : "lg:pl-64")}>
+        <div
+          className={cn("min-w-0 flex-1 pt-16 lg:pt-0", sidebarCollapsed ? "lg:pl-20" : "lg:pl-64")}
+        >
           <header className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur-xl lg:hidden">
             <DropdownMenu open={adminUserMenuOpen} onOpenChange={setAdminUserMenuOpen}>
               <DropdownMenuTrigger asChild>
@@ -689,7 +709,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
             </div>
           </header>
           <Outlet />
-          <BrandFooter brand={webDesignConfig} section="admin" />
+          <BrandFooter brand={webDesignConfig} storeContact={footerStoreContact} section="admin" />
         </div>
       </div>
       <AdminEntryNotice />
