@@ -402,7 +402,9 @@ function AdminTrash() {
         </div>
       </div>
 
-      <div className="mt-5 glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
+      <div
+        className={`mt-5 glass-panel w-full overflow-hidden rounded-2xl border border-border/60 ${entries.length === 0 || filteredEntries.length === 0 ? "mb-8" : ""}`}
+      >
         <Table
           hideScrollbarOnMobile
           hideScrollbar
