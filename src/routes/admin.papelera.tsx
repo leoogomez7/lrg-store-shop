@@ -372,39 +372,39 @@ function AdminTrash() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="order-1 basis-full shrink-0">
+    <main
+      className={`mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 ${entries.length === 0 || filteredEntries.length === 0 ? "pb-8" : "pb-0"}`}
+    >
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Eliminaciones</p>
           <h1 className="mt-2 text-3xl font-semibold">Papelera</h1>
+          <p className="mt-2 text-sm text-primary">
+            Los elementos se eliminan automáticamente después de 10 días.
+          </p>
         </div>
 
-        <p className="order-2 text-sm text-primary">
-          Los elementos se eliminan automáticamente después de 10 días.
-        </p>
-        <div className="order-3 relative min-w-0 basis-full flex-1 sm:basis-auto">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar elemento eliminado"
-            aria-label="Buscar elemento eliminado"
-            className="h-9 pl-9"
-          />
-        </div>
-        <div className="order-4 flex basis-full flex-wrap items-center gap-2 sm:basis-auto sm:shrink-0">
-          <Button type="button" variant="outline" onClick={emptyTrash}>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="relative w-full sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar elemento eliminado"
+              aria-label="Buscar elemento eliminado"
+              className="h-9 pl-9"
+            />
+          </div>
+          <Button type="button" variant="outline" className="h-9" onClick={emptyTrash}>
             <Trash2 className="size-4" /> Vaciar papelera
           </Button>
-          <Button type="button" variant="outline" onClick={restoreAllEntries}>
+          <Button type="button" variant="outline" className="h-9" onClick={restoreAllEntries}>
             <RotateCcw className="size-4" /> Restaurar todos
           </Button>
         </div>
       </div>
 
-      <div
-        className={`mt-5 glass-panel w-full overflow-hidden rounded-2xl border border-border/60 ${entries.length === 0 || filteredEntries.length === 0 ? "mb-8" : ""}`}
-      >
+      <div className="mt-4 glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
         <Table
           hideScrollbarOnMobile
           hideScrollbar

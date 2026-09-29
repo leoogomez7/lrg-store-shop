@@ -218,7 +218,7 @@ function AdminBrands() {
     <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">
       <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Sectores</p>
       <h1 className="mt-2 text-3xl font-semibold">Tiendas disponibles</h1>
-      <p className="order-2 text-sm text-primary">Haz click en cada ítem para editarlo.</p>
+      <p className="mt-2 text-sm text-primary">Haz click en cada ítem para editarlo.</p>
 
       <div className="mt-8 grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <article className="theme-webdesign glass-panel flex min-w-0 h-full flex-col justify-between rounded-2xl p-3">
