@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 function getBrandImage(brandSlug?: string) {
@@ -23,30 +22,7 @@ export function BrandMark({
   label?: string;
   brandSlug?: string;
 }) {
-  const [resolvedSrc, setResolvedSrc] = useState(() => getBrandImage(brandSlug));
-
-  useEffect(() => {
-    const nextSrc = getBrandImage(brandSlug);
-
-    if (typeof document === "undefined") {
-      setResolvedSrc(nextSrc);
-      return;
-    }
-
-    const arcade = document.querySelector(".theme-arcade");
-    const scents = document.querySelector(".theme-scents");
-    const webdesign = document.querySelector(".theme-webdesign");
-
-    const resolved = arcade
-      ? "/LRG Arcade PNG.png"
-      : scents
-        ? "/LRG Scents PNG.png"
-        : webdesign
-          ? "/LRG Web Design PNG.png"
-          : nextSrc;
-
-    setResolvedSrc(resolved);
-  }, [brandSlug]);
+  const resolvedSrc = getBrandImage(brandSlug);
 
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
