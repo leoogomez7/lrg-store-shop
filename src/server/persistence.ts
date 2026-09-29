@@ -556,7 +556,7 @@ export const upsertAdminOrder = createServerFn({ method: "POST" })
     });
 
     try {
-      await createDatabaseBackup("order-purchase");
+      await createDatabaseBackup(`order-purchase:${data.order.id}`);
     } catch (error) {
       console.error("No se pudo crear el backup automático del pedido:", error);
     }

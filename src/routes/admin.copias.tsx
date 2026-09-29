@@ -69,7 +69,10 @@ const formatDate = (value: string) =>
 const getBackupReference = (backup: AdminBackupSummary) => {
   if (backup.reason === "weekly-scheduled") return "Copia todos los lunes 0:00 hs";
   if (backup.reason === "manual") return "Copia creada por el administrador";
-  return `Pedido ${backup.id.split(":")[0]}`;
+  const orderNumber = backup.reason.startsWith("order-purchase:")
+    ? backup.reason.slice("order-purchase:".length)
+    : "";
+  return orderNumber ? `Pedido ${orderNumber}` : "Pedido";
 };
 
 const getBackupType = (backup: AdminBackupSummary) => {

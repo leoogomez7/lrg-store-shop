@@ -373,30 +373,26 @@ function AdminTrash() {
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
-      <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Eliminaciones</p>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="order-1 basis-full shrink-0">
+          <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Eliminaciones</p>
           <h1 className="mt-2 text-3xl font-semibold">Papelera</h1>
         </div>
-      </div>
 
-      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar elemento eliminado"
-              aria-label="Buscar elemento eliminado"
-              className="h-9 pl-9"
-            />
-          </div>
-          <p className="text-sm text-primary sm:whitespace-nowrap">
-            Los elementos se eliminan automáticamente después de 10 días.
-          </p>
+        <p className="order-2 text-sm text-primary">
+          Los elementos se eliminan automáticamente después de 10 días.
+        </p>
+        <div className="order-3 relative min-w-0 basis-full flex-1 sm:basis-auto">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar elemento eliminado"
+            aria-label="Buscar elemento eliminado"
+            className="h-9 pl-9"
+          />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="order-4 flex basis-full flex-wrap items-center gap-2 sm:basis-auto sm:shrink-0">
           <Button type="button" variant="outline" onClick={emptyTrash}>
             <Trash2 className="size-4" /> Vaciar papelera
           </Button>
@@ -451,13 +447,13 @@ function AdminTrash() {
               </TableRow>
             ) : entries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="py-16! text-center text-sm text-muted-foreground">
                   La papelera está vacía.
                 </TableCell>
               </TableRow>
             ) : filteredEntries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="py-16! text-center text-sm text-muted-foreground">
                   No se encontraron elementos eliminados.
                 </TableCell>
               </TableRow>

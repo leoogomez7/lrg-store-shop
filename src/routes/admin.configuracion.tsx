@@ -797,8 +797,9 @@ function AdminConfiguration() {
                 }}
                 className={cn(
                   "h-8 gap-1 px-2 text-sm",
-                  newSubcategoryParentSlugs.includes(getSubcategorySelectionKey(categoryId, node.slug)) &&
-                    "border-primary bg-primary/10 text-primary",
+                  newSubcategoryParentSlugs.includes(
+                    getSubcategorySelectionKey(categoryId, node.slug),
+                  ) && "border-primary bg-primary/10 text-primary",
                 )}
               >
                 <Plus className="size-4" /> Subcat.
@@ -847,7 +848,7 @@ function AdminConfiguration() {
         </div>
       </div>
 
-      <section className="mt-10 rounded-3xl border border-border/60 bg-surface/90 p-6">
+      <section className="mt-6 rounded-3xl border border-border/60 bg-surface/90 p-6">
         <div className="flex items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
             <Store className="size-5" />
@@ -1144,11 +1145,7 @@ function AdminConfiguration() {
                 <Input
                   value={newSubcategoryName}
                   onChange={(event) => setNewSubcategoryName(event.target.value)}
-                  placeholder={
-                    newSubcategoryParentSlugs.length
-                      ? "Nueva subcategoría"
-                      : "Nueva subcategoría"
-                  }
+                  placeholder="Nueva subcategoría"
                   className="h-9 min-w-0"
                 />
                 <Button
