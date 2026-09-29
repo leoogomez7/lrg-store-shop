@@ -369,7 +369,7 @@ function CatalogPage() {
       />
       <section className="mt-8">
         {results.length === 0 ? (
-          <div className="glass-panel rounded-2xl p-12 text-center">
+          <div className="glass-panel mb-8 rounded-2xl p-12 text-center">
             <h2 className="font-display text-lg font-semibold">Sin resultados</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Probá ajustando los filtros o ampliando el rango de precio.
