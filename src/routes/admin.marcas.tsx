@@ -220,7 +220,7 @@ function AdminBrands() {
       <h1 className="mt-2 text-3xl font-semibold">Tiendas disponibles</h1>
       <p className="mt-2 text-sm text-muted-foreground">Hacé click en cada ítem para editarlo.</p>
 
-      <div className="mt-8 grid grid-cols-1 items-stretch gap-4 pb-20 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <article className="theme-webdesign glass-panel flex min-w-0 h-full flex-col justify-between rounded-2xl p-3">
           <div>
             <div className="flex items-start gap-3">
