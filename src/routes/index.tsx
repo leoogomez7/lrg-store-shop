@@ -448,6 +448,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
       <BrandFooter
         brand={{ ...webDesignConfig, name: "LRG Store Shop" }}
         storeContact={storeShopContact}
+        section="admin"
       />
     </div>
   );
