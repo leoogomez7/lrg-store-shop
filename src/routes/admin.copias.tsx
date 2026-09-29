@@ -119,9 +119,6 @@ function PendingAdminBackups() {
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Copias de seguridad</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Copias semanales, manuales y por pedido.
-          </p>
           <p className="mt-2 text-sm text-primary">
             La próxima copia de seguridad semanal es el {getNextWeeklyBackup()}.
           </p>
@@ -297,9 +294,6 @@ function AdminBackups() {
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Respaldo</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Copias de seguridad</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Copias semanales, manuales y por pedido.
-          </p>
           <p className="mt-2 text-sm text-primary">
             La próxima copia de seguridad semanal es el {getNextWeeklyBackup()}.
           </p>
