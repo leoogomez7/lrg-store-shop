@@ -68,6 +68,12 @@ import { formatDate } from "@/lib/format";
 import { clearAuthRole, getAuthRole, setAuthRole } from "@/lib/auth-role";
 
 export const Route = createFileRoute("/admin")({
+  loader: async ({ context }) => {
+    const settings = await context.queryClient.ensureQueryData(catalogQueries.settings());
+    applyAdminSettings(settings);
+    refreshBrandData();
+    return { settings };
+  },
   beforeLoad: ({ location }) => {
     if (location.pathname === "/admin") {
       throw redirect({ to: "/admin/panel" });
