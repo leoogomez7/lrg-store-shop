@@ -228,7 +228,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
           displayBrandName="LRG Store Shop"
           logoBrandSlug="store-shop"
         />
-        <main className="flex flex-1 flex-col items-center justify-start py-8">
+        <main className="flex flex-col items-center justify-start py-6">
           <span
             className="glass inline-flex w-fit items-center gap-2 rounded-full px-4 py-1.5 text-center text-xs tracking-[0.16em] text-muted-foreground uppercase opacity-100"
             style={{ transition: "opacity 600ms ease" }}

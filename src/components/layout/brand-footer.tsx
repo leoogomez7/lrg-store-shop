@@ -182,6 +182,7 @@ function BrandFooterContent({
     getAuthRole() === "admin" &&
     window.localStorage.getItem("lrg_admin_final_verified") === "true";
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isHomePage = pathname === "/";
   const isCatalogPage = pathname === "/productos" || pathname.endsWith("/productos");
   const isAccountOrdersPage = pathname === "/cuenta/compras";
   const categories =
@@ -253,7 +254,9 @@ function BrandFooterContent({
     <footer
       className={cn(
         "border-t border-border/60 bg-surface/40",
-        section === "admin" || isCatalogPage || isAccountOrdersPage ? "mt-0" : "mt-10 sm:mt-12",
+        section === "admin" || isHomePage || isCatalogPage || isAccountOrdersPage
+          ? "mt-0"
+          : "mt-10 sm:mt-12",
       )}
     >
       <div className="grid w-full gap-10 px-4 pt-4 pb-8 sm:px-6 lg:grid-cols-5 lg:px-8">
