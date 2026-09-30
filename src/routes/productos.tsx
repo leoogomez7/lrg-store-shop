@@ -33,6 +33,7 @@ import { brandList, getStoreShopContact } from "@/config/brands";
 import { webDesignConfig } from "@/config/brands/web-design.config";
 import { catalogQueries } from "@/services/catalog.service";
 import { applyAdminSettings, refreshBrandData } from "@/config/brands";
+import { productMatchesSearch } from "@/data/products";
 
 const searchSchema = z.object({
   categoria: z.string().optional(),
@@ -173,7 +174,7 @@ function ProductosPage() {
   const results = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
     const filtered = products.filter((product) => {
-      if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
+      if (query && !productMatchesSearch(product, query)) return false;
       if (
         filters.categories.length &&
         !selectedCategoryValues.has(product.category) &&

@@ -70,6 +70,7 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { catalogQueries, orderQueries, type Product } from "@/services/catalog.service";
 import { cn } from "@/lib/utils";
 import { saveOrders, type Order, type OrderAttachment, type OrderStatus } from "@/data/orders";
+import { normalizeSearchText, productSearchText, toSearchableText } from "@/data/products";
 import { moveToTrash } from "@/data/trash";
 import { loadAdminSettings } from "@/server/persistence";
 
@@ -1177,11 +1178,22 @@ function AdminOrders() {
       const quantity = order.items.reduce((sum, item) => sum + item.quantity, 0);
       const priceMatches = order.total >= priceMin && order.total <= priceMax;
       const quantityMatches = quantity >= quantityMin && quantity <= quantityMax;
-      const queryMatches =
-        !query ||
-        order.id.toLowerCase().includes(query.toLowerCase()) ||
-        order.customer.toLowerCase().includes(query.toLowerCase()) ||
-        order.email.toLowerCase().includes(query.toLowerCase());
+      const normalizedQuery = normalizeSearchText(query.trim());
+      const linkedProductText = order.items
+        .map((item) => {
+          const itemProduct = allProducts.find(
+            (product) =>
+              (item.productId &&
+                (product.id === item.productId || product.parentId === item.productId)) ||
+              (item.variantId && product.variantId === item.variantId) ||
+              product.name.toLocaleLowerCase() === item.name.toLocaleLowerCase(),
+          );
+          return itemProduct ? productSearchText(itemProduct) : "";
+        })
+        .join(" ");
+      const searchableOrderText = toSearchableText(order) + " " + linkedProductText;
+      const normalizedOrderText = normalizeSearchText(searchableOrderText);
+      const queryMatches = !normalizedQuery || normalizedOrderText.includes(normalizedQuery);
 
       return (
         deliveryMatches &&
@@ -1237,6 +1249,7 @@ function AdminOrders() {
     query,
     sortOrder,
     getOrderCurrencies,
+    allProducts,
   ]);
 
   useEffect(() => {

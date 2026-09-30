@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
-import { orderQueries, type Order } from "@/services/catalog.service";
+import { catalogQueries, orderQueries, type Order } from "@/services/catalog.service";
+import { normalizeSearchText, productSearchText, toSearchableText } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
@@ -45,13 +46,19 @@ import { saveOrders, orders as ordersData, type OrderAttachment } from "@/data/o
 import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
 
 export const Route = createFileRoute("/admin/clientes")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(orderQueries.list()),
+      context.queryClient.ensureQueryData(catalogQueries.allAdmin()),
+    ]);
+  },
   head: () => ({ meta: [{ title: "Administrador" }] }),
   component: AdminClients,
 });
 
 function AdminClients() {
   const { data: orders = [] } = useSuspenseQuery(orderQueries.list());
+  const { data: products = [] } = useSuspenseQuery(catalogQueries.allAdmin());
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<number>(16);
   const [pageSizeInput, setPageSizeInput] = useState<string>("16");
@@ -120,18 +127,32 @@ function AdminClients() {
   }, [ordersLimit, spentLimit]);
 
   const filteredCustomers = useMemo(() => {
-    const q = query.toLowerCase();
+    const q = normalizeSearchText(query.trim());
     const filtered = customers.filter((c) => {
-      const name = (c.name ?? "").toLowerCase();
-      const email = (c.email ?? "").toLowerCase();
-      const key = (c.key ?? "").toLowerCase();
+      const linkedProductText = c.orders
+        .flatMap((order) =>
+          order.items.map((item) => {
+            const product = products.find(
+              (candidate) =>
+                (item.productId &&
+                  (candidate.id === item.productId || candidate.parentId === item.productId)) ||
+                (item.variantId && candidate.variantId === item.variantId) ||
+                candidate.name.toLocaleLowerCase() === item.name.toLocaleLowerCase(),
+            );
+            return product ? productSearchText(product) : "";
+          }),
+        )
+        .join(" ");
+      const normalizedSearchableText = normalizeSearchText(
+        `${toSearchableText(c)} ${linkedProductText}`,
+      );
       const totalSpent = c.orders.reduce((sum, order) => sum + (order.total || 0), 0);
       const hasStore =
         !storeFilter.length || c.orders.some((order) => storeFilter.includes(order.brand));
       const typeMatches =
         !typeFilter.length || typeFilter.includes(c.isGuest ? "guest" : "customer");
       return (
-        (!q || name.includes(q) || email.includes(q) || key.includes(q)) &&
+        (!q || normalizedSearchableText.includes(q)) &&
         hasStore &&
         typeMatches &&
         c.orders.length >= ordersMin &&
@@ -160,6 +181,7 @@ function AdminClients() {
     });
   }, [
     customers,
+    products,
     query,
     sortOrder,
     storeFilter,

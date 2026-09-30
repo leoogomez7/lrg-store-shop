@@ -29,6 +29,7 @@ import { ProductCard } from "@/components/product/product-card";
 import { applyAdminSettings, getBrand, refreshBrandData } from "@/config/brands";
 import { catalogQueries } from "@/services/catalog.service";
 import { orders } from "@/data/orders";
+import { productMatchesSearch } from "@/data/products";
 
 const searchSchema = z.object({
   categoria: z.string().optional(),
@@ -163,7 +164,7 @@ function CatalogPage() {
   const results = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
     const filtered = products.filter((product) => {
-      if (query && !`${product.name} ${product.short}`.toLowerCase().includes(query)) return false;
+      if (query && !productMatchesSearch(product, query)) return false;
       if (
         filters.categories.length &&
         !selectedCategoryValues.has(product.category) &&

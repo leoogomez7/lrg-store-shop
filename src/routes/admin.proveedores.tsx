@@ -52,7 +52,12 @@ import {
 } from "@/components/ui/table";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 import { formatNumber } from "@/lib/format";
-import { saveProducts, type Product } from "@/data/products";
+import {
+  normalizeSearchText,
+  productSearchText,
+  saveProducts,
+  type Product,
+} from "@/data/products";
 import { saveOrders } from "@/data/orders";
 import { moveToTrash } from "@/data/trash";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -865,6 +870,7 @@ function AdminSuppliers() {
 
   const filteredRows = rows
     .filter((row) => {
+      const normalizedQuery = normalizeSearchText(query.trim());
       const selectedSales = currencyFilter.reduce(
         (sum, currency) => sum + row.salesByCurrency[currency],
         0,
@@ -873,10 +879,23 @@ function AdminSuppliers() {
         row.name,
         row.phone,
         row.social,
-        ...row.products.map((entry) => entry.name),
+        row.key,
+        ...row.stores,
+        row.sales,
+        row.salesByCurrency.ARS,
+        row.salesByCurrency.USD,
+        row.soldQuantity,
+        ...row.products.flatMap((entry) => {
+          const linkedProduct = products.find((product) => product.name === entry.name);
+          return [
+            entry.name,
+            entry.variantName,
+            linkedProduct ? productSearchText(linkedProduct) : "",
+          ];
+        }),
       ];
       return (
-        searchableValues.some((value) => value.toLowerCase().includes(query.toLowerCase())) &&
+        searchableValues.some((value) => normalizeSearchText(value).includes(normalizedQuery)) &&
         (!storeFilter.length || row.stores.some((store) => storeFilter.includes(store))) &&
         selectedSales >= salesMin &&
         selectedSales <= effectiveSalesMax &&

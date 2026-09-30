@@ -31,6 +31,7 @@ import {
   saveProduct,
   saveProductBatch,
   saveProducts,
+  productMatchesSearch,
   type ProductSupplier,
   type ProductVariant,
 } from "@/data/products";
@@ -1837,7 +1838,7 @@ function AdminProducts() {
       if (categoryFilter.length && !categoryFilter.includes(product.category)) return false;
       if (currencyFilter.length && !currencyFilter.includes(product.priceCurrency ?? "ARS"))
         return false;
-      if (query && !product.name.toLowerCase().includes(query.toLowerCase())) return false;
+      if (query && !productMatchesSearch(product, query)) return false;
       if (discountOnly && (discounts[product.id] ?? 0) <= 0) return false;
       if (stockOnly && product.stock <= 0) return false;
       if (availableOnly && product.hidden) return false;

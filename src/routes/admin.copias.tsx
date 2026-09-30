@@ -9,6 +9,7 @@ import {
   Filter,
   LoaderCircle,
   Plus,
+  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { normalizeSearchText } from "@/data/products";
 import {
   Table,
   TableBody,
@@ -164,6 +166,7 @@ function AdminBackups() {
   const [sortOpen, setSortOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<BackupSort>("date_desc");
+  const [query, setQuery] = useState("");
   const [typesOpen, setTypesOpen] = useState(false);
   const [typeFilters, setTypeFilters] = useState<string[]>([]);
   const [datesOpen, setDatesOpen] = useState(false);
@@ -261,6 +264,20 @@ function AdminBackups() {
     const filtered = backups.filter((backup) => {
       const type = getBackupType(backup);
       const date = backup.createdAt.slice(0, 10);
+      const searchableText = [
+        backup.id,
+        backup.reason,
+        type,
+        getBackupReference(backup),
+        backup.sizeBytes,
+        date,
+        formatDate(backup.createdAt),
+      ].join(" ");
+      if (
+        normalizeSearchText(query.trim()) &&
+        !normalizeSearchText(searchableText).includes(normalizeSearchText(query.trim()))
+      )
+        return false;
       if (typeFilters.length > 0 && !typeFilters.includes(type)) return false;
       if (dateFrom && date < dateFrom) return false;
       if (dateTo && date > dateTo) return false;
@@ -283,7 +300,7 @@ function AdminBackups() {
           return right.createdAt.localeCompare(left.createdAt);
       }
     });
-  }, [backups, dateFrom, dateTo, sortOrder, typeFilters]);
+  }, [backups, dateFrom, dateTo, query, sortOrder, typeFilters]);
 
   const totalPages = Math.max(1, Math.ceil(filteredBackups.length / pageSize));
   const safePage = Math.min(page, totalPages - 1);
@@ -302,6 +319,19 @@ function AdminBackups() {
           </p>
         </div>
         <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(0);
+              }}
+              placeholder="Buscar copias"
+              aria-label="Buscar copias de seguridad"
+              className="h-9 pl-9"
+            />
+          </div>
           <div className="order-2 flex min-w-0 flex-row items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x sm:order-0 sm:overflow-visible sm:pb-0">
             <Dialog open={sortOpen} onOpenChange={setSortOpen}>
               <DialogTrigger asChild>

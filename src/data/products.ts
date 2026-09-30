@@ -1,5 +1,45 @@
 import type { BrandSlug } from "@/config/brands";
 
+const NON_TEXT_CONTENT_KEYS = new Set(["dataurl", "snapshotdata", "image", "images"]);
+
+export function normalizeSearchText(value: unknown) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase();
+}
+
+export function toSearchableText(value: unknown) {
+  const values: string[] = [];
+  const visited = new WeakSet<object>();
+
+  const collect = (current: unknown) => {
+    if (current === null || current === undefined) return;
+    if (
+      typeof current === "string" ||
+      typeof current === "number" ||
+      typeof current === "boolean"
+    ) {
+      values.push(String(current));
+      return;
+    }
+    if (typeof current !== "object" || visited.has(current)) return;
+
+    visited.add(current);
+    if (Array.isArray(current)) {
+      current.forEach(collect);
+      return;
+    }
+
+    Object.entries(current).forEach(([key, nestedValue]) => {
+      if (!NON_TEXT_CONTENT_KEYS.has(key.toLocaleLowerCase())) collect(nestedValue);
+    });
+  };
+
+  collect(value);
+  return values.join(" ");
+}
+
 const cloneSnapshot = <T>(items: T[]) =>
   typeof structuredClone === "function"
     ? structuredClone(items)
@@ -121,6 +161,16 @@ export type Product = {
 };
 
 export const products: Product[] = [];
+
+export function productMatchesSearch(product: Product, query: string) {
+  const normalizedQuery = normalizeSearchText(query.trim());
+  if (!normalizedQuery) return true;
+  return normalizeSearchText(toSearchableText(product)).includes(normalizedQuery);
+}
+
+export function productSearchText(product: Product) {
+  return toSearchableText(product);
+}
 
 export function getProductsByBrand(brand: BrandSlug): Product[] {
   return products.filter((product) => product.brand === brand && !product.hidden);

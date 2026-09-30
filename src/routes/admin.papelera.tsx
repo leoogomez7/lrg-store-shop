@@ -28,6 +28,7 @@ import {
 import { orders, saveOrders } from "@/data/orders";
 import { products, saveProducts } from "@/data/products";
 import { applyTrashEntries, readTrash, removeFromTrash, type TrashEntry } from "@/data/trash";
+import { normalizeSearchText, toSearchableText } from "@/data/products";
 import {
   deleteAdminBackupTrash,
   listAdminBackupTrash,
@@ -148,10 +149,11 @@ function AdminTrash() {
   }, []);
 
   const filteredEntries = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = normalizeSearchText(query.trim());
     if (!normalizedQuery) return entries;
     return entries.filter((entry) => {
-      const name =
+      const itemId = entry.type === "proveedor" ? entry.id : entry.item.id;
+      const displayName =
         entry.type === "producto"
           ? entry.item.name
           : entry.type === "pedido"
@@ -159,10 +161,9 @@ function AdminTrash() {
             : entry.type === "proveedor"
               ? entry.item.name
               : formatBackupName(entry.item.reason, entry.item.createdAt);
-      const itemId = entry.type === "proveedor" ? entry.id : entry.item.id;
-      return [entry.id, entry.type, name, itemId].some((value) =>
-        String(value).toLowerCase().includes(normalizedQuery),
-      );
+      return normalizeSearchText(
+        `${toSearchableText(entry)} ${displayName} ${entry.type} ${itemId}`,
+      ).includes(normalizedQuery);
     });
   }, [entries, query]);
 
