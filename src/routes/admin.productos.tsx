@@ -1,5 +1,6 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { z } from "zod";
 import {
   ArrowDown,
   ArrowLeft,
@@ -35,7 +36,7 @@ import {
   type ProductSupplier,
   type ProductVariant,
 } from "@/data/products";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
 import { cropImageDataUrl, optimizeImageDataUrl } from "@/lib/image-processing";
@@ -175,6 +176,10 @@ const getBrandShortName = (brand: Product["brand"] | string | undefined) => {
 };
 
 export const Route = createFileRoute("/admin/productos")({
+  validateSearch: z.object({
+    productId: z.string().optional(),
+    variantId: z.string().optional(),
+  }),
   head: () => ({
     meta: [
       { title: "Administrador" },
@@ -193,6 +198,8 @@ export const Route = createFileRoute("/admin/productos")({
 });
 
 function AdminProducts() {
+  const routeSearch = Route.useSearch();
+  const navigate = useNavigate({ from: "/admin/productos" });
   const queryClient = useQueryClient();
   const { data: products } = useSuspenseQuery(catalogQueries.allAdmin());
   const [editableProducts, setEditableProducts] = useState<Product[]>([]);
@@ -264,6 +271,7 @@ function AdminProducts() {
   const [keepDuplicateIds, setKeepDuplicateIds] = useState<string[]>([]);
   const [quickEditProductId, setQuickEditProductId] = useState<string | null>(null);
   const [quickEditVariantId, setQuickEditVariantId] = useState<string | null>(null);
+  const openedDeepLinkRef = useRef<string | null>(null);
 
   useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
@@ -940,42 +948,74 @@ function AdminProducts() {
     void commitImportedProducts(acceptedProducts);
   };
 
-  const openEditProductDialog = (product: Product, variant?: ProductVariant) => {
-    setEditingProduct(product);
-    setInitialVariantId(variant?.id ?? null);
-    setProductForm({
-      id: product.id,
-      name: product.name,
-      code: product.code ?? "",
-      brand: product.brand,
-      category: product.category,
-      subcategory: product.subcategory ?? "",
-      subcategoryPath:
-        product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []),
-      price: product.price,
-      priceCurrency: product.priceCurrency ?? "ARS",
-      comision: product.comision ?? 0,
-      comisionCurrency: product.comisionCurrency ?? "ARS",
-      stock: product.stock,
-      stockUnlimited: product.stockUnlimited ?? false,
-      description: product.description,
-      features: product.features ?? [],
-      includes: product.includes ?? [],
-      images: product.images ?? [],
-      gastos: product.gastos ?? 0,
-      gastosCurrency: product.gastosCurrency ?? "ARS",
-      usdRate: product.usdRate && product.usdRate > 0 ? product.usdRate : usdRate,
-      deliveryUnit: "inmediata",
-      deliveryAmount: 1,
-      discount: discounts[product.id] ?? 0,
-      variants: product.variants ?? [],
-      supplier: product.supplier ?? { name: "", phone: "", social: "", purchaseDate: "" },
+  const openEditProductDialog = useCallback(
+    (product: Product, variant?: ProductVariant) => {
+      setEditingProduct(product);
+      setInitialVariantId(variant?.id ?? null);
+      setProductForm({
+        id: product.id,
+        name: product.name,
+        code: product.code ?? "",
+        brand: product.brand,
+        category: product.category,
+        subcategory: product.subcategory ?? "",
+        subcategoryPath:
+          product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []),
+        price: product.price,
+        priceCurrency: product.priceCurrency ?? "ARS",
+        comision: product.comision ?? 0,
+        comisionCurrency: product.comisionCurrency ?? "ARS",
+        stock: product.stock,
+        stockUnlimited: product.stockUnlimited ?? false,
+        description: product.description,
+        features: product.features ?? [],
+        includes: product.includes ?? [],
+        images: product.images ?? [],
+        gastos: product.gastos ?? 0,
+        gastosCurrency: product.gastosCurrency ?? "ARS",
+        usdRate: product.usdRate && product.usdRate > 0 ? product.usdRate : usdRate,
+        deliveryUnit: "inmediata",
+        deliveryAmount: 1,
+        discount: discounts[product.id] ?? 0,
+        variants: product.variants ?? [],
+        supplier: product.supplier ?? { name: "", phone: "", social: "", purchaseDate: "" },
+      });
+      setPendingDiscounts((current) => ({
+        ...current,
+        [product.id]: String(discounts[product.id] ?? 0),
+      }));
+      setEditDialogOpen(true);
+    },
+    [discounts, usdRate],
+  );
+
+  useEffect(() => {
+    const productId = routeSearch.productId;
+    if (!productId || editableProducts.length === 0) return;
+    const deepLinkKey = `${productId}:${routeSearch.variantId ?? ""}`;
+    if (openedDeepLinkRef.current === deepLinkKey) return;
+
+    const product = editableProducts.find((item) => item.id === productId);
+    if (!product) return;
+    const variant = routeSearch.variantId
+      ? product.variants?.find((item) => item.id === routeSearch.variantId)
+      : undefined;
+    if (routeSearch.variantId && !variant) return;
+
+    const timeoutId = window.setTimeout(() => {
+      openedDeepLinkRef.current = deepLinkKey;
+      openEditProductDialog(product, variant);
+    }, 900);
+    return () => window.clearTimeout(timeoutId);
+  }, [editableProducts, openEditProductDialog, routeSearch.productId, routeSearch.variantId]);
+
+  const clearProductDeepLink = () => {
+    openedDeepLinkRef.current = null;
+    if (!routeSearch.productId && !routeSearch.variantId) return;
+    void navigate({
+      search: (previous) => ({ ...previous, productId: undefined, variantId: undefined }),
+      replace: true,
     });
-    setPendingDiscounts((current) => ({
-      ...current,
-      [product.id]: String(discounts[product.id] ?? 0),
-    }));
-    setEditDialogOpen(true);
   };
 
   const handleDeleteProduct = async (productId: string, variantId?: string) => {
@@ -1345,6 +1385,7 @@ function AdminProducts() {
   };
 
   const closeProductEditor = () => {
+    clearProductDeepLink();
     setProductForm(null);
     setEditingProduct(null);
     setInitialVariantId(null);
@@ -4062,7 +4103,13 @@ function AdminProducts() {
       />
       <ProductEditDialog
         open={editDialogOpen}
-        onOpenChange={(open) => (open ? setEditDialogOpen(true) : closeProductEditor())}
+        onOpenChange={(open) => {
+          if (open) {
+            setEditDialogOpen(true);
+          } else {
+            closeProductEditor();
+          }
+        }}
         mode="edit"
         productForm={productForm}
         setProductForm={setProductForm}
@@ -4779,8 +4826,7 @@ function ProductEditDialog({
   const selectedCategory = availableCategories.find(
     (category) => category.slug === productForm.category,
   );
-  const productSkuOptions =
-    brands[safeBrandForForm as BrandSlug].productSkus?.filter((sku) => sku.enabled) ?? [];
+  const productSkuOptions = brands[safeBrandForForm as BrandSlug].productSkus ?? [];
   const currentSkuIsConfigured = productSkuOptions.some((sku) => sku.code === productForm.code);
   const getFormSubcategoryOptions = (level: number) =>
     getSubcategoryOptionsAtLevel(

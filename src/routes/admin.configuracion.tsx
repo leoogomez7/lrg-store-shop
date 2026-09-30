@@ -110,6 +110,8 @@ function AdminConfiguration() {
   const [discounts, setDiscounts] = useState<BrandDiscount[]>([]);
   const [productSkus, setProductSkus] = useState<BrandSku[]>([]);
   const [newProductSku, setNewProductSku] = useState("");
+  const [editingProductSkuId, setEditingProductSkuId] = useState<string | null>(null);
+  const [editingProductSkuCode, setEditingProductSkuCode] = useState("");
   const [editingDiscountId, setEditingDiscountId] = useState<string | null>(null);
   const [editingDiscountCode, setEditingDiscountCode] = useState("");
   const [editingDiscountPercentage, setEditingDiscountPercentage] = useState<number | string>("");
@@ -257,17 +259,29 @@ function AdminConfiguration() {
   const addProductSku = () => {
     const code = newProductSku.trim().toUpperCase();
     if (!code || productSkus.some((sku) => sku.code.toUpperCase() === code)) return;
-    persistProductSkus([...productSkus, { id: `${Date.now()}-${code}`, code, enabled: true }]);
+    persistProductSkus([...productSkus, { id: `${Date.now()}-${code}`, code }]);
     setNewProductSku("");
     toast.success("SKU agregado", {
       description: `${code} estará disponible al editar productos.`,
     });
   };
 
-  const toggleProductSku = (id: string) => {
-    persistProductSkus(
-      productSkus.map((sku) => (sku.id === id ? { ...sku, enabled: !sku.enabled } : sku)),
-    );
+  const editProductSku = (sku: BrandSku) => {
+    setEditingProductSkuId(sku.id);
+    setEditingProductSkuCode(sku.code);
+  };
+
+  const saveProductSku = (id: string) => {
+    const code = editingProductSkuCode.trim().toUpperCase();
+    if (!code) return;
+    if (productSkus.some((sku) => sku.id !== id && sku.code.toUpperCase() === code)) {
+      toast.error("Ya existe un SKU con ese código.");
+      return;
+    }
+    persistProductSkus(productSkus.map((sku) => (sku.id === id ? { ...sku, code } : sku)));
+    setEditingProductSkuId(null);
+    setEditingProductSkuCode("");
+    toast.success("SKU actualizado");
   };
 
   const removeProductSku = (id: string) => {
@@ -1755,16 +1769,52 @@ function AdminConfiguration() {
                 key={sku.id}
                 className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/80 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
-                <span className="font-semibold">{sku.code}</span>
+                {editingProductSkuId === sku.id ? (
+                  <Input
+                    value={editingProductSkuCode}
+                    onChange={(event) => setEditingProductSkuCode(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") saveProductSku(sku.id);
+                      if (event.key === "Escape") {
+                        setEditingProductSkuId(null);
+                        setEditingProductSkuCode("");
+                      }
+                    }}
+                    aria-label={`Editar SKU ${sku.code}`}
+                    autoFocus
+                    className="h-9 max-w-xs"
+                  />
+                ) : (
+                  <span className="font-semibold">{sku.code}</span>
+                )}
                 <div className="flex w-full flex-nowrap items-center gap-2 sm:w-auto">
-                  <label className="inline-flex h-8 shrink-0 items-center gap-2 rounded-2xl border border-border/60 bg-background/80 px-2">
-                    <span className="text-xs">{sku.enabled ? "Activo" : "Inactivo"}</span>
-                    <Switch
-                      checked={sku.enabled}
-                      onCheckedChange={() => toggleProductSku(sku.id)}
-                      aria-label={`${sku.enabled ? "Desactivar" : "Activar"} SKU ${sku.code}`}
-                    />
-                  </label>
+                  {editingProductSkuId === sku.id ? (
+                    <>
+                      <Button type="button" size="sm" onClick={() => saveProductSku(sku.id)}>
+                        <Check className="size-4" /> Guardar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingProductSkuId(null);
+                          setEditingProductSkuCode("");
+                        }}
+                      >
+                        <X className="size-4" /> Cancelar
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => editProductSku(sku)}
+                    >
+                      <Pencil className="size-4" /> Editar
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="ghost"

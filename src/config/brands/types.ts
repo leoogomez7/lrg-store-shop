@@ -58,7 +58,7 @@ export type BrandDiscount = {
 export type BrandSku = {
   id: string;
   code: string;
-  enabled: boolean;
+  enabled?: boolean;
 };
 
 export type BrandConfig = {

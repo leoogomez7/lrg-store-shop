@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import * as React from "react";
 import {
   ArrowLeft,
@@ -96,6 +96,11 @@ type StandaloneSupplier = {
   references?: string;
 };
 
+type SupplierCatalogEntry = {
+  product: Product;
+  variant?: NonNullable<Product["variants"]>[number];
+};
+
 const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
 const DELETED_SUPPLIERS_STORAGE_KEY = "lrg:deletedSuppliers";
 
@@ -171,6 +176,7 @@ const replaceSupplierRecord = (
 };
 
 function AdminSuppliers() {
+  const navigate = useNavigate({ from: "/admin/proveedores" });
   const { data: products } = useSuspenseQuery(catalogQueries.allAdmin());
   const { data: settings } = useSuspenseQuery(catalogQueries.settings());
   const { data: orders = [] } = useQuery(orderQueries.list());
@@ -481,6 +487,46 @@ function AdminSuppliers() {
       productCount: productIdsBySupplier.get(row.key)?.size ?? 0,
     }));
   }, [deletedSupplierKeys, orders, products, standaloneSuppliers]);
+
+  const getSupplierCatalogEntries = (supplierRow: SupplierRow): SupplierCatalogEntry[] => {
+    const entries: SupplierCatalogEntry[] = [];
+    const addEntry = (entry: SupplierCatalogEntry) => {
+      const key = `${entry.product.id}:${entry.variant?.id ?? "base"}`;
+      if (
+        !entries.some((current) => `${current.product.id}:${current.variant?.id ?? "base"}` === key)
+      ) {
+        entries.push(entry);
+      }
+    };
+
+    products.forEach((product) => {
+      if (product.supplier && matchesSupplierKey(product.supplier, supplierRow.key)) {
+        addEntry({ product });
+      }
+      product.variants?.forEach((variant) => {
+        if (variant.supplier && matchesSupplierKey(variant.supplier, supplierRow.key)) {
+          addEntry({ product, variant });
+        }
+      });
+    });
+
+    supplierRow.products.forEach((soldProduct) => {
+      const product = products.find((candidate) => candidate.name === soldProduct.name);
+      if (!product) return;
+      const variant = product.variants?.find(
+        (candidate) => candidate.name === soldProduct.variantName,
+      );
+      addEntry({ product, variant });
+    });
+
+    return entries.sort((left, right) =>
+      `${left.product.name} ${left.variant?.name ?? ""}`.localeCompare(
+        `${right.product.name} ${right.variant?.name ?? ""}`,
+        "es",
+        { sensitivity: "base" },
+      ),
+    );
+  };
 
   const storeOptions = [
     ["arcade", "LRG Arcade"],
@@ -1088,6 +1134,10 @@ function AdminSuppliers() {
     printWindow.document.close();
     printWindow.print();
   };
+  const modalCatalogEntries = productsModalSupplier
+    ? getSupplierCatalogEntries(productsModalSupplier)
+    : [];
+  const modalSoldProducts = productsModalSupplier?.products ?? [];
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
@@ -1838,22 +1888,20 @@ function AdminSuppliers() {
                                         </span>
                                       </div>
                                     ))}
-                                  </div>
-                                  {row.products.length === 0 && (
-                                    <p className="text-sm text-muted-foreground">
-                                      Este proveedor todavía no tiene productos vendidos.
-                                    </p>
-                                  )}
-                                  {sortedProducts.length > 8 && (
                                     <Button
                                       type="button"
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => setProductsModalSupplier(row)}
-                                      className="mt-2 px-2 text-xs"
+                                      className="h-auto min-h-9 justify-start px-3 py-2 text-xs text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
                                     >
-                                      Ver más
+                                      Ver productos
                                     </Button>
+                                  </div>
+                                  {row.products.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">
+                                      Este proveedor todavía no tiene productos vendidos.
+                                    </p>
                                   )}
                                 </div>
                               </>
@@ -1962,27 +2010,47 @@ function AdminSuppliers() {
       >
         <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>{productsModalSupplier?.name}</DialogTitle>
-            <DialogDescription>Detalle de ventas por producto.</DialogDescription>
+            <DialogTitle>Productos de {productsModalSupplier?.name}</DialogTitle>
+            <DialogDescription>
+              Seleccioná un producto para abrir su editor en el catálogo.
+            </DialogDescription>
           </DialogHeader>
           <div className="max-h-[min(70vh,32rem)] space-y-1.5 overflow-y-auto">
-            {[...(productsModalSupplier?.products ?? [])]
-              .filter((product) => product.quantity > 0)
-              .sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }))
-              .map((product) => (
-                <div
-                  key={`${product.name}-${product.variantName ?? "base"}`}
-                  className="flex items-center justify-between gap-3 rounded-md bg-muted px-3 py-2 text-sm"
-                >
-                  <span className="min-w-0 wrap-break-word font-medium">
-                    {product.name}
-                    {product.variantName ? ` · ${product.variantName}` : ""}
-                  </span>
-                  <span className="shrink-0 text-right text-muted-foreground">
-                    Cantidad vendida: {product.quantity}
-                  </span>
-                </div>
-              ))}
+            {modalCatalogEntries.length > 0 ? (
+              modalCatalogEntries.map(({ product, variant }) => {
+                const soldProduct = modalSoldProducts.find(
+                  (item) =>
+                    item.name === product.name &&
+                    item.variantName === (variant?.name ?? product.variantName),
+                );
+                return (
+                  <button
+                    key={`${product.id}-${variant?.id ?? "base"}`}
+                    type="button"
+                    onClick={() => {
+                      setProductsModalSupplier(null);
+                      void navigate({
+                        to: "/admin/productos",
+                        search: { productId: product.id, variantId: variant?.id },
+                      });
+                    }}
+                    className="flex w-full items-center justify-between gap-3 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-left text-sm text-amber-500 transition-colors hover:bg-amber-500/10 hover:text-amber-400"
+                  >
+                    <span className="min-w-0 wrap-break-word font-medium">
+                      {product.name}
+                      {variant?.name ? ` · ${variant.name}` : ""}
+                    </span>
+                    <span className="shrink-0 text-right text-xs text-muted-foreground">
+                      Cantidad vendida: {soldProduct?.quantity ?? 0}
+                    </span>
+                  </button>
+                );
+              })
+            ) : (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Este proveedor todavía no tiene productos vinculados.
+              </p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
