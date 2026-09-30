@@ -3215,19 +3215,22 @@ function AdminProducts() {
       >
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>
-              {importSetupSource === "images"
-                ? "Configurar importación: Varios productos"
-                : importSetupSource === "text"
-                  ? "Configurar importación: Importar desde un archivo de texto"
-                  : "Configurar importación: Importar desde la tienda Store"}
-            </DialogTitle>
+            <DialogTitle>Configurar importación</DialogTitle>
             <DialogDescription>
-              {importSetupSource === "images"
-                ? "Varios productos · Elegí la tienda, categoría, subcategoría y SKU para las imágenes."
-                : importSetupSource === "text"
-                  ? "Importar desde un archivo de texto · Elegí la tienda, categoría, subcategoría y SKU para el archivo."
-                  : "Importar desde la tienda Store · Elegí la tienda, categoría, subcategoría y SKU para los productos importados."}
+              <span className="block">
+                {importSetupSource === "images"
+                  ? "Varios productos"
+                  : importSetupSource === "text"
+                    ? "Importar desde un archivo de texto"
+                    : "Importar desde la tienda Store"}
+              </span>
+              <span className="block">
+                {importSetupSource === "images"
+                  ? "Elegí la tienda, categoría, subcategoría y SKU para las imágenes."
+                  : importSetupSource === "text"
+                    ? "Elegí la tienda, categoría, subcategoría y SKU para el archivo."
+                    : "Elegí la tienda, categoría, subcategoría y SKU para los productos importados."}
+              </span>
             </DialogDescription>
           </DialogHeader>
           <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -4775,6 +4778,9 @@ function ProductEditDialog({
   const selectedCategory = availableCategories.find(
     (category) => category.slug === productForm.category,
   );
+  const productSkuOptions =
+    brands[safeBrandForForm as BrandSlug].productSkus?.filter((sku) => sku.enabled) ?? [];
+  const currentSkuIsConfigured = productSkuOptions.some((sku) => sku.code === productForm.code);
   const getFormSubcategoryOptions = (level: number) =>
     getSubcategoryOptionsAtLevel(
       selectedCategory?.subcategories,
@@ -5033,14 +5039,29 @@ function ProductEditDialog({
               <div className="grid gap-4 sm:col-span-4 sm:grid-cols-4">
                 <div className="space-y-2">
                   <Label htmlFor="new-product-code">SKU</Label>
-                  <Input
-                    id="new-product-code"
-                    value={productForm.code}
-                    onChange={(event) =>
-                      setProductForm({ ...productForm, code: event.target.value })
+                  <Select
+                    value={productForm.code || "none"}
+                    onValueChange={(value) =>
+                      setProductForm({ ...productForm, code: value === "none" ? "" : value })
                     }
-                    placeholder="SKU del producto"
-                  />
+                  >
+                    <SelectTrigger id="new-product-code" className="w-full">
+                      <SelectValue placeholder="Seleccionar SKU" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin SKU</SelectItem>
+                      {productForm.code && !currentSkuIsConfigured ? (
+                        <SelectItem value={productForm.code}>
+                          {productForm.code} (SKU actual)
+                        </SelectItem>
+                      ) : null}
+                      {productSkuOptions.map((sku) => (
+                        <SelectItem key={sku.id} value={sku.code}>
+                          {sku.code}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

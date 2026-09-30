@@ -3168,11 +3168,11 @@ function AdminOrders() {
           </DialogHeader>
           {orderForm ? (
             <div className="min-w-0 space-y-4">
-              <div className="space-y-4 rounded-xl border border-border/60 bg-surface/40 p-4">
-                <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+              <div className="rounded-xl border border-border/60 bg-surface/40 p-4">
+                <span className="mb-3 block text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                   Datos cliente
                 </span>
-                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
+                <div className="mb-3 grid min-w-0 items-start gap-3 sm:grid-cols-2">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Número de pedido</Label>
                     <Input value={orderForm.id} disabled />
@@ -3335,11 +3335,11 @@ function AdminOrders() {
                 ) : null}
               </div>
 
-              <div className="space-y-4 rounded-xl border border-border/60 bg-surface/40 p-4">
-                <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+              <div className="rounded-xl border border-border/60 bg-surface/40 p-4">
+                <span className="mb-4 block text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                   Productos
                 </span>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {orderForm.items.map((item, itemIndex) => {
                     const productSuggestions = allProducts
                       .filter((product) =>
@@ -3383,11 +3383,17 @@ function AdminOrders() {
                       (hasUnlimitedStock ||
                         item.quantity <=
                           Math.max(selectedProduct?.stock ?? 0, item.originalQuantity ?? 0));
+                    const isNewOrderItem = item.originalName === undefined;
 
                     return (
                       <div
                         key={`item-${itemIndex}`}
-                        className="relative grid gap-2 rounded-xl border border-border/60 bg-surface/40 p-3 sm:grid-cols-[1.7fr_0.5fr_0.65fr_1.2fr_1.2fr_auto]"
+                        className={cn(
+                          "relative grid gap-2 rounded-xl border border-border/60 bg-surface/40 p-3",
+                          isNewOrderItem
+                            ? "sm:grid-cols-[minmax(0,1.7fr)_minmax(5rem,0.5fr)_auto]"
+                            : "sm:grid-cols-[1.7fr_0.5fr_0.65fr_1.2fr_1.2fr_auto]",
+                        )}
                       >
                         <div className="relative">
                           <Label>Nombre</Label>
@@ -3456,41 +3462,56 @@ function AdminOrders() {
                             </p>
                           )}
                         </div>
-                        <div>
-                          <Label>Precio</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            value={item.price * item.quantity}
-                            disabled
-                          />
-                        </div>
-                        <div>
-                          <Label>Número de envío</Label>
-                          <Input
-                            value={item.shippingNumber ?? ""}
-                            onChange={(event) => {
-                              const nextItems = [...orderForm.items];
-                              nextItems[itemIndex] = {
-                                ...item,
-                                shippingNumber: event.target.value,
-                              };
-                              updateOrderItemsOnly(nextItems);
-                            }}
-                            placeholder="-"
-                          />
-                        </div>
-                        <div>
-                          <Label>Proveedor</Label>
-                          <Input
-                            value={item.supplier?.name ?? selectedSupplier?.name ?? ""}
-                            placeholder="-"
-                            disabled
-                          />
-                        </div>
+                        {!isNewOrderItem ? (
+                          <>
+                            <div>
+                              <Label>Precio</Label>
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.01}
+                                value={item.price * item.quantity}
+                                disabled
+                              />
+                            </div>
+                            <div>
+                              <Label>Número de envío</Label>
+                              <Input
+                                value={item.shippingNumber ?? ""}
+                                onChange={(event) => {
+                                  const nextItems = [...orderForm.items];
+                                  nextItems[itemIndex] = {
+                                    ...item,
+                                    shippingNumber: event.target.value,
+                                  };
+                                  updateOrderItemsOnly(nextItems);
+                                }}
+                                placeholder="-"
+                              />
+                            </div>
+                            <div>
+                              <Label>Proveedor</Label>
+                              <Input
+                                value={item.supplier?.name ?? selectedSupplier?.name ?? ""}
+                                placeholder="-"
+                                disabled
+                              />
+                            </div>
+                          </>
+                        ) : null}
                         <div className="flex flex-col items-stretch justify-end gap-1">
-                          {item.confirmed ? (
+                          {isNewOrderItem ? (
+                            <Button
+                              type="button"
+                              variant="default"
+                              onClick={() => confirmOrderItem(itemIndex)}
+                              disabled={!itemCanBeSaved}
+                              className="h-9 gap-2 whitespace-nowrap"
+                              aria-label="Agregar producto al pedido"
+                            >
+                              <Plus className="size-4" /> Agregar
+                            </Button>
+                          ) : item.confirmed ? (
                             <>
                               <Button
                                 type="button"
@@ -3542,18 +3563,23 @@ function AdminOrders() {
                   })}
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div>
-                    <Label>Gastos</Label>
-                    <Input value={formatPrice(orderForm.expenses)} disabled />
-                  </div>
-                  <div>
-                    <Label>Ganancias</Label>
-                    <Input value={formatPrice(orderForm.profit)} disabled />
-                  </div>
-                  <div>
-                    <Label>Total</Label>
-                    <Input value={formatPrice(orderForm.total)} disabled />
+                <div className="mt-2 border-t border-border/50 pt-4">
+                  <span className="mb-3 block text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                    Gastos totales
+                  </span>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <Label>Gastos</Label>
+                      <Input value={formatPrice(orderForm.expenses)} disabled />
+                    </div>
+                    <div>
+                      <Label>Ganancias</Label>
+                      <Input value={formatPrice(orderForm.profit)} disabled />
+                    </div>
+                    <div>
+                      <Label>Total</Label>
+                      <Input value={formatPrice(orderForm.total)} disabled />
+                    </div>
                   </div>
                 </div>
               </div>

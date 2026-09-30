@@ -55,6 +55,12 @@ export type BrandDiscount = {
   enabled: boolean;
 };
 
+export type BrandSku = {
+  id: string;
+  code: string;
+  enabled: boolean;
+};
+
 export type BrandConfig = {
   slug: BrandSlug;
   /** clase de tema definida en styles.css */
@@ -76,6 +82,7 @@ export type BrandConfig = {
   paymentMethods?: BrandPaymentMethod[];
   shipping?: BrandShippingConfig;
   discounts?: BrandDiscount[];
+  productSkus?: BrandSku[];
   /** optional path to favicon/logo shown in browser tab (public/) */
   favicon?: string;
 };

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactElement } from "re
 import {
   ArrowUpRight,
   BadgePercent,
+  Barcode,
   Check,
   CreditCard,
   Landmark,
@@ -34,6 +35,7 @@ import {
   BrandPaymentMethod,
   applyAdminSettings,
   type BrandDiscount,
+  type BrandSku,
   type BrandSubcategory,
   brandList,
   getBrand,
@@ -42,6 +44,7 @@ import {
   setBrandPaymentMethods,
   setBrandShippingConfig,
   setBrandDiscounts,
+  setBrandProductSkus,
   type BrandSlug,
 } from "@/config/brands";
 import { cn } from "@/lib/utils";
@@ -105,6 +108,8 @@ function AdminConfiguration() {
   const [newDiscountPercentage, setNewDiscountPercentage] = useState<number | string>("");
   const [newDiscountAmount, setNewDiscountAmount] = useState<number | string>("");
   const [discounts, setDiscounts] = useState<BrandDiscount[]>([]);
+  const [productSkus, setProductSkus] = useState<BrandSku[]>([]);
+  const [newProductSku, setNewProductSku] = useState("");
   const [editingDiscountId, setEditingDiscountId] = useState<string | null>(null);
   const [editingDiscountCode, setEditingDiscountCode] = useState("");
   const [editingDiscountPercentage, setEditingDiscountPercentage] = useState<number | string>("");
@@ -149,6 +154,7 @@ function AdminConfiguration() {
       setShippingMethods(brand.shipping?.methods ?? []);
 
       setDiscounts(brand.discounts ?? []);
+      setProductSkus(brand.productSkus ?? []);
 
       const shippingThreshold = brand.shipping?.freeShippingThreshold ?? 300;
       setFreeShippingThreshold(shippingThreshold);
@@ -241,6 +247,31 @@ function AdminConfiguration() {
   const persistDiscounts = (nextDiscounts: BrandDiscount[]) => {
     setDiscounts(nextDiscounts);
     if (isInitialized) setBrandDiscounts(selectedBrand as BrandSlug, nextDiscounts);
+  };
+
+  const persistProductSkus = (nextSkus: BrandSku[]) => {
+    setProductSkus(nextSkus);
+    if (isInitialized) setBrandProductSkus(selectedBrand, nextSkus);
+  };
+
+  const addProductSku = () => {
+    const code = newProductSku.trim().toUpperCase();
+    if (!code || productSkus.some((sku) => sku.code.toUpperCase() === code)) return;
+    persistProductSkus([...productSkus, { id: `${Date.now()}-${code}`, code, enabled: true }]);
+    setNewProductSku("");
+    toast.success("SKU agregado", {
+      description: `${code} estará disponible al editar productos.`,
+    });
+  };
+
+  const toggleProductSku = (id: string) => {
+    persistProductSkus(
+      productSkus.map((sku) => (sku.id === id ? { ...sku, enabled: !sku.enabled } : sku)),
+    );
+  };
+
+  const removeProductSku = (id: string) => {
+    persistProductSkus(productSkus.filter((sku) => sku.id !== id));
   };
 
   const addDiscount = () => {
@@ -1668,6 +1699,89 @@ function AdminConfiguration() {
                 No hay descuentos configurados para esta tienda.
               </p>
             )}
+          </div>
+        </section>
+
+        <section className="glass-panel rounded-3xl p-6">
+          <div className="flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Barcode className="size-5" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">SKU</h2>
+              <p className="text-sm text-muted-foreground">
+                Administrá códigos internos disponibles para identificar productos en{" "}
+                {getBrand(selectedBrand)?.name ?? "esta tienda"}.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="w-full space-y-2 sm:max-w-107.5">
+              <Label htmlFor="new-product-sku">SKU</Label>
+              <Input
+                id="new-product-sku"
+                value={newProductSku}
+                onChange={(event) => setNewProductSku(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    addProductSku();
+                  }
+                }}
+                placeholder="Escribir código SKU"
+                autoComplete="off"
+              />
+            </div>
+            <Button
+              type="button"
+              onClick={addProductSku}
+              size="sm"
+              disabled={
+                !newProductSku.trim() ||
+                productSkus.some(
+                  (sku) => sku.code.toUpperCase() === newProductSku.trim().toUpperCase(),
+                )
+              }
+              className="h-9 shrink-0 gap-2"
+            >
+              <Plus className="size-4" /> Agregar
+            </Button>
+          </div>
+
+          <div className="mt-5 grid gap-2">
+            {productSkus.map((sku) => (
+              <div
+                key={sku.id}
+                className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/80 p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <span className="font-semibold">{sku.code}</span>
+                <div className="flex w-full flex-nowrap items-center gap-2 sm:w-auto">
+                  <label className="inline-flex h-8 shrink-0 items-center gap-2 rounded-2xl border border-border/60 bg-background/80 px-2">
+                    <span className="text-xs">{sku.enabled ? "Activo" : "Inactivo"}</span>
+                    <Switch
+                      checked={sku.enabled}
+                      onCheckedChange={() => toggleProductSku(sku.id)}
+                      aria-label={`${sku.enabled ? "Desactivar" : "Activar"} SKU ${sku.code}`}
+                    />
+                  </label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:bg-destructive/10"
+                    onClick={() => removeProductSku(sku.id)}
+                  >
+                    <Trash2 className="size-4" /> Eliminar
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {productSkus.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No hay SKU configurados para esta tienda.
+              </p>
+            ) : null}
           </div>
         </section>
       </div>

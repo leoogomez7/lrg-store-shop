@@ -7,7 +7,9 @@ import type {
   BrandConfig,
   BrandContactPresentation,
   BrandDiscount,
+  BrandSku,
   BrandPaymentMethod,
+  BrandSku,
   BrandShippingConfig,
   BrandSlug,
   StoreShopContact,
@@ -22,6 +24,7 @@ const PAYMENT_METHODS_STORAGE_KEY = "lrg:paymentMethods";
 const SHIPPING_METHODS_STORAGE_KEY = "lrg:shippingMethods";
 const FREE_SHIPPING_THRESHOLD_STORAGE_KEY = "lrg:freeShippingThreshold";
 const DISCOUNTS_STORAGE_KEY = "lrg:discounts";
+const PRODUCT_SKUS_STORAGE_KEY = "lrg:productSkus";
 const DEFAULT_FREE_SHIPPING_THRESHOLD = 0;
 const DEFAULT_SHIPPING_METHODS: BrandPaymentMethod[] = [];
 
@@ -218,12 +221,31 @@ function readStoredDiscounts(): Record<BrandSlug, BrandDiscount[]> {
   }
 }
 
+function readStoredProductSkus(): Record<BrandSlug, BrandSku[]> {
+  const defaults = { arcade: [], scents: [], "web-design": [] } satisfies Record<
+    BrandSlug,
+    BrandSku[]
+  >;
+  try {
+    const raw = remoteSetting<Partial<Record<BrandSlug, BrandSku[]>>>(PRODUCT_SKUS_STORAGE_KEY);
+    if (!raw || Array.isArray(raw)) return defaults;
+    return {
+      arcade: Array.isArray(raw.arcade) ? raw.arcade : [],
+      scents: Array.isArray(raw.scents) ? raw.scents : [],
+      "web-design": Array.isArray(raw["web-design"]) ? raw["web-design"] : [],
+    };
+  } catch {
+    return defaults;
+  }
+}
+
 const initialBrandState = (): Record<BrandSlug, BrandConfig> => {
   const storedCategories = readStoredCategories();
   const storedContacts = readStoredContacts();
   const storedPaymentMethods = readStoredPaymentMethods();
   const storedShippingConfigs = readStoredShippingConfigs();
   const storedDiscounts = readStoredDiscounts();
+  const storedProductSkus = readStoredProductSkus();
 
   return {
     arcade: {
@@ -236,6 +258,7 @@ const initialBrandState = (): Record<BrandSlug, BrandConfig> => {
       paymentMethods: storedPaymentMethods.arcade,
       shipping: storedShippingConfigs.arcade,
       discounts: storedDiscounts.arcade,
+      productSkus: storedProductSkus.arcade,
     },
     scents: {
       ...defaultBrands.scents,
@@ -247,6 +270,7 @@ const initialBrandState = (): Record<BrandSlug, BrandConfig> => {
       paymentMethods: storedPaymentMethods.scents,
       shipping: storedShippingConfigs.scents,
       discounts: storedDiscounts.scents,
+      productSkus: storedProductSkus.scents,
     },
     "web-design": {
       ...defaultBrands["web-design"],
@@ -258,6 +282,7 @@ const initialBrandState = (): Record<BrandSlug, BrandConfig> => {
       paymentMethods: storedPaymentMethods["web-design"],
       shipping: storedShippingConfigs["web-design"],
       discounts: storedDiscounts["web-design"],
+      productSkus: storedProductSkus["web-design"],
     },
   };
 };
@@ -268,6 +293,7 @@ export function refreshBrandData() {
   const storedPaymentMethods = readStoredPaymentMethods();
   const storedShippingConfigs = readStoredShippingConfigs();
   const storedDiscounts = readStoredDiscounts();
+  const storedProductSkus = readStoredProductSkus();
 
   brands = {
     arcade: {
@@ -280,6 +306,7 @@ export function refreshBrandData() {
       paymentMethods: storedPaymentMethods.arcade,
       shipping: storedShippingConfigs.arcade,
       discounts: storedDiscounts.arcade,
+      productSkus: storedProductSkus.arcade,
     },
     scents: {
       ...defaultBrands.scents,
@@ -291,6 +318,7 @@ export function refreshBrandData() {
       paymentMethods: storedPaymentMethods.scents,
       shipping: storedShippingConfigs.scents,
       discounts: storedDiscounts.scents,
+      productSkus: storedProductSkus.scents,
     },
     "web-design": {
       ...defaultBrands["web-design"],
@@ -302,6 +330,7 @@ export function refreshBrandData() {
       paymentMethods: storedPaymentMethods["web-design"],
       shipping: storedShippingConfigs["web-design"],
       discounts: storedDiscounts["web-design"],
+      productSkus: storedProductSkus["web-design"],
     },
   };
 
@@ -351,6 +380,15 @@ export function setBrandDiscounts(slug: BrandSlug, discounts: BrandDiscount[]) {
   const current = readStoredDiscounts();
   const next = { ...current, [slug]: discounts };
   persistAdminSetting(DISCOUNTS_STORAGE_KEY, next);
+  const fresh = refreshBrandData();
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("lrg-brand-data-updated"));
+  return fresh;
+}
+
+export function setBrandProductSkus(slug: BrandSlug, skus: BrandSku[]) {
+  const current = readStoredProductSkus();
+  const next = { ...current, [slug]: skus };
+  persistAdminSetting(PRODUCT_SKUS_STORAGE_KEY, next);
   const fresh = refreshBrandData();
   if (typeof window !== "undefined") window.dispatchEvent(new Event("lrg-brand-data-updated"));
   return fresh;
