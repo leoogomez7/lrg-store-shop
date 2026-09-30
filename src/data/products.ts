@@ -86,8 +86,12 @@ export type Product = {
   /** When true the product should be hidden from public listings */
   hidden?: boolean;
   name: string;
+  /** Código interno de referencia usado por el administrador. */
+  code?: string;
   category: string;
   subcategory?: string;
+  /** Ruta de slugs desde la primera subcategoría hasta el nivel más profundo. */
+  subcategoryPath?: string[];
   variantName?: string;
   image?: string;
   price: number;

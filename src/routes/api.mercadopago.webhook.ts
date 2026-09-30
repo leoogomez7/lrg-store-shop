@@ -74,6 +74,7 @@ type PaymentIntentData = {
   address: string;
   notes: string;
   total: number;
+  paymentDiscount?: number;
   expenses: number;
   profit: number;
   paymentMethod: string;

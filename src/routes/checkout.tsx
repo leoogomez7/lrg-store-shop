@@ -96,6 +96,7 @@ function CheckoutPage() {
     (getBrand(slug)?.paymentMethods ?? []).filter((method) => method.enabled);
   const isCardMethod = (value: string) =>
     /tarjeta|d[eé]bito|cr[eé]dito|mercado\s*pago|\bmp\b/i.test(value.trim());
+  const isCashOrTransferMethod = (value: string) => /transferencia|efectivo/i.test(value.trim());
   const mercadoPagoBrands = new Set(
     Object.entries(paymentMethodsByBrand)
       .filter(([, method]) => isCardMethod(method))
@@ -275,7 +276,11 @@ function CheckoutPage() {
   const couponDiscountAmount = couponApplied
     ? discountedItemsSubtotal * (couponPercentage / 100) + couponAmount
     : 0;
-  const discountedSubtotal = Math.max(0, subtotal - couponDiscountAmount);
+  const paymentDiscountAmount = items.reduce((sum, item) => {
+    if (!isCashOrTransferMethod(paymentMethodsByBrand[item.brand] ?? "")) return sum;
+    return sum + item.price * item.quantity * 0.1;
+  }, 0);
+  const discountedSubtotal = Math.max(0, subtotal - couponDiscountAmount - paymentDiscountAmount);
   const eligibleCardSubtotal = items.reduce(
     (total, item) =>
       total +
@@ -499,6 +504,7 @@ function CheckoutPage() {
       extraInfo: notes,
       date: new Date().toISOString().slice(0, 10),
       total,
+      paymentDiscount: paymentDiscountAmount,
       expenses,
       profit: total - expenses,
       status: "pendiente" as const,
@@ -546,6 +552,7 @@ function CheckoutPage() {
           address: normalizedAddress,
           notes,
           total,
+          paymentDiscount: paymentDiscountAmount,
           expenses,
           profit: total - expenses,
           paymentMethod: combinedPaymentMethod,
@@ -920,27 +927,40 @@ function CheckoutPage() {
                   Productos
                 </h3>
                 <div className="mt-3 divide-y divide-border/70 border-b border-border/70">
-                  {items.map((item) => (
-                    <div key={item.id} className="space-y-1.5 py-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="min-w-0 font-medium text-foreground">{item.name}</p>
-                        <span className="shrink-0 font-semibold text-foreground">
-                          {formatPrice(item.price * item.quantity)}
-                        </span>
+                  {items.map((item) => {
+                    const paymentDiscounted = isCashOrTransferMethod(
+                      paymentMethodsByBrand[item.brand] ?? "",
+                    );
+                    const lineTotal = item.price * item.quantity * (paymentDiscounted ? 0.9 : 1);
+                    return (
+                      <div key={item.id} className="space-y-1.5 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="min-w-0 font-medium text-foreground">{item.name}</p>
+                          <div className="shrink-0 text-right">
+                            {paymentDiscounted ? (
+                              <span className="block text-xs text-muted-foreground line-through">
+                                {formatPrice(item.price * item.quantity)}
+                              </span>
+                            ) : null}
+                            <span className="font-semibold text-foreground">
+                              {formatPrice(lineTotal)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                          <span>Cantidad: {item.quantity}</span>
+                          <span aria-hidden="true">·</span>
+                          <span>{getBrand(item.brand)?.name ?? item.brand}</span>
+                          {item.variantName && (
+                            <>
+                              <span aria-hidden="true">·</span>
+                              <span>{item.variantName}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                        <span>Cantidad: {item.quantity}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>{getBrand(item.brand)?.name ?? item.brand}</span>
-                        {item.variantName && (
-                          <>
-                            <span aria-hidden="true">·</span>
-                            <span>{item.variantName}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
 
@@ -1000,6 +1020,12 @@ function CheckoutPage() {
                       <span>-{formatPrice(couponDiscountAmount)}</span>
                     </div>
                   </>
+                )}
+                {paymentDiscountAmount > 0 && (
+                  <div className="mt-3 flex items-center justify-between text-green-600">
+                    <span>Descuento por transferencia/efectivo (10%)</span>
+                    <span>-{formatPrice(paymentDiscountAmount)}</span>
+                  </div>
                 )}
                 {isCardPayment && cardFee > 0 && (
                   <div className="mt-3 flex items-center justify-between text-muted-foreground">

@@ -29,6 +29,7 @@ export type Order = {
   extraInfo: string;
   date: string;
   total: number;
+  paymentDiscount?: number;
   expenses: number;
   profit: number;
   status: OrderStatus;

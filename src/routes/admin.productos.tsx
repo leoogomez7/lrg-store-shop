@@ -86,12 +86,27 @@ type CategoryLabelNode = {
   name: string;
   children?: CategoryLabelNode[];
 };
+const getSubcategoryOptionsAtLevel = (
+  nodes: CategoryLabelNode[] | undefined,
+  selectedPath: string[],
+  level: number,
+) => {
+  let currentNodes = nodes ?? [];
+  for (let index = 0; index < level; index += 1) {
+    const selectedNode = currentNodes.find((node) => node.slug === selectedPath[index]);
+    currentNodes = selectedNode?.children ?? [];
+  }
+  return currentNodes;
+};
+
 type ProductFormState = {
   id: string;
   name: string;
+  code: string;
   brand: BrandSlug | "";
   category: string;
   subcategory: string;
+  subcategoryPath: string[];
   price: number;
   priceCurrency: CurrencyCode;
   comision: number;
@@ -224,6 +239,8 @@ function AdminProducts() {
   const [importBrand, setImportBrand] = useState<BrandSlug>("arcade");
   const [importCategory, setImportCategory] = useState("");
   const [importSubcategory, setImportSubcategory] = useState("");
+  const [importSubcategoryPath, setImportSubcategoryPath] = useState<string[]>([]);
+  const [importCode, setImportCode] = useState("");
   const [applyImportFieldsToAll, setApplyImportFieldsToAll] = useState(true);
   const [importSetupOpen, setImportSetupOpen] = useState(false);
   const [importSetupSource, setImportSetupSource] = useState<"images" | "text" | "store" | null>(
@@ -313,9 +330,11 @@ function AdminProducts() {
   const defaultFormState: ProductFormState = {
     id: "",
     name: "",
+    code: "",
     brand: "",
     category: "",
     subcategory: "",
+    subcategoryPath: [],
     price: 0,
     priceCurrency: "ARS",
     comision: 0,
@@ -507,8 +526,11 @@ function AdminProducts() {
         id: `import-text-${Date.now()}-${index + 1}`,
         slug: `${slugBase}-${index + 1}`,
         brand: importedBrand,
+        code: importCode.trim() || undefined,
         name,
         category: defaultCategory,
+        subcategory: importSubcategoryPath[0] || undefined,
+        subcategoryPath: importSubcategoryPath.length ? importSubcategoryPath : undefined,
         price,
         priceCurrency: "ARS",
         stock: 1,
@@ -529,7 +551,7 @@ function AdminProducts() {
     setImportBrand(importBrand);
     setImportCategory(importCategory);
     setImportSubcategory(importSubcategory);
-    setApplyImportFieldsToAll(Boolean(importCategory || importSubcategory));
+    setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
     setImportPreviewPage(0);
     setImportCategoryOpen(true);
   };
@@ -573,8 +595,11 @@ function AdminProducts() {
         id: `import-${Date.now()}-${index + 1}`,
         slug: `${slugBase}-${index + 1}`,
         brand: defaultBrand,
+        code: importCode.trim() || undefined,
         name: productName,
         category: defaultCategory,
+        subcategory: importSubcategoryPath[0] || undefined,
+        subcategoryPath: importSubcategoryPath.length ? importSubcategoryPath : undefined,
         price: 0,
         stock: 1,
         rating: 0,
@@ -593,7 +618,7 @@ function AdminProducts() {
     setImportBrand(importBrand);
     setImportCategory(importCategory);
     setImportSubcategory(importSubcategory);
-    setApplyImportFieldsToAll(Boolean(importCategory || importSubcategory));
+    setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
     setImportPreviewPage(0);
     setImportCategoryOpen(true);
   };
@@ -606,52 +631,66 @@ function AdminProducts() {
   const changeGlobalImportFields = (
     nextBrand: BrandSlug,
     nextCategory: string,
-    nextSubcategory: string,
+    nextSubcategoryPath: string[],
   ) => {
-    const previousLabel = getSubcategoryLabel(importBrand, importCategory, importSubcategory);
-    const nextLabel = getSubcategoryLabel(nextBrand, nextCategory, nextSubcategory);
+    const previousLabel = getSubcategoryPathLabel(
+      importBrand,
+      importCategory,
+      importSubcategoryPath,
+    );
+    const nextLabel = getSubcategoryPathLabel(nextBrand, nextCategory, nextSubcategoryPath);
     setPendingImportedProducts((current) =>
       current.map((product) => ({
         ...product,
+        code: importCode.trim() || undefined,
         ...(importSource === "store"
           ? {
               name: replaceSubcategorySuffix(product.name, previousLabel, nextLabel),
               brand: nextBrand,
               category: nextCategory,
-              subcategory: nextSubcategory || undefined,
+              subcategory: nextSubcategoryPath[0] || undefined,
+              subcategoryPath: nextSubcategoryPath.length ? nextSubcategoryPath : undefined,
             }
           : {}),
       })),
     );
     setImportBrand(nextBrand);
     setImportCategory(nextCategory);
-    setImportSubcategory(nextSubcategory);
+    setImportSubcategoryPath(nextSubcategoryPath);
+    setImportSubcategory(nextSubcategoryPath[0] ?? "");
   };
 
   const updateIndividualImportFields = (
     index: number,
-    updates: { brand?: BrandSlug; category?: string; subcategory?: string | undefined },
+    updates: {
+      brand?: BrandSlug;
+      category?: string;
+      subcategoryPath?: string[];
+      code?: string;
+    },
   ) => {
     setPendingImportedProducts((current) =>
       current.map((product, productIndex) => {
         if (productIndex !== index) return product;
         const brand = updates.brand ?? product.brand;
         const category = updates.category ?? product.category;
-        const subcategory =
-          updates.subcategory === undefined && !("subcategory" in updates)
-            ? product.subcategory
-            : updates.subcategory;
-        const previousLabel = getSubcategoryLabel(
+        const subcategoryPath =
+          updates.subcategoryPath ??
+          product.subcategoryPath ??
+          (product.subcategory ? [product.subcategory] : []);
+        const previousLabel = getSubcategoryPathLabel(
           product.brand,
           product.category,
-          product.subcategory ?? "",
+          product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []),
         );
-        const nextLabel = getSubcategoryLabel(brand, category, subcategory ?? "");
+        const nextLabel = getSubcategoryPathLabel(brand, category, subcategoryPath);
         return {
           ...product,
           brand,
           category,
-          subcategory,
+          code: updates.code ?? product.code,
+          subcategory: subcategoryPath[0],
+          subcategoryPath: subcategoryPath.length ? subcategoryPath : undefined,
           ...(importSource === "store"
             ? { name: replaceSubcategorySuffix(product.name, previousLabel, nextLabel) }
             : {}),
@@ -660,10 +699,19 @@ function AdminProducts() {
     );
   };
 
-  const getSubcategoryLabel = (brand: BrandSlug, categorySlug: string, subcategorySlug: string) =>
-    brands[brand].categories
-      .find((category) => category.slug === categorySlug)
-      ?.subcategories?.find((subcategory) => subcategory.slug === subcategorySlug)?.name ?? "";
+  const getSubcategoryPathLabel = (brand: BrandSlug, categorySlug: string, path: string[]) => {
+    let nodes = brands[brand].categories.find(
+      (category) => category.slug === categorySlug,
+    )?.subcategories;
+    const labels: string[] = [];
+    for (const slug of path) {
+      const node = nodes?.find((subcategory) => subcategory.slug === slug);
+      if (!node) break;
+      labels.push(node.name);
+      nodes = node.children;
+    }
+    return labels.join(" - ");
+  };
 
   const replaceSubcategorySuffix = (name: string, previous: string, next: string) => {
     const previousSuffix = previous ? ` - ${previous}` : "";
@@ -686,7 +734,7 @@ function AdminProducts() {
     setPendingImportedProducts([]);
     setStoreImportPriceDetails({});
     setImportPreviewPage(0);
-    setApplyImportFieldsToAll(Boolean(importCategory || importSubcategory));
+    setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
     setIsImportingStore(true);
     setImportCategoryOpen(true);
 
@@ -694,7 +742,11 @@ function AdminProducts() {
       const result = await importPlayStationStoreCategory({
         data: { url: storeImportLink.trim() },
       });
-      const subcategoryName = getSubcategoryLabel(importBrand, importCategory, importSubcategory);
+      const subcategoryName = getSubcategoryPathLabel(
+        importBrand,
+        importCategory,
+        importSubcategoryPath,
+      );
       const timestamp = Date.now();
       const drafts = result.products.map((item, index) => {
         const name = subcategoryName ? `${item.name} - ${subcategoryName}` : item.name;
@@ -704,9 +756,11 @@ function AdminProducts() {
           id: `psstore-${timestamp}-${index}-${item.id.replace(/[^a-zA-Z0-9-]/g, "-")}`,
           slug: `${slugBase}-${timestamp}-${index}`,
           brand: importBrand,
+          code: importCode.trim() || undefined,
           name,
           category: importCategory || brands[importBrand].categories[0]?.slug || "",
-          subcategory: importSubcategory || undefined,
+          subcategory: importSubcategoryPath[0] || undefined,
+          subcategoryPath: importSubcategoryPath.length ? importSubcategoryPath : undefined,
           price: 0,
           priceCurrency: "ARS",
           comision: 4500,
@@ -756,10 +810,12 @@ function AdminProducts() {
 
   const getDuplicateMatches = (product: Product) => {
     const importedName = normalizeProductName(product.name);
-    const subcategoryName = getSubcategoryLabel(
+    const subcategoryPath =
+      product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []);
+    const subcategoryName = getSubcategoryPathLabel(
       product.brand,
       product.category,
-      product.subcategory ?? "",
+      subcategoryPath,
     );
     const importedBaseName =
       importSource === "store" && subcategoryName
@@ -816,15 +872,17 @@ function AdminProducts() {
       const appliesGlobalFields = applyImportFieldsToAll;
       const brand = appliesGlobalFields ? importBrand : product.brand;
       const category = appliesGlobalFields ? importCategory : product.category;
-      const subcategory = appliesGlobalFields
-        ? importSubcategory || undefined
-        : product.subcategory || undefined;
-      const previousSubcategoryName = getSubcategoryLabel(
+      const code = appliesGlobalFields ? importCode.trim() || undefined : product.code;
+      const subcategoryPath = appliesGlobalFields
+        ? importSubcategoryPath
+        : (product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []));
+      const subcategory = subcategoryPath[0] || undefined;
+      const previousSubcategoryName = getSubcategoryPathLabel(
         product.brand,
         product.category,
-        product.subcategory ?? "",
+        product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []),
       );
-      const nextSubcategoryName = getSubcategoryLabel(brand, category, subcategory ?? "");
+      const nextSubcategoryName = getSubcategoryPathLabel(brand, category, subcategoryPath);
       const name =
         importSource === "store"
           ? replaceSubcategorySuffix(rawName, previousSubcategoryName, nextSubcategoryName).trim()
@@ -843,8 +901,10 @@ function AdminProducts() {
         slug: `${slugBase}-${product.id.replace(/[^a-zA-Z0-9-]/g, "-")}`,
         price,
         brand,
+        code,
         category,
         subcategory,
+        subcategoryPath: subcategoryPath.length ? subcategoryPath : undefined,
       } as Product);
       return result;
     }, []);
@@ -885,9 +945,12 @@ function AdminProducts() {
     setProductForm({
       id: product.id,
       name: product.name,
+      code: product.code ?? "",
       brand: product.brand,
       category: product.category,
       subcategory: product.subcategory ?? "",
+      subcategoryPath:
+        product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []),
       price: product.price,
       priceCurrency: product.priceCurrency ?? "ARS",
       comision: product.comision ?? 0,
@@ -1577,9 +1640,15 @@ function AdminProducts() {
 
     const updatedProduct = {
       name: productForm.name,
+      code: productForm.code.trim() || undefined,
       brand: normalizedBrand,
       category: productForm.category,
-      subcategory: productForm.subcategory || undefined,
+      subcategory: productForm.subcategoryPath[0] || productForm.subcategory || undefined,
+      subcategoryPath: productForm.subcategoryPath.length
+        ? productForm.subcategoryPath
+        : productForm.subcategory
+          ? [productForm.subcategory]
+          : undefined,
       price: productForm.price,
       priceCurrency: productForm.priceCurrency,
       comision: productForm.comision,
@@ -3078,6 +3147,8 @@ function AdminProducts() {
                 setImportBrand("arcade");
                 setImportCategory("");
                 setImportSubcategory("");
+                setImportSubcategoryPath([]);
+                setImportCode("");
                 setApplyImportFieldsToAll(false);
                 setImportSetupOpen(true);
               }}
@@ -3098,6 +3169,8 @@ function AdminProducts() {
                 setImportBrand("arcade");
                 setImportCategory("");
                 setImportSubcategory("");
+                setImportSubcategoryPath([]);
+                setImportCode("");
                 setApplyImportFieldsToAll(false);
                 setImportSetupOpen(true);
               }}
@@ -3118,6 +3191,8 @@ function AdminProducts() {
                 setImportBrand("arcade");
                 setImportCategory("");
                 setImportSubcategory("");
+                setImportSubcategoryPath([]);
+                setImportCode("");
                 setImportSetupSource("store");
                 setImportSetupOpen(true);
               }}
@@ -3145,7 +3220,7 @@ function AdminProducts() {
               Elegí opcionalmente la tienda, categoría y subcategoría antes de continuar.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="import-setup-brand">Tienda</Label>
               <Select
@@ -3154,6 +3229,7 @@ function AdminProducts() {
                   setImportBrand(value as BrandSlug);
                   setImportCategory("");
                   setImportSubcategory("");
+                  setImportSubcategoryPath([]);
                 }}
               >
                 <SelectTrigger id="import-setup-brand">
@@ -3175,6 +3251,7 @@ function AdminProducts() {
                 onValueChange={(value) => {
                   setImportCategory(value === "none" ? "" : value);
                   setImportSubcategory("");
+                  setImportSubcategoryPath([]);
                 }}
               >
                 <SelectTrigger id="import-setup-category">
@@ -3190,25 +3267,52 @@ function AdminProducts() {
                 </SelectContent>
               </Select>
             </div>
+            {importCategory
+              ? Array.from({ length: importSubcategoryPath.length + 1 }, (_, level) => {
+                  const options = getSubcategoryOptionsAtLevel(
+                    selectedImportCategory?.subcategories,
+                    importSubcategoryPath,
+                    level,
+                  );
+                  if (!options.length) return null;
+                  return (
+                    <div key={`import-setup-subcategory-${level}`} className="space-y-2">
+                      <Label htmlFor={`import-setup-subcategory-${level}`}>
+                        {level === 0 ? "Subcategoría" : `Subcategoría ${level + 1}`}
+                      </Label>
+                      <Select
+                        value={importSubcategoryPath[level] ?? "none"}
+                        onValueChange={(value) => {
+                          const nextPath = importSubcategoryPath.slice(0, level);
+                          if (value !== "none") nextPath.push(value);
+                          setImportSubcategoryPath(nextPath);
+                          setImportSubcategory(nextPath[0] ?? "");
+                        }}
+                      >
+                        <SelectTrigger id={`import-setup-subcategory-${level}`}>
+                          <SelectValue placeholder="Opcional" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sin subcategoría</SelectItem>
+                          {options.map((subcategory) => (
+                            <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                              {subcategory.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })
+              : null}
             <div className="space-y-2">
-              <Label htmlFor="import-setup-subcategory">Subcategoría</Label>
-              <Select
-                value={importSubcategory || "none"}
-                onValueChange={(value) => setImportSubcategory(value === "none" ? "" : value)}
-                disabled={!importCategory}
-              >
-                <SelectTrigger id="import-setup-subcategory">
-                  <SelectValue placeholder="Opcional" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin subcategoría</SelectItem>
-                  {selectedImportCategory?.subcategories?.map((subcategory) => (
-                    <SelectItem key={subcategory.slug} value={subcategory.slug}>
-                      {subcategory.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="import-setup-code">Código para los productos</Label>
+              <Input
+                id="import-setup-code"
+                value={importCode}
+                onChange={(event) => setImportCode(event.target.value)}
+                placeholder="Código interno (opcional)"
+              />
             </div>
           </div>
           <DialogFooter>
@@ -3219,7 +3323,7 @@ function AdminProducts() {
               type="button"
               onClick={() => {
                 setImportSetupOpen(false);
-                setApplyImportFieldsToAll(Boolean(importCategory || importSubcategory));
+                setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
                 if (importSetupSource === "images") multiProductInputRef.current?.click();
                 if (importSetupSource === "text") textProductInputRef.current?.click();
                 if (importSetupSource === "store") setStoreImportLinkOpen(true);
@@ -3262,6 +3366,7 @@ function AdminProducts() {
                     setImportBrand(nextBrand);
                     setImportCategory(brands[nextBrand].categories[0]?.slug ?? "");
                     setImportSubcategory("");
+                    setImportSubcategoryPath([]);
                   }}
                 >
                   <SelectTrigger id="store-import-brand">
@@ -3283,6 +3388,7 @@ function AdminProducts() {
                   onValueChange={(value) => {
                     setImportCategory(value);
                     setImportSubcategory("");
+                    setImportSubcategoryPath([]);
                   }}
                 >
                   <SelectTrigger id="store-import-category">
@@ -3297,31 +3403,42 @@ function AdminProducts() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="store-import-subcategory">Subcategoría</Label>
-                <Select
-                  value={importSubcategory}
-                  onValueChange={setImportSubcategory}
-                  disabled={
-                    !brands[importBrand].categories.find(
-                      (category) => category.slug === importCategory,
-                    )?.subcategories?.length
-                  }
-                >
-                  <SelectTrigger id="store-import-subcategory">
-                    <SelectValue placeholder="Subcategoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands[importBrand].categories
-                      .find((category) => category.slug === importCategory)
-                      ?.subcategories?.map((subcategory) => (
-                        <SelectItem key={subcategory.slug} value={subcategory.slug}>
-                          {subcategory.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {Array.from({ length: importSubcategoryPath.length + 1 }, (_, level) => {
+                const options = getSubcategoryOptionsAtLevel(
+                  selectedImportCategory?.subcategories,
+                  importSubcategoryPath,
+                  level,
+                );
+                if (!options.length) return null;
+                return (
+                  <div key={`store-import-subcategory-${level}`} className="space-y-2">
+                    <Label htmlFor={`store-import-subcategory-${level}`}>
+                      {level === 0 ? "Subcategoría" : `Subcategoría ${level + 1}`}
+                    </Label>
+                    <Select
+                      value={importSubcategoryPath[level] ?? "none"}
+                      onValueChange={(value) => {
+                        const nextPath = importSubcategoryPath.slice(0, level);
+                        if (value !== "none") nextPath.push(value);
+                        setImportSubcategoryPath(nextPath);
+                        setImportSubcategory(nextPath[0] ?? "");
+                      }}
+                    >
+                      <SelectTrigger id={`store-import-subcategory-${level}`}>
+                        <SelectValue placeholder="Subcategoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin subcategoría</SelectItem>
+                        {options.map((subcategory) => (
+                          <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                            {subcategory.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              })}
             </div>
             <p className="text-xs text-muted-foreground">
               El nombre se guardará como «juego - subcategoría». Los gastos usarán el menor entre el
@@ -3371,6 +3488,21 @@ function AdminProducts() {
             </div>
           ) : null}
           <div className={cn("space-y-4", isImportingStore && "hidden")}>
+            <div className="grid gap-2 sm:max-w-sm">
+              <Label htmlFor="import-code-all">Código para los productos</Label>
+              <Input
+                id="import-code-all"
+                value={importCode}
+                onChange={(event) => {
+                  const code = event.target.value;
+                  setImportCode(code);
+                  setPendingImportedProducts((current) =>
+                    current.map((product) => ({ ...product, code: code.trim() || undefined })),
+                  );
+                }}
+                placeholder="Código interno común (opcional)"
+              />
+            </div>
             <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-surface/40 p-3 text-sm">
               <Checkbox
                 checked={applyImportFieldsToAll}
@@ -3396,7 +3528,7 @@ function AdminProducts() {
                       changeGlobalImportFields(
                         nextBrand,
                         brands[nextBrand].categories[0]?.slug ?? "",
-                        "",
+                        [],
                       );
                     }}
                   >
@@ -3416,7 +3548,7 @@ function AdminProducts() {
                   <Label htmlFor="import-category">Categoría para todos</Label>
                   <Select
                     value={importCategory}
-                    onValueChange={(value) => changeGlobalImportFields(importBrand, value, "")}
+                    onValueChange={(value) => changeGlobalImportFields(importBrand, value, [])}
                   >
                     <SelectTrigger id="import-category">
                       <SelectValue placeholder="Seleccioná una categoría" />
@@ -3430,28 +3562,43 @@ function AdminProducts() {
                     </SelectContent>
                   </Select>
                 </div>
-                {selectedImportCategory?.subcategories?.length ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="import-subcategory">Subcategoría para todos</Label>
-                    <Select
-                      value={importSubcategory}
-                      onValueChange={(value) =>
-                        changeGlobalImportFields(importBrand, importCategory, value)
-                      }
-                    >
-                      <SelectTrigger id="import-subcategory">
-                        <SelectValue placeholder="Seleccioná una subcategoría" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedImportCategory.subcategories.map((subcategory) => (
-                          <SelectItem key={subcategory.slug} value={subcategory.slug}>
-                            {subcategory.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : null}
+                {importCategory
+                  ? Array.from({ length: importSubcategoryPath.length + 1 }, (_, level) => {
+                      const options = getSubcategoryOptionsAtLevel(
+                        selectedImportCategory?.subcategories,
+                        importSubcategoryPath,
+                        level,
+                      );
+                      if (!options.length) return null;
+                      return (
+                        <div key={`import-global-subcategory-${level}`} className="space-y-2">
+                          <Label htmlFor={`import-subcategory-${level}`}>
+                            {level === 0 ? "Subcategoría para todos" : `Subcategoría ${level + 1}`}
+                          </Label>
+                          <Select
+                            value={importSubcategoryPath[level] ?? "none"}
+                            onValueChange={(value) => {
+                              const nextPath = importSubcategoryPath.slice(0, level);
+                              if (value !== "none") nextPath.push(value);
+                              changeGlobalImportFields(importBrand, importCategory, nextPath);
+                            }}
+                          >
+                            <SelectTrigger id={`import-subcategory-${level}`}>
+                              <SelectValue placeholder="Seleccioná una subcategoría" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Sin subcategoría</SelectItem>
+                              {options.map((subcategory) => (
+                                <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                                  {subcategory.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })
+                  : null}
               </div>
             ) : null}
 
@@ -3465,6 +3612,8 @@ function AdminProducts() {
                   const rowCategory = rowCategories.find(
                     (category) => category.slug === product.category,
                   );
+                  const rowSubcategoryPath =
+                    product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []);
                   return (
                     <div
                       key={product.id}
@@ -3519,6 +3668,24 @@ function AdminProducts() {
                                   ),
                                 )
                               }
+                              className="min-w-0"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`import-code-${product.id}`}>Código</Label>
+                            <Input
+                              id={`import-code-${product.id}`}
+                              value={product.code ?? ""}
+                              onChange={(event) =>
+                                setPendingImportedProducts((current) =>
+                                  current.map((item, itemIndex) =>
+                                    itemIndex === index
+                                      ? { ...item, code: event.target.value.trim() || undefined }
+                                      : item,
+                                  ),
+                                )
+                              }
+                              placeholder="Código interno"
                               className="min-w-0"
                             />
                           </div>
@@ -3626,7 +3793,7 @@ function AdminProducts() {
                               updateIndividualImportFields(index, {
                                 brand: nextBrand,
                                 category: brands[nextBrand].categories[0]?.slug ?? "",
-                                subcategory: undefined,
+                                subcategoryPath: [],
                               });
                             }}
                           >
@@ -3646,7 +3813,7 @@ function AdminProducts() {
                             onValueChange={(value) =>
                               updateIndividualImportFields(index, {
                                 category: value,
-                                subcategory: undefined,
+                                subcategoryPath: [],
                               })
                             }
                           >
@@ -3661,28 +3828,41 @@ function AdminProducts() {
                               ))}
                             </SelectContent>
                           </Select>
-                          {rowCategory?.subcategories?.length ? (
-                            <Select
-                              value={product.subcategory ?? "none"}
-                              onValueChange={(value) =>
-                                updateIndividualImportFields(index, {
-                                  subcategory: value === "none" ? undefined : value,
-                                })
-                              }
-                            >
-                              <SelectTrigger aria-label={`Subcategoría para ${product.name}`}>
-                                <SelectValue placeholder="Subcategoría" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">Sin subcategoría</SelectItem>
-                                {rowCategory.subcategories.map((subcategory) => (
-                                  <SelectItem key={subcategory.slug} value={subcategory.slug}>
-                                    {subcategory.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : null}
+                          {Array.from({ length: rowSubcategoryPath.length + 1 }, (_, level) => {
+                            const options = getSubcategoryOptionsAtLevel(
+                              rowCategory?.subcategories,
+                              rowSubcategoryPath,
+                              level,
+                            );
+                            if (!options.length) return null;
+                            return (
+                              <Select
+                                key={`import-row-subcategory-${product.id}-${level}`}
+                                value={rowSubcategoryPath[level] ?? "none"}
+                                onValueChange={(value) => {
+                                  const nextPath = rowSubcategoryPath.slice(0, level);
+                                  if (value !== "none") nextPath.push(value);
+                                  updateIndividualImportFields(index, {
+                                    subcategoryPath: nextPath,
+                                  });
+                                }}
+                              >
+                                <SelectTrigger
+                                  aria-label={`${level === 0 ? "Subcategoría" : `Subcategoría ${level + 1}`} para ${product.name}`}
+                                >
+                                  <SelectValue placeholder={`Subcategoría ${level + 1}`} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">Sin subcategoría</SelectItem>
+                                  {options.map((subcategory) => (
+                                    <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                                      {subcategory.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            );
+                          })}
                         </div>
                       ) : null}
                     </div>
@@ -4586,9 +4766,15 @@ function ProductEditDialog({
           brandName: brand.name,
         })),
       );
-  const availableSubcategories =
-    availableCategories.find((category) => category.slug === productForm.category)?.subcategories ??
-    [];
+  const selectedCategory = availableCategories.find(
+    (category) => category.slug === productForm.category,
+  );
+  const getFormSubcategoryOptions = (level: number) =>
+    getSubcategoryOptionsAtLevel(
+      selectedCategory?.subcategories,
+      productForm.subcategoryPath,
+      level,
+    );
   const usdRate = productForm.usdRate > 0 ? productForm.usdRate : 0;
   const toLocalCurrency = (amount: number, currency: CurrencyCode) =>
     currency === "USD" ? (usdRate > 0 ? amount * usdRate : 0) : amount;
@@ -4751,6 +4937,7 @@ function ProductEditDialog({
                       brand: nextBrand,
                       category: "",
                       subcategory: "",
+                      subcategoryPath: [],
                     });
                   }}
                 >
@@ -4780,6 +4967,7 @@ function ProductEditDialog({
                       brand: productForm.brand || selectedCategory?.brandSlug || "",
                       category: value,
                       subcategory: "",
+                      subcategoryPath: [],
                     });
                   }}
                 >
@@ -4798,35 +4986,57 @@ function ProductEditDialog({
                 </Select>
               </div>
 
-              {productForm.category && (
+              {productForm.category
+                ? Array.from({ length: productForm.subcategoryPath.length + 1 }, (_, level) => {
+                    const options = getFormSubcategoryOptions(level);
+                    if (!options.length) return null;
+                    return (
+                      <div key={`subcategory-level-${level}`} className="space-y-2">
+                        <Label htmlFor={`new-subcategory-${level}`}>
+                          {level === 0 ? "Subcategoría" : `Subcategoría ${level + 1}`}
+                        </Label>
+                        <Select
+                          value={productForm.subcategoryPath[level] ?? "none"}
+                          onValueChange={(value) => {
+                            const nextPath = productForm.subcategoryPath.slice(0, level);
+                            if (value !== "none") nextPath.push(value);
+                            setProductForm({
+                              ...productForm,
+                              subcategory: nextPath[0] ?? "",
+                              subcategoryPath: nextPath,
+                            });
+                          }}
+                        >
+                          <SelectTrigger id={`new-subcategory-${level}`} className="w-full">
+                            <SelectValue placeholder={`Seleccionar subcategoría ${level + 1}`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sin subcategoría</SelectItem>
+                            {options.map((subcategory) => (
+                              <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                                {subcategory.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })
+                : null}
+
+              <div className="grid gap-4 sm:col-span-4 sm:grid-cols-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new-subcategory">Subcategoría</Label>
-                  <Select
-                    disabled={availableSubcategories.length === 0}
-                    value={productForm.subcategory}
-                    onValueChange={(value) =>
-                      setProductForm({ ...productForm, subcategory: value })
+                  <Label htmlFor="new-product-code">Código</Label>
+                  <Input
+                    id="new-product-code"
+                    value={productForm.code}
+                    onChange={(event) =>
+                      setProductForm({ ...productForm, code: event.target.value })
                     }
-                  >
-                    <SelectTrigger id="new-subcategory" className="w-full">
-                      <SelectValue
-                        placeholder={
-                          availableSubcategories.length
-                            ? "Seleccionar subcategoría"
-                            : "Sin subcategorías"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableSubcategories.map((subcategory) => (
-                        <SelectItem key={subcategory.slug} value={subcategory.slug}>
-                          {subcategory.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Código interno del producto"
+                  />
                 </div>
-              )}
+              </div>
 
               {!productForm.id && showUsdRateInput && (
                 <>
