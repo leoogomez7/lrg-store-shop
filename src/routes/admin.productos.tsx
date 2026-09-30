@@ -3220,7 +3220,7 @@ function AdminProducts() {
               Elegí opcionalmente la tienda, categoría y subcategoría antes de continuar.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="import-setup-brand">Tienda</Label>
               <Select
@@ -3306,7 +3306,7 @@ function AdminProducts() {
                 })
               : null}
             <div className="space-y-2">
-              <Label htmlFor="import-setup-code">Código para los productos</Label>
+              <Label htmlFor="import-setup-code">SKU</Label>
               <Input
                 id="import-setup-code"
                 value={importCode}
@@ -3314,13 +3314,9 @@ function AdminProducts() {
                 placeholder="Código interno (opcional)"
               />
             </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setImportSetupOpen(false)}>
-              Cancelar
-            </Button>
             <Button
               type="button"
+              className="w-full sm:col-span-2 lg:col-span-1"
               onClick={() => {
                 setImportSetupOpen(false);
                 setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
@@ -3331,7 +3327,7 @@ function AdminProducts() {
             >
               Continuar
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -3489,7 +3485,7 @@ function AdminProducts() {
           ) : null}
           <div className={cn("space-y-4", isImportingStore && "hidden")}>
             <div className="grid gap-2 sm:max-w-sm">
-              <Label htmlFor="import-code-all">Código para los productos</Label>
+              <Label htmlFor="import-code-all">SKU</Label>
               <Input
                 id="import-code-all"
                 value={importCode}
@@ -3500,7 +3496,7 @@ function AdminProducts() {
                     current.map((product) => ({ ...product, code: code.trim() || undefined })),
                   );
                 }}
-                placeholder="Código interno común (opcional)"
+                placeholder="SKU común (opcional)"
               />
             </div>
             <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-surface/40 p-3 text-sm">
@@ -3685,7 +3681,7 @@ function AdminProducts() {
                                   ),
                                 )
                               }
-                              placeholder="Código interno"
+                              placeholder="SKU"
                               className="min-w-0"
                             />
                           </div>
@@ -5026,14 +5022,14 @@ function ProductEditDialog({
 
               <div className="grid gap-4 sm:col-span-4 sm:grid-cols-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new-product-code">Código</Label>
+                  <Label htmlFor="new-product-code">SKU</Label>
                   <Input
                     id="new-product-code"
                     value={productForm.code}
                     onChange={(event) =>
                       setProductForm({ ...productForm, code: event.target.value })
                     }
-                    placeholder="Código interno del producto"
+                    placeholder="SKU del producto"
                   />
                 </div>
               </div>
