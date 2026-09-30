@@ -13,6 +13,7 @@ import {
   EyeOff,
   FileText,
   Filter,
+  LoaderCircle,
   Pencil,
   Plus,
   Save,
@@ -28,6 +29,7 @@ import { toast } from "sonner";
 import {
   products as productsData,
   saveProduct,
+  saveProductBatch,
   saveProducts,
   type ProductSupplier,
   type ProductVariant,
@@ -75,6 +77,7 @@ import { cn } from "@/lib/utils";
 import { catalogQueries, type Product } from "@/services/catalog.service";
 import { moveToTrash } from "@/data/trash";
 import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
+import { importPlayStationStoreCategory } from "@/server/persistence";
 
 type DeliveryUnit = "inmediata" | "horas" | "dias";
 type CurrencyCode = "ARS" | "USD";
@@ -108,6 +111,25 @@ type ProductFormState = {
   variants: ProductVariant[];
   supplier: ProductSupplier;
 };
+
+type StoreImportProduct = {
+  id: string;
+  name: string;
+  platforms: string[];
+  basePrice?: string;
+  discountedPrice?: string;
+  discountText?: string;
+  image?: string;
+  lowestPrice: number;
+};
+
+const normalizeProductName = (name: string) =>
+  name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 
 const fileToDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -202,6 +224,26 @@ function AdminProducts() {
   const [importBrand, setImportBrand] = useState<BrandSlug>("arcade");
   const [importCategory, setImportCategory] = useState("");
   const [importSubcategory, setImportSubcategory] = useState("");
+  const [applyImportFieldsToAll, setApplyImportFieldsToAll] = useState(true);
+  const [importSetupOpen, setImportSetupOpen] = useState(false);
+  const [importSetupSource, setImportSetupSource] = useState<"images" | "text" | "store" | null>(
+    null,
+  );
+  const [importSource, setImportSource] = useState<"images" | "text" | "store" | null>(null);
+  const [storeImportLinkOpen, setStoreImportLinkOpen] = useState(false);
+  const [storeImportLink, setStoreImportLink] = useState("");
+  const [isImportingStore, setIsImportingStore] = useState(false);
+  const [isSavingImports, setIsSavingImports] = useState(false);
+  const [importPreviewPage, setImportPreviewPage] = useState(0);
+  const [storeImportPriceDetails, setStoreImportPriceDetails] = useState<
+    Record<
+      string,
+      { regular?: string; offer?: string; discount?: string; platforms: string[]; image?: string }
+    >
+  >({});
+  const [duplicateReviewOpen, setDuplicateReviewOpen] = useState(false);
+  const [duplicateCandidateIds, setDuplicateCandidateIds] = useState<string[]>([]);
+  const [keepDuplicateIds, setKeepDuplicateIds] = useState<string[]>([]);
   const [quickEditProductId, setQuickEditProductId] = useState<string | null>(null);
   const [quickEditVariantId, setQuickEditVariantId] = useState<string | null>(null);
 
@@ -483,9 +525,12 @@ function AdminProducts() {
 
     setCreateChoiceOpen(false);
     setPendingImportedProducts(importedProducts);
-    setImportBrand("arcade");
-    setImportCategory(defaultCategory);
-    setImportSubcategory("");
+    setImportSource("text");
+    setImportBrand(importBrand);
+    setImportCategory(importCategory);
+    setImportSubcategory(importSubcategory);
+    setApplyImportFieldsToAll(Boolean(importCategory || importSubcategory));
+    setImportPreviewPage(0);
     setImportCategoryOpen(true);
   };
 
@@ -544,9 +589,12 @@ function AdminProducts() {
 
     setCreateChoiceOpen(false);
     setPendingImportedProducts(importedProducts);
-    setImportBrand("arcade");
-    setImportCategory(brands.arcade.categories[0]?.slug ?? "consolas");
-    setImportSubcategory("");
+    setImportSource("images");
+    setImportBrand(importBrand);
+    setImportCategory(importCategory);
+    setImportSubcategory(importSubcategory);
+    setApplyImportFieldsToAll(Boolean(importCategory || importSubcategory));
+    setImportPreviewPage(0);
     setImportCategoryOpen(true);
   };
 
@@ -555,24 +603,280 @@ function AdminProducts() {
     (category) => category.slug === importCategory,
   );
 
-  const handleConfirmMultipleImport = () => {
-    if (!pendingImportedProducts.length || !importCategory) return;
+  const changeGlobalImportFields = (
+    nextBrand: BrandSlug,
+    nextCategory: string,
+    nextSubcategory: string,
+  ) => {
+    const previousLabel = getSubcategoryLabel(importBrand, importCategory, importSubcategory);
+    const nextLabel = getSubcategoryLabel(nextBrand, nextCategory, nextSubcategory);
+    setPendingImportedProducts((current) =>
+      current.map((product) => ({
+        ...product,
+        ...(importSource === "store"
+          ? {
+              name: replaceSubcategorySuffix(product.name, previousLabel, nextLabel),
+              brand: nextBrand,
+              category: nextCategory,
+              subcategory: nextSubcategory || undefined,
+            }
+          : {}),
+      })),
+    );
+    setImportBrand(nextBrand);
+    setImportCategory(nextCategory);
+    setImportSubcategory(nextSubcategory);
+  };
 
-    const importedProducts = pendingImportedProducts.map((product) => ({
-      ...product,
-      brand: importBrand,
-      category: importCategory,
-      subcategory: importSubcategory || undefined,
-    }));
-    (productsData as Product[]).push(...importedProducts);
-    saveProducts(productsData as Product[]);
-    setEditableProducts((current) => [...current, ...importedProducts]);
+  const updateIndividualImportFields = (
+    index: number,
+    updates: { brand?: BrandSlug; category?: string; subcategory?: string | undefined },
+  ) => {
+    setPendingImportedProducts((current) =>
+      current.map((product, productIndex) => {
+        if (productIndex !== index) return product;
+        const brand = updates.brand ?? product.brand;
+        const category = updates.category ?? product.category;
+        const subcategory =
+          updates.subcategory === undefined && !("subcategory" in updates)
+            ? product.subcategory
+            : updates.subcategory;
+        const previousLabel = getSubcategoryLabel(
+          product.brand,
+          product.category,
+          product.subcategory ?? "",
+        );
+        const nextLabel = getSubcategoryLabel(brand, category, subcategory ?? "");
+        return {
+          ...product,
+          brand,
+          category,
+          subcategory,
+          ...(importSource === "store"
+            ? { name: replaceSubcategorySuffix(product.name, previousLabel, nextLabel) }
+            : {}),
+        };
+      }),
+    );
+  };
+
+  const getSubcategoryLabel = (brand: BrandSlug, categorySlug: string, subcategorySlug: string) =>
+    brands[brand].categories
+      .find((category) => category.slug === categorySlug)
+      ?.subcategories?.find((subcategory) => subcategory.slug === subcategorySlug)?.name ?? "";
+
+  const replaceSubcategorySuffix = (name: string, previous: string, next: string) => {
+    const previousSuffix = previous ? ` - ${previous}` : "";
+    const baseName =
+      previousSuffix && name.endsWith(previousSuffix)
+        ? name.slice(0, -previousSuffix.length)
+        : name;
+    return next ? `${baseName} - ${next}` : baseName;
+  };
+
+  const handleImportFromStore = async () => {
+    if (!storeImportLink.trim()) {
+      toast.error("Ingresá el link para continuar.");
+      return;
+    }
+
+    setCreateChoiceOpen(false);
+    setStoreImportLinkOpen(false);
+    setImportSource("store");
     setPendingImportedProducts([]);
-    setImportCategoryOpen(false);
-    toast.success(`Se importaron ${importedProducts.length} productos`, {
-      description:
-        "Ya están disponibles en el listado y puedes editarlos como cualquier otro producto.",
+    setStoreImportPriceDetails({});
+    setImportPreviewPage(0);
+    setApplyImportFieldsToAll(Boolean(importCategory || importSubcategory));
+    setIsImportingStore(true);
+    setImportCategoryOpen(true);
+
+    try {
+      const result = await importPlayStationStoreCategory({
+        data: { url: storeImportLink.trim() },
+      });
+      const subcategoryName = getSubcategoryLabel(importBrand, importCategory, importSubcategory);
+      const timestamp = Date.now();
+      const drafts = result.products.map((item, index) => {
+        const name = subcategoryName ? `${item.name} - ${subcategoryName}` : item.name;
+        const slugBase =
+          normalizeProductName(name).replace(/\s+/g, "-") || `store-product-${index}`;
+        return {
+          id: `psstore-${timestamp}-${index}-${item.id.replace(/[^a-zA-Z0-9-]/g, "-")}`,
+          slug: `${slugBase}-${timestamp}-${index}`,
+          brand: importBrand,
+          name,
+          category: importCategory || brands[importBrand].categories[0]?.slug || "",
+          subcategory: importSubcategory || undefined,
+          price: 0,
+          priceCurrency: "ARS",
+          comision: 4500,
+          comisionCurrency: "ARS",
+          gastos: item.lowestPrice,
+          gastosCurrency: "USD",
+          stock: 1,
+          rating: 0,
+          reviews: 0,
+          short: "Importado desde PlayStation Store.",
+          description: "Producto importado desde PlayStation Store.",
+          features: [],
+          images: [],
+          createdAt: new Date().toISOString(),
+        } satisfies Product;
+      });
+
+      setStoreImportPriceDetails(
+        Object.fromEntries(
+          result.products.map((item, index) => [
+            drafts[index]?.id,
+            {
+              regular: item.basePrice,
+              offer: item.discountedPrice,
+              discount: item.discountText,
+              platforms: item.platforms,
+              image: item.image,
+            },
+          ]),
+        ),
+      );
+      setPendingImportedProducts(drafts);
+      toast.success(`${drafts.length} productos encontrados`, {
+        description: `Se revisaron todas las páginas (${result.totalCount} resultados en Store).`,
+      });
+    } catch (error) {
+      console.error("PlayStation Store import failed", error);
+      const message =
+        error instanceof Error ? error.message : "No se pudieron importar los productos.";
+      toast.error(message);
+      setImportCategoryOpen(false);
+      setImportSource(null);
+    } finally {
+      setIsImportingStore(false);
+    }
+  };
+
+  const getDuplicateMatches = (product: Product) => {
+    const importedName = normalizeProductName(product.name);
+    const subcategoryName = getSubcategoryLabel(
+      product.brand,
+      product.category,
+      product.subcategory ?? "",
+    );
+    const importedBaseName =
+      importSource === "store" && subcategoryName
+        ? normalizeProductName(replaceSubcategorySuffix(product.name, subcategoryName, ""))
+        : importedName;
+    return products.filter((existing) => {
+      const existingName = normalizeProductName(existing.name);
+      return existingName === importedName || existingName === importedBaseName;
     });
+  };
+
+  const commitImportedProducts = async (importedProducts: Product[]) => {
+    if (!importedProducts.length) {
+      toast.info("No seleccionaste productos para agregar.");
+      setDuplicateReviewOpen(false);
+      setImportCategoryOpen(false);
+      setPendingImportedProducts([]);
+      return;
+    }
+
+    setIsSavingImports(true);
+    try {
+      const saved = await saveProductBatch(importedProducts);
+      if (!saved) throw new Error("La base de datos no aceptó los productos importados.");
+
+      const nextProducts = [...(productsData as Product[]), ...importedProducts];
+      productsData.splice(0, productsData.length, ...nextProducts);
+      setEditableProducts(nextProducts);
+      queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
+      void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
+      setDuplicateReviewOpen(false);
+      setImportCategoryOpen(false);
+      setPendingImportedProducts([]);
+      setStoreImportPriceDetails({});
+      setDuplicateCandidateIds([]);
+      setKeepDuplicateIds([]);
+      toast.success(`Se agregaron ${importedProducts.length} productos`);
+    } catch (error) {
+      console.error("Error guardando productos importados:", error);
+      toast.error(error instanceof Error ? error.message : "No se pudieron guardar los productos.");
+    } finally {
+      setIsSavingImports(false);
+    }
+  };
+
+  const handleConfirmMultipleImport = () => {
+    if (!pendingImportedProducts.length || (applyImportFieldsToAll && !importCategory)) return;
+
+    const importedProducts = pendingImportedProducts.reduce<Product[]>((result, product) => {
+      const rawName = product.name.trim();
+      const price = Number(product.price);
+      if (!rawName || !Number.isFinite(price) || price < 0) return result;
+
+      const appliesGlobalFields = applyImportFieldsToAll;
+      const brand = appliesGlobalFields ? importBrand : product.brand;
+      const category = appliesGlobalFields ? importCategory : product.category;
+      const subcategory = appliesGlobalFields
+        ? importSubcategory || undefined
+        : product.subcategory || undefined;
+      const previousSubcategoryName = getSubcategoryLabel(
+        product.brand,
+        product.category,
+        product.subcategory ?? "",
+      );
+      const nextSubcategoryName = getSubcategoryLabel(brand, category, subcategory ?? "");
+      const name =
+        importSource === "store"
+          ? replaceSubcategorySuffix(rawName, previousSubcategoryName, nextSubcategoryName).trim()
+          : rawName;
+
+      const slugBase =
+        name
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "") || `producto-${Date.now()}`;
+      result.push({
+        ...product,
+        name,
+        slug: `${slugBase}-${product.id.replace(/[^a-zA-Z0-9-]/g, "-")}`,
+        price,
+        brand,
+        category,
+        subcategory,
+      } as Product);
+      return result;
+    }, []);
+
+    if (importedProducts.length !== pendingImportedProducts.length) {
+      toast.error("Revisá que todos los productos tengan nombre y un precio válido.");
+      return;
+    }
+
+    setPendingImportedProducts(importedProducts);
+    const duplicateIds = importedProducts
+      .filter((product) => getDuplicateMatches(product).length > 0)
+      .map((product) => product.id);
+    if (duplicateIds.length > 0) {
+      setImportPreviewPage(0);
+      setDuplicateCandidateIds(duplicateIds);
+      setKeepDuplicateIds([]);
+      setDuplicateReviewOpen(true);
+      setImportCategoryOpen(false);
+      return;
+    }
+
+    void commitImportedProducts(importedProducts);
+  };
+
+  const handleResolveDuplicates = () => {
+    const duplicateIdSet = new Set(duplicateCandidateIds);
+    const keepIdSet = new Set(keepDuplicateIds);
+    const acceptedProducts = pendingImportedProducts.filter(
+      (product) => !duplicateIdSet.has(product.id) || keepIdSet.has(product.id),
+    );
+    void commitImportedProducts(acceptedProducts);
   };
 
   const openEditProductDialog = (product: Product, variant?: ProductVariant) => {
@@ -2745,9 +3049,9 @@ function AdminProducts() {
       <Dialog open={createChoiceOpen} onOpenChange={setCreateChoiceOpen}>
         <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader className="space-y-2">
-            <DialogTitle>Crear producto</DialogTitle>
+            <DialogTitle>Agregar producto</DialogTitle>
             <DialogDescription>
-              Elegí cómo quieres añadir nuevos productos al catálogo.
+              Elegí una opción para agregar nuevos productos al catálogo.
             </DialogDescription>
           </DialogHeader>
 
@@ -2770,7 +3074,12 @@ function AdminProducts() {
               className="w-full justify-start text-left"
               onClick={() => {
                 setCreateChoiceOpen(false);
-                multiProductInputRef.current?.click();
+                setImportSetupSource("images");
+                setImportBrand("arcade");
+                setImportCategory("");
+                setImportSubcategory("");
+                setApplyImportFieldsToAll(false);
+                setImportSetupOpen(true);
               }}
             >
               <span className="flex w-full items-center justify-between gap-3">
@@ -2785,7 +3094,12 @@ function AdminProducts() {
               className="w-full justify-start text-left"
               onClick={() => {
                 setCreateChoiceOpen(false);
-                textProductInputRef.current?.click();
+                setImportSetupSource("text");
+                setImportBrand("arcade");
+                setImportCategory("");
+                setImportSubcategory("");
+                setApplyImportFieldsToAll(false);
+                setImportSetupOpen(true);
               }}
             >
               <span className="flex w-full items-center justify-between gap-3">
@@ -2800,12 +3114,17 @@ function AdminProducts() {
               className="w-full justify-start text-left"
               onClick={() => {
                 setCreateChoiceOpen(false);
-                toast.info("Importar desde Store aún no está implementado.");
+                setStoreImportLink("");
+                setImportBrand("arcade");
+                setImportCategory("");
+                setImportSubcategory("");
+                setImportSetupSource("store");
+                setImportSetupOpen(true);
               }}
             >
               <span className="flex w-full items-center justify-between gap-3">
                 <span>Importar desde la tienda Store</span>
-                <span className="text-xs text-muted-foreground">Próximamente</span>
+                <span className="text-xs text-muted-foreground">Ingresar link</span>
               </span>
             </Button>
           </div>
@@ -2813,34 +3132,32 @@ function AdminProducts() {
       </Dialog>
 
       <Dialog
-        open={importCategoryOpen}
+        open={importSetupOpen}
         onOpenChange={(open) => {
-          setImportCategoryOpen(open);
-          if (!open) setPendingImportedProducts([]);
+          setImportSetupOpen(open);
+          if (!open) setImportSetupSource(null);
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Configurar productos importados</DialogTitle>
+            <DialogTitle>Configurar importación</DialogTitle>
             <DialogDescription>
-              Se crearán {pendingImportedProducts.length} productos, uno por cada imagen. Elegí la
-              tienda y la categoría que tendrán.
+              Elegí opcionalmente la tienda, categoría y subcategoría antes de continuar.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="import-brand">Tienda</Label>
+              <Label htmlFor="import-setup-brand">Tienda</Label>
               <Select
                 value={importBrand}
                 onValueChange={(value) => {
-                  const nextBrand = value as BrandSlug;
-                  setImportBrand(nextBrand);
-                  setImportCategory(brands[nextBrand].categories[0]?.slug ?? "");
+                  setImportBrand(value as BrandSlug);
+                  setImportCategory("");
                   setImportSubcategory("");
                 }}
               >
-                <SelectTrigger id="import-brand">
-                  <SelectValue placeholder="Seleccioná una tienda" />
+                <SelectTrigger id="import-setup-brand">
+                  <SelectValue placeholder="Opcional" />
                 </SelectTrigger>
                 <SelectContent>
                   {brandList.map((brand) => (
@@ -2852,19 +3169,20 @@ function AdminProducts() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="import-category">Categoría</Label>
+              <Label htmlFor="import-setup-category">Categoría</Label>
               <Select
-                value={importCategory}
+                value={importCategory || "none"}
                 onValueChange={(value) => {
-                  setImportCategory(value);
+                  setImportCategory(value === "none" ? "" : value);
                   setImportSubcategory("");
                 }}
               >
-                <SelectTrigger id="import-category">
-                  <SelectValue placeholder="Seleccioná una categoría" />
+                <SelectTrigger id="import-setup-category">
+                  <SelectValue placeholder="Opcional" />
                 </SelectTrigger>
                 <SelectContent>
-                  {importCategories.map((category) => (
+                  <SelectItem value="none">Sin categoría</SelectItem>
+                  {brands[importBrand].categories.map((category) => (
                     <SelectItem key={category.slug} value={category.slug}>
                       {category.name}
                     </SelectItem>
@@ -2872,30 +3190,666 @@ function AdminProducts() {
                 </SelectContent>
               </Select>
             </div>
-            {selectedImportCategory?.subcategories?.length ? (
+            <div className="space-y-2">
+              <Label htmlFor="import-setup-subcategory">Subcategoría</Label>
+              <Select
+                value={importSubcategory || "none"}
+                onValueChange={(value) => setImportSubcategory(value === "none" ? "" : value)}
+                disabled={!importCategory}
+              >
+                <SelectTrigger id="import-setup-subcategory">
+                  <SelectValue placeholder="Opcional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin subcategoría</SelectItem>
+                  {selectedImportCategory?.subcategories?.map((subcategory) => (
+                    <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                      {subcategory.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setImportSetupOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setImportSetupOpen(false);
+                setApplyImportFieldsToAll(Boolean(importCategory || importSubcategory));
+                if (importSetupSource === "images") multiProductInputRef.current?.click();
+                if (importSetupSource === "text") textProductInputRef.current?.click();
+                if (importSetupSource === "store") setStoreImportLinkOpen(true);
+              }}
+            >
+              Continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={storeImportLinkOpen} onOpenChange={setStoreImportLinkOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Importar desde PlayStation Store</DialogTitle>
+            <DialogDescription>
+              Pegá un link de categoría. Se consultarán todas sus páginas, no solo la que aparece en
+              el link.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="store-import-link">Link de la categoría</Label>
+              <Input
+                id="store-import-link"
+                type="url"
+                value={storeImportLink}
+                onChange={(event) => setStoreImportLink(event.target.value)}
+                placeholder="https://store.playstation.com/es-ar/category/..."
+                autoComplete="url"
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="import-subcategory">Subcategoría</Label>
-                <Select value={importSubcategory} onValueChange={setImportSubcategory}>
-                  <SelectTrigger id="import-subcategory">
-                    <SelectValue placeholder="Opcional: seleccioná una subcategoría" />
+                <Label htmlFor="store-import-brand">Tienda</Label>
+                <Select
+                  value={importBrand}
+                  onValueChange={(value) => {
+                    const nextBrand = value as BrandSlug;
+                    setImportBrand(nextBrand);
+                    setImportCategory(brands[nextBrand].categories[0]?.slug ?? "");
+                    setImportSubcategory("");
+                  }}
+                >
+                  <SelectTrigger id="store-import-brand">
+                    <SelectValue placeholder="Tienda" />
                   </SelectTrigger>
                   <SelectContent>
-                    {selectedImportCategory.subcategories.map((subcategory) => (
-                      <SelectItem key={subcategory.slug} value={subcategory.slug}>
-                        {subcategory.name}
+                    {brandList.map((brand) => (
+                      <SelectItem key={brand.slug} value={brand.slug}>
+                        {brand.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            ) : null}
+              <div className="space-y-2">
+                <Label htmlFor="store-import-category">Categoría</Label>
+                <Select
+                  value={importCategory}
+                  onValueChange={(value) => {
+                    setImportCategory(value);
+                    setImportSubcategory("");
+                  }}
+                >
+                  <SelectTrigger id="store-import-category">
+                    <SelectValue placeholder="Categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brands[importBrand].categories.map((category) => (
+                      <SelectItem key={category.slug} value={category.slug}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="store-import-subcategory">Subcategoría</Label>
+                <Select
+                  value={importSubcategory}
+                  onValueChange={setImportSubcategory}
+                  disabled={
+                    !brands[importBrand].categories.find(
+                      (category) => category.slug === importCategory,
+                    )?.subcategories?.length
+                  }
+                >
+                  <SelectTrigger id="store-import-subcategory">
+                    <SelectValue placeholder="Subcategoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brands[importBrand].categories
+                      .find((category) => category.slug === importCategory)
+                      ?.subcategories?.map((subcategory) => (
+                        <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                          {subcategory.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              El nombre se guardará como «juego - subcategoría». Los gastos usarán el menor entre el
+              precio normal y el de oferta, en USD; la comisión inicial será $4.500 ARS.
+            </p>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setImportCategoryOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setStoreImportLinkOpen(false)}>
               Cancelar
             </Button>
-            <Button type="button" onClick={handleConfirmMultipleImport} disabled={!importCategory}>
-              Crear productos
+            <Button
+              type="button"
+              onClick={() => void handleImportFromStore()}
+              disabled={isImportingStore}
+            >
+              <ArrowDown className="mr-2 size-4" /> Consultar Store
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={importCategoryOpen}
+        onOpenChange={(open) => {
+          if (!open && isImportingStore) return;
+          setImportCategoryOpen(open);
+        }}
+      >
+        <DialogContent className="max-w-6xl">
+          <DialogHeader>
+            <DialogTitle>
+              {isImportingStore
+                ? "Cargando productos de PlayStation Store…"
+                : "Revisar productos antes de importar"}
+            </DialogTitle>
+            <DialogDescription>
+              {isImportingStore
+                ? "Consultando todas las páginas de la categoría. Esto puede tardar un poco."
+                : `Se encontraron ${pendingImportedProducts.length} productos. Revisá y editá los datos antes de agregarlos.`}
+            </DialogDescription>
+          </DialogHeader>
+          {isImportingStore ? (
+            <div className="flex min-h-56 flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
+              <LoaderCircle className="size-8 animate-spin text-primary" />
+              <p>Buscando productos y precios en todas las páginas…</p>
+              <p className="text-xs">No cierres esta ventana mientras se completa la consulta.</p>
+            </div>
+          ) : null}
+          <div className={cn("space-y-4", isImportingStore && "hidden")}>
+            <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-surface/40 p-3 text-sm">
+              <Checkbox
+                checked={applyImportFieldsToAll}
+                onCheckedChange={(checked) => setApplyImportFieldsToAll(checked === true)}
+                aria-label="Aplicar tienda y categorías a todos los productos"
+              />
+              <span>
+                <span className="block font-medium">Aplicar a todos los productos</span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  Usar la misma tienda, categoría y subcategoría en cada producto.
+                </span>
+              </span>
+            </label>
+
+            {applyImportFieldsToAll ? (
+              <div className="grid gap-3 rounded-xl border border-border/60 bg-surface/30 p-3 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="import-brand">Tienda para todos</Label>
+                  <Select
+                    value={importBrand}
+                    onValueChange={(value) => {
+                      const nextBrand = value as BrandSlug;
+                      changeGlobalImportFields(
+                        nextBrand,
+                        brands[nextBrand].categories[0]?.slug ?? "",
+                        "",
+                      );
+                    }}
+                  >
+                    <SelectTrigger id="import-brand">
+                      <SelectValue placeholder="Seleccioná una tienda" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {brandList.map((brand) => (
+                        <SelectItem key={brand.slug} value={brand.slug}>
+                          {brand.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="import-category">Categoría para todos</Label>
+                  <Select
+                    value={importCategory}
+                    onValueChange={(value) => changeGlobalImportFields(importBrand, value, "")}
+                  >
+                    <SelectTrigger id="import-category">
+                      <SelectValue placeholder="Seleccioná una categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {importCategories.map((category) => (
+                        <SelectItem key={category.slug} value={category.slug}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedImportCategory?.subcategories?.length ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="import-subcategory">Subcategoría para todos</Label>
+                    <Select
+                      value={importSubcategory}
+                      onValueChange={(value) =>
+                        changeGlobalImportFields(importBrand, importCategory, value)
+                      }
+                    >
+                      <SelectTrigger id="import-subcategory">
+                        <SelectValue placeholder="Seleccioná una subcategoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedImportCategory.subcategories.map((subcategory) => (
+                          <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                            {subcategory.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="max-h-[48dvh] space-y-3 overflow-y-auto pr-1">
+              {pendingImportedProducts
+                .slice(importPreviewPage * 30, (importPreviewPage + 1) * 30)
+                .map((product, visibleIndex) => {
+                  const index = importPreviewPage * 30 + visibleIndex;
+                  const rowBrand = product.brand;
+                  const rowCategories = brands[rowBrand].categories;
+                  const rowCategory = rowCategories.find(
+                    (category) => category.slug === product.category,
+                  );
+                  return (
+                    <div
+                      key={product.id}
+                      className="grid gap-3 rounded-xl border border-border/60 bg-background/70 p-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(8rem,0.7fr)]"
+                    >
+                      <div className="flex min-w-0 gap-3">
+                        {(product.images?.[0] ?? storeImportPriceDetails[product.id]?.image) ? (
+                          <img
+                            src={
+                              product.images?.[0] ??
+                              storeImportPriceDetails[product.id]?.image ??
+                              ""
+                            }
+                            alt=""
+                            className="size-16 shrink-0 rounded-lg border border-border/60 object-cover"
+                          />
+                        ) : null}
+                        <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`import-name-${product.id}`}>Nombre del producto</Label>
+                            <Input
+                              id={`import-name-${product.id}`}
+                              value={product.name}
+                              onChange={(event) =>
+                                setPendingImportedProducts((current) =>
+                                  current.map((item, itemIndex) =>
+                                    itemIndex === index
+                                      ? { ...item, name: event.target.value }
+                                      : item,
+                                  ),
+                                )
+                              }
+                              className="min-w-0"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`import-price-${product.id}`}>
+                              {importSource === "store" ? "Precio de venta" : "Precio (ARS)"}
+                            </Label>
+                            <Input
+                              id={`import-price-${product.id}`}
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={product.price}
+                              onChange={(event) =>
+                                setPendingImportedProducts((current) =>
+                                  current.map((item, itemIndex) =>
+                                    itemIndex === index
+                                      ? { ...item, price: Number(event.target.value) }
+                                      : item,
+                                  ),
+                                )
+                              }
+                              className="min-w-0"
+                            />
+                          </div>
+                          {importSource === "store" ? (
+                            <>
+                              <div className="space-y-1.5">
+                                <Label>Mi comisión</Label>
+                                <div className="flex min-w-0 gap-2">
+                                  <Select
+                                    value={product.comisionCurrency ?? "ARS"}
+                                    onValueChange={(value) =>
+                                      setPendingImportedProducts((current) =>
+                                        current.map((item, itemIndex) =>
+                                          itemIndex === index
+                                            ? { ...item, comisionCurrency: value as CurrencyCode }
+                                            : item,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="w-24 shrink-0">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="ARS">$ (ARS)</SelectItem>
+                                      <SelectItem value="USD">USD</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    value={product.comision ?? 0}
+                                    onChange={(event) =>
+                                      setPendingImportedProducts((current) =>
+                                        current.map((item, itemIndex) =>
+                                          itemIndex === index
+                                            ? { ...item, comision: Number(event.target.value) }
+                                            : item,
+                                        ),
+                                      )
+                                    }
+                                    className="min-w-0"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label>Gastos</Label>
+                                <div className="flex min-w-0 gap-2">
+                                  <Select
+                                    value={product.gastosCurrency ?? "USD"}
+                                    onValueChange={(value) =>
+                                      setPendingImportedProducts((current) =>
+                                        current.map((item, itemIndex) =>
+                                          itemIndex === index
+                                            ? { ...item, gastosCurrency: value as CurrencyCode }
+                                            : item,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="w-24 shrink-0">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="ARS">$ (ARS)</SelectItem>
+                                      <SelectItem value="USD">USD</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    step="0.01"
+                                    value={product.gastos ?? 0}
+                                    onChange={(event) =>
+                                      setPendingImportedProducts((current) =>
+                                        current.map((item, itemIndex) =>
+                                          itemIndex === index
+                                            ? { ...item, gastos: Number(event.target.value) }
+                                            : item,
+                                        ),
+                                      )
+                                    }
+                                    className="min-w-0"
+                                  />
+                                </div>
+                                {storeImportPriceDetails[product.id] ? (
+                                  <p className="text-[11px] text-muted-foreground">
+                                    Store: oferta{" "}
+                                    {storeImportPriceDetails[product.id]?.offer ?? "—"} · normal{" "}
+                                    {storeImportPriceDetails[product.id]?.regular ?? "—"}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {!applyImportFieldsToAll ? (
+                        <div className="grid min-w-0 gap-2 sm:grid-cols-1">
+                          <Select
+                            value={rowBrand}
+                            onValueChange={(value) => {
+                              const nextBrand = value as BrandSlug;
+                              updateIndividualImportFields(index, {
+                                brand: nextBrand,
+                                category: brands[nextBrand].categories[0]?.slug ?? "",
+                                subcategory: undefined,
+                              });
+                            }}
+                          >
+                            <SelectTrigger aria-label={`Tienda para ${product.name}`}>
+                              <SelectValue placeholder="Tienda" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {brandList.map((brand) => (
+                                <SelectItem key={brand.slug} value={brand.slug}>
+                                  {brand.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={product.category}
+                            onValueChange={(value) =>
+                              updateIndividualImportFields(index, {
+                                category: value,
+                                subcategory: undefined,
+                              })
+                            }
+                          >
+                            <SelectTrigger aria-label={`Categoría para ${product.name}`}>
+                              <SelectValue placeholder="Categoría" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {rowCategories.map((category) => (
+                                <SelectItem key={category.slug} value={category.slug}>
+                                  {category.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {rowCategory?.subcategories?.length ? (
+                            <Select
+                              value={product.subcategory ?? "none"}
+                              onValueChange={(value) =>
+                                updateIndividualImportFields(index, {
+                                  subcategory: value === "none" ? undefined : value,
+                                })
+                              }
+                            >
+                              <SelectTrigger aria-label={`Subcategoría para ${product.name}`}>
+                                <SelectValue placeholder="Subcategoría" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Sin subcategoría</SelectItem>
+                                {rowCategory.subcategories.map((subcategory) => (
+                                  <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                                    {subcategory.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+            </div>
+            {pendingImportedProducts.length > 30 ? (
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <p className="text-muted-foreground">
+                  Productos {importPreviewPage * 30 + 1}–
+                  {Math.min((importPreviewPage + 1) * 30, pendingImportedProducts.length)} de{" "}
+                  {pendingImportedProducts.length}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={importPreviewPage === 0}
+                    onClick={() => setImportPreviewPage((current) => Math.max(0, current - 1))}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={(importPreviewPage + 1) * 30 >= pendingImportedProducts.length}
+                    onClick={() => setImportPreviewPage((current) => current + 1)}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter className={isImportingStore ? "hidden" : undefined}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setImportCategoryOpen(false);
+                setPendingImportedProducts([]);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmMultipleImport}
+              disabled={
+                isSavingImports ||
+                !pendingImportedProducts.length ||
+                (applyImportFieldsToAll && !importCategory) ||
+                pendingImportedProducts.some(
+                  (product) =>
+                    !product.name.trim() || !Number.isFinite(product.price) || product.price < 0,
+                )
+              }
+            >
+              <Check className="mr-2 size-4" /> Agregar {pendingImportedProducts.length} productos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={duplicateReviewOpen}
+        onOpenChange={(open) => {
+          if (!open && isSavingImports) return;
+          setDuplicateReviewOpen(open);
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Posibles productos repetidos</DialogTitle>
+            <DialogDescription>
+              Encontré {duplicateCandidateIds.length} productos que podrían existir en tu catálogo.
+              Marcá cuáles querés agregar igualmente; los demás se omitirán.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[55dvh] space-y-3 overflow-y-auto pr-1">
+            {pendingImportedProducts
+              .filter((product) => duplicateCandidateIds.includes(product.id))
+              .slice(importPreviewPage * 30, (importPreviewPage + 1) * 30)
+              .map((product) => {
+                const matches = getDuplicateMatches(product);
+                const isKept = keepDuplicateIds.includes(product.id);
+                return (
+                  <label
+                    key={product.id}
+                    className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-background/70 p-3"
+                  >
+                    <Checkbox
+                      checked={isKept}
+                      onCheckedChange={(checked) =>
+                        setKeepDuplicateIds((current) =>
+                          checked === true
+                            ? [...new Set([...current, product.id])]
+                            : current.filter((id) => id !== product.id),
+                        )
+                      }
+                      aria-label={`Agregar igualmente ${product.name}`}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium">{product.name}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        Coincide con: {matches.map((match) => match.name).join(" · ")}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {isKept ? "Se agregará" : "Se omitirá"}
+                    </span>
+                  </label>
+                );
+              })}
+          </div>
+          {duplicateCandidateIds.length > 30 ? (
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <p className="text-muted-foreground">
+                Coincidencias {importPreviewPage * 30 + 1}–
+                {Math.min((importPreviewPage + 1) * 30, duplicateCandidateIds.length)} de{" "}
+                {duplicateCandidateIds.length}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={importPreviewPage === 0}
+                  onClick={() => setImportPreviewPage((current) => Math.max(0, current - 1))}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={(importPreviewPage + 1) * 30 >= duplicateCandidateIds.length}
+                  onClick={() => setImportPreviewPage((current) => current + 1)}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSavingImports}
+              onClick={() => {
+                setDuplicateReviewOpen(false);
+                setImportCategoryOpen(true);
+              }}
+            >
+              Volver a revisar
+            </Button>
+            <Button type="button" onClick={handleResolveDuplicates} disabled={isSavingImports}>
+              {isSavingImports ? (
+                <LoaderCircle className="mr-2 size-4 animate-spin" />
+              ) : (
+                <Check className="mr-2 size-4" />
+              )}
+              {isSavingImports
+                ? "Guardando…"
+                : `Agregar ${pendingImportedProducts.length - duplicateCandidateIds.length + keepDuplicateIds.length} productos`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3487,7 +4441,6 @@ function ProductEditDialog({
       priceCurrency: sourceVariant?.priceCurrency ?? productForm.priceCurrency,
       comision: sourceVariant?.comision ?? productForm.comision,
       comisionCurrency: sourceVariant?.comisionCurrency ?? productForm.comisionCurrency,
-      cardCommission: sourceVariant?.cardCommission ?? productForm.cardCommission,
       gastos: sourceVariant?.gastos ?? productForm.gastos,
       gastosCurrency: sourceVariant?.gastosCurrency ?? productForm.gastosCurrency,
       description: sourceVariant?.description ?? productForm.description,

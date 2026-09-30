@@ -1,7 +1,9 @@
 import type { BrandSlug } from "@/config/brands";
 
 const cloneSnapshot = <T>(items: T[]) =>
-  typeof structuredClone === "function" ? structuredClone(items) : JSON.parse(JSON.stringify(items));
+  typeof structuredClone === "function"
+    ? structuredClone(items)
+    : JSON.parse(JSON.stringify(items));
 
 export function createProductSaveQueue<T>(persist: (items: T[]) => Promise<unknown>) {
   let pending = Promise.resolve();
@@ -26,6 +28,18 @@ const productSaveQueue = createProductSaveQueue(async (products: Product[]) => {
 export async function saveProduct(product: Product) {
   const { saveAdminProduct } = await import("@/server/persistence");
   return saveAdminProduct({ data: { product } });
+}
+
+export async function saveProductBatch(products: Product[]) {
+  const { saveAdminProductBatch } = await import("@/server/persistence");
+  const batchSize = 500;
+  for (let offset = 0; offset < products.length; offset += batchSize) {
+    const saved = await saveAdminProductBatch({
+      data: { products: products.slice(offset, offset + batchSize) },
+    });
+    if (!saved) return false;
+  }
+  return true;
 }
 
 export function saveProducts(products: Product[]) {

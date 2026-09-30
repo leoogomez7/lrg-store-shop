@@ -192,12 +192,21 @@ async function createDatabaseBackup(reason: string) {
     "trash",
     "site_visitors",
   ];
-  const userTables = ["users", "user_carts", "guest_carts", "favorites", "addresses", "customer_orders"];
+  const userTables = [
+    "users",
+    "user_carts",
+    "guest_carts",
+    "favorites",
+    "addresses",
+    "customer_orders",
+  ];
   const [adminResults, userDatabase] = await Promise.all([
     Promise.all(
       adminTables.map((table) =>
         table === "admin_settings"
-          ? adminDatabase.execute("SELECT settingKey, settingValue, updatedAt FROM admin_settings WHERE settingKey != 'lrg:trash'")
+          ? adminDatabase.execute(
+              "SELECT settingKey, settingValue, updatedAt FROM admin_settings WHERE settingKey != 'lrg:trash'",
+            )
           : adminDatabase.execute(`SELECT * FROM ${table}`),
       ),
     ),
@@ -226,7 +235,9 @@ async function createDatabaseBackup(reason: string) {
   return true;
 }
 
-async function migrateLegacyBackupTrash(database: NonNullable<Awaited<ReturnType<typeof ensureAdminTables>>>) {
+async function migrateLegacyBackupTrash(
+  database: NonNullable<Awaited<ReturnType<typeof ensureAdminTables>>>,
+) {
   const settings = await database.execute({
     sql: "SELECT settingValue FROM admin_settings WHERE settingKey = ?",
     args: ["lrg:trash"],
@@ -243,14 +254,22 @@ async function migrateLegacyBackupTrash(database: NonNullable<Awaited<ReturnType
   if (!Array.isArray(entries)) return;
 
   const backupEntries = entries.filter(
-    (entry): entry is { type: "backup"; id: string; item: { reason: string; createdAt: string; snapshotData?: string }; deletedAt: string; expiresAt: string } =>
+    (
+      entry,
+    ): entry is {
+      type: "backup";
+      id: string;
+      item: { reason: string; createdAt: string; snapshotData?: string };
+      deletedAt: string;
+      expiresAt: string;
+    } =>
       Boolean(
         entry &&
-          typeof entry === "object" &&
-          (entry as { type?: unknown }).type === "backup" &&
-          typeof (entry as { id?: unknown }).id === "string" &&
-          typeof (entry as { deletedAt?: unknown }).deletedAt === "string" &&
-          typeof (entry as { expiresAt?: unknown }).expiresAt === "string",
+        typeof entry === "object" &&
+        (entry as { type?: unknown }).type === "backup" &&
+        typeof (entry as { id?: unknown }).id === "string" &&
+        typeof (entry as { deletedAt?: unknown }).deletedAt === "string" &&
+        typeof (entry as { expiresAt?: unknown }).expiresAt === "string",
       ),
   );
   if (!backupEntries.length) return;
@@ -272,7 +291,9 @@ async function migrateLegacyBackupTrash(database: NonNullable<Awaited<ReturnType
     "write",
   );
 
-  const remainingEntries = entries.filter((entry) => !backupEntries.includes(entry as (typeof backupEntries)[number]));
+  const remainingEntries = entries.filter(
+    (entry) => !backupEntries.includes(entry as (typeof backupEntries)[number]),
+  );
   await database.execute({
     sql: "UPDATE admin_settings SET settingValue = ?, updatedAt = ? WHERE settingKey = ?",
     args: [JSON.stringify(remainingEntries), new Date().toISOString(), "lrg:trash"],
@@ -283,7 +304,10 @@ export const initializeDatabase = createServerFn({ method: "POST" })
   .validator(() => ({}))
   .handler(async () => {
     const adminDatabase = await ensureAdminTables();
-    await Promise.all([ensureUserTables(), adminDatabase ? migrateLegacyBackupTrash(adminDatabase) : null]);
+    await Promise.all([
+      ensureUserTables(),
+      adminDatabase ? migrateLegacyBackupTrash(adminDatabase) : null,
+    ]);
 
     return true;
   });
@@ -530,6 +554,208 @@ export const saveAdminProduct = createServerFn({ method: "POST" })
     return true;
   });
 
+export const saveAdminProductBatch = createServerFn({ method: "POST" })
+  .validator((data: { products: Product[] }) => data)
+  .handler(async ({ data }) => {
+    if (data.products.length === 0) return true;
+    if (data.products.length > 5000) {
+      throw new Error("No se pueden guardar más de 5000 productos en una sola importación.");
+    }
+
+    const database = await ensureAdminTables();
+    if (!database) return false;
+    const now = new Date().toISOString();
+    await database.batch(
+      data.products.map((product) => ({
+        sql: `INSERT INTO products (id, productData, updatedAt) VALUES (?, ?, ?)
+              ON CONFLICT(id) DO UPDATE SET productData = excluded.productData, updatedAt = excluded.updatedAt`,
+        args: [product.id, JSON.stringify(product), now],
+      })),
+      "write",
+    );
+    return true;
+  });
+
+type PlayStationStoreProduct = {
+  id: string;
+  name: string;
+  platforms: string[];
+  basePrice?: string;
+  discountedPrice?: string;
+  discountText?: string;
+  image?: string;
+};
+
+function parseStorePrice(value: string | undefined): number | null {
+  if (!value) return null;
+  const number = value.replace(/[^\d.,-]/g, "");
+  if (!number) return null;
+
+  const lastDot = number.lastIndexOf(".");
+  const lastComma = number.lastIndexOf(",");
+  let normalized = number;
+  if (lastDot >= 0 && lastComma >= 0) {
+    const decimalSeparator = lastDot > lastComma ? "." : ",";
+    const thousandSeparator = decimalSeparator === "." ? "," : ".";
+    normalized = number.split(thousandSeparator).join("").replace(decimalSeparator, ".");
+  } else if (lastComma >= 0) {
+    const decimals = number.length - lastComma - 1;
+    normalized =
+      decimals > 0 && decimals <= 2 ? number.replace(",", ".") : number.replace(/,/g, "");
+  } else if (lastDot >= 0 && number.length - lastDot - 1 === 3) {
+    normalized = number.replace(/\./g, "");
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+export const importPlayStationStoreCategory = createServerFn({ method: "POST" })
+  .validator((data: { url: string }) => data)
+  .handler(async ({ data }) => {
+    let sourceUrl: URL;
+    try {
+      sourceUrl = new URL(data.url);
+    } catch {
+      throw new Error("Ingresá un link válido de PlayStation Store.");
+    }
+    if (
+      sourceUrl.protocol !== "https:" ||
+      sourceUrl.hostname !== "store.playstation.com" ||
+      !/^\/[a-z]{2}-[a-z]{2}\/category\/[^/]+(?:\/\d+)?\/?$/i.test(sourceUrl.pathname)
+    ) {
+      throw new Error("El link debe ser una página de categoría de store.playstation.com.");
+    }
+
+    const pathParts = sourceUrl.pathname.split("/").filter(Boolean);
+    const locale = pathParts[0] ?? "es-ar";
+    const categoryId = pathParts[2];
+    if (!categoryId) throw new Error("No pude detectar la categoría del link.");
+
+    const filterBy: string[] = [];
+    for (const [key, facet] of sourceUrl.searchParams) {
+      if (
+        [
+          "storeDisplayClassification",
+          "targetPlatforms",
+          "subscriptionService",
+          "gameContentType",
+        ].includes(facet)
+      ) {
+        filterBy.push(`${facet}:${key}`);
+      }
+    }
+
+    const sortName = sourceUrl.searchParams.get("sortBy");
+    const sortOrder = sourceUrl.searchParams.get("sortOrder");
+    const sortBy = sortName ? { name: sortName, isAscending: sortOrder !== "desc" } : null;
+    const pageSize = 1000;
+    const maxProducts = 30_000;
+    const products: PlayStationStoreProduct[] = [];
+    let totalCount = 0;
+    let isLast = false;
+
+    for (let offset = 0, page = 0; !isLast; offset += pageSize, page += 1) {
+      if (page >= 31 || offset >= maxProducts) {
+        throw new Error("La categoría supera el límite seguro de 30 000 productos.");
+      }
+
+      const variables = {
+        id: categoryId,
+        pageArgs: { size: pageSize, offset },
+        sortBy,
+        filterBy,
+        facetOptions: [],
+      };
+      const extensions = {
+        persistedQuery: {
+          version: 1,
+          sha256Hash: "88c0b9a1273c6d320c51cd73e390924e21ae28bf09f01cde8b84b1034b16cd03",
+        },
+      };
+      const apiUrl = new URL("https://web.np.playstation.com/api/graphql/v1//op");
+      apiUrl.searchParams.set("operationName", "categoryGridRetrieve");
+      apiUrl.searchParams.set("variables", JSON.stringify(variables));
+      apiUrl.searchParams.set("extensions", JSON.stringify(extensions));
+
+      const response = await fetch(apiUrl, {
+        headers: {
+          accept: "application/json",
+          "accept-language": `${locale},${locale.slice(0, 2)};q=0.9`,
+          "apollo-require-preflight": "true",
+          "x-apollo-operation-name": "categoryGridRetrieve",
+        },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!response.ok) {
+        throw new Error(`PlayStation Store respondió con el estado ${response.status}.`);
+      }
+
+      const payload = (await response.json()) as {
+        errors?: Array<{ message?: string }>;
+        data?: {
+          categoryGridRetrieve?: {
+            pageInfo?: { isLast?: boolean; totalCount?: number };
+            products?: Array<{
+              id?: string;
+              name?: string;
+              platforms?: string[];
+              price?: { basePrice?: string; discountedPrice?: string; discountText?: string };
+              media?: Array<{ role?: string; url?: string }>;
+            }>;
+          };
+        };
+      };
+      if (payload.errors?.length) {
+        throw new Error(
+          payload.errors[0]?.message ?? "No se pudo consultar la categoría de Store.",
+        );
+      }
+
+      const grid = payload.data?.categoryGridRetrieve;
+      const pageProducts = grid?.products ?? [];
+      if (!grid || (pageProducts.length === 0 && offset === 0)) {
+        throw new Error("El link no contiene productos importables o la categoría no existe.");
+      }
+      totalCount = grid.pageInfo?.totalCount ?? totalCount;
+      for (const product of pageProducts) {
+        if (!product.id || !product.name) continue;
+        products.push({
+          id: product.id,
+          name: product.name,
+          platforms: product.platforms ?? [],
+          ...(product.price?.basePrice ? { basePrice: product.price.basePrice } : {}),
+          ...(product.price?.discountedPrice
+            ? { discountedPrice: product.price.discountedPrice }
+            : {}),
+          ...(product.price?.discountText ? { discountText: product.price.discountText } : {}),
+          ...(product.media?.find((media) => media.role === "MASTER")?.url
+            ? { image: product.media.find((media) => media.role === "MASTER")?.url }
+            : {}),
+        });
+      }
+      isLast = grid.pageInfo?.isLast ?? pageProducts.length < pageSize;
+      if (totalCount > maxProducts) {
+        throw new Error("La categoría supera el límite seguro de 30 000 productos.");
+      }
+    }
+
+    return {
+      totalCount: totalCount || products.length,
+      products: products.map((product) => {
+        const regularPrice = parseStorePrice(product.basePrice);
+        const offerPrice = parseStorePrice(product.discountedPrice);
+        const validPrices = [regularPrice, offerPrice].filter(
+          (price): price is number => price !== null,
+        );
+        return {
+          ...product,
+          lowestPrice: validPrices.length ? Math.min(...validPrices) : 0,
+        };
+      }),
+    };
+  });
+
 export const deleteAdminProduct = createServerFn({ method: "POST" })
   .validator((data: { id: string }) => data)
   .handler(async ({ data }) => {
@@ -643,7 +869,13 @@ export const loadAdminBackup = createServerFn({ method: "POST" })
     ) {
       return null;
     }
-    return { id, reason, createdAt, snapshotData, sizeBytes: new TextEncoder().encode(snapshotData).length };
+    return {
+      id,
+      reason,
+      createdAt,
+      snapshotData,
+      sizeBytes: new TextEncoder().encode(snapshotData).length,
+    };
   });
 
 export const deleteAdminBackup = createServerFn({ method: "POST" })
@@ -687,8 +919,21 @@ export const listAdminBackupTrash = createServerFn({ method: "POST" })
       const sizeBytes = row["sizeBytes"];
       const deletedAt = row["deletedAt"];
       const expiresAt = row["expiresAt"];
-      return typeof id === "string" && typeof reason === "string" && typeof createdAt === "string" && typeof sizeBytes === "number" && typeof deletedAt === "string" && typeof expiresAt === "string"
-        ? [{ type: "backup" as const, id, item: { id, reason, createdAt, sizeBytes }, deletedAt, expiresAt }]
+      return typeof id === "string" &&
+        typeof reason === "string" &&
+        typeof createdAt === "string" &&
+        typeof sizeBytes === "number" &&
+        typeof deletedAt === "string" &&
+        typeof expiresAt === "string"
+        ? [
+            {
+              type: "backup" as const,
+              id,
+              item: { id, reason, createdAt, sizeBytes },
+              deletedAt,
+              expiresAt,
+            },
+          ]
         : [];
     });
   });
@@ -705,7 +950,10 @@ export const restoreAdminBackup = createServerFn({ method: "POST" })
         args: [data.backup.id],
       });
       if (restored.rowsAffected === 0) return false;
-      await database.execute({ sql: "DELETE FROM database_backup_trash WHERE id = ?", args: [data.backup.id] });
+      await database.execute({
+        sql: "DELETE FROM database_backup_trash WHERE id = ?",
+        args: [data.backup.id],
+      });
       return true;
     }
     await database.execute({
@@ -722,7 +970,10 @@ export const deleteAdminBackupTrash = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const database = await ensureAdminTables();
     if (!database) return false;
-    await database.execute({ sql: "DELETE FROM database_backup_trash WHERE id = ?", args: [data.id] });
+    await database.execute({
+      sql: "DELETE FROM database_backup_trash WHERE id = ?",
+      args: [data.id],
+    });
     return true;
   });
 
