@@ -41,4 +41,9 @@ if (!response.ok) {
 
 const html = await response.text();
 writeFileSync(path.join(distDir, "index.html"), html, "utf8");
-console.log(`index.html generado en ${path.join(distDir, "index.html")}`);
+const message = `index.html generado en ${path.join(distDir, "index.html")}\n`;
+await new Promise((resolve) => process.stdout.write(message, resolve));
+
+// SSR may leave open handles (for example, from imported clients) after prerendering.
+// All build artifacts are written at this point, so don't let those handles block Vercel.
+process.exit(0);
