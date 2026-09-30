@@ -3215,9 +3215,19 @@ function AdminProducts() {
       >
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Configurar importación</DialogTitle>
+            <DialogTitle>
+              {importSetupSource === "images"
+                ? "Configurar importación: Varios productos"
+                : importSetupSource === "text"
+                  ? "Configurar importación: Importar desde un archivo de texto"
+                  : "Configurar importación: Importar desde la tienda Store"}
+            </DialogTitle>
             <DialogDescription>
-              Elegí opcionalmente la tienda, categoría y subcategoría antes de continuar.
+              {importSetupSource === "images"
+                ? "Varios productos · Elegí la tienda, categoría, subcategoría y SKU para las imágenes."
+                : importSetupSource === "text"
+                  ? "Importar desde un archivo de texto · Elegí la tienda, categoría, subcategoría y SKU para el archivo."
+                  : "Importar desde la tienda Store · Elegí la tienda, categoría, subcategoría y SKU para los productos importados."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -3311,7 +3321,7 @@ function AdminProducts() {
                 id="import-setup-code"
                 value={importCode}
                 onChange={(event) => setImportCode(event.target.value)}
-                placeholder="Código interno (opcional)"
+                placeholder="SKU (opcional)"
               />
             </div>
             <Button
