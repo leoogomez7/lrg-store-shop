@@ -114,6 +114,7 @@ export type ProductSupplier = {
   name: string;
   phone: string;
   social: string;
+  references?: string;
   purchaseDate: string;
 };
 

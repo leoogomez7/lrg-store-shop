@@ -79,7 +79,9 @@ type SupplierRow = {
   name: string;
   phone: string;
   social: string;
+  references: string;
   products: Array<{ name: string; variantName?: string; quantity: number }>;
+  productCount: number;
   stores: string[];
   sales: number;
   salesByCurrency: Record<"ARS" | "USD", number>;
@@ -91,6 +93,7 @@ type StandaloneSupplier = {
   name: string;
   phone: string;
   social: string;
+  references?: string;
 };
 
 const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
@@ -130,6 +133,7 @@ const normalizeSupplier = (supplier: Partial<StandaloneSupplier> | null | undefi
   name: supplier?.name?.trim() ?? "",
   phone: supplier?.phone?.trim() ?? "",
   social: supplier?.social?.trim() ?? "",
+  references: supplier?.references?.trim() ?? "",
 });
 
 const dedupeSuppliers = (suppliers: StandaloneSupplier[]) => {
@@ -236,6 +240,7 @@ function AdminSuppliers() {
     name: "",
     phone: "",
     social: "",
+    references: "",
   });
   const [page, setPage] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(16);
@@ -316,6 +321,7 @@ function AdminSuppliers() {
         const name = supplier?.name ?? "";
         const phone = supplier?.phone ?? "";
         const social = supplier?.social ?? "";
+        const references = supplier?.references ?? "";
         if (!name && !phone && !social) continue;
         const key = getSupplierKey({ name, phone, social });
         if (deletedSupplierKeys.includes(key)) continue;
@@ -356,12 +362,15 @@ function AdminSuppliers() {
           name,
           phone,
           social,
+          references,
           products: [],
+          productCount: 0,
           stores: [],
           sales: 0,
           salesByCurrency: { ARS: 0, USD: 0 },
           soldQuantity: 0,
         };
+        if (references) current.references = references;
         if (assignmentSummary.quantity > 0) {
           const currentProduct = current.products.find(
             (item) =>
@@ -390,6 +399,7 @@ function AdminSuppliers() {
       for (const item of order.items) {
         if (!item.supplier || item.quantity <= 0) continue;
         const { name, phone, social } = item.supplier;
+        const references = item.supplier.references ?? "";
         if (!name && !phone && !social) continue;
         const key = getSupplierKey({ name, phone, social });
         if (deletedSupplierKeys.includes(key)) continue;
@@ -398,12 +408,15 @@ function AdminSuppliers() {
           name,
           phone,
           social,
+          references,
           products: [],
+          productCount: 0,
           stores: [],
           sales: 0,
           salesByCurrency: { ARS: 0, USD: 0 },
           soldQuantity: 0,
         };
+        if (references) current.references = references;
         const currentProduct = current.products.find(
           (product) => product.name === item.name && product.variantName === item.variantName,
         );
@@ -440,14 +453,33 @@ function AdminSuppliers() {
         id: getSupplierIdentity(supplier),
         key,
         ...supplier,
+        references: supplier.references ?? "",
         products: [],
+        productCount: 0,
         stores: [],
         sales: 0,
         salesByCurrency: { ARS: 0, USD: 0 },
         soldQuantity: 0,
       });
     }
-    return Array.from(grouped.values());
+    const productIdsBySupplier = new Map<string, Set<string>>();
+    for (const product of products) {
+      const linkedSuppliers = [
+        product.supplier,
+        ...(product.variants ?? []).map((variant) => variant.supplier),
+      ];
+      for (const supplier of linkedSuppliers) {
+        if (!supplier) continue;
+        const key = getSupplierKey(supplier);
+        const productIds = productIdsBySupplier.get(key) ?? new Set<string>();
+        productIds.add(product.id);
+        productIdsBySupplier.set(key, productIds);
+      }
+    }
+    return Array.from(grouped.values()).map((row) => ({
+      ...row,
+      productCount: productIdsBySupplier.get(row.key)?.size ?? 0,
+    }));
   }, [deletedSupplierKeys, orders, products, standaloneSuppliers]);
 
   const storeOptions = [
@@ -494,6 +526,7 @@ function AdminSuppliers() {
       name: newSupplier.name.trim(),
       phone: newSupplier.phone.trim(),
       social: newSupplier.social.trim(),
+      references: newSupplier.references?.trim() ?? "",
     });
     if (!supplier.name || !supplier.phone || !supplier.social) return;
     if (editingSupplierKey) {
@@ -541,20 +574,31 @@ function AdminSuppliers() {
     void saveAdminSetting({
       data: { settingKey: SUPPLIERS_STORAGE_KEY, settingValue: JSON.stringify(nextSuppliers) },
     });
-    setNewSupplier({ name: "", phone: "", social: "" });
+    setNewSupplier({ name: "", phone: "", social: "", references: "" });
     setNewSupplierOpen(false);
   };
 
   const openSupplierEditor = (row: SupplierRow) => {
     setEditingSupplierKey(row.key);
-    setNewSupplier({ id: row.id ?? row.key, name: row.name, phone: row.phone, social: row.social });
+    setNewSupplier({
+      id: row.id ?? row.key,
+      name: row.name,
+      phone: row.phone,
+      social: row.social,
+      references: row.references,
+    });
     setNewSupplierOpen(true);
   };
 
   const startQuickEditSupplier = (row: SupplierRow, fromDetails = false) => {
     setExpandedSupplierKey(fromDetails ? row.key : null);
     setQuickEditSupplierKey(row.key);
-    setQuickEditSupplier({ name: row.name, phone: row.phone, social: row.social });
+    setQuickEditSupplier({
+      name: row.name,
+      phone: row.phone,
+      social: row.social,
+      references: row.references,
+    });
     setQuickEditFromDetails(fromDetails);
   };
 
@@ -613,6 +657,7 @@ function AdminSuppliers() {
       name: target.name,
       phone: target.phone,
       social: target.social,
+      references: target.references,
     });
     if (!normalized.name || !normalized.phone || !normalized.social) return;
     const normalizedKey = getSupplierKey(normalized);
@@ -698,6 +743,7 @@ function AdminSuppliers() {
           name: supplierRow.name,
           phone: supplierRow.phone,
           social: supplierRow.social,
+          references: supplierRow.references,
         },
       });
     }
@@ -797,7 +843,12 @@ function AdminSuppliers() {
         moveToTrash({
           type: "proveedor",
           id: row.key,
-          item: { name: row.name, phone: row.phone, social: row.social },
+          item: {
+            name: row.name,
+            phone: row.phone,
+            social: row.social,
+            references: row.references,
+          },
         }),
       );
 
@@ -1060,7 +1111,7 @@ function AdminSuppliers() {
               setEditingSupplierKey(null);
               setBulkSupplierEditQueue([]);
               setBulkSupplierEditPosition(0);
-              setNewSupplier({ name: "", phone: "", social: "" });
+              setNewSupplier({ name: "", phone: "", social: "", references: "" });
               setNewSupplierOpen(true);
             }}
             className="order-2 h-9 basis-full sm:basis-auto"
@@ -1384,11 +1435,6 @@ function AdminSuppliers() {
                   </div>
                 ) : null}
               </div>
-              <DialogDescription>
-                {editingSupplierKey
-                  ? "Actualizá el nombre, celular y red social del proveedor."
-                  : "Ingresá los datos del nuevo proveedor."}
-              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-2">
@@ -1424,6 +1470,18 @@ function AdminSuppliers() {
                   value={newSupplier.social}
                   onChange={(event) =>
                     setNewSupplier((current) => ({ ...current, social: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplier-references">Referencias</Label>
+                <Input
+                  id="supplier-references"
+                  name="new-supplier-references"
+                  autoComplete="off"
+                  value={newSupplier.references ?? ""}
+                  onChange={(event) =>
+                    setNewSupplier((current) => ({ ...current, references: event.target.value }))
                   }
                 />
               </div>
@@ -1591,11 +1649,13 @@ function AdminSuppliers() {
                         />
                       </div>
                     </TableHead>
-                    <TableHead className="w-[24%] min-w-150px pl-5">Nombre</TableHead>
-                    <TableHead className="w-[16%] min-w-110px">Celular</TableHead>
-                    <TableHead className="w-[18%] min-w-120px">Red social</TableHead>
-                    <TableHead className="w-[22%] min-w-140px">Total vendido</TableHead>
-                    <TableHead className="w-[20%] min-w-120px">Cantidad vendida</TableHead>
+                    <TableHead className="w-[16%] min-w-100px pl-3">Nombre</TableHead>
+                    <TableHead className="w-[12%] min-w-90px">Celular</TableHead>
+                    <TableHead className="w-[12%] min-w-90px">Red social</TableHead>
+                    <TableHead className="w-[16%] min-w-100px">Referencias</TableHead>
+                    <TableHead className="w-[9%] min-w-70px">Productos</TableHead>
+                    <TableHead className="w-[14%] min-w-110px">Total vendido</TableHead>
+                    <TableHead className="w-[15%] min-w-100px">Cantidad vendida</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1609,6 +1669,7 @@ function AdminSuppliers() {
                       name: row.name,
                       phone: row.phone,
                       social: row.social,
+                      references: row.references,
                     };
                     return (
                       <React.Fragment key={row.key}>
@@ -1701,6 +1762,27 @@ function AdminSuppliers() {
                               row.social
                             )}
                           </TableCell>
+                          <TableCell className="text-center text-sm text-foreground">
+                            {isQuickEditing ? (
+                              <Input
+                                value={quickSupplier.references ?? ""}
+                                onChange={(event) =>
+                                  setQuickEditSupplier({
+                                    ...quickSupplier,
+                                    references: event.target.value,
+                                  })
+                                }
+                                className="h-9"
+                              />
+                            ) : (
+                              <span className="block truncate" title={row.references}>
+                                {row.references || "-"}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center text-sm text-foreground">
+                            {row.productCount}
+                          </TableCell>
                           <TableCell className="min-w-32 text-center">
                             <div className="flex flex-col items-center justify-center gap-1 leading-none text-foreground">
                               <div className="flex items-center justify-center gap-1.5">
@@ -1728,7 +1810,7 @@ function AdminSuppliers() {
                         {isExpanded ? (
                           <TableRow className="max-md:fixed max-md:inset-2 max-md:z-50 max-md:block max-md:overflow-y-auto max-md:rounded-2xl max-md:border max-md:border-border/70 max-md:bg-background max-md:shadow-2xl">
                             <TableCell
-                              colSpan={6}
+                              colSpan={8}
                               className="w-full bg-muted/30 p-0 text-left max-md:block max-md:w-full"
                             >
                               <>
@@ -1783,7 +1865,7 @@ function AdminSuppliers() {
                   })}
                   {filteredRows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-16 text-muted-foreground">
+                      <TableCell colSpan={8} className="py-16 text-muted-foreground">
                         No se encontraron proveedores.
                       </TableCell>
                     </TableRow>

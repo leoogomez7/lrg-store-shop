@@ -17,7 +17,7 @@ export type TrashEntry =
   | (TrashEntryBase & { type: "pedido"; item: Order })
   | (TrashEntryBase & {
       type: "proveedor";
-      item: { name: string; phone: string; social: string };
+      item: { name: string; phone: string; social: string; references?: string };
     })
   | (TrashEntryBase & {
       type: "backup";
