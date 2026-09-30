@@ -139,7 +139,7 @@ function PendingAdminBackups() {
         </div>
       </div>
 
-      <div className="mt-4 glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
+      <div className="mt-4 mb-4 glass-panel w-full overflow-hidden rounded-2xl border border-border/60">
         <div className="hidden grid-cols-[1.1fr_1.2fr_2fr_1.1fr] gap-4 border-b border-border/60 bg-surface-2 px-5 py-3 text-center text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground md:grid">
           <span>Fecha</span>
           <span>Tipo de copias</span>

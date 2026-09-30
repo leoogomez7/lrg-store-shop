@@ -27,6 +27,7 @@ import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import {
   products as productsData,
+  saveProduct,
   saveProducts,
   type ProductSupplier,
   type ProductVariant,
@@ -34,7 +35,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
-import { cropImageDataUrl } from "@/lib/image-processing";
+import { cropImageDataUrl, optimizeImageDataUrl } from "@/lib/image-processing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -491,14 +492,20 @@ function AdminProducts() {
   const handleImportMultipleProducts = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
+    const imageFiles = Array.from(files).filter(
+      (file) =>
+        file.type.startsWith("image/") ||
+        /\.(avif|bmp|gif|heic|heif|jpe?g|png|svg|tiff?|webp)$/i.test(file.name),
+    );
     if (imageFiles.length === 0) {
       toast.error("No se seleccionaron imágenes válidas.");
       return;
     }
 
     const imageDataUrls = await Promise.all(
-      imageFiles.map(async (file) => cropImageDataUrl(await fileToDataUrl(file))),
+      imageFiles.map(async (file) =>
+        optimizeImageDataUrl(await cropImageDataUrl(await fileToDataUrl(file))),
+      ),
     );
 
     const importedProducts = imageFiles.map((file, index) => {
@@ -1248,13 +1255,13 @@ function AdminProducts() {
     if (!productForm) return;
 
     const processedImages = await Promise.all(
-      productForm.images.map(async (image) => {
+      productForm.images.map(async (image, index) => {
         try {
-          return await cropImageDataUrl(image);
+          const resized = await optimizeImageDataUrl(image);
+          return await optimizeImageDataUrl(await cropImageDataUrl(resized));
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "No se pudo procesar una imagen.";
-          throw new Error(message);
+          const reason = error instanceof Error ? error.message : "Error desconocido.";
+          throw new Error(`No se pudo preparar la imagen ${index + 1}: ${reason}`);
         }
       }),
     );
@@ -1289,27 +1296,43 @@ function AdminProducts() {
     };
 
     let nextProducts: Product[];
+    let productToSave: Product;
     if (editingProduct) {
       nextProducts = (productsData as Product[]).map((product) =>
         product.id === productForm.id ? { ...product, ...updatedProduct } : product,
       );
+      const updated = nextProducts.find((product) => product.id === productForm.id);
+      if (!updated) throw new Error("No se encontró el producto que se intentaba actualizar.");
+      productToSave = updated;
     } else {
       savedProductId = `new-${Date.now()}`;
-      nextProducts = [
-        ...(productsData as Product[]),
-        {
-          ...updatedProduct,
-          id: savedProductId,
-          slug: productForm.name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, ""),
-          rating: 0,
-          reviews: 0,
-          short: productForm.description,
-          createdAt: new Date().toISOString(),
-        } as Product,
-      ];
+      productToSave = {
+        ...updatedProduct,
+        id: savedProductId,
+        slug: productForm.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, ""),
+        rating: 0,
+        reviews: 0,
+        short: productForm.description,
+        createdAt: new Date().toISOString(),
+      } as Product;
+      nextProducts = [...(productsData as Product[]), productToSave];
+    }
+
+    const requestSize = new TextEncoder().encode(JSON.stringify(productToSave)).byteLength;
+    if (requestSize > 3_500_000) {
+      throw new Error(
+        "Las imágenes de este producto siguen ocupando demasiado espacio. Reducí la cantidad o el tamaño de las imágenes e intentá de nuevo.",
+      );
+    }
+
+    const saved = await saveProduct(productToSave);
+    if (!saved) {
+      throw new Error(
+        "Turso no aceptó el guardado. Revisá la conexión y las variables de base de datos.",
+      );
     }
 
     productsData.splice(0, productsData.length, ...nextProducts);
@@ -1322,7 +1345,6 @@ function AdminProducts() {
       }));
     }
 
-    await saveProducts(nextProducts);
     queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
     toast.success("Producto guardado");
     const currentProductId = productForm.id;
@@ -3393,7 +3415,15 @@ function ProductEditDialog({
 
     try {
       const imageDataUrls = await Promise.all(
-        imageFiles.map(async (file) => cropImageDataUrl(await fileToDataUrl(file))),
+        imageFiles.map(async (file) => {
+          try {
+            const resized = await optimizeImageDataUrl(await fileToDataUrl(file));
+            return await optimizeImageDataUrl(await cropImageDataUrl(resized));
+          } catch (error) {
+            const reason = error instanceof Error ? error.message : "Error desconocido.";
+            throw new Error(`${file.name}: ${reason}`);
+          }
+        }),
       );
 
       setProductForm({
@@ -3402,7 +3432,7 @@ function ProductEditDialog({
       });
     } catch (error) {
       console.error("Product image processing failed", error);
-      toast.error("No se pudo cargar una de las imágenes. Revisá que el archivo no esté corrupto.");
+      toast.error(error instanceof Error ? error.message : "No se pudo procesar una imagen.");
     }
   };
 
@@ -3447,24 +3477,38 @@ function ProductEditDialog({
 
   const addVariant = () => {
     if (!productForm || !variantNameDraft.trim()) return;
+    const sourceVariant = activeVariant;
+    const id = `variant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const variant: ProductVariant = {
-      id: `variant-${Date.now()}`,
+      ...(sourceVariant ?? {}),
+      id,
       name: variantNameDraft.trim(),
-      price: productForm.price,
-      priceCurrency: productForm.priceCurrency,
-      comision: productForm.comision,
-      comisionCurrency: productForm.comisionCurrency,
-      gastos: productForm.gastos,
-      gastosCurrency: productForm.gastosCurrency,
-      description: productForm.description,
-      stock: productForm.stock,
-      features: productForm.features,
-      includes: productForm.includes,
-      deliveryUnit: productForm.deliveryUnit === "" ? undefined : productForm.deliveryUnit,
-      deliveryAmount: productForm.deliveryAmount,
-      discount: productForm.discount,
+      price: sourceVariant?.price ?? productForm.price,
+      priceCurrency: sourceVariant?.priceCurrency ?? productForm.priceCurrency,
+      comision: sourceVariant?.comision ?? productForm.comision,
+      comisionCurrency: sourceVariant?.comisionCurrency ?? productForm.comisionCurrency,
+      cardCommission: sourceVariant?.cardCommission ?? productForm.cardCommission,
+      gastos: sourceVariant?.gastos ?? productForm.gastos,
+      gastosCurrency: sourceVariant?.gastosCurrency ?? productForm.gastosCurrency,
+      description: sourceVariant?.description ?? productForm.description,
+      stock: sourceVariant?.stock ?? productForm.stock,
+      stockUnlimited: sourceVariant?.stockUnlimited ?? productForm.stockUnlimited,
+      features: [...(sourceVariant?.features ?? productForm.features)],
+      includes: [...(sourceVariant?.includes ?? productForm.includes ?? [])],
+      deliveryUnit:
+        (sourceVariant?.deliveryUnit ?? productForm.deliveryUnit) === ""
+          ? undefined
+          : (sourceVariant?.deliveryUnit ?? productForm.deliveryUnit) || undefined,
+      deliveryAmount: sourceVariant?.deliveryAmount ?? productForm.deliveryAmount,
+      discount: sourceVariant?.discount ?? productForm.discount,
+      supplier: sourceVariant?.supplier
+        ? { ...sourceVariant.supplier }
+        : productForm.supplier
+          ? { ...productForm.supplier }
+          : undefined,
     };
     setProductForm({ ...productForm, variants: [...productForm.variants, variant] });
+    setSelectedVariantId(id);
     setVariantNameDraft("");
   };
 
@@ -4754,30 +4798,30 @@ function ProductEditDialog({
                 <div className="mb-3 text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                   Descripción
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                <div className="grid min-w-0 grid-cols-1 items-start gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
                   <Textarea
                     value={descriptionDraft}
                     rows={3}
-                    className="min-h-90px flex-1"
+                    className="min-h-90px w-full min-w-0"
                     onChange={(event) => {
                       setDescriptionDraft(event.target.value);
                       setDescriptionConfirmed(false);
                     }}
                     placeholder="Descripción de esta variante"
                   />
-                  <div className="flex w-full flex-col gap-2 sm:w-15rem">
+                  <div className="flex w-fit max-w-full flex-col items-start gap-2">
                     <Button
                       type="button"
                       size="sm"
                       variant="default"
                       onClick={confirmDescription}
                       disabled={descriptionDraft === descriptionInitialRef.current}
-                      className="h-10 w-full text-sm"
+                      className="h-10 w-fit text-sm"
                     >
                       <Check className="mr-2 size-3.5" />
                       Confirmar
                     </Button>
-                    <label className="inline-flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
+                    <label className="inline-flex h-10 w-fit max-w-full items-center justify-between gap-2 whitespace-nowrap rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
                       <span className="text-[11px] leading-none sm:text-sm">
                         Aplicar a todas las variantes
                       </span>

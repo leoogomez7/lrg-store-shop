@@ -517,6 +517,19 @@ export const saveAdminProducts = createServerFn({ method: "POST" })
     return true;
   });
 
+export const saveAdminProduct = createServerFn({ method: "POST" })
+  .validator((data: { product: Product }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return false;
+    await database.execute({
+      sql: `INSERT INTO products (id, productData, updatedAt) VALUES (?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET productData = excluded.productData, updatedAt = excluded.updatedAt`,
+      args: [data.product.id, JSON.stringify(data.product), new Date().toISOString()],
+    });
+    return true;
+  });
+
 export const deleteAdminProduct = createServerFn({ method: "POST" })
   .validator((data: { id: string }) => data)
   .handler(async ({ data }) => {

@@ -129,7 +129,64 @@ export function cropImageDataUrl(image: string) {
       resolve(cropped ?? image);
     };
     source.onerror = () =>
-      reject(new Error("La imagen no pudo procesarse. Revisá que el archivo no esté corrupto."));
+      reject(
+        new Error(
+          "El navegador no puede abrir este formato. Convertí la imagen a JPG, PNG o WebP e intentá de nuevo.",
+        ),
+      );
+    source.src = image;
+  });
+}
+
+export function optimizeImageDataUrl(image: string, maxDimension = 1400) {
+  return new Promise<string>((resolve, reject) => {
+    if (!image.startsWith("data:image/")) {
+      resolve(image);
+      return;
+    }
+
+    const source = new Image();
+    source.onload = () => {
+      if (!source.naturalWidth || !source.naturalHeight) {
+        reject(new Error("La imagen no tiene dimensiones válidas."));
+        return;
+      }
+
+      if (
+        image.startsWith("data:image/webp") &&
+        image.length <= 500_000 &&
+        Math.max(source.naturalWidth, source.naturalHeight) <= maxDimension
+      ) {
+        resolve(image);
+        return;
+      }
+
+      const scale = Math.min(1, maxDimension / Math.max(source.naturalWidth, source.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(source.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(source.naturalHeight * scale));
+      const context = canvas.getContext("2d");
+      if (!context) {
+        reject(new Error("El navegador no pudo preparar la imagen."));
+        return;
+      }
+
+      context.drawImage(source, 0, 0, canvas.width, canvas.height);
+      try {
+        const optimized = canvas.toDataURL("image/webp", 0.78);
+        resolve(
+          optimized.startsWith("data:image/webp") ? optimized : canvas.toDataURL("image/png"),
+        );
+      } catch {
+        reject(new Error("El formato de imagen no se pudo convertir en el navegador."));
+      }
+    };
+    source.onerror = () =>
+      reject(
+        new Error(
+          "Este formato no es compatible con el navegador. Convertí la imagen a JPG, PNG o WebP e intentá de nuevo.",
+        ),
+      );
     source.src = image;
   });
 }

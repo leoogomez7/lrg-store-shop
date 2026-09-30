@@ -23,6 +23,11 @@ const productSaveQueue = createProductSaveQueue(async (products: Product[]) => {
   return saveAdminProducts({ data: { products } });
 });
 
+export async function saveProduct(product: Product) {
+  const { saveAdminProduct } = await import("@/server/persistence");
+  return saveAdminProduct({ data: { product } });
+}
+
 export function saveProducts(products: Product[]) {
   return productSaveQueue(products);
 }

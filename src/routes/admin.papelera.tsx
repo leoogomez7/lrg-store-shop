@@ -417,7 +417,7 @@ function AdminTrash() {
       ) : null}
 
       <div
-        className={`mt-4 glass-panel w-full overflow-hidden rounded-2xl border border-border/60 ${!isLoading && (entries.length === 0 || filteredEntries.length === 0) ? "mb-4" : ""}`}
+        className={`mt-4 glass-panel w-full overflow-hidden rounded-2xl border border-border/60 ${isLoading || entries.length === 0 || filteredEntries.length === 0 ? "mb-4" : ""}`}
       >
         <Table
           hideScrollbarOnMobile
