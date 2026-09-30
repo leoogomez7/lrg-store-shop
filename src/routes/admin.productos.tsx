@@ -54,6 +54,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Select,
@@ -4001,6 +4002,10 @@ function ProductEditDialog({
   const [variantNameDraft, setVariantNameDraft] = useState("");
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(null);
   const [inlineVariantName, setInlineVariantName] = useState("");
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [descriptionConfirmed, setDescriptionConfirmed] = useState(true);
+  const descriptionInitialRef = useRef("");
+  const descriptionAppliedRef = useRef("");
   const featuresAppliedRef = useRef("");
   const includesAppliedRef = useRef("");
   const [supplierOptions, setSupplierOptions] = useState<ProductSupplier[]>([]);
@@ -4148,6 +4153,11 @@ function ProductEditDialog({
     const selectedVariant = currentProductForm.variants.find(
       (variant) => variant.id === selectedVariantId,
     );
+    const description = selectedVariant?.description ?? currentProductForm.description;
+    setDescriptionDraft(description);
+    setDescriptionConfirmed(true);
+    descriptionInitialRef.current = description;
+    descriptionAppliedRef.current = description;
     featuresAppliedRef.current = JSON.stringify(
       selectedVariant?.features ?? currentProductForm.features,
     );
@@ -4530,8 +4540,26 @@ function ProductEditDialog({
     toast.success("Características aplicadas a todas las variantes");
   };
 
+  const applyDescriptionToAllVariants = () => {
+    if (!productForm || !activeVariant) return;
+    setProductForm({
+      ...productForm,
+      variants: productForm.variants.map((variant) => ({
+        ...variant,
+        description: descriptionDraft,
+      })),
+    });
+    descriptionAppliedRef.current = descriptionDraft;
+    toast.success("Descripción aplicada a todas las variantes");
+  };
+
   if (!productForm) return null;
 
+  const canApplyDescription =
+    Boolean(activeVariant) &&
+    productForm.variants.length >= 2 &&
+    descriptionConfirmed &&
+    descriptionDraft !== descriptionAppliedRef.current;
   const canApplyFeatures =
     Boolean(activeVariant) &&
     productForm.variants.length >= 2 &&
@@ -4544,9 +4572,6 @@ function ProductEditDialog({
   const isNewProduct = mode === "create";
   const canSave = isNewProduct || hasChanges;
   const modeTitle = isNewProduct ? "Nuevo producto" : "Editar producto";
-  const modeDescription = isNewProduct
-    ? "Completa los datos del producto."
-    : "Actualizá los datos del producto.";
   const safeBrandForForm = productForm.brand || "arcade";
   const availableCategories = productForm.brand
     ? brands[safeBrandForForm as BrandSlug].categories.map((category) => ({
@@ -4617,6 +4642,12 @@ function ProductEditDialog({
   const hasBulkNavigation = bulkEditCount > 1;
   const canNavigatePrevious = bulkEditPosition > 0;
   const canNavigateNext = hasBulkNavigation && bulkEditPosition < bulkEditCount - 1;
+  const confirmDescription = () => {
+    if (!productForm || descriptionDraft === descriptionInitialRef.current) return;
+    updateActiveVariant({ description: descriptionDraft });
+    setDescriptionConfirmed(true);
+    descriptionInitialRef.current = descriptionDraft;
+  };
   const updateActivePricing = (updates: Partial<ProductVariant>) => {
     if (!productForm) return;
     if (!activeVariant) {
@@ -4688,7 +4719,6 @@ function ProductEditDialog({
               </div>
             ) : null}
           </div>
-          <DialogDescription>{modeDescription}</DialogDescription>
         </DialogHeader>
 
         <div className="flex w-full min-w-0 max-w-full flex-col gap-4 [&_input]:min-w-0 [&_textarea]:min-w-0">
@@ -5022,6 +5052,18 @@ function ProductEditDialog({
                         setProductForm({ ...productForm, stock: Number(event.target.value) })
                       }
                       placeholder="Stock"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="new-desc">Descripción</Label>
+                    <Textarea
+                      id="new-desc"
+                      rows={3}
+                      value={productForm.description}
+                      onChange={(event) =>
+                        setProductForm({ ...productForm, description: event.target.value })
+                      }
+                      placeholder="Descripción del producto"
                     />
                   </div>
                 </>
@@ -5592,6 +5634,49 @@ function ProductEditDialog({
                   ))}
                 </div>
               )}
+              <div className="mt-5 border-t border-border/50 pt-4">
+                <div className="mb-3 text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                  Descripción
+                </div>
+                <div className="grid min-w-0 grid-cols-1 items-start gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <Textarea
+                    value={descriptionDraft}
+                    rows={3}
+                    className="min-h-90px w-full min-w-0"
+                    onChange={(event) => {
+                      setDescriptionDraft(event.target.value);
+                      setDescriptionConfirmed(false);
+                    }}
+                    placeholder="Descripción de esta variante"
+                  />
+                  <div className="flex w-fit max-w-full flex-col items-start gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="default"
+                      onClick={confirmDescription}
+                      disabled={descriptionDraft === descriptionInitialRef.current}
+                      className="h-10 w-fit text-sm"
+                    >
+                      <Check className="mr-2 size-3.5" />
+                      Confirmar
+                    </Button>
+                    <label className="inline-flex h-10 w-fit max-w-full items-center justify-between gap-2 whitespace-nowrap rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
+                      <span className="text-[11px] leading-none sm:text-sm">
+                        Aplicar a todas las variantes
+                      </span>
+                      <Switch
+                        checked={false}
+                        onCheckedChange={(checked) => {
+                          if (checked) applyDescriptionToAllVariants();
+                        }}
+                        disabled={!canApplyDescription}
+                        aria-label="Aplicar descripción a todas las variantes"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
               <div className="mt-5 border-t border-border/50 pt-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
