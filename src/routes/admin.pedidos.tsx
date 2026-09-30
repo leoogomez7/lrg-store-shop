@@ -3246,11 +3246,25 @@ function AdminOrders() {
               </div>
 
               <div className="space-y-4 rounded-xl border border-border/60 bg-surface/40 p-4">
-                <div className="flex items-end justify-between gap-3">
+                <div>
                   <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                     Datos del pedido
                   </span>
-                  <div className="w-full max-w-xs">
+                </div>
+
+                <div className="grid min-w-0 items-end gap-3 sm:grid-cols-2">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <Label htmlFor="order-purchase-date">Fecha de compra</Label>
+                    <Input
+                      id="order-purchase-date"
+                      type="date"
+                      value={orderForm.date ? orderForm.date.slice(0, 10) : ""}
+                      disabled={!isCreatingOrder}
+                      onChange={(event) => setOrderForm({ ...orderForm, date: event.target.value })}
+                    />
+                  </div>
+                  <div className="w-full">
+                    <Label className="mb-1 block">Tienda</Label>
                     <Select
                       value={selectedOrderStore}
                       onValueChange={(value) => changeSelectedOrderStore(value as BrandSlug)}

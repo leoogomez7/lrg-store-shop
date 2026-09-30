@@ -272,6 +272,7 @@ function AdminProducts() {
   const [keepDuplicateIds, setKeepDuplicateIds] = useState<string[]>([]);
   const [quickEditProductId, setQuickEditProductId] = useState<string | null>(null);
   const [quickEditVariantId, setQuickEditVariantId] = useState<string | null>(null);
+  const [highlightedDeepLinkKey, setHighlightedDeepLinkKey] = useState<string | null>(null);
   const openedDeepLinkRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -1040,6 +1041,11 @@ function AdminProducts() {
 
     const timeoutId = window.setTimeout(() => {
       openedDeepLinkRef.current = deepLinkKey;
+      setHighlightedDeepLinkKey(deepLinkKey);
+      const rowId = `product-${productId}-${routeSearch.variantId ?? "base"}`;
+      const row = document.getElementById(rowId);
+      row?.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.setTimeout(() => setHighlightedDeepLinkKey(null), 2200);
       openEditProductDialog(product, variant);
     }, 900);
     return () => window.clearTimeout(timeoutId);
@@ -2746,9 +2752,11 @@ function AdminProducts() {
                   const displayProfitCurrency =
                     displayPriceCurrency === displayGastosCurrency ? displayPriceCurrency : "ARS";
                   const quickEditKey = getQuickEditKey(product, variant);
+                  const rowKey = `${product.id}-${variant?.id ?? "base"}`;
                   const isQuickEditing =
                     quickEditProductId === product.id &&
                     quickEditVariantId === (variant?.id ?? null);
+                  const isHighlightedDeepLink = highlightedDeepLinkKey === rowKey;
                   const quickDraft = quickEditForm[quickEditKey] ?? {
                     brand: product.brand,
                     name: product.name,
@@ -2766,7 +2774,8 @@ function AdminProducts() {
 
                   return (
                     <TableRow
-                      key={`${product.id}-${variant?.id ?? "base"}`}
+                      id={`product-${rowKey}`}
+                      key={rowKey}
                       onClick={(event) => {
                         if (
                           selectionMode ||
@@ -2779,6 +2788,9 @@ function AdminProducts() {
                         openEditProductDialog(product, variant);
                       }}
                       className={cn(
+                        isHighlightedDeepLink
+                          ? "animate-pulse border border-amber-400/80 bg-linear-to-r from-amber-500/25 via-yellow-300/25 to-amber-500/25 shadow-[0_0_0_1px_rgba(251,191,36,0.55),0_0_18px_rgba(251,191,36,0.28)]"
+                          : undefined,
                         !selectionMode && !isQuickEditing && "cursor-pointer hover:bg-transparent",
                       )}
                     >

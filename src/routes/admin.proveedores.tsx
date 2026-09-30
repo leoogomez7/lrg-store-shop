@@ -96,11 +96,6 @@ type StandaloneSupplier = {
   references?: string;
 };
 
-type SupplierCatalogEntry = {
-  product: Product;
-  variant?: NonNullable<Product["variants"]>[number];
-};
-
 const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
 const DELETED_SUPPLIERS_STORAGE_KEY = "lrg:deletedSuppliers";
 
@@ -487,46 +482,6 @@ function AdminSuppliers() {
       productCount: productIdsBySupplier.get(row.key)?.size ?? 0,
     }));
   }, [deletedSupplierKeys, orders, products, standaloneSuppliers]);
-
-  const getSupplierCatalogEntries = (supplierRow: SupplierRow): SupplierCatalogEntry[] => {
-    const entries: SupplierCatalogEntry[] = [];
-    const addEntry = (entry: SupplierCatalogEntry) => {
-      const key = `${entry.product.id}:${entry.variant?.id ?? "base"}`;
-      if (
-        !entries.some((current) => `${current.product.id}:${current.variant?.id ?? "base"}` === key)
-      ) {
-        entries.push(entry);
-      }
-    };
-
-    products.forEach((product) => {
-      if (product.supplier && matchesSupplierKey(product.supplier, supplierRow.key)) {
-        addEntry({ product });
-      }
-      product.variants?.forEach((variant) => {
-        if (variant.supplier && matchesSupplierKey(variant.supplier, supplierRow.key)) {
-          addEntry({ product, variant });
-        }
-      });
-    });
-
-    supplierRow.products.forEach((soldProduct) => {
-      const product = products.find((candidate) => candidate.name === soldProduct.name);
-      if (!product) return;
-      const variant = product.variants?.find(
-        (candidate) => candidate.name === soldProduct.variantName,
-      );
-      addEntry({ product, variant });
-    });
-
-    return entries.sort((left, right) =>
-      `${left.product.name} ${left.variant?.name ?? ""}`.localeCompare(
-        `${right.product.name} ${right.variant?.name ?? ""}`,
-        "es",
-        { sensitivity: "base" },
-      ),
-    );
-  };
 
   const storeOptions = [
     ["arcade", "LRG Arcade"],
@@ -1135,7 +1090,14 @@ function AdminSuppliers() {
     printWindow.print();
   };
   const modalCatalogEntries = productsModalSupplier
-    ? getSupplierCatalogEntries(productsModalSupplier)
+    ? productsModalSupplier.products.flatMap((soldProduct) => {
+        const product = products.find((candidate) => candidate.name === soldProduct.name);
+        if (!product) return [];
+        const variant = product.variants?.find(
+          (candidate) => candidate.name === soldProduct.variantName,
+        );
+        return [{ product, variant }];
+      })
     : [];
   const modalSoldProducts = productsModalSupplier?.products ?? [];
 
@@ -1874,7 +1836,7 @@ function AdminSuppliers() {
                                     <X className="size-4" />
                                   </button>
                                   <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                                    {sortedProducts.slice(0, 8).map((product) => (
+                                    {sortedProducts.slice(0, 7).map((product) => (
                                       <div
                                         key={`${product.name}-${product.variantName ?? "base"}`}
                                         className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-background/35 px-3 py-2 text-xs text-foreground"
@@ -1888,15 +1850,17 @@ function AdminSuppliers() {
                                         </span>
                                       </div>
                                     ))}
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => setProductsModalSupplier(row)}
-                                      className="h-auto min-h-9 justify-start px-3 py-2 text-xs text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
-                                    >
-                                      Ver productos
-                                    </Button>
+                                    {sortedProducts.length > 7 && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setProductsModalSupplier(row)}
+                                        className="h-auto min-h-9 justify-start px-3 py-2 text-xs"
+                                      >
+                                        Ver más productos vendidos
+                                      </Button>
+                                    )}
                                   </div>
                                   {row.products.length === 0 && (
                                     <p className="text-sm text-muted-foreground">
@@ -2010,7 +1974,7 @@ function AdminSuppliers() {
       >
         <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Productos de {productsModalSupplier?.name}</DialogTitle>
+            <DialogTitle>Productos vendidos de {productsModalSupplier?.name}</DialogTitle>
             <DialogDescription>
               Seleccioná un producto para abrir su editor en el catálogo.
             </DialogDescription>
@@ -2034,7 +1998,7 @@ function AdminSuppliers() {
                         search: { productId: product.id, variantId: variant?.id },
                       });
                     }}
-                    className="flex w-full items-center justify-between gap-3 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-left text-sm text-amber-500 transition-colors hover:bg-amber-500/10 hover:text-amber-400"
+                    className="flex w-full items-center justify-between gap-3 rounded-md border border-border/60 bg-background/35 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"
                   >
                     <span className="min-w-0 wrap-break-word font-medium">
                       {product.name}
@@ -2048,7 +2012,7 @@ function AdminSuppliers() {
               })
             ) : (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                Este proveedor todavía no tiene productos vinculados.
+                Este proveedor todavía no tiene productos vendidos.
               </p>
             )}
           </div>
