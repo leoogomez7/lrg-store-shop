@@ -1770,61 +1770,74 @@ function AdminConfiguration() {
                 className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/80 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 {editingProductSkuId === sku.id ? (
-                  <Input
-                    value={editingProductSkuCode}
-                    onChange={(event) => setEditingProductSkuCode(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") saveProductSku(sku.id);
-                      if (event.key === "Escape") {
-                        setEditingProductSkuId(null);
-                        setEditingProductSkuCode("");
-                      }
-                    }}
-                    aria-label={`Editar SKU ${sku.code}`}
-                    autoFocus
-                    className="h-9 max-w-xs"
-                  />
-                ) : (
-                  <span className="font-semibold">{sku.code}</span>
-                )}
-                <div className="flex w-full flex-nowrap items-center gap-2 sm:w-auto">
-                  {editingProductSkuId === sku.id ? (
-                    <>
-                      <Button type="button" size="sm" onClick={() => saveProductSku(sku.id)}>
+                  <>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Label htmlFor={`product-sku-${sku.id}`}>SKU</Label>
+                      <Input
+                        id={`product-sku-${sku.id}`}
+                        value={editingProductSkuCode}
+                        onChange={(event) => setEditingProductSkuCode(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") saveProductSku(sku.id);
+                          if (event.key === "Escape") {
+                            setEditingProductSkuId(null);
+                            setEditingProductSkuCode("");
+                          }
+                        }}
+                        autoFocus
+                        className="h-9 w-full"
+                      />
+                    </div>
+                    <div className="flex w-full flex-nowrap items-center gap-1 sm:w-auto sm:gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => saveProductSku(sku.id)}
+                        disabled={!editingProductSkuCode.trim()}
+                        className="h-8 gap-1 text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                      >
                         <Check className="size-4" /> Guardar
                       </Button>
                       <Button
                         type="button"
+                        variant="ghost"
                         size="sm"
-                        variant="outline"
                         onClick={() => {
                           setEditingProductSkuId(null);
                           setEditingProductSkuCode("");
                         }}
+                        className="h-8 gap-2 text-destructive hover:bg-destructive/10"
                       >
                         <X className="size-4" /> Cancelar
                       </Button>
-                    </>
-                  ) : (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => editProductSku(sku)}
-                    >
-                      <Pencil className="size-4" /> Editar
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:bg-destructive/10"
-                    onClick={() => removeProductSku(sku.id)}
-                  >
-                    <Trash2 className="size-4" /> Eliminar
-                  </Button>
-                </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-semibold">{sku.code}</span>
+                    <div className="flex w-full flex-nowrap items-center gap-1 sm:w-auto sm:gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => editProductSku(sku)}
+                        className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
+                      >
+                        <Pencil className="size-3.5 sm:size-4" /> Editar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
+                        onClick={() => removeProductSku(sku.id)}
+                      >
+                        <Trash2 className="size-3.5 sm:size-4" /> Eliminar
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
             {productSkus.length === 0 ? (

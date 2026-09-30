@@ -26,6 +26,7 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { toast } from "sonner";
 import {
   products as productsData,
@@ -407,10 +408,12 @@ function AdminProducts() {
   const parseTextImportProducts = async (file: File) => {
     const parseEntriesFromText = (rawText: string) => {
       const normalized = rawText
-        .replace(/\r/g, "\n")
-        .replace(/\t/g, " ")
+        .replace(/\r\n?/g, "\n")
         .replace(/[–—-]+/g, " ")
-        .replace(/\s+/g, " ")
+        .split("\n")
+        .map((line) => line.replace(/\t/g, " ").replace(/\s+/g, " ").trim())
+        .filter(Boolean)
+        .join("\n")
         .trim();
 
       if (!normalized) return [] as Array<{ name: string; price: number }>;
@@ -483,7 +486,14 @@ function AdminProducts() {
       );
     };
 
-    if (/\.(xlsx|xls)$/i.test(file.name)) {
+    const extension = file.name.split(".").pop()?.toLocaleLowerCase() ?? "";
+    if (extension === "doc") {
+      throw new Error(
+        "El formato Word .doc antiguo no se puede leer directamente. Guardá el archivo como .docx e intentá de nuevo.",
+      );
+    }
+
+    if (extension === "xlsx" || extension === "xls") {
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
       const rowsFromExcel: string[] = [];
@@ -504,6 +514,22 @@ function AdminProducts() {
       return parseEntriesFromText(rowsFromExcel.join("\n"));
     }
 
+    if (["docx", "pdf", "rtf", "odt", "ods"].includes(extension)) {
+      const { OfficeParser } = await import("officeparser");
+      const document = await OfficeParser.parseOffice(file, {
+        pdfWorkerSrc: pdfWorkerUrl,
+        pdfParserConfig: { extractTextColor: false },
+      });
+      const { value } = await document.to("text", {
+        includeImages: false,
+        textConfig: { preserveLayout: false, renderNotes: false },
+      });
+      if (typeof value !== "string") {
+        throw new Error("No se pudo extraer texto utilizable del archivo.");
+      }
+      return parseEntriesFromText(value);
+    }
+
     const textContent = await file.text();
     return parseEntriesFromText(textContent);
   };
@@ -511,9 +537,19 @@ function AdminProducts() {
   const handleImportTextProduct = async (file: File | null) => {
     if (!file) return;
 
-    const parsedProducts = await parseTextImportProducts(file);
+    let parsedProducts: Array<{ name: string; price: number }>;
+    try {
+      parsedProducts = await parseTextImportProducts(file);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo leer el archivo seleccionado.",
+      );
+      return;
+    }
     if (!parsedProducts.length) {
-      toast.error("No pude detectar un nombre y un precio válidos en el archivo.");
+      toast.error(
+        "No pude detectar productos con nombre y precio. Si el PDF es una imagen escaneada, necesitás un PDF con texto seleccionable.",
+      );
       return;
     }
 
@@ -3148,7 +3184,7 @@ function AdminProducts() {
       <input
         ref={textProductInputRef}
         type="file"
-        accept=".txt,.csv,.tsv,.xlsx,.xls"
+        accept="text/*,.txt,.text,.md,.markdown,.csv,.tsv,.log,.ini,.json,.rtf,.doc,.docx,.pdf,.xls,.xlsx,.odt,.ods"
         className="hidden"
         onChange={async (event) => {
           const file = event.target.files?.[0] ?? null;
@@ -3218,8 +3254,8 @@ function AdminProducts() {
               }}
             >
               <span className="flex w-full items-center justify-between gap-3">
-                <span>Importar desde un archivo de texto</span>
-                <span className="text-xs text-muted-foreground">Abrir archivo del dispositivo</span>
+                <span>Importar desde un archivo</span>
+                <span className="text-xs text-muted-foreground">TXT, Word, PDF o Excel</span>
               </span>
             </Button>
 
@@ -3263,14 +3299,14 @@ function AdminProducts() {
                 {importSetupSource === "images"
                   ? "Varios productos"
                   : importSetupSource === "text"
-                    ? "Importar desde un archivo de texto"
+                    ? "Importar desde un archivo"
                     : "Importar desde la tienda Store"}
               </span>
               <span className="block">
                 {importSetupSource === "images"
                   ? "Elegí la tienda, categoría, subcategoría y SKU para las imágenes."
                   : importSetupSource === "text"
-                    ? "Elegí la tienda, categoría, subcategoría y SKU para el archivo."
+                    ? "Formatos: TXT, CSV, RTF, DOCX, PDF, XLS/XLSX, ODT y ODS. Elegí también la tienda y categoría."
                     : "Elegí la tienda, categoría, subcategoría y SKU para los productos importados."}
               </span>
             </DialogDescription>

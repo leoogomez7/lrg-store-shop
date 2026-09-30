@@ -384,6 +384,25 @@ const isPhysicalShippingMethod = (method?: string) =>
     .replace(/\p{Diacritic}/gu, "")
     .includes("fisico");
 
+const normalizeShippingMethodName = (method?: string) =>
+  method
+    ?.toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim() ?? "";
+
+const isAndreaniShippingMethod = (brandSlug: BrandSlug, shippingMethod?: string) => {
+  if (!shippingMethod) return false;
+  const normalizedTarget = normalizeShippingMethodName(shippingMethod);
+  if (!normalizedTarget.includes("andreani")) return false;
+
+  const configuredMethods = brands[brandSlug]?.shipping?.methods ?? [];
+  return configuredMethods.some((method) => {
+    const name = normalizeShippingMethodName(method.name);
+    return name.includes("andreani") || name === normalizedTarget;
+  });
+};
+
 const isShippingCodeRequiredForBrand = (brandSlug: BrandSlug, shippingMethod?: string) => {
   if (!shippingMethod) return false;
   const shipping = brands[brandSlug]?.shipping;
@@ -3192,18 +3211,36 @@ function AdminOrders() {
                   </div>
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Cliente</Label>
-                    <Input value={orderForm.customer} disabled />
+                    <Input
+                      value={orderForm.customer}
+                      disabled={!isCreatingOrder}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, customer: event.target.value })
+                      }
+                    />
                   </div>
                 </div>
 
                 <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Correo</Label>
-                    <Input value={orderForm.email} disabled />
+                    <Input
+                      value={orderForm.email}
+                      disabled={!isCreatingOrder}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, email: event.target.value })
+                      }
+                    />
                   </div>
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Celular</Label>
-                    <Input value={orderForm.phone} disabled />
+                    <Input
+                      value={orderForm.phone}
+                      disabled={!isCreatingOrder}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, phone: event.target.value })
+                      }
+                    />
                   </div>
                 </div>
               </div>
@@ -3362,6 +3399,11 @@ function AdminOrders() {
                       )
                       .slice(0, 6);
                     const itemStore = item.brand ?? selectedOrderStore;
+                    const itemShippingMethod = item.shippingMethod ?? orderForm.shippingMethod;
+                    const shippingNumberEnabled = isAndreaniShippingMethod(
+                      itemStore,
+                      itemShippingMethod,
+                    );
                     const selectedProduct = allProducts.find(
                       (product) =>
                         product.brand === itemStore &&
@@ -3491,6 +3533,7 @@ function AdminOrders() {
                               <Label>Número de envío</Label>
                               <Input
                                 value={item.shippingNumber ?? ""}
+                                disabled={!shippingNumberEnabled}
                                 onChange={(event) => {
                                   const nextItems = [...orderForm.items];
                                   nextItems[itemIndex] = {
@@ -3499,7 +3542,7 @@ function AdminOrders() {
                                   };
                                   updateOrderItemsOnly(nextItems);
                                 }}
-                                placeholder="-"
+                                placeholder={shippingNumberEnabled ? "-" : "Solo Andréani"}
                               />
                             </div>
                             <div>
