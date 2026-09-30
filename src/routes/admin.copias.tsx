@@ -490,7 +490,7 @@ function AdminBackups() {
             size="sm"
             onClick={() => void deleteSelectedBackups()}
           >
-            <Trash2 className="size-4" /> Enviar seleccionadas a la papelera
+            <Trash2 className="size-4" /> Eliminar
           </Button>
           <Button type="button" variant="outline" size="sm" onClick={clearBackupSelection}>
             <X className="size-4" /> Cancelar
