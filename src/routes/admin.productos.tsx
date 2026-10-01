@@ -1041,11 +1041,15 @@ function AdminProducts() {
 
     const timeoutId = window.setTimeout(() => {
       openedDeepLinkRef.current = deepLinkKey;
-      setHighlightedDeepLinkKey(deepLinkKey);
-      const rowId = `product-${productId}-${routeSearch.variantId ?? "base"}`;
-      const row = document.getElementById(rowId);
-      row?.scrollIntoView({ behavior: "smooth", block: "center" });
-      window.setTimeout(() => setHighlightedDeepLinkKey(null), 2200);
+      const rowKey = `${productId}-${routeSearch.variantId ?? "base"}`;
+      setHighlightedDeepLinkKey(rowKey);
+      window.requestAnimationFrame(() => {
+        document.getElementById(`product-${rowKey}`)?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      });
+      window.setTimeout(() => setHighlightedDeepLinkKey(null), 4000);
       openEditProductDialog(product, variant);
     }, 900);
     return () => window.clearTimeout(timeoutId);
@@ -1997,6 +2001,17 @@ function AdminProducts() {
       return [{ product, variant: undefined }];
     });
   }, [results]);
+  useEffect(() => {
+    if (!routeSearch.productId || !pageSize) return;
+    const rowIndex = allDisplayRows.findIndex(
+      ({ product, variant }) =>
+        product.id === routeSearch.productId &&
+        (variant?.id ?? undefined) === routeSearch.variantId,
+    );
+    if (rowIndex < 0) return;
+    const targetPage = Math.floor(rowIndex / pageSize);
+    if (page !== targetPage) setPage(targetPage);
+  }, [allDisplayRows, page, pageSize, routeSearch.productId, routeSearch.variantId]);
   const displayRows = useMemo(() => {
     if (!pageSize || pageSize <= 0) return [];
     return allDisplayRows.slice(page * pageSize, page * pageSize + pageSize);

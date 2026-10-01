@@ -46,7 +46,7 @@ const cloneSnapshot = <T>(items: T[]) =>
     : JSON.parse(JSON.stringify(items));
 
 export function createProductSaveQueue<T>(persist: (items: T[]) => Promise<unknown>) {
-  let pending = Promise.resolve();
+  let pending: Promise<unknown> = Promise.resolve();
 
   return (items: T[]) => {
     const snapshot = cloneSnapshot(items);

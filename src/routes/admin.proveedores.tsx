@@ -96,6 +96,11 @@ type StandaloneSupplier = {
   references?: string;
 };
 
+type SupplierCatalogEntry = {
+  product: Product;
+  variant?: NonNullable<Product["variants"]>[number];
+};
+
 const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
 const DELETED_SUPPLIERS_STORAGE_KEY = "lrg:deletedSuppliers";
 
@@ -196,6 +201,9 @@ function AdminSuppliers() {
   const [productsModalSupplier, setProductsModalSupplier] = React.useState<SupplierRow | null>(
     null,
   );
+  const [catalogModalSupplier, setCatalogModalSupplier] = React.useState<SupplierRow | null>(null);
+  const [soldProductsSearch, setSoldProductsSearch] = React.useState("");
+  const [catalogProductsSearch, setCatalogProductsSearch] = React.useState("");
   const [standaloneSuppliers, setStandaloneSuppliers] = React.useState<StandaloneSupplier[]>([]);
   const [deletedSupplierKeys, setDeletedSupplierKeys] = React.useState<string[]>([]);
 
@@ -1089,17 +1097,42 @@ function AdminSuppliers() {
     printWindow.document.close();
     printWindow.print();
   };
-  const modalCatalogEntries = productsModalSupplier
+  const modalSoldEntries = productsModalSupplier
     ? productsModalSupplier.products.flatMap((soldProduct) => {
         const product = products.find((candidate) => candidate.name === soldProduct.name);
         if (!product) return [];
         const variant = product.variants?.find(
           (candidate) => candidate.name === soldProduct.variantName,
         );
-        return [{ product, variant }];
+        return [{ product, variant, soldProduct }];
       })
     : [];
-  const modalSoldProducts = productsModalSupplier?.products ?? [];
+  const modalSoldQuery = soldProductsSearch.trim().toLocaleLowerCase();
+  const filteredModalSoldEntries = modalSoldEntries.filter(({ product, variant }) =>
+    `${product.name} ${variant?.name ?? product.variantName ?? ""}`
+      .toLocaleLowerCase()
+      .includes(modalSoldQuery),
+  );
+  const modalCatalogEntries: SupplierCatalogEntry[] = catalogModalSupplier
+    ? products.flatMap((product) => {
+        if (product.variants?.length) {
+          return product.variants.flatMap((variant) =>
+            matchesSupplierKey(variant.supplier ?? product.supplier, catalogModalSupplier.key)
+              ? [{ product, variant }]
+              : [],
+          );
+        }
+        return product.supplier && matchesSupplierKey(product.supplier, catalogModalSupplier.key)
+          ? [{ product }]
+          : [];
+      })
+    : [];
+  const modalCatalogQuery = catalogProductsSearch.trim().toLocaleLowerCase();
+  const filteredModalCatalogEntries = modalCatalogEntries.filter(({ product, variant }) =>
+    `${product.name} ${variant?.name ?? product.variantName ?? ""}`
+      .toLocaleLowerCase()
+      .includes(modalCatalogQuery),
+  );
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
@@ -1836,31 +1869,69 @@ function AdminSuppliers() {
                                     <X className="size-4" />
                                   </button>
                                   <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                                    {sortedProducts.slice(0, 7).map((product) => (
-                                      <div
-                                        key={`${product.name}-${product.variantName ?? "base"}`}
-                                        className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-background/35 px-3 py-2 text-xs text-foreground"
-                                      >
-                                        <span className="min-w-0 wrap-break-word font-medium">
-                                          {product.name}
-                                          {product.variantName ? ` · ${product.variantName}` : ""}
-                                        </span>
-                                        <span className="shrink-0 text-right text-muted-foreground">
-                                          Cantidad vendida: {product.quantity}
-                                        </span>
-                                      </div>
-                                    ))}
+                                    {sortedProducts.slice(0, 7).map((product) => {
+                                      const matchingProduct = products.find(
+                                        (candidate) => candidate.name === product.name,
+                                      );
+                                      const matchingVariant = matchingProduct?.variants?.find(
+                                        (candidate) =>
+                                          candidate.name === product.variantName &&
+                                          candidate.name !== undefined,
+                                      );
+
+                                      return (
+                                        <button
+                                          key={`${product.name}-${product.variantName ?? "base"}`}
+                                          type="button"
+                                          onClick={() => {
+                                            if (!matchingProduct) return;
+                                            setExpandedSupplierKey(null);
+                                            void navigate({
+                                              to: "/admin/productos",
+                                              search: {
+                                                productId: matchingProduct.id,
+                                                variantId: matchingVariant?.id ?? undefined,
+                                              },
+                                            });
+                                          }}
+                                          className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-background/35 px-3 py-2 text-left text-xs text-foreground transition-colors hover:bg-accent"
+                                        >
+                                          <span className="min-w-0 wrap-break-word font-medium">
+                                            {product.name}
+                                            {product.variantName ? ` · ${product.variantName}` : ""}
+                                          </span>
+                                          <span className="shrink-0 text-right text-muted-foreground">
+                                            Cantidad vendida: {product.quantity}
+                                          </span>
+                                        </button>
+                                      );
+                                    })}
                                     {sortedProducts.length > 7 && (
                                       <Button
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => setProductsModalSupplier(row)}
+                                        onClick={() => {
+                                          setSoldProductsSearch("");
+                                          setProductsModalSupplier(row);
+                                        }}
                                         className="h-auto min-h-9 justify-start px-3 py-2 text-xs"
                                       >
                                         Ver más productos vendidos
                                       </Button>
                                     )}
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setCatalogProductsSearch("");
+                                        setCatalogModalSupplier(row);
+                                      }}
+                                      className="h-auto min-h-9 justify-start px-3 py-2 text-xs"
+                                    >
+                                      Ver productos
+                                    </Button>
                                   </div>
                                   {row.products.length === 0 && (
                                     <p className="text-sm text-muted-foreground">
@@ -1979,10 +2050,74 @@ function AdminSuppliers() {
               Seleccioná un producto para abrir su editor en el catálogo.
             </DialogDescription>
           </DialogHeader>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={soldProductsSearch}
+              onChange={(event) => setSoldProductsSearch(event.target.value)}
+              placeholder="Buscar producto vendido"
+              className="pl-9"
+            />
+          </div>
           <div className="max-h-[min(70vh,32rem)] space-y-1.5 overflow-y-auto">
-            {modalCatalogEntries.length > 0 ? (
-              modalCatalogEntries.map(({ product, variant }) => {
-                const soldProduct = modalSoldProducts.find(
+            {filteredModalSoldEntries.length > 0 ? (
+              filteredModalSoldEntries.map(({ product, variant, soldProduct }) => (
+                <button
+                  key={`${product.id}-${variant?.id ?? "base"}`}
+                  type="button"
+                  onClick={() => {
+                    setProductsModalSupplier(null);
+                    void navigate({
+                      to: "/admin/productos",
+                      search: { productId: product.id, variantId: variant?.id },
+                    });
+                  }}
+                  className="flex w-full items-center justify-between gap-3 rounded-md border border-border/60 bg-background/35 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"
+                >
+                  <span className="min-w-0 wrap-break-word font-medium">
+                    {product.name}
+                    {variant?.name ? ` · ${variant.name}` : ""}
+                  </span>
+                  <span className="shrink-0 text-right text-xs text-muted-foreground">
+                    Cantidad vendida: {soldProduct.quantity}
+                  </span>
+                </button>
+              ))
+            ) : (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                {modalSoldEntries.length
+                  ? "No se encontraron productos vendidos con esa búsqueda."
+                  : "Este proveedor todavía no tiene productos vendidos."}
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={catalogModalSupplier !== null}
+        onOpenChange={(open) => !open && setCatalogModalSupplier(null)}
+      >
+        <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Productos de {catalogModalSupplier?.name}</DialogTitle>
+            <DialogDescription>
+              Todos los productos vinculados a este proveedor, vendidos o no.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={catalogProductsSearch}
+              onChange={(event) => setCatalogProductsSearch(event.target.value)}
+              placeholder="Buscar producto"
+              className="pl-9"
+            />
+          </div>
+          <div className="max-h-[min(70vh,32rem)] space-y-1.5 overflow-y-auto">
+            {filteredModalCatalogEntries.length > 0 ? (
+              filteredModalCatalogEntries.map(({ product, variant }) => {
+                const soldProduct = catalogModalSupplier?.products.find(
                   (item) =>
                     item.name === product.name &&
                     item.variantName === (variant?.name ?? product.variantName),
@@ -1992,7 +2127,7 @@ function AdminSuppliers() {
                     key={`${product.id}-${variant?.id ?? "base"}`}
                     type="button"
                     onClick={() => {
-                      setProductsModalSupplier(null);
+                      setCatalogModalSupplier(null);
                       void navigate({
                         to: "/admin/productos",
                         search: { productId: product.id, variantId: variant?.id },
@@ -2012,7 +2147,9 @@ function AdminSuppliers() {
               })
             ) : (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                Este proveedor todavía no tiene productos vendidos.
+                {modalCatalogEntries.length
+                  ? "No se encontraron productos con esa búsqueda."
+                  : "Este proveedor todavía no tiene productos vinculados."}
               </p>
             )}
           </div>

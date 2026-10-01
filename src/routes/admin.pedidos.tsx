@@ -427,6 +427,8 @@ type OrderSort =
 type DeliveryStatus = "Pendiente" | "Enviado";
 type PaymentStatus = "Pendiente" | "Pagado" | "Cancelado";
 
+const normalizeCustomerEmail = (email?: string) => email?.trim().toLocaleLowerCase() ?? "";
+
 type EditableOrderItem = {
   productId?: string;
   variantId?: string;
@@ -626,6 +628,24 @@ function AdminOrders() {
   const [pendingAttachments, setPendingAttachments] = useState<OrderAttachment[]>([]);
   const [isSavingDocuments, setIsSavingDocuments] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const customerProfiles = useMemo(() => {
+    const ordersByDate = [...editableOrders]
+      .filter((order) => normalizeCustomerEmail(order.email))
+      .sort((first, second) => {
+        const firstDate = Date.parse(first.date);
+        const secondDate = Date.parse(second.date);
+        return (
+          (Number.isFinite(secondDate) ? secondDate : 0) -
+          (Number.isFinite(firstDate) ? firstDate : 0)
+        );
+      });
+    const profilesByEmail = new Map<string, Order>();
+    for (const order of ordersByDate) {
+      const email = normalizeCustomerEmail(order.email);
+      if (!profilesByEmail.has(email)) profilesByEmail.set(email, order);
+    }
+    return Array.from(profilesByEmail.values());
+  }, [editableOrders]);
   const documentsInputRef = useRef<HTMLInputElement | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deliveryFilterOpen, setDeliveryFilterOpen] = useState(false);
@@ -639,6 +659,8 @@ function AdminOrders() {
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
   const sortButtonRef = useRef<HTMLButtonElement | null>(null);
   const [orderForm, setOrderForm] = useState<EditableOrder | null>(null);
+  const [customerSuggestionsOpen, setCustomerSuggestionsOpen] = useState(false);
+  const [selectedCustomerEmail, setSelectedCustomerEmail] = useState<string | null>(null);
   const [selectedOrderStore, setSelectedOrderStore] = useState<BrandSlug>("arcade");
   const initialOrderFormSnapshot = useRef<string | null>(null);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -1441,7 +1463,31 @@ function AdminOrders() {
     },
   ];
 
+  const selectCustomerSuggestion = (customerOrder: Order) => {
+    setOrderForm((current) =>
+      current
+        ? {
+            ...current,
+            customer: customerOrder.customer,
+            email: customerOrder.email,
+            phone: customerOrder.phone,
+            city: customerOrder.city ?? "",
+            street: customerOrder.street ?? "",
+            streetNumber: customerOrder.streetNumber ?? "",
+            floor: customerOrder.floor ?? "",
+            apartment: customerOrder.apartment ?? "",
+            province: customerOrder.province ?? "",
+            postalCode: customerOrder.postalCode ?? "",
+          }
+        : current,
+    );
+    setSelectedCustomerEmail(normalizeCustomerEmail(customerOrder.email));
+    setCustomerSuggestionsOpen(false);
+  };
+
   const openEditOrderDialog = (order: Order) => {
+    setSelectedCustomerEmail(null);
+    setCustomerSuggestionsOpen(false);
     const expenseRatio = order.total ? order.expenses / order.total : 0.65;
     const cloned: EditableOrder = {
       ...order,
@@ -1530,6 +1576,8 @@ function AdminOrders() {
   };
 
   const openNewOrderDialog = () => {
+    setSelectedCustomerEmail(null);
+    setCustomerSuggestionsOpen(false);
     const newOrder: EditableOrder = {
       id: `LRG-${Date.now()}`,
       brand: "arcade",
@@ -1788,11 +1836,21 @@ function AdminOrders() {
   const hasOrderChanges = orderForm
     ? JSON.stringify(orderForm) !== initialOrderFormSnapshot.current
     : false;
+  const filteredCustomerSuggestions =
+    isCreatingOrder && orderForm?.email.trim()
+      ? customerProfiles
+          .filter((profile) =>
+            normalizeCustomerEmail(profile.email).includes(normalizeCustomerEmail(orderForm.email)),
+          )
+          .slice(0, 8)
+      : [];
 
   const closeOrderEditor = () => {
     setDialogOpen(false);
     setOrderForm(null);
     setIsCreatingOrder(false);
+    setSelectedCustomerEmail(null);
+    setCustomerSuggestionsOpen(false);
     setBulkOrderEditQueue([]);
     setBulkOrderEditPosition(0);
     setSelectedOrderIds([]);
@@ -2753,9 +2811,28 @@ function AdminOrders() {
                                       {order.phone || "—"}
                                     </span>
                                   </div>
+                                  <div>
+                                    <span className="block text-xs text-muted-foreground">
+                                      Dirección
+                                    </span>
+                                    <span className="block wrap-break-word">
+                                      {[
+                                        [order.street, order.streetNumber]
+                                          .filter(Boolean)
+                                          .join(" "),
+                                        order.floor ? `Piso ${order.floor}` : "",
+                                        order.apartment ? `Depto. ${order.apartment}` : "",
+                                        order.city,
+                                        order.province,
+                                        order.postalCode ? `CP ${order.postalCode}` : "",
+                                      ]
+                                        .filter(Boolean)
+                                        .join(", ") || "—"}
+                                    </span>
+                                  </div>
                                 </div>
 
-                                <div className="min-w-0 space-y-3">
+                                <div className="min-w-0 space-y-3 border-t border-border/50 pt-4 sm:border-t-0 sm:pt-0">
                                   <div className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
                                     <ul className="grid min-w-0 gap-2 text-sm">
                                       {order.items.slice(0, 4).map((item, itemIndex) => {
@@ -2802,8 +2879,7 @@ function AdminOrders() {
                                                 </div>
                                                 <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                                                   <span>
-                                                    Proveedor:{" "}
-                                                    {supplier?.name ?? "Sin proveedor asignado"}
+                                                    Proveedor: {supplier?.name ?? "No asignado"}
                                                   </span>
                                                   <span>•</span>
                                                   <span>{item.quantity} unidades</span>
@@ -2852,7 +2928,7 @@ function AdminOrders() {
                                 );
 
                                 return (
-                                  <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                  <div className="mt-4 grid min-w-0 gap-3 border-t border-border/50 pt-4 sm:grid-cols-2 xl:grid-cols-3">
                                     {storeSlugs.map((brandSlug) => {
                                       const itemsInBrand = order.items.filter((item) => {
                                         const product = allProducts.find(
@@ -2968,7 +3044,7 @@ function AdminOrders() {
                                                 "Proveedor",
                                                 suppliers.length
                                                   ? suppliers.join(", ")
-                                                  : "Sin proveedor asignado",
+                                                  : "No asignado",
                                               ],
                                               ["Observaciones", order.extraInfo || "—"],
                                             ].map(([label, value]) => (
@@ -3224,13 +3300,60 @@ function AdminOrders() {
                 <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Correo</Label>
-                    <Input
-                      value={orderForm.email}
-                      disabled={!isCreatingOrder}
-                      onChange={(event) =>
-                        setOrderForm({ ...orderForm, email: event.target.value })
-                      }
-                    />
+                    <div className="relative">
+                      <Input
+                        value={orderForm.email}
+                        disabled={!isCreatingOrder}
+                        autoComplete="off"
+                        onFocus={() => setCustomerSuggestionsOpen(true)}
+                        onBlur={() =>
+                          window.setTimeout(() => setCustomerSuggestionsOpen(false), 120)
+                        }
+                        onChange={(event) => {
+                          const email = event.target.value;
+                          const shouldClearSelectedCustomer =
+                            selectedCustomerEmail !== null &&
+                            normalizeCustomerEmail(email) !== selectedCustomerEmail;
+                          if (shouldClearSelectedCustomer) setSelectedCustomerEmail(null);
+                          setOrderForm({
+                            ...orderForm,
+                            email,
+                            ...(shouldClearSelectedCustomer
+                              ? {
+                                  customer: "",
+                                  phone: "",
+                                  city: "",
+                                  street: "",
+                                  streetNumber: "",
+                                  floor: "",
+                                  apartment: "",
+                                  province: "",
+                                  postalCode: "",
+                                }
+                              : {}),
+                          });
+                          setCustomerSuggestionsOpen(true);
+                        }}
+                      />
+                      {customerSuggestionsOpen && filteredCustomerSuggestions.length > 0 && (
+                        <div className="absolute left-0 top-full z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-background p-1 shadow-lg">
+                          {filteredCustomerSuggestions.map((profile) => (
+                            <button
+                              key={normalizeCustomerEmail(profile.email)}
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => selectCustomerSuggestion(profile)}
+                              className="flex w-full flex-col items-start rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+                            >
+                              <span className="font-medium">{profile.email}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {[profile.customer, profile.phone].filter(Boolean).join(" · ")}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Celular</Label>
@@ -3241,6 +3364,84 @@ function AdminOrders() {
                         setOrderForm({ ...orderForm, phone: event.target.value })
                       }
                     />
+                  </div>
+                </div>
+                <div className="mt-3 space-y-3">
+                  <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
+                    <div className="flex min-w-0 flex-col gap-0">
+                      <Label className="min-h-5">Calle</Label>
+                      <Input
+                        value={orderForm.street ?? ""}
+                        disabled={!isCreatingOrder}
+                        onChange={(event) =>
+                          setOrderForm({ ...orderForm, street: event.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="flex min-w-0 flex-col gap-0">
+                      <Label className="min-h-5">Altura</Label>
+                      <Input
+                        value={orderForm.streetNumber ?? ""}
+                        disabled={!isCreatingOrder}
+                        onChange={(event) =>
+                          setOrderForm({ ...orderForm, streetNumber: event.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="grid min-w-0 items-start gap-3 sm:grid-cols-3">
+                    <div className="flex min-w-0 flex-col gap-0">
+                      <Label className="min-h-5">Piso</Label>
+                      <Input
+                        value={orderForm.floor ?? ""}
+                        disabled={!isCreatingOrder}
+                        onChange={(event) =>
+                          setOrderForm({ ...orderForm, floor: event.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="flex min-w-0 flex-col gap-0">
+                      <Label className="min-h-5">Departamento</Label>
+                      <Input
+                        value={orderForm.apartment ?? ""}
+                        disabled={!isCreatingOrder}
+                        onChange={(event) =>
+                          setOrderForm({ ...orderForm, apartment: event.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="flex min-w-0 flex-col gap-0">
+                      <Label className="min-h-5">Código postal</Label>
+                      <Input
+                        value={orderForm.postalCode ?? ""}
+                        disabled={!isCreatingOrder}
+                        onChange={(event) =>
+                          setOrderForm({ ...orderForm, postalCode: event.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
+                    <div className="flex min-w-0 flex-col gap-0">
+                      <Label className="min-h-5">Ciudad</Label>
+                      <Input
+                        value={orderForm.city ?? ""}
+                        disabled={!isCreatingOrder}
+                        onChange={(event) =>
+                          setOrderForm({ ...orderForm, city: event.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="flex min-w-0 flex-col gap-0">
+                      <Label className="min-h-5">Provincia</Label>
+                      <Input
+                        value={orderForm.province ?? ""}
+                        disabled={!isCreatingOrder}
+                        onChange={(event) =>
+                          setOrderForm({ ...orderForm, province: event.target.value })
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3633,6 +3834,18 @@ function AdminOrders() {
                   })}
                 </div>
 
+                <div className="mt-3 flex items-center justify-start pt-1">
+                  <Button
+                    type="button"
+                    variant="default"
+                    onClick={addOrderItem}
+                    className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none"
+                  >
+                    <Plus className="size-4" />
+                    Agregar producto
+                  </Button>
+                </div>
+
                 <div className="mt-2 border-t border-border/50 pt-4">
                   <span className="mb-3 block text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                     Gastos totales
@@ -3654,17 +3867,7 @@ function AdminOrders() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2">
-                <Button
-                  type="button"
-                  variant="default"
-                  onClick={addOrderItem}
-                  className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none"
-                >
-                  <Plus className="size-4" />
-                  Agregar producto
-                </Button>
-              </div>
+              <div className="flex items-center justify-between pt-2" />
             </div>
           ) : null}
 
