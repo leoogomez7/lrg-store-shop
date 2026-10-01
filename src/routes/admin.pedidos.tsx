@@ -3367,7 +3367,7 @@ function AdminOrders() {
                   </div>
                 </div>
                 <div className="mt-3 space-y-3">
-                  <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
+                  <div className="grid min-w-0 items-start gap-3 grid-cols-2 sm:grid-cols-5">
                     <div className="flex min-w-0 flex-col gap-0">
                       <Label className="min-h-5">Calle</Label>
                       <Input
@@ -3388,8 +3388,6 @@ function AdminOrders() {
                         }
                       />
                     </div>
-                  </div>
-                  <div className="grid min-w-0 items-start gap-3 sm:grid-cols-3">
                     <div className="flex min-w-0 flex-col gap-0">
                       <Label className="min-h-5">Piso</Label>
                       <Input
@@ -3401,7 +3399,7 @@ function AdminOrders() {
                       />
                     </div>
                     <div className="flex min-w-0 flex-col gap-0">
-                      <Label className="min-h-5">Departamento</Label>
+                      <Label className="min-h-5">Depto</Label>
                       <Input
                         value={orderForm.apartment ?? ""}
                         disabled={!isCreatingOrder}
