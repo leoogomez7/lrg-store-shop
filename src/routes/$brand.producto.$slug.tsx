@@ -5,6 +5,8 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
+  LoaderCircle,
   Minus,
   Plus,
   ShoppingBag,
@@ -30,8 +32,20 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { applyAdminSettings, getBrand, refreshBrandData } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
+import {
+  getMercadoPagoCardIssuers,
+  getMercadoPagoCardMethods,
+  getMercadoPagoInstallments,
+} from "@/server/mercadopago";
 import { catalogQueries } from "@/services/catalog.service";
 import { useCart } from "@/store/cart-context";
 import { useNavigate } from "@tanstack/react-router";
@@ -100,6 +114,23 @@ function ProductDetail() {
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [installmentsDialogOpen, setInstallmentsDialogOpen] = useState(false);
+  const [cardMethods, setCardMethods] = useState<Array<{ id: string; name: string }>>([]);
+  const [issuers, setIssuers] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedCardMethodId, setSelectedCardMethodId] = useState("");
+  const [selectedIssuerId, setSelectedIssuerId] = useState("");
+  const [installmentOptions, setInstallmentOptions] = useState<
+    Array<{
+      installments: number;
+      installment_amount: number;
+      total_amount: number;
+      installment_rate: number;
+    }>
+  >([]);
+  const [paymentOptionsLoading, setPaymentOptionsLoading] = useState(false);
+  const [issuersLoading, setIssuersLoading] = useState(false);
+  const [installmentsLoading, setInstallmentsLoading] = useState(false);
+  const [installmentsError, setInstallmentsError] = useState("");
   const navigate = useNavigate();
 
   const productImages = product?.images ?? [];
@@ -129,10 +160,110 @@ function ProductDetail() {
     setImageViewerOpen(false);
   }, [product?.id]);
 
-  if (!product) return null;
+  const selectedVariant = product?.variants?.find((variant) => variant.id === selectedVariantId) ??
+    product?.variants?.[0];
+  const cardPriceWithSurcharge =
+    Math.round((selectedVariant?.price ?? product?.price ?? 0) * 1.15 * 100) / 100;
 
-  const selectedVariant =
-    product.variants?.find((variant) => variant.id === selectedVariantId) ?? product.variants?.[0];
+  useEffect(() => {
+    if (!installmentsDialogOpen) return;
+    let cancelled = false;
+    setPaymentOptionsLoading(true);
+    setInstallmentsError("");
+    setSelectedCardMethodId("");
+    setSelectedIssuerId("");
+    setIssuers([]);
+    setInstallmentOptions([]);
+    void getMercadoPagoCardMethods({ data: {} })
+      .then((methods) => {
+        if (cancelled) return;
+        setCardMethods(methods);
+        setSelectedCardMethodId(methods[0]?.id ?? "");
+        if (methods.length === 0) setInstallmentsError("Mercado Pago no devolvió tarjetas disponibles.");
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setInstallmentsError(
+            error instanceof Error ? error.message : "No se pudieron cargar las tarjetas.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPaymentOptionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [installmentsDialogOpen]);
+
+  useEffect(() => {
+    if (!installmentsDialogOpen || !selectedCardMethodId) return;
+    let cancelled = false;
+    setIssuersLoading(true);
+    setSelectedIssuerId("");
+    setInstallmentOptions([]);
+    setInstallmentsError("");
+    void getMercadoPagoCardIssuers({ data: { paymentMethodId: selectedCardMethodId } })
+      .then((cardIssuers) => {
+        if (cancelled) return;
+        setIssuers(cardIssuers);
+        setSelectedIssuerId(cardIssuers[0]?.id ?? "");
+        if (cardIssuers.length === 0) {
+          setInstallmentsError("Mercado Pago no devolvió bancos para esta tarjeta.");
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setInstallmentsError(
+            error instanceof Error ? error.message : "No se pudieron cargar los bancos.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIssuersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [installmentsDialogOpen, selectedCardMethodId]);
+
+  useEffect(() => {
+    if (!installmentsDialogOpen || !selectedCardMethodId || !selectedIssuerId) return;
+    let cancelled = false;
+    setInstallmentsLoading(true);
+    setInstallmentsError("");
+    setInstallmentOptions([]);
+    void getMercadoPagoInstallments({
+      data: {
+        amount: cardPriceWithSurcharge,
+        paymentMethodId: selectedCardMethodId,
+        issuerId: selectedIssuerId,
+      },
+    })
+      .then((options) => {
+        if (!cancelled) setInstallmentOptions(options);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setInstallmentsError(
+            error instanceof Error ? error.message : "No se pudieron consultar las cuotas.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setInstallmentsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    cardPriceWithSurcharge,
+    installmentsDialogOpen,
+    selectedCardMethodId,
+    selectedIssuerId,
+  ]);
+
+  if (!product) return null;
 
   const activeProduct = selectedVariant
     ? {
@@ -467,6 +598,10 @@ function ProductDetail() {
               </span>
             ))}
           </div>
+          <p className="mt-2 text-sm text-sky-400">
+            Si abonás con tarjeta de crédito/débito o Mercado Pago, se suma un 15% al precio.
+            Tenés hasta 6 cuotas sin interés.
+          </p>
 
           {product.variants && product.variants.length > 1 ? (
             <div className="mt-5 max-w-xl">
@@ -492,72 +627,79 @@ function ProductDetail() {
             </div>
           ) : null}
 
-          <div className="mt-6 w-full max-w-md rounded-2xl border border-border/50 bg-surface-2 p-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex min-w-0 flex-col items-start gap-2">
-                <span className="font-display text-3xl font-semibold leading-none">
-                  {formatPrice(activeProduct.price)}
-                </span>
-                {product.compareAtPrice && (
-                  <span className="text-sm text-muted-foreground line-through">
-                    {formatPrice(product.compareAtPrice)}
-                  </span>
-                )}
-                <span className="text-sm font-medium text-muted-foreground">
-                  {activeProduct.stockUnlimited
-                    ? "∞ Stock ilimitado"
-                    : activeProduct.stock > 0
-                      ? `${activeProduct.stock} en stock`
-                      : "Sin stock"}
-                </span>
-              </div>
+          <div className="mt-6 w-full max-w-md space-y-3">
+            {product.compareAtPrice && (
+              <span className="block text-sm text-muted-foreground line-through">
+                {formatPrice(product.compareAtPrice)}
+              </span>
+            )}
+            <span className="font-display block text-3xl font-semibold leading-none">
+              {formatPrice(activeProduct.price)}
+            </span>
 
-              <div className="flex flex-wrap items-center justify-start gap-2">
-                <div className="flex items-center gap-0.5 rounded-full border border-border bg-background/70 p-0.5">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7 rounded-full"
-                    onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                    aria-label="Restar unidad"
-                  >
-                    <Minus className="size-3.5" />
-                  </Button>
-                  <input
-                    type="number"
-                    min={1}
-                    max={activeProduct.stockUnlimited ? undefined : activeProduct.stock}
-                    value={quantity}
-                    onChange={(event) => {
-                      const nextQuantity = Number(event.target.value);
-                      if (!Number.isFinite(nextQuantity)) return;
-                      setQuantity(
-                        activeProduct.stockUnlimited
-                          ? Math.max(1, nextQuantity)
-                          : Math.min(Math.max(1, nextQuantity), activeProduct.stock),
-                      );
-                    }}
-                    className="quantity-input h-7 w-8 rounded-lg border-0 bg-transparent text-center text-sm font-bold text-foreground outline-none focus:ring-2 focus:ring-primary"
-                    aria-label={`Cantidad de ${activeProduct.name}`}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7 rounded-full"
-                    onClick={increaseQuantity}
-                    aria-label="Sumar unidad"
-                    disabled={!hasStock}
-                  >
-                    <Plus className="size-3.5" />
-                  </Button>
-                </div>
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <span className="text-sm font-medium text-foreground">Elegí la cantidad</span>
+              <div className="flex items-center gap-0.5 rounded-full border border-border bg-background/70 p-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 rounded-full"
+                  onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                  aria-label="Restar unidad"
+                >
+                  <Minus className="size-3.5" />
+                </Button>
+                <input
+                  type="number"
+                  min={1}
+                  max={activeProduct.stockUnlimited ? undefined : activeProduct.stock}
+                  value={quantity}
+                  onChange={(event) => {
+                    const nextQuantity = Number(event.target.value);
+                    if (!Number.isFinite(nextQuantity)) return;
+                    setQuantity(
+                      activeProduct.stockUnlimited
+                        ? Math.max(1, nextQuantity)
+                        : Math.min(Math.max(1, nextQuantity), activeProduct.stock),
+                    );
+                  }}
+                  className="quantity-input h-7 w-8 rounded-lg border-0 bg-transparent text-center text-sm font-bold text-foreground outline-none focus:ring-2 focus:ring-primary"
+                  aria-label={`Cantidad de ${activeProduct.name}`}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 rounded-full"
+                  onClick={increaseQuantity}
+                  aria-label="Sumar unidad"
+                  disabled={!hasStock}
+                >
+                  <Plus className="size-3.5" />
+                </Button>
               </div>
             </div>
 
-            <div className="mt-4 flex flex-nowrap items-center justify-start gap-1 sm:gap-2">
+            <p className="text-sm font-medium text-muted-foreground">
+              {activeProduct.stockUnlimited
+                ? "∞ Stock ilimitado"
+                : activeProduct.stock > 0
+                  ? `${activeProduct.stock} en stock`
+                  : "Sin stock"}
+            </p>
+
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 text-sm font-medium text-sky-400 transition hover:text-sky-300 hover:underline"
+              onClick={() => setInstallmentsDialogOpen(true)}
+            >
+              <CreditCard className="size-4" />
+              Tabla de cuotas
+            </button>
+
+            <div className="flex flex-nowrap items-center justify-start gap-2 pt-1">
               <Button
                 size="lg"
-                className="min-w-0 flex-1 px-2! text-xs! sm:max-w-44 sm:gap-2 sm:px-3! sm:text-sm!"
+                className="min-w-0 flex-1 px-2! text-xs! sm:gap-2 sm:px-3! sm:text-sm!"
                 disabled={!hasStock}
                 onClick={() => addProduct(activeProduct, quantity)}
               >
@@ -567,7 +709,7 @@ function ProductDetail() {
               <Button
                 size="lg"
                 variant="secondary"
-                className="min-w-0 flex-1 px-2! text-xs! sm:max-w-44 sm:gap-2 sm:px-3! sm:text-sm!"
+                className="min-w-0 flex-1 px-2! text-xs! sm:gap-2 sm:px-3! sm:text-sm!"
                 onClick={() => {
                   if (!hasStock) return;
                   addProduct(activeProduct, quantity);
@@ -579,6 +721,118 @@ function ProductDetail() {
               </Button>
             </div>
           </div>
+
+          <Dialog open={installmentsDialogOpen} onOpenChange={setInstallmentsDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Tabla de cuotas</DialogTitle>
+                <DialogDescription>
+                  Precio con recargo del 15%: {formatPrice(cardPriceWithSurcharge)}. Elegí la
+                  tarjeta y el banco para consultar las cuotas disponibles en Mercado Pago.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1.5 text-sm font-medium">
+                  Tarjeta
+                  <select
+                    className="h-10 rounded-md border border-input bg-background px-3 text-foreground"
+                    value={selectedCardMethodId}
+                    disabled={paymentOptionsLoading || cardMethods.length === 0}
+                    onChange={(event) => {
+                      setSelectedCardMethodId(event.target.value);
+                      setSelectedIssuerId("");
+                    }}
+                  >
+                    {cardMethods.map((method) => (
+                      <option key={method.id} value={method.id}>
+                        {method.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1.5 text-sm font-medium">
+                  Banco emisor
+                  <select
+                    className="h-10 rounded-md border border-input bg-background px-3 text-foreground"
+                    value={selectedIssuerId}
+                    disabled={issuersLoading || issuers.length === 0}
+                    onChange={(event) => setSelectedIssuerId(event.target.value)}
+                  >
+                    {issuers.map((issuer) => (
+                      <option key={issuer.id} value={issuer.id}>
+                        {issuer.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {(paymentOptionsLoading || issuersLoading || installmentsLoading) && (
+                <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
+                  <LoaderCircle className="size-4 animate-spin" />
+                  Consultando opciones de pago...
+                </p>
+              )}
+              {installmentsError && (
+                <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">
+                  {installmentsError}
+                </p>
+              )}
+
+              {!installmentsLoading && !installmentsError && selectedIssuerId && (
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50 text-left text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">Cuotas</th>
+                        <th className="px-3 py-2 text-right font-medium">Valor de cada cuota</th>
+                        <th className="px-3 py-2 text-right font-medium">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[1, 3, 6, 9, 12].map((term) => {
+                        const option = installmentOptions.find(
+                          (installment) => installment.installments === term,
+                        );
+                        if (!option) return null;
+                        const noInterest =
+                          option.installment_rate === 0 ||
+                          option.total_amount <= cardPriceWithSurcharge + 0.01;
+                        return (
+                          <tr key={term} className="border-t border-border">
+                            <td className="px-3 py-2.5">
+                              {term} {term === 1 ? "cuota" : "cuotas"}
+                              {noInterest && (
+                                <span className="ml-2 text-xs font-medium text-sky-400">
+                                  Sin interés
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-medium">
+                              {formatPrice(option.installment_amount)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-muted-foreground">
+                              {formatPrice(option.total_amount)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {installmentOptions.filter((option) => [1, 3, 6, 9, 12].includes(option.installments))
+                    .length === 0 && (
+                    <p className="p-4 text-sm text-muted-foreground">
+                      No hay planes de 1, 3, 6, 9 o 12 cuotas para esta tarjeta y banco.
+                    </p>
+                  )}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Importes consultados a Mercado Pago para la tarjeta y el banco seleccionados.
+              </p>
+            </DialogContent>
+          </Dialog>
 
           <Tabs defaultValue="description" className="mt-8">
             <TabsList className="h-auto max-w-full flex-wrap justify-start">

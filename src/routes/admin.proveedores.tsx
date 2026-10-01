@@ -9,7 +9,6 @@ import {
   ContactRound,
   ChevronDown,
   ChevronUp,
-  Download,
   Edit3,
   Eye,
   EyeOff,
@@ -1657,49 +1656,6 @@ function AdminSuppliers() {
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline"
-                      className="border-sky-500/50 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300"
-                      onClick={() => {
-                        const selectedRows = filteredRows
-                          .filter((row) => selectedSupplierKeys.includes(row.key))
-                          .map((row) => [
-                            row.name,
-                            row.phone,
-                            row.social,
-                            row.references,
-                            row.productCount,
-                            row.products
-                              .map((product) => `${product.name} (${product.quantity})`)
-                              .join(", "),
-                            row.sales,
-                            row.soldQuantity,
-                          ]);
-                        const worksheet = XLSX.utils.aoa_to_sheet([
-                          [
-                            "Nombre",
-                            "Celular",
-                            "Red social",
-                            "Referencias",
-                            "Productos",
-                            "Producto vendido",
-                            "Total vendido",
-                            "Cantidad vendida",
-                          ],
-                          ...selectedRows,
-                        ]);
-                        const workbook = XLSX.utils.book_new();
-                        XLSX.utils.book_append_sheet(
-                          workbook,
-                          worksheet,
-                          "Proveedores seleccionados",
-                        );
-                        XLSX.writeFile(workbook, "proveedores-seleccionados.xlsx");
-                      }}
-                    >
-                      <Download className="size-4" /> Descargar
-                    </Button>
-                    <Button
-                      size="sm"
                       variant="destructive"
                       onClick={() => {
                         setPendingSupplierDelete(() => deleteSelectedSuppliers);
@@ -1935,7 +1891,7 @@ function AdminSuppliers() {
                                     <X className="size-4" />
                                   </button>
                                   <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                                    {sortedProducts.slice(0, 7).map((product) => {
+                                    {sortedProducts.slice(0, 9).map((product) => {
                                       const matchingProduct = products.find(
                                         (candidate) => candidate.name === product.name,
                                       );
@@ -1978,30 +1934,30 @@ function AdminSuppliers() {
                                       Este proveedor todavía no tiene productos vendidos.
                                     </p>
                                   )}
-                                  <div className="flex justify-center gap-3">
-                                    {sortedProducts.length > 7 && (
+                                  <div className="mt-2 flex justify-center gap-2 border-t border-border/60 pt-2">
+                                    {sortedProducts.length > 9 && (
                                       <Button
                                         type="button"
-                                        variant="ghost"
+                                        variant="outline"
                                         size="sm"
                                         onClick={() => {
                                           setSoldProductsSearch("");
                                           setProductsModalSupplier(row);
                                         }}
-                                        className="h-auto min-h-9 justify-center px-3 py-2 text-xs text-foreground hover:bg-transparent hover:text-foreground"
+                                        className="h-auto min-h-9 justify-center border-border/70 bg-surface-2/70 px-3 py-2 text-xs text-foreground hover:bg-surface-2 hover:text-foreground"
                                       >
                                         Ver más productos vendidos
                                       </Button>
                                     )}
                                     <Button
                                       type="button"
-                                      variant="ghost"
+                                      variant="outline"
                                       size="sm"
                                       onClick={() => {
                                         setCatalogProductsSearch("");
                                         setCatalogModalSupplier(row);
                                       }}
-                                      className="h-auto min-h-9 justify-center px-3 py-2 text-xs text-foreground hover:bg-transparent hover:text-foreground"
+                                      className="h-auto min-h-9 justify-center border-border/50 bg-background/45 px-3 py-2 text-xs text-foreground hover:bg-background/70 hover:text-foreground"
                                     >
                                       Ver productos
                                     </Button>

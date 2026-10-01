@@ -104,6 +104,7 @@ function CheckoutPage() {
   );
   const isCardPayment = mercadoPagoBrands.size > 0;
   const isMercadoPagoPayment = isCardPayment;
+  const hasCashOrTransferPayment = Object.values(paymentMethodsByBrand).some(isCashOrTransferMethod);
   const shouldAutoMarkPaymentAsPaid = Object.values(paymentMethodsByBrand).some((method) =>
     isCardMethod(method),
   );
@@ -276,22 +277,18 @@ function CheckoutPage() {
   const couponDiscountAmount = couponApplied
     ? discountedItemsSubtotal * (couponPercentage / 100) + couponAmount
     : 0;
-  const paymentDiscountAmount = items.reduce((sum, item) => {
-    if (!isCashOrTransferMethod(paymentMethodsByBrand[item.brand] ?? "")) return sum;
-    return sum + item.price * item.quantity * 0.1;
-  }, 0);
-  const discountedSubtotal = Math.max(0, subtotal - couponDiscountAmount - paymentDiscountAmount);
+  const discountedSubtotal = Math.max(0, subtotal - couponDiscountAmount);
   const eligibleCardSubtotal = items.reduce(
     (total, item) =>
       total +
-      (item.cardCommission && isCardMethod(paymentMethodsByBrand[item.brand] ?? "")
+      (isCardMethod(paymentMethodsByBrand[item.brand] ?? "")
         ? item.price *
           item.quantity *
           (couponApplied && item.brand === couponBrandSlug ? 1 - couponPercentage / 100 : 1)
         : 0),
     0,
   );
-  const cardFee = isCardPayment ? eligibleCardSubtotal * 0.1 : 0;
+  const cardFee = eligibleCardSubtotal * 0.15;
   const mercadoPagoItems = items
     .filter((item) => mercadoPagoBrands.has(item.brand))
     .map((item) => ({
@@ -299,14 +296,15 @@ function CheckoutPage() {
       quantity: item.quantity,
       price:
         item.price *
-        (couponApplied && item.brand === couponBrandSlug ? 1 - couponPercentage / 100 : 1),
+        (couponApplied && item.brand === couponBrandSlug ? 1 - couponPercentage / 100 : 1) *
+        1.15,
       brand: item.brand,
     }));
   const mercadoPagoSubtotal = mercadoPagoItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
-  const mercadoPagoTotal = mercadoPagoSubtotal + cardFee;
+  const mercadoPagoTotal = mercadoPagoSubtotal;
   const total = discountedSubtotal + cardFee;
   const combinedPaymentMethod = Object.entries(paymentMethodsByBrand)
     .map(([slug, method]) => `${getBrand(slug as BrandSlug)?.name}: ${method}`)
@@ -504,7 +502,7 @@ function CheckoutPage() {
       extraInfo: notes,
       date: new Date().toISOString().slice(0, 10),
       total,
-      paymentDiscount: paymentDiscountAmount,
+      paymentDiscount: 0,
       expenses,
       profit: total - expenses,
       status: "pendiente" as const,
@@ -552,7 +550,7 @@ function CheckoutPage() {
           address: normalizedAddress,
           notes,
           total,
-          paymentDiscount: paymentDiscountAmount,
+          paymentDiscount: 0,
           expenses,
           profit: total - expenses,
           paymentMethod: combinedPaymentMethod,
@@ -928,20 +926,12 @@ function CheckoutPage() {
                 </h3>
                 <div className="mt-3 divide-y divide-border/70 border-b border-border/70">
                   {items.map((item) => {
-                    const paymentDiscounted = isCashOrTransferMethod(
-                      paymentMethodsByBrand[item.brand] ?? "",
-                    );
-                    const lineTotal = item.price * item.quantity * (paymentDiscounted ? 0.9 : 1);
+                    const lineTotal = item.price * item.quantity;
                     return (
                       <div key={item.id} className="space-y-1.5 py-3">
                         <div className="flex items-start justify-between gap-3">
                           <p className="min-w-0 font-medium text-foreground">{item.name}</p>
                           <div className="shrink-0 text-right">
-                            {paymentDiscounted ? (
-                              <span className="block text-xs text-muted-foreground line-through">
-                                {formatPrice(item.price * item.quantity)}
-                              </span>
-                            ) : null}
                             <span className="font-semibold text-foreground">
                               {formatPrice(lineTotal)}
                             </span>
@@ -1021,15 +1011,15 @@ function CheckoutPage() {
                     </div>
                   </>
                 )}
-                {paymentDiscountAmount > 0 && (
-                  <div className="mt-3 flex items-center justify-between text-green-600">
-                    <span>Descuento por transferencia/efectivo (10%)</span>
-                    <span>-{formatPrice(paymentDiscountAmount)}</span>
+                {hasCashOrTransferPayment && (
+                  <div className="mt-3 flex items-center justify-between text-muted-foreground">
+                    <span>Transferencia/efectivo</span>
+                    <span>Sin recargo</span>
                   </div>
                 )}
                 {isCardPayment && cardFee > 0 && (
                   <div className="mt-3 flex items-center justify-between text-muted-foreground">
-                    <span>Comisión tarjeta (10%)</span>
+                    <span>Recargo por tarjeta/Mercado Pago (15%)</span>
                     <span>{formatPrice(cardFee)}</span>
                   </div>
                 )}

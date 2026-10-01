@@ -24,7 +24,6 @@ import {
   X,
   Copy,
   ArrowUpDown,
-  Download,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -1040,23 +1039,6 @@ function AdminProducts() {
     },
     [discounts, usdRate],
   );
-
-  useEffect(() => {
-    const productId = routeSearch.productId;
-    if (!productId || editableProducts.length === 0) return;
-    const deepLinkKey = `${productId}:${routeSearch.variantId ?? ""}`;
-    if (openedDeepLinkRef.current === deepLinkKey) return;
-
-    const product = editableProducts.find((item) => item.id === productId);
-    if (!product) return;
-    const variant = routeSearch.variantId
-      ? product.variants?.find((item) => item.id === routeSearch.variantId)
-      : undefined;
-    if (routeSearch.variantId && !variant) return;
-
-    openedDeepLinkRef.current = deepLinkKey;
-    openEditProductDialog(product, variant);
-  }, [editableProducts, openEditProductDialog, routeSearch.productId, routeSearch.variantId]);
 
   const clearProductDeepLink = () => {
     openedDeepLinkRef.current = null;
@@ -2112,6 +2094,7 @@ function AdminProducts() {
     if (!displayRows.length) return;
     const deepLinkKey = `${productId}:${routeSearch.variantId ?? ""}`;
     if (highlightedDeepLinkRef.current === deepLinkKey) return;
+    if (openedDeepLinkRef.current === deepLinkKey) return;
 
     const targetRow = displayRows.find(
       ({ product, variant }) =>
@@ -2120,6 +2103,8 @@ function AdminProducts() {
     if (!targetRow) return;
 
     const rowKey = `${productId}-${routeSearch.variantId ?? "base"}`;
+    let highlightTimeout: number | undefined;
+    let openDialogFrame: number | undefined;
     const frame = window.requestAnimationFrame(() => {
       const rowElement = document.getElementById(`product-${rowKey}`);
       if (!rowElement) return;
@@ -2127,13 +2112,21 @@ function AdminProducts() {
       highlightedDeepLinkRef.current = deepLinkKey;
       rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
       setHighlightedDeepLinkKey(rowKey);
-      window.setTimeout(() => {
+      highlightTimeout = window.setTimeout(() => {
         setHighlightedDeepLinkKey((current) => (current === rowKey ? null : current));
+        openDialogFrame = window.requestAnimationFrame(() => {
+          openedDeepLinkRef.current = deepLinkKey;
+          openEditProductDialog(targetRow.product, targetRow.variant);
+        });
       }, 4000);
     });
 
-    return () => window.cancelAnimationFrame(frame);
-  }, [displayRows, routeSearch.productId, routeSearch.variantId]);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (highlightTimeout !== undefined) window.clearTimeout(highlightTimeout);
+      if (openDialogFrame !== undefined) window.cancelAnimationFrame(openDialogFrame);
+    };
+  }, [displayRows, openEditProductDialog, routeSearch.productId, routeSearch.variantId]);
 
   const visibleProductSelectionKeys = Array.from(
     new Set(displayRows.map(({ product, variant }) => getProductSelectionKey(product, variant))),
@@ -2931,54 +2924,6 @@ function AdminProducts() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-sky-500/50 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300"
-                    onClick={() => {
-                      const selectedRows = getSelectedProductEntries(selectedProductIds).flatMap(
-                        ({ productId, variantId }) => {
-                          const product = editableProducts.find((item) => item.id === productId);
-                          if (!product) return [];
-                          const variant = variantId
-                            ? product.variants?.find((item) => item.id === variantId)
-                            : undefined;
-                          return [
-                            [
-                              product.id,
-                              product.name,
-                              variant?.name ?? "",
-                              product.code ?? "",
-                              product.brand,
-                              product.category,
-                              variant?.stock ?? product.stock,
-                              variant?.price ?? product.price,
-                              variant?.discount ?? discounts[product.id] ?? 0,
-                            ],
-                          ];
-                        },
-                      );
-                      const worksheet = XLSX.utils.aoa_to_sheet([
-                        [
-                          "ID",
-                          "Producto",
-                          "Variante",
-                          "SKU",
-                          "Tienda",
-                          "Categoría",
-                          "Stock",
-                          "Precio",
-                          "Descuento",
-                        ],
-                        ...selectedRows,
-                      ]);
-                      const workbook = XLSX.utils.book_new();
-                      XLSX.utils.book_append_sheet(workbook, worksheet, "Productos seleccionados");
-                      XLSX.writeFile(workbook, "productos-seleccionados.xlsx");
-                    }}
-                  >
-                    <Download className="size-4" /> Descargar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
                     onClick={() => handleBulkToggleProducts(false)}
                   >
                     <Eye className="size-4" /> Disponible
@@ -3661,15 +3606,11 @@ function AdminProducts() {
                   ? "Varios productos"
                   : importSetupSource === "text"
                     ? "Importar desde un archivo"
-                    : "Importar desde la tienda Store"}
+                    : "Importar desde la tienda Store."}
               </span>
-              <span className="block">
-                {importSetupSource === "images"
-                  ? "Elegí la tienda, categoría, subcategoría y SKU para las imágenes."
-                  : importSetupSource === "text"
-                    ? "Formatos: TXT, CSV, RTF, DOCX, PDF, XLS/XLSX, ODT y ODS. Elegí también la tienda y categoría."
-                    : "Elegí la tienda, categoría, subcategoría y SKU para los productos importados."}
-              </span>
+              {importSetupSource === "text" ? (
+                <span className="block">Formatos: TXT, CSV, RTF, DOCX, PDF, XLS/XLSX, ODT y ODS.</span>
+              ) : null}
             </DialogDescription>
           </DialogHeader>
           <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">

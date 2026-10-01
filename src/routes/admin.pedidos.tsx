@@ -2480,18 +2480,6 @@ function AdminOrders() {
                   </Button>
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="border-sky-500/50 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300"
-                    onClick={() =>
-                      exportOrdersExcel(
-                        editableOrders.filter((order) => selectedOrderIds.includes(order.id)),
-                      )
-                    }
-                  >
-                    <Download className="size-4" /> Descargar
-                  </Button>
-                  <Button
-                    size="sm"
                     variant="destructive"
                     onClick={() =>
                       setConfirmState({
@@ -3330,7 +3318,7 @@ function AdminOrders() {
                 <span className="mb-3 block text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                   Datos cliente
                 </span>
-                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-[1fr_1fr_2fr]">
+                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-[1fr_1.15fr_1.85fr]">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Número de pedido</Label>
                     <Input value={orderForm.id} disabled />

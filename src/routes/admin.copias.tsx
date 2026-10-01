@@ -520,9 +520,9 @@ function AdminBackups() {
         <div className="mt-3 mb-2 flex flex-wrap items-center gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="default"
             size="sm"
-            className="border-sky-500/50 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => {
               const selectedBackups = backups.filter((backup) =>
                 selectedBackupIds.includes(backup.id),

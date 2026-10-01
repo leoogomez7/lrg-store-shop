@@ -46,6 +46,72 @@ function getAccessToken() {
   return token;
 }
 
+async function mercadoPagoGet<T>(path: string): Promise<T> {
+  const response = await fetch(`https://api.mercadopago.com${path}`, {
+    headers: { Authorization: `Bearer ${getAccessToken()}` },
+  });
+  if (!response.ok) {
+    throw new Error(`Mercado Pago no pudo consultar las cuotas (${response.status}).`);
+  }
+  return (await response.json()) as T;
+}
+
+type MercadoPagoCardOption = { id: string; name: string };
+
+export const getMercadoPagoCardMethods = createServerFn({ method: "POST" })
+  .validator((data: Record<string, never>) => data)
+  .handler(async () => {
+    const paymentTypes = ["credit_card", "debit_card"];
+    const responses = await Promise.all(
+      paymentTypes.map((paymentType) =>
+        mercadoPagoGet<MercadoPagoCardOption[]>(
+          `/v1/payment_methods?payment_type_id=${paymentType}`,
+        ),
+      ),
+    );
+    const methods = new Map<string, MercadoPagoCardOption>();
+    for (const method of responses.flat()) {
+      if (method.id && method.name) methods.set(method.id, { id: method.id, name: method.name });
+    }
+    return Array.from(methods.values()).sort((left, right) => left.name.localeCompare(right.name));
+  });
+
+export const getMercadoPagoCardIssuers = createServerFn({ method: "POST" })
+  .validator((data: { paymentMethodId: string }) => data)
+  .handler(async ({ data }) => {
+    const query = new URLSearchParams({ payment_method_id: data.paymentMethodId });
+    return mercadoPagoGet<MercadoPagoCardOption[]>(`/v1/payment_methods/issuers?${query}`);
+  });
+
+export const getMercadoPagoInstallments = createServerFn({ method: "POST" })
+  .validator((data: { amount: number; paymentMethodId: string; issuerId: string }) => {
+    if (!Number.isFinite(data.amount) || data.amount <= 0 || data.amount > 100_000_000) {
+      throw new Error("El importe para consultar cuotas no es válido.");
+    }
+    if (!data.paymentMethodId.trim() || !data.issuerId.trim()) {
+      throw new Error("Seleccioná la tarjeta y el banco emisor.");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const query = new URLSearchParams({
+      amount: data.amount.toFixed(2),
+      payment_method_id: data.paymentMethodId,
+      "issuer.id": data.issuerId,
+    });
+    const response = await mercadoPagoGet<
+      Array<{
+        payer_costs?: Array<{
+          installments: number;
+          installment_amount: number;
+          total_amount: number;
+          installment_rate: number;
+        }>;
+      }>
+    >(`/v1/payment_methods/installments?${query}`);
+    return (response ?? []).flatMap((method) => method.payer_costs ?? []);
+  });
+
 function getPreferenceUrls(returnUrl: string, intentId: string) {
   const baseUrl = new URL(returnUrl).origin;
   const checkoutUrl = `${baseUrl}/checkout`;
