@@ -14,6 +14,7 @@ import {
   EyeOff,
   FileText,
   Filter,
+  ImagePlus,
   LoaderCircle,
   Pencil,
   Plus,
@@ -256,6 +257,7 @@ function AdminProducts() {
   const [usdRatePromptValue, setUsdRatePromptValue] = useState("");
   const multiProductInputRef = useRef<HTMLInputElement | null>(null);
   const textProductInputRef = useRef<HTMLInputElement | null>(null);
+  const additionalImagesInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [pendingImportedProducts, setPendingImportedProducts] = useState<Product[]>([]);
   const [importCategoryOpen, setImportCategoryOpen] = useState(false);
   const [importBrand, setImportBrand] = useState<BrandSlug>("arcade");
@@ -593,6 +595,10 @@ function AdminProducts() {
         subcategoryPath: importSubcategoryPath.length ? importSubcategoryPath : undefined,
         price,
         priceCurrency: "ARS",
+        gastos: 0,
+        gastosCurrency: "ARS",
+        comision: 0,
+        comisionCurrency: "ARS",
         stock: 1,
         rating: 0,
         reviews: 0,
@@ -661,6 +667,11 @@ function AdminProducts() {
         subcategory: importSubcategoryPath[0] || undefined,
         subcategoryPath: importSubcategoryPath.length ? importSubcategoryPath : undefined,
         price: 0,
+        priceCurrency: "ARS",
+        gastos: 0,
+        gastosCurrency: "ARS",
+        comision: 0,
+        comisionCurrency: "ARS",
         stock: 1,
         rating: 0,
         reviews: 0,
@@ -3903,18 +3914,34 @@ function AdminProducts() {
           <div className={cn("space-y-4", isImportingStore && "hidden")}>
             <div className="grid gap-2 sm:max-w-sm">
               <Label htmlFor="import-code-all">SKU</Label>
-              <Input
+              <Select
                 id="import-code-all"
-                value={importCode}
-                onChange={(event) => {
-                  const code = event.target.value;
+                value={importCode || "none"}
+                onValueChange={(value) => {
+                  const code = value === "none" ? "" : value;
                   setImportCode(code);
                   setPendingImportedProducts((current) =>
-                    current.map((product) => ({ ...product, code: code.trim() || undefined })),
+                    current.map((product) => ({ ...product, code: code || undefined })),
                   );
                 }}
-                placeholder="SKU común (opcional)"
-              />
+              >
+                <SelectTrigger id="import-code-all" className="w-full">
+                  <SelectValue placeholder="Seleccionar SKU" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin SKU</SelectItem>
+                  {availableSkus
+                    .filter((sku) => sku.brand === importBrand)
+                    .map((sku) => (
+                      <SelectItem key={sku.key} value={sku.code}>
+                        {sku.code}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+              General
             </div>
             <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-surface/40 p-3 text-sm">
               <Checkbox
@@ -4015,6 +4042,9 @@ function AdminProducts() {
               </div>
             ) : null}
 
+            <div className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+              Productos
+            </div>
             <div className="max-h-[48dvh] space-y-3 overflow-y-auto pr-1">
               {pendingImportedProducts
                 .slice(importPreviewPage * 30, (importPreviewPage + 1) * 30)
@@ -4033,17 +4063,69 @@ function AdminProducts() {
                       className="grid gap-3 rounded-xl border border-border/60 bg-background/70 p-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(8rem,0.7fr)]"
                     >
                       <div className="flex min-w-0 gap-3">
-                        {(product.images?.[0] ?? storeImportPriceDetails[product.id]?.image) ? (
-                          <img
-                            src={
-                              product.images?.[0] ??
-                              storeImportPriceDetails[product.id]?.image ??
-                              ""
-                            }
-                            alt=""
-                            className="size-16 shrink-0 rounded-lg border border-border/60 object-cover"
+                        <div className="flex shrink-0 flex-col items-center gap-2">
+                          {(product.images?.[0] ?? storeImportPriceDetails[product.id]?.image) ? (
+                            <img
+                              src={
+                                product.images?.[0] ??
+                                storeImportPriceDetails[product.id]?.image ??
+                                ""
+                              }
+                              alt=""
+                              className="size-16 rounded-lg border border-border/60 object-cover"
+                            />
+                          ) : null}
+                          <input
+                            ref={(node) => {
+                              additionalImagesInputRefs.current[product.id] = node;
+                            }}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={async (event) => {
+                              const files = Array.from(event.target.files ?? []).filter((file) =>
+                                file.type.startsWith("image/"),
+                              );
+                              event.target.value = "";
+                              if (!files.length) return;
+                              try {
+                                const addedImages = await Promise.all(
+                                  files.map(async (file) =>
+                                    optimizeImageDataUrl(
+                                      await cropImageDataUrl(await fileToDataUrl(file)),
+                                    ),
+                                  ),
+                                );
+                                setPendingImportedProducts((current) =>
+                                  current.map((item) =>
+                                    item.id === product.id
+                                      ? { ...item, images: [...(item.images ?? []), ...addedImages] }
+                                      : item,
+                                  ),
+                                );
+                                toast.success(
+                                  `${addedImages.length} imagen${addedImages.length === 1 ? " agregada" : "es agregadas"}`,
+                                );
+                              } catch (error) {
+                                toast.error(
+                                  error instanceof Error
+                                    ? error.message
+                                    : "No se pudieron agregar las imágenes.",
+                                );
+                              }
+                            }}
                           />
-                        ) : null}
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 gap-1 px-2 text-xs"
+                            onClick={() => additionalImagesInputRefs.current[product.id]?.click()}
+                          >
+                            <ImagePlus className="size-3.5" /> Imagen
+                          </Button>
+                        </div>
                         <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
                           <div className="space-y-1.5">
                             <Label htmlFor={`import-name-${product.id}`}>Nombre del producto</Label>
@@ -4062,50 +4144,119 @@ function AdminProducts() {
                               className="min-w-0"
                             />
                           </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor={`import-price-${product.id}`}>
-                              {importSource === "store" ? "Precio de venta" : "Precio (ARS)"}
-                            </Label>
-                            <Input
-                              id={`import-price-${product.id}`}
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              value={product.price}
-                              onChange={(event) =>
-                                setPendingImportedProducts((current) =>
-                                  current.map((item, itemIndex) =>
-                                    itemIndex === index
-                                      ? { ...item, price: Number(event.target.value) }
-                                      : item,
-                                  ),
-                                )
-                              }
-                              className="min-w-0"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor={`import-code-${product.id}`}>Código</Label>
-                            <Input
-                              id={`import-code-${product.id}`}
-                              value={product.code ?? ""}
-                              onChange={(event) =>
-                                setPendingImportedProducts((current) =>
-                                  current.map((item, itemIndex) =>
-                                    itemIndex === index
-                                      ? { ...item, code: event.target.value.trim() || undefined }
-                                      : item,
-                                  ),
-                                )
-                              }
-                              placeholder="SKU"
-                              className="min-w-0"
-                            />
-                          </div>
+                          {importSource === "store" ? (
+                            <div className="space-y-1.5">
+                              <Label htmlFor={`import-price-${product.id}`}>Precio de venta</Label>
+                              <Input
+                                id={`import-price-${product.id}`}
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={product.price}
+                                onChange={(event) =>
+                                  setPendingImportedProducts((current) =>
+                                    current.map((item, itemIndex) =>
+                                      itemIndex === index
+                                        ? { ...item, price: Number(event.target.value) }
+                                        : item,
+                                    ),
+                                  )
+                                }
+                                className="min-w-0"
+                              />
+                            </div>
+                          ) : (
+                            <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
+                              <div className="space-y-1.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Label htmlFor={`import-expenses-${product.id}`}>Gastos</Label>
+                                  <Select
+                                    value={product.gastosCurrency ?? "ARS"}
+                                    onValueChange={(value) =>
+                                      setPendingImportedProducts((current) =>
+                                        current.map((item, itemIndex) =>
+                                          itemIndex === index
+                                            ? { ...item, gastosCurrency: value as CurrencyCode }
+                                            : item,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8 w-28">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="ARS">$ (ARS)</SelectItem>
+                                      <SelectItem value="USD">USD (Dólar)</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <Input
+                                  id={`import-expenses-${product.id}`}
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  value={product.gastos ?? 0}
+                                  onChange={(event) =>
+                                    setPendingImportedProducts((current) =>
+                                      current.map((item, itemIndex) =>
+                                        itemIndex === index
+                                          ? { ...item, gastos: Number(event.target.value) }
+                                          : item,
+                                      ),
+                                    )
+                                  }
+                                  className="min-w-0"
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Label htmlFor={`import-profit-${product.id}`}>Mi ganancia</Label>
+                                  <Select
+                                    value={product.comisionCurrency ?? "ARS"}
+                                    onValueChange={(value) =>
+                                      setPendingImportedProducts((current) =>
+                                        current.map((item, itemIndex) =>
+                                          itemIndex === index
+                                            ? { ...item, comisionCurrency: value as CurrencyCode }
+                                            : item,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8 w-28">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="ARS">$ (ARS)</SelectItem>
+                                      <SelectItem value="USD">USD (Dólar)</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <Input
+                                  id={`import-profit-${product.id}`}
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  value={product.comision ?? 0}
+                                  onChange={(event) =>
+                                    setPendingImportedProducts((current) =>
+                                      current.map((item, itemIndex) =>
+                                        itemIndex === index
+                                          ? { ...item, comision: Number(event.target.value) }
+                                          : item,
+                                      ),
+                                    )
+                                  }
+                                  className="min-w-0"
+                                />
+                              </div>
+                            </div>
+                          )}
                           {importSource === "store" ? (
                             <>
                               <div className="space-y-1.5">
-                                <Label>Mi comisión</Label>
+                                <Label>Mi ganancia</Label>
                                 <div className="flex min-w-0 gap-2">
                                   <Select
                                     value={product.comisionCurrency ?? "ARS"}

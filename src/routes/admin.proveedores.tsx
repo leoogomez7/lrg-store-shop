@@ -204,7 +204,6 @@ function AdminSuppliers() {
   const [salesOpen, setSalesOpen] = React.useState(false);
   const [quantityOpen, setQuantityOpen] = React.useState(false);
   const [expandedSupplierKey, setExpandedSupplierKey] = React.useState<string | null>(null);
-  const hasExpandedSupplier = expandedSupplierKey !== null;
   const [productsModalSupplier, setProductsModalSupplier] = React.useState<SupplierRow | null>(
     null,
   );
@@ -1070,6 +1069,12 @@ function AdminSuppliers() {
   ];
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const visibleRows = filteredRows.slice(page * pageSize, page * pageSize + pageSize);
+  const expandedSupplier = rows.find((row) => row.key === expandedSupplierKey) ?? null;
+  const expandedSupplierProducts = expandedSupplier
+    ? [...expandedSupplier.products].sort((a, b) =>
+        a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+      )
+    : [];
   const visibleSupplierKeys = visibleRows.map((row) => row.key);
   const allVisibleSuppliersSelected =
     visibleSupplierKeys.length > 0 &&
@@ -1686,8 +1691,8 @@ function AdminSuppliers() {
                 hideScrollbarOnMobile
                 stickyHeader
                 stickyScrollbar
-                containerClassName="overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-                className="min-w-52rem w-full table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1"
+                containerClassName="w-full touch-pan-x overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+                className="w-full min-w-5xl table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1"
               >
                 <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                   <TableRow>
@@ -1716,22 +1721,18 @@ function AdminSuppliers() {
                         />
                       </div>
                     </TableHead>
-                    <TableHead className="w-[16%] min-w-100px pl-3">Nombre</TableHead>
-                    <TableHead className="w-[12%] min-w-90px">Celular</TableHead>
-                    <TableHead className="w-[12%] min-w-90px">Red social</TableHead>
-                    <TableHead className="w-[16%] min-w-100px">Referencias</TableHead>
-                    <TableHead className="w-[9%] min-w-70px">Productos</TableHead>
-                    <TableHead className="w-[14%] min-w-110px">Total vendido</TableHead>
-                    <TableHead className="w-[15%] min-w-100px">Cantidad vendida</TableHead>
+                    <TableHead className="w-40 pl-3">Nombre</TableHead>
+                    <TableHead className="w-32">Celular</TableHead>
+                    <TableHead className="w-36">Red social</TableHead>
+                    <TableHead className="w-40">Referencias</TableHead>
+                    <TableHead className="w-28">Productos</TableHead>
+                    <TableHead className="w-40">Total vendido</TableHead>
+                    <TableHead className="w-36">Cantidad vendida</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {visibleRows.map((row) => {
-                    const isExpanded = expandedSupplierKey === row.key;
                     const isQuickEditing = quickEditSupplierKey === row.key;
-                    const sortedProducts = [...row.products].sort((a, b) =>
-                      a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
-                    );
                     const quickSupplier = quickEditSupplier ?? {
                       name: row.name,
                       phone: row.phone,
@@ -1753,7 +1754,9 @@ function AdminSuppliers() {
                             if (quickEditSupplierKey !== null && quickEditSupplierKey !== row.key) {
                               cancelQuickEditSupplier();
                             }
-                            setExpandedSupplierKey(isExpanded ? null : row.key);
+                            setExpandedSupplierKey((current) =>
+                              current === row.key ? null : row.key,
+                            );
                           }}
                           className={
                             !selectionMode && !isQuickEditing
@@ -1874,99 +1877,6 @@ function AdminSuppliers() {
                             {row.soldQuantity}
                           </TableCell>
                         </TableRow>
-                        {isExpanded ? (
-                          <TableRow className="max-md:fixed max-md:inset-2 max-md:z-50 max-md:block max-md:overflow-y-auto max-md:rounded-2xl max-md:border max-md:border-border/70 max-md:bg-background max-md:shadow-2xl">
-                            <TableCell
-                              colSpan={8}
-                              className="w-full bg-muted/30 p-0 text-left max-md:block max-md:w-full"
-                            >
-                              <>
-                                <div className="relative px-4 py-3 max-md:pt-12">
-                                  <button
-                                    type="button"
-                                    className="absolute right-2 top-2 z-10 grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
-                                    onClick={() => setExpandedSupplierKey(null)}
-                                    aria-label="Cerrar detalle del proveedor"
-                                  >
-                                    <X className="size-4" />
-                                  </button>
-                                  <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                                    {sortedProducts.slice(0, 9).map((product) => {
-                                      const matchingProduct = products.find(
-                                        (candidate) => candidate.name === product.name,
-                                      );
-                                      const matchingVariant = matchingProduct?.variants?.find(
-                                        (candidate) =>
-                                          candidate.name === product.variantName &&
-                                          candidate.name !== undefined,
-                                      );
-
-                                      return (
-                                        <button
-                                          key={`${product.name}-${product.variantName ?? "base"}`}
-                                          type="button"
-                                          onClick={() => {
-                                            if (!matchingProduct) return;
-                                            setExpandedSupplierKey(null);
-                                            void navigate({
-                                              to: "/admin/productos",
-                                              search: {
-                                                productId: matchingProduct.id,
-                                                variantId: matchingVariant?.id ?? undefined,
-                                              },
-                                            });
-                                          }}
-                                          className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-background/35 px-3 py-2 text-left text-xs text-foreground transition-colors hover:bg-accent"
-                                        >
-                                          <span className="min-w-0 wrap-break-word font-medium">
-                                            {product.name}
-                                            {product.variantName ? ` · ${product.variantName}` : ""}
-                                          </span>
-                                          <span className="shrink-0 text-right text-muted-foreground">
-                                            Cantidad vendida: {product.quantity}
-                                          </span>
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                  {row.products.length === 0 && (
-                                    <p className="mb-1 text-sm text-muted-foreground">
-                                      Este proveedor todavía no tiene productos vendidos.
-                                    </p>
-                                  )}
-                                  <div className="mt-2 flex justify-center gap-2 border-t border-border/60 pt-2">
-                                    {sortedProducts.length > 9 && (
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          setSoldProductsSearch("");
-                                          setProductsModalSupplier(row);
-                                        }}
-                                        className="h-auto min-h-9 justify-center border-border/70 bg-surface-2/70 px-3 py-2 text-xs text-foreground hover:bg-surface-2 hover:text-foreground"
-                                      >
-                                        Ver más productos vendidos
-                                      </Button>
-                                    )}
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => {
-                                        setCatalogProductsSearch("");
-                                        setCatalogModalSupplier(row);
-                                      }}
-                                      className="h-auto min-h-9 justify-center border-border/50 bg-background/45 px-3 py-2 text-xs text-foreground hover:bg-background/70 hover:text-foreground"
-                                    >
-                                      Ver productos
-                                    </Button>
-                                  </div>
-                                </div>
-                              </>
-                            </TableCell>
-                          </TableRow>
-                        ) : null}
                       </React.Fragment>
                     );
                   })}
@@ -2062,6 +1972,94 @@ function AdminSuppliers() {
           </p>
         </div>
       </div>
+
+      <Dialog
+        open={expandedSupplier !== null}
+        onOpenChange={(open) => !open && setExpandedSupplierKey(null)}
+      >
+        <DialogContent className="max-md:inset-2 max-md:left-2 max-md:top-2 max-md:h-[calc(100dvh-1rem)] max-md:w-[calc(100vw-1rem)] max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-2xl sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{expandedSupplier?.name}</DialogTitle>
+            <DialogDescription>
+              Productos vinculados a este proveedor y cantidad vendida.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 space-y-1.5 overflow-y-auto">
+            {expandedSupplierProducts.slice(0, 9).map((product) => {
+              const matchingProduct = products.find(
+                (candidate) => candidate.name === product.name,
+              );
+              const matchingVariant = matchingProduct?.variants?.find(
+                (candidate) => candidate.name === product.variantName,
+              );
+
+              return (
+                <button
+                  key={`${product.name}-${product.variantName ?? "base"}`}
+                  type="button"
+                  onClick={() => {
+                    if (!matchingProduct) return;
+                    setExpandedSupplierKey(null);
+                    void navigate({
+                      to: "/admin/productos",
+                      search: {
+                        productId: matchingProduct.id,
+                        variantId: matchingVariant?.id ?? undefined,
+                      },
+                    });
+                  }}
+                  className="flex w-full min-w-0 items-center justify-between gap-3 rounded-md bg-background/35 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"
+                >
+                  <span className="min-w-0 wrap-break-word font-medium">
+                    {product.name}
+                    {product.variantName ? ` · ${product.variantName}` : ""}
+                  </span>
+                  <span className="shrink-0 text-right text-xs text-muted-foreground">
+                    Cantidad vendida: {product.quantity}
+                  </span>
+                </button>
+              );
+            })}
+            {expandedSupplier && expandedSupplier.products.length === 0 ? (
+              <p className="py-5 text-center text-sm text-muted-foreground">
+                Este proveedor todavía no tiene productos vendidos.
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap justify-center gap-2 border-t border-border/60 pt-3">
+            {expandedSupplierProducts.length > 9 ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSoldProductsSearch("");
+                  setProductsModalSupplier(expandedSupplier);
+                  setExpandedSupplierKey(null);
+                }}
+                className="h-auto min-h-9 justify-center px-3 py-2 text-xs"
+              >
+                Ver más productos vendidos
+              </Button>
+            ) : null}
+            {expandedSupplier ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setCatalogProductsSearch("");
+                  setCatalogModalSupplier(expandedSupplier);
+                  setExpandedSupplierKey(null);
+                }}
+                className="h-auto min-h-9 justify-center px-3 py-2 text-xs"
+              >
+                Ver productos
+              </Button>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={productsModalSupplier !== null}

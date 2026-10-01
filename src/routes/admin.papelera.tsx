@@ -394,22 +394,24 @@ function AdminTrash() {
               className="h-9 pl-9"
             />
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 max-md:flex-1 max-md:justify-center"
-            onClick={emptyTrash}
-          >
-            <Trash2 className="size-4" /> Vaciar papelera
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 max-md:flex-1 max-md:justify-center"
-            onClick={restoreAllEntries}
-          >
-            <RotateCcw className="size-4" /> Restaurar todos
-          </Button>
+          <div className="flex w-full gap-2 sm:w-auto">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 max-md:flex-1 max-md:justify-center"
+              onClick={emptyTrash}
+            >
+              <Trash2 className="size-4" /> Vaciar papelera
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 max-md:flex-1 max-md:justify-center"
+              onClick={restoreAllEntries}
+            >
+              <RotateCcw className="size-4" /> Restaurar todos
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -430,10 +432,15 @@ function AdminTrash() {
       <div
         className={`mt-4 glass-panel w-full overflow-hidden rounded-2xl border border-border/60 ${isLoading || entries.length === 0 || filteredEntries.length === 0 ? "mb-4" : ""}`}
       >
+        {isLoading ? (
+          <div className="px-4 py-12 text-center text-sm text-muted-foreground md:hidden">
+            Cargando elementos eliminados...
+          </div>
+        ) : null}
         <Table
           hideScrollbarOnMobile
           hideScrollbar
-          containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+          containerClassName={`[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch] ${isLoading ? "max-md:hidden" : ""}`}
           className="w-full min-w-0 table-fixed text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">

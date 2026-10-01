@@ -1767,12 +1767,14 @@ function AdminConfiguration() {
             {productSkus.map((sku) => (
               <div
                 key={sku.id}
-                className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/80 p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-row items-center gap-2 rounded-2xl border border-border/60 bg-background/80 p-3 sm:justify-between sm:p-4"
               >
                 {editingProductSkuId === sku.id ? (
                   <>
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <Label htmlFor={`product-sku-${sku.id}`}>SKU</Label>
+                    <div className="min-w-0 flex-1">
+                      <Label htmlFor={`product-sku-${sku.id}`} className="sr-only">
+                        Nombre del SKU
+                      </Label>
                       <Input
                         id={`product-sku-${sku.id}`}
                         value={editingProductSkuCode}
@@ -1785,19 +1787,19 @@ function AdminConfiguration() {
                           }
                         }}
                         autoFocus
-                        className="h-9 w-full"
+                        className="h-9 w-full min-w-0 px-2 text-sm"
                       />
                     </div>
-                    <div className="flex w-full flex-nowrap items-center gap-1 sm:w-auto sm:gap-2">
+                    <div className="flex shrink-0 flex-nowrap items-center gap-0.5 sm:gap-2">
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => saveProductSku(sku.id)}
                         disabled={!editingProductSkuCode.trim()}
-                        className="h-8 gap-1 text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                        className="h-8 gap-1 px-1.5 text-[10px] text-green-600 hover:bg-green-100/80 hover:text-green-700 sm:px-2 sm:text-sm"
                       >
-                        <Check className="size-4" /> Guardar
+                        <Check className="size-3.5 sm:size-4" /> Guardar
                       </Button>
                       <Button
                         type="button"
@@ -1807,22 +1809,22 @@ function AdminConfiguration() {
                           setEditingProductSkuId(null);
                           setEditingProductSkuCode("");
                         }}
-                        className="h-8 gap-2 text-destructive hover:bg-destructive/10"
+                        className="h-8 gap-1 px-1.5 text-[10px] text-destructive hover:bg-destructive/10 sm:gap-2 sm:px-2 sm:text-sm"
                       >
-                        <X className="size-4" /> Cancelar
+                        <X className="size-3.5 sm:size-4" /> Cancelar
                       </Button>
                     </div>
                   </>
                 ) : (
                   <>
-                    <span className="font-semibold">{sku.code}</span>
-                    <div className="flex w-full flex-nowrap items-center gap-1 sm:w-auto sm:gap-2">
+                    <span className="min-w-0 flex-1 truncate font-semibold">{sku.code}</span>
+                    <div className="flex shrink-0 flex-nowrap items-center gap-0.5 sm:gap-2">
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => editProductSku(sku)}
-                        className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
+                        className="shrink-0 gap-1 px-1.5 text-[10px] sm:gap-2 sm:px-2 sm:text-sm"
                       >
                         <Pencil className="size-3.5 sm:size-4" /> Editar
                       </Button>
@@ -1830,7 +1832,7 @@ function AdminConfiguration() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="min-w-0 flex-1 gap-1 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 sm:flex-none sm:gap-2 sm:px-2 sm:text-sm"
+                        className="shrink-0 gap-1 px-1.5 text-[10px] text-destructive hover:bg-destructive/10 sm:gap-2 sm:px-2 sm:text-sm"
                         onClick={() => removeProductSku(sku.id)}
                       >
                         <Trash2 className="size-3.5 sm:size-4" /> Eliminar

@@ -2516,13 +2516,10 @@ function AdminOrders() {
               alwaysShowScrollbarOnDesktop={selectionMode}
               stickyHeader
               stickyScrollbar
-              containerClassName={cn(
-                "overflow-y-visible [-webkit-overflow-scrolling:touch]",
-                selectionMode ? "overscroll-x-contain overflow-x-auto" : "overflow-x-hidden",
-              )}
+              containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
               className={cn(
                 "w-full table-fixed border-collapse text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
-                selectionMode ? "min-w-200" : "min-w-0",
+                "min-w-200",
               )}
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -2775,7 +2772,7 @@ function AdminOrders() {
                           ref={expandedOrderId === order.id ? quickEditDetailRef : undefined}
                           className={cn(
                             !isQuickEditing &&
-                              "max-md:fixed max-md:inset-2 max-md:z-50 max-md:block max-md:overflow-y-auto max-md:rounded-2xl max-md:border max-md:border-border/70 max-md:bg-background max-md:shadow-2xl",
+                              "max-md:fixed max-md:inset-2 max-md:z-100 max-md:block max-md:h-[calc(100dvh-1rem)] max-md:w-[calc(100vw-1rem)] max-md:overflow-y-auto max-md:overflow-x-hidden max-md:rounded-2xl max-md:border max-md:border-border/70 max-md:bg-background max-md:shadow-2xl",
                           )}
                         >
                           <TableCell
@@ -2787,10 +2784,20 @@ function AdminOrders() {
                           >
                             <div
                               className={cn(
-                                "w-full max-w-[calc(100vw-2rem)] min-w-0 space-y-4 overflow-x-hidden overflow-y-visible rounded-2xl bg-surface-2/90 p-3 text-sm sm:max-w-full sm:p-5",
-                                !isQuickEditing && "max-md:max-w-none max-md:rounded-none",
+                                "relative w-full max-w-[calc(100vw-2rem)] min-w-0 space-y-4 overflow-x-hidden overflow-y-visible rounded-2xl bg-surface-2/90 p-3 text-sm sm:max-w-full sm:p-5",
+                                !isQuickEditing && "max-md:max-w-none max-md:rounded-none max-md:pt-12",
                               )}
                             >
+                              {!isQuickEditing ? (
+                                <button
+                                  type="button"
+                                  className="absolute right-2 top-2 z-10 grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
+                                  onClick={() => setExpandedOrderId(null)}
+                                  aria-label="Cerrar detalle del pedido"
+                                >
+                                  <X className="size-4" />
+                                </button>
+                              ) : null}
                               {isQuickEditing && !isBulkQuickEditing && (
                                 <div className="flex flex-wrap items-center justify-center gap-2 border-b border-border/50 pb-3">
                                   <Button
@@ -2819,6 +2826,17 @@ function AdminOrders() {
                                   </Button>
                                 </div>
                               )}
+
+                              {!isQuickEditing ? (
+                                <button
+                                  type="button"
+                                  className="absolute right-2 top-2 z-10 grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
+                                  onClick={() => setExpandedOrderId(null)}
+                                  aria-label="Cerrar detalle del pedido"
+                                >
+                                  <X className="size-4" />
+                                </button>
+                              ) : null}
 
                               <p className="border-b border-border/50 pb-3 font-medium">
                                 Detalle del pedido
@@ -3280,7 +3298,8 @@ function AdminOrders() {
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeOrderEditor()}>
         <DialogContent
           key={isCreatingOrder ? "new-order-dialog" : "edit-order-dialog"}
-          className="h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain p-4 shadow-none md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:h-auto sm:w-[calc(100vw-2rem)] sm:p-6"
+          className="left-2 top-2 h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-h-0 translate-x-0 translate-y-0 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain p-3 shadow-none md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:left-[50%] sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:p-6"
+          onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <DialogHeader>
             <div className="flex items-center justify-between gap-3">

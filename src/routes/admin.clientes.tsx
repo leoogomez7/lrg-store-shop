@@ -935,21 +935,15 @@ function CustomerRow({
         </TableCell>
       </TableRow>
 
-      {open && (
-        <TableRow className="max-md:fixed max-md:inset-2 max-md:z-50 max-md:block max-md:overflow-y-auto max-md:rounded-2xl max-md:border max-md:border-border/70 max-md:bg-background max-md:shadow-2xl">
-          <TableCell
-            colSpan={5}
-            className="w-full max-w-0 overflow-hidden p-2 max-md:block max-md:w-full max-md:max-w-none"
-          >
-            <div className="relative mx-auto grid w-full max-w-[calc(100vw-2rem)] grid-cols-1 items-stretch gap-2 overflow-hidden max-md:max-w-none max-md:pt-10 sm:max-w-5xl sm:grid-cols-2">
-              <button
-                type="button"
-                className="absolute right-1 top-1 z-10 grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
-                onClick={() => onOpenChange(false)}
-                aria-label="Cerrar detalle del cliente"
-              >
-                <X className="size-4" />
-              </button>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-md:inset-2 max-md:left-2 max-md:top-2 max-md:h-[calc(100dvh-1rem)] max-md:w-[calc(100vw-1rem)] max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-2xl sm:max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Compras de {customer.name}</DialogTitle>
+            <DialogDescription>
+              Pedidos recientes de este cliente y sus archivos adjuntos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid min-h-0 w-full grid-cols-1 items-stretch gap-2 overflow-y-auto sm:grid-cols-2">
               {customer.orders.slice(0, 4).map((o) => (
                 <div
                   key={o.id}
@@ -1054,10 +1048,9 @@ function CustomerRow({
                   </>
                 ) : null;
               })()}
-            </div>
-          </TableCell>
-        </TableRow>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={allPurchasesOpen} onOpenChange={setAllPurchasesOpen}>
         <DialogContent className="max-w-5xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">

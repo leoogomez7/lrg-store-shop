@@ -552,7 +552,7 @@ function AdminBackups() {
         <Table
           hideScrollbarOnMobile
           containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-          className="min-w-54rem table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
+          className="w-full min-w-216 table-fixed text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
             <TableRow>
@@ -572,11 +572,11 @@ function AdminBackups() {
                   />
                 </div>
               </TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Tipo de copias</TableHead>
-              <TableHead>Referencia</TableHead>
-              <TableHead>Tamaño</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className="w-36">Fecha</TableHead>
+              <TableHead className="w-40">Tipo de copias</TableHead>
+              <TableHead className="w-64">Referencia</TableHead>
+              <TableHead className="w-32">Tamaño</TableHead>
+              <TableHead className="w-32">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -597,8 +597,8 @@ function AdminBackups() {
                   <TableCell className="whitespace-nowrap">
                     {formatDate(backup.createdAt)}
                   </TableCell>
-                  <TableCell>{getBackupType(backup)}</TableCell>
-                  <TableCell className="max-w-72 wrap-break-word text-muted-foreground">
+                  <TableCell className="w-40 wrap-break-word">{getBackupType(backup)}</TableCell>
+                  <TableCell className="w-64 break-all text-muted-foreground">
                     {getBackupReference(backup)}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-muted-foreground">
