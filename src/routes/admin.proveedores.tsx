@@ -2128,11 +2128,26 @@ function AdminSuppliers() {
           className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl"
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
-          <DialogHeader>
-            <DialogTitle>Productos vendidos de {productsModalSupplier?.name}</DialogTitle>
-            <DialogDescription>
-              Seleccioná un producto para abrir su editor en el catálogo.
-            </DialogDescription>
+          <DialogHeader className="flex-row items-start gap-2 space-y-0 pr-8 text-left">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Volver al proveedor"
+              className="-mt-1 size-8! shrink-0"
+              onClick={() => {
+                if (productsModalSupplier) setExpandedSupplierKey(productsModalSupplier.key);
+                setProductsModalSupplier(null);
+              }}
+            >
+              <ArrowLeft className="size-4" />
+            </Button>
+            <div className="min-w-0 space-y-1">
+              <DialogTitle>Productos vendidos de {productsModalSupplier?.name}</DialogTitle>
+              <DialogDescription>
+                Seleccioná un producto para abrir su editor en el catálogo.
+              </DialogDescription>
+            </div>
           </DialogHeader>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -2186,11 +2201,26 @@ function AdminSuppliers() {
           className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl"
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
-          <DialogHeader>
-            <DialogTitle>Productos de {catalogModalSupplier?.name}</DialogTitle>
-            <DialogDescription>
-              Todos los productos vinculados a este proveedor, vendidos o no.
-            </DialogDescription>
+          <DialogHeader className="flex-row items-start gap-2 space-y-0 pr-8 text-left">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Volver al proveedor"
+              className="-mt-1 size-8! shrink-0"
+              onClick={() => {
+                if (catalogModalSupplier) setExpandedSupplierKey(catalogModalSupplier.key);
+                setCatalogModalSupplier(null);
+              }}
+            >
+              <ArrowLeft className="size-4" />
+            </Button>
+            <div className="min-w-0 space-y-1">
+              <DialogTitle>Productos de {catalogModalSupplier?.name}</DialogTitle>
+              <DialogDescription>
+                Todos los productos vinculados a este proveedor, vendidos o no.
+              </DialogDescription>
+            </div>
           </DialogHeader>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
