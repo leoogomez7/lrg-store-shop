@@ -257,6 +257,7 @@ function AdminProducts() {
   const [usdRatePromptValue, setUsdRatePromptValue] = useState("");
   const multiProductInputRef = useRef<HTMLInputElement | null>(null);
   const textProductInputRef = useRef<HTMLInputElement | null>(null);
+  const appendImportedProductsRef = useRef(false);
   const additionalImagesInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [pendingImportedProducts, setPendingImportedProducts] = useState<Product[]>([]);
   const [importCategoryOpen, setImportCategoryOpen] = useState(false);
@@ -551,7 +552,7 @@ function AdminProducts() {
     return parseEntriesFromText(textContent);
   };
 
-  const handleImportTextProduct = async (file: File | null) => {
+  const handleImportTextProduct = async (file: File | null, append = false) => {
     if (!file) return;
 
     let parsedProducts: Array<{ name: string; price: number }>;
@@ -612,17 +613,19 @@ function AdminProducts() {
     });
 
     setCreateChoiceOpen(false);
-    setPendingImportedProducts(importedProducts);
+    setPendingImportedProducts((current) =>
+      append ? [...current, ...importedProducts] : importedProducts,
+    );
     setImportSource("text");
     setImportBrand(importBrand);
     setImportCategory(importCategory);
     setImportSubcategory(importSubcategory);
-    setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
-    setImportPreviewPage(0);
+    if (!append) setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
+    setImportPreviewPage(append ? Math.floor(pendingImportedProducts.length / 30) : 0);
     setImportCategoryOpen(true);
   };
 
-  const handleImportMultipleProducts = async (files: FileList | null) => {
+  const handleImportMultipleProducts = async (files: FileList | null, append = false) => {
     if (!files || files.length === 0) return;
 
     const imageFiles = Array.from(files).filter(
@@ -684,14 +687,29 @@ function AdminProducts() {
     });
 
     setCreateChoiceOpen(false);
-    setPendingImportedProducts(importedProducts);
+    setPendingImportedProducts((current) =>
+      append ? [...current, ...importedProducts] : importedProducts,
+    );
     setImportSource("images");
     setImportBrand(importBrand);
     setImportCategory(importCategory);
     setImportSubcategory(importSubcategory);
-    setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
-    setImportPreviewPage(0);
+    if (!append) setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
+    setImportPreviewPage(append ? Math.floor(pendingImportedProducts.length / 30) : 0);
     setImportCategoryOpen(true);
+  };
+
+  const addMoreImportedProducts = () => {
+    appendImportedProductsRef.current = true;
+    if (importSource === "images") {
+      multiProductInputRef.current?.click();
+    } else if (importSource === "text") {
+      textProductInputRef.current?.click();
+    } else if (importSource === "store") {
+      setImportCategoryOpen(false);
+      setStoreImportLink("");
+      setStoreImportLinkOpen(true);
+    }
   };
 
   const importCategories = brands[importBrand].categories;
@@ -799,13 +817,17 @@ function AdminProducts() {
       return;
     }
 
+    const append = appendImportedProductsRef.current;
+    appendImportedProductsRef.current = false;
     setCreateChoiceOpen(false);
     setStoreImportLinkOpen(false);
     setImportSource("store");
-    setPendingImportedProducts([]);
-    setStoreImportPriceDetails({});
-    setImportPreviewPage(0);
-    setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
+    if (!append) {
+      setPendingImportedProducts([]);
+      setStoreImportPriceDetails({});
+      setImportPreviewPage(0);
+      setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
+    }
     setIsImportingStore(true);
     setImportCategoryOpen(true);
 
@@ -849,8 +871,7 @@ function AdminProducts() {
         } satisfies Product;
       });
 
-      setStoreImportPriceDetails(
-        Object.fromEntries(
+      const newPriceDetails = Object.fromEntries(
           result.products.map((item, index) => [
             drafts[index]?.id,
             {
@@ -861,9 +882,12 @@ function AdminProducts() {
               image: item.image,
             },
           ]),
-        ),
+        );
+      setStoreImportPriceDetails((current) =>
+        append ? { ...current, ...newPriceDetails } : newPriceDetails,
       );
-      setPendingImportedProducts(drafts);
+      setPendingImportedProducts((current) => (append ? [...current, ...drafts] : drafts));
+      setImportPreviewPage(append ? Math.floor(pendingImportedProducts.length / 30) : 0);
       toast.success(`${drafts.length} productos encontrados`, {
         description: `Se revisaron todas las páginas (${result.totalCount} resultados en Store).`,
       });
@@ -3495,7 +3519,9 @@ function AdminProducts() {
         multiple
         className="hidden"
         onChange={(event) => {
-          handleImportMultipleProducts(event.target.files);
+          const append = appendImportedProductsRef.current;
+          appendImportedProductsRef.current = false;
+          handleImportMultipleProducts(event.target.files, append);
           event.target.value = "";
         }}
       />
@@ -3507,7 +3533,9 @@ function AdminProducts() {
         className="hidden"
         onChange={async (event) => {
           const file = event.target.files?.[0] ?? null;
-          await handleImportTextProduct(file);
+          const append = appendImportedProductsRef.current;
+          appendImportedProductsRef.current = false;
+          await handleImportTextProduct(file, append);
           event.target.value = "";
         }}
       />
@@ -3741,6 +3769,7 @@ function AdminProducts() {
                 setCreateChoiceOpen(false);
                 setImportSetupOpen(false);
                 setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
+                appendImportedProductsRef.current = false;
                 if (importSetupSource === "images") multiProductInputRef.current?.click();
                 if (importSetupSource === "text") textProductInputRef.current?.click();
                 if (importSetupSource === "store") setStoreImportLinkOpen(true);
@@ -4130,8 +4159,12 @@ function AdminProducts() {
                           </Button>
                         </div>
                         <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-3">
-                          <div className="space-y-1.5">
-                            <Label htmlFor={`import-name-${product.id}`}>Nombre del producto</Label>
+                          <div className="min-w-0 space-y-1.5">
+                            <div className="flex h-8 items-center">
+                              <Label htmlFor={`import-name-${product.id}`}>
+                                Nombre del producto
+                              </Label>
+                            </div>
                             <Input
                               id={`import-name-${product.id}`}
                               value={product.name}
@@ -4171,7 +4204,7 @@ function AdminProducts() {
                           ) : (
                             <>
                               <div className="min-w-0 space-y-1.5">
-                                <div className="flex items-center justify-between gap-2">
+                                <div className="flex h-8 items-center justify-between gap-2">
                                   <Label htmlFor={`import-expenses-${product.id}`}>Gastos</Label>
                                   <Select
                                     value={product.gastosCurrency ?? "ARS"}
@@ -4213,7 +4246,7 @@ function AdminProducts() {
                                 />
                               </div>
                               <div className="min-w-0 space-y-1.5">
-                                <div className="flex items-center justify-between gap-2">
+                                <div className="flex h-8 items-center justify-between gap-2">
                                   <Label htmlFor={`import-profit-${product.id}`}>Mi comisión</Label>
                                   <Select
                                     value={product.comisionCurrency ?? "ARS"}
@@ -4435,6 +4468,16 @@ function AdminProducts() {
                     </div>
                   );
                 })}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-dashed"
+                  onClick={addMoreImportedProducts}
+                  disabled={!importSource || isImportingStore}
+                >
+                  <Plus className="size-4" />
+                  Agregar productos
+                </Button>
               </div>
             {pendingImportedProducts.length > 30 ? (
               <div className="flex items-center justify-between gap-3 text-sm">
@@ -4476,6 +4519,7 @@ function AdminProducts() {
                 setPendingImportedProducts([]);
               }}
             >
+              <X className="size-4" />
               Cancelar
             </Button>
             <Button
@@ -4491,7 +4535,7 @@ function AdminProducts() {
                 )
               }
             >
-              <Check className="mr-2 size-4" /> Agregar {pendingImportedProducts.length} productos
+              <Check className="size-4" /> Confirmar productos
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -5442,7 +5486,7 @@ function ProductEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         tabIndex={-1}
-        className="top-[5dvh] box-border grid h-[90dvh] w-[calc(100vw-1rem)] max-w-5xl max-h-[90dvh] min-w-0 min-h-0 translate-y-0 touch-pan-y overscroll-y-contain overflow-x-hidden overflow-y-hidden rounded-3xl border border-border/60 bg-background p-3 pr-2 shadow-2xl &>*:min-w-0 max-md:grid-rows-[auto_minmax(0,1fr)_auto] md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:max-h-[calc(100vh-4rem)] sm:translate-y-[-50%] sm:overflow-y-auto sm:p-6"
+        className="top-[5dvh] box-border grid h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] w-[calc(100vw-1rem)] max-w-5xl max-h-[90dvh] min-w-0 min-h-0 translate-y-0 touch-pan-y overscroll-y-contain overflow-x-hidden overflow-y-hidden rounded-3xl border border-border/60 bg-background p-3 pr-2 shadow-2xl &>*:min-w-0 md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-[90dvh] sm:w-[calc(100vw-2rem)] sm:max-h-[calc(100vh-4rem)] sm:translate-y-[-50%] sm:overflow-hidden sm:p-6"
         style={{ scrollbarGutter: "stable" }}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
@@ -5483,7 +5527,7 @@ function ProductEditDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex w-full min-w-0 max-w-full flex-col gap-4 overflow-y-auto overscroll-y-contain [&_input]:min-w-0 [&_textarea]:min-w-0 max-md:min-h-0 max-md:touch-pan-y">
+        <div className="scrollbar-gutter-stable flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto overscroll-y-contain [&_input]:min-w-0 [&_textarea]:min-w-0 max-md:touch-pan-y">
           <div className="order-1 rounded-2xl border border-border/60 bg-surface/40 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
