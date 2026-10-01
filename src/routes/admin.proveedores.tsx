@@ -2037,7 +2037,7 @@ function AdminSuppliers() {
                   setProductsModalSupplier(expandedSupplier);
                   setExpandedSupplierKey(null);
                 }}
-                className="h-auto min-h-9 justify-center px-3 py-2 text-xs"
+                className="h-auto min-h-9 w-52 justify-center px-3 py-2 text-xs"
               >
                 Ver más productos vendidos
               </Button>
@@ -2052,7 +2052,7 @@ function AdminSuppliers() {
                   setCatalogModalSupplier(expandedSupplier);
                   setExpandedSupplierKey(null);
                 }}
-                className="h-auto min-h-9 justify-center px-3 py-2 text-xs"
+                className="h-auto min-h-9 w-52 justify-center px-3 py-2 text-xs"
               >
                 Ver productos
               </Button>

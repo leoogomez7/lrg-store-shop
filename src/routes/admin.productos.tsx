@@ -2104,7 +2104,6 @@ function AdminProducts() {
     }
     if (!displayRows.length) return;
     const deepLinkKey = `${productId}:${routeSearch.variantId ?? ""}`;
-    if (highlightedDeepLinkRef.current === deepLinkKey) return;
     if (openedDeepLinkRef.current === deepLinkKey) return;
 
     const targetRow = displayRows.find(
@@ -2116,20 +2115,23 @@ function AdminProducts() {
     const rowKey = `${productId}-${routeSearch.variantId ?? "base"}`;
     let highlightTimeout: number | undefined;
     let openDialogFrame: number | undefined;
+    const isAlreadyHighlighted = highlightedDeepLinkRef.current === deepLinkKey;
     const frame = window.requestAnimationFrame(() => {
       const rowElement = document.getElementById(`product-${rowKey}`);
       if (!rowElement) return;
 
-      highlightedDeepLinkRef.current = deepLinkKey;
-      rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
-      setHighlightedDeepLinkKey(rowKey);
+      if (!isAlreadyHighlighted) {
+        highlightedDeepLinkRef.current = deepLinkKey;
+        rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightedDeepLinkKey(rowKey);
+      }
       highlightTimeout = window.setTimeout(() => {
         setHighlightedDeepLinkKey((current) => (current === rowKey ? null : current));
         openDialogFrame = window.requestAnimationFrame(() => {
           openedDeepLinkRef.current = deepLinkKey;
           openEditProductDialog(targetRow.product, targetRow.variant);
         });
-      }, 4000);
+      }, 6000);
     });
 
     return () => {
