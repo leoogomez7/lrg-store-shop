@@ -1977,14 +1977,14 @@ function AdminSuppliers() {
         open={expandedSupplier !== null}
         onOpenChange={(open) => !open && setExpandedSupplierKey(null)}
       >
-        <DialogContent className="max-md:inset-2 max-md:left-2 max-md:top-2 max-md:h-[calc(100dvh-1rem)] max-md:w-[calc(100vw-1rem)] max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-2xl sm:max-w-2xl">
+        <DialogContent className="max-md:inset-2 max-md:left-2 max-md:top-2 max-md:grid-rows-[auto_minmax(0,1fr)_auto] max-md:h-[calc(100dvh-1rem)] max-md:w-[calc(100vw-1rem)] max-md:max-w-none max-md:overflow-hidden max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-2xl sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{expandedSupplier?.name}</DialogTitle>
             <DialogDescription>
               Productos vinculados a este proveedor y cantidad vendida.
             </DialogDescription>
           </DialogHeader>
-          <div className="min-h-0 space-y-1.5 overflow-y-auto">
+          <div className="min-h-0 space-y-1 overflow-y-auto overscroll-y-contain max-md:pr-1">
             {expandedSupplierProducts.slice(0, 9).map((product) => {
               const matchingProduct = products.find(
                 (candidate) => candidate.name === product.name,
@@ -2008,13 +2008,13 @@ function AdminSuppliers() {
                       },
                     });
                   }}
-                  className="flex w-full min-w-0 items-center justify-between gap-3 rounded-md bg-background/35 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"
+                  className="flex w-full min-w-0 items-center justify-between gap-2 rounded-md bg-background/35 px-2.5 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-accent sm:text-sm"
                 >
                   <span className="min-w-0 wrap-break-word font-medium">
                     {product.name}
                     {product.variantName ? ` · ${product.variantName}` : ""}
                   </span>
-                  <span className="shrink-0 text-right text-xs text-muted-foreground">
+                  <span className="shrink-0 text-right text-[10px] text-muted-foreground sm:text-xs">
                     Cantidad vendida: {product.quantity}
                   </span>
                 </button>
@@ -2026,7 +2026,7 @@ function AdminSuppliers() {
               </p>
             ) : null}
           </div>
-          <div className="flex flex-wrap justify-center gap-2 border-t border-border/60 pt-3">
+          <div className="flex shrink-0 flex-wrap justify-center gap-2 border-t border-border/60 pt-2">
             {expandedSupplierProducts.length > 9 ? (
               <Button
                 type="button"

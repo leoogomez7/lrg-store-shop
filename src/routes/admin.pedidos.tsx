@@ -2516,7 +2516,10 @@ function AdminOrders() {
               alwaysShowScrollbarOnDesktop={selectionMode}
               stickyHeader
               stickyScrollbar
-              containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+              containerClassName={cn(
+                "[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]",
+                expandedOrderId && !quickEditOrderId && "max-md:!overflow-visible",
+              )}
               className={cn(
                 "w-full table-fixed border-collapse text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
                 "min-w-200",
@@ -2772,7 +2775,7 @@ function AdminOrders() {
                           ref={expandedOrderId === order.id ? quickEditDetailRef : undefined}
                           className={cn(
                             !isQuickEditing &&
-                              "max-md:fixed max-md:inset-2 max-md:z-100 max-md:block max-md:h-[calc(100dvh-1rem)] max-md:w-[calc(100vw-1rem)] max-md:overflow-y-auto max-md:overflow-x-hidden max-md:rounded-2xl max-md:border max-md:border-border/70 max-md:bg-background max-md:shadow-2xl",
+                              "max-md:fixed max-md:inset-0 max-md:z-100 max-md:block max-md:h-dvh max-md:w-screen max-md:overflow-y-auto max-md:overflow-x-hidden max-md:rounded-none max-md:border-0 max-md:bg-background max-md:shadow-2xl",
                           )}
                         >
                           <TableCell
@@ -2785,7 +2788,7 @@ function AdminOrders() {
                             <div
                               className={cn(
                                 "relative w-full max-w-[calc(100vw-2rem)] min-w-0 space-y-4 overflow-x-hidden overflow-y-visible rounded-2xl bg-surface-2/90 p-3 text-sm sm:max-w-full sm:p-5",
-                                !isQuickEditing && "max-md:max-w-none max-md:rounded-none max-md:pt-12",
+                                !isQuickEditing && "max-md:min-h-full max-md:max-w-none max-md:rounded-none max-md:px-3 max-md:pb-4 max-md:pt-12",
                               )}
                             >
                               {!isQuickEditing ? (

@@ -660,7 +660,11 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                     Menú
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[min(86vw,20rem)] p-5">
+                <SheetContent
+                  side="left"
+                  closeIcon={<PanelLeftClose className="size-4 text-amber-500 hover:text-amber-400" />}
+                  className="w-[min(86vw,20rem)] p-5"
+                >
                   <SheetHeader className="mb-6 text-left">
                     <SheetTitle className="flex items-center gap-3">
                       <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-amber-600 text-xs font-bold uppercase text-white">

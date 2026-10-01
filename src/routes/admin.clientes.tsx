@@ -936,39 +936,39 @@ function CustomerRow({
       </TableRow>
 
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-md:inset-2 max-md:left-2 max-md:top-2 max-md:h-[calc(100dvh-1rem)] max-md:w-[calc(100vw-1rem)] max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-2xl sm:max-w-5xl">
+        <DialogContent className="max-md:inset-2 max-md:left-2 max-md:top-2 max-md:grid-rows-[auto_minmax(0,1fr)] max-md:h-[calc(100dvh-1rem)] max-md:w-[calc(100vw-1rem)] max-md:max-w-none max-md:overflow-hidden max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-2xl sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>Compras de {customer.name}</DialogTitle>
             <DialogDescription>
               Pedidos recientes de este cliente y sus archivos adjuntos.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid min-h-0 w-full grid-cols-1 items-stretch gap-2 overflow-y-auto sm:grid-cols-2">
+          <div className="grid min-h-0 w-full grid-cols-1 content-start items-start gap-1.5 overflow-y-auto overscroll-y-contain sm:grid-cols-2 sm:gap-2">
               {customer.orders.slice(0, 4).map((o) => (
                 <div
                   key={o.id}
-                  className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
+                  className="flex min-w-0 items-center rounded-xl border border-border/60 p-1.5 text-sm"
                 >
-                  <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex w-full min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-2">
                       <button
                         type="button"
-                        className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                        className="max-w-44 min-w-0 truncate text-left text-xs font-semibold text-primary underline-offset-4 hover:underline sm:text-sm"
                         onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
                       >
                         {o.id}
                       </button>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                      <span className="shrink-0 text-[10px] text-muted-foreground sm:text-[11px]">
                         {formatPurchaseDate(o.date)}
                       </span>
                     </div>
-                    <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
+                    <div className="flex w-full flex-wrap items-center justify-start gap-1 sm:w-auto sm:justify-end">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
-                        className="h-8 px-3 py-1"
+                        className="h-7 px-2 py-1 text-xs"
                       >
                         <Eye className="size-3.5" /> Ver pedido
                       </Button>
@@ -976,7 +976,7 @@ function CustomerRow({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 px-3 py-1"
+                        className="h-7 px-2 py-1 text-xs"
                         onClick={() => {
                           setDocumentsOrder(o);
                         }}
@@ -992,23 +992,23 @@ function CustomerRow({
                 const fifthOrder = customer.orders[4];
                 return fifthOrder ? (
                   <>
-                    <div className="flex min-h-52px min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm">
-                      <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center rounded-xl border border-border/60 p-1.5 text-sm">
+                      <div className="flex w-full min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex min-w-0 items-center gap-2">
                           <button
                             type="button"
-                            className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                            className="max-w-44 min-w-0 truncate text-left text-xs font-semibold text-primary underline-offset-4 hover:underline sm:text-sm"
                             onClick={() =>
                               navigate({ to: "/admin/pedidos", search: { pedido: fifthOrder.id } })
                             }
                           >
                             {fifthOrder.id}
                           </button>
-                          <span className="shrink-0 text-[11px] text-muted-foreground">
+                          <span className="shrink-0 text-[10px] text-muted-foreground sm:text-[11px]">
                             {formatPurchaseDate(fifthOrder.date)}
                           </span>
                         </div>
-                        <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
+                        <div className="flex w-full flex-wrap items-center justify-start gap-1 sm:w-auto sm:justify-end">
                           <Button
                             type="button"
                             variant="outline"
@@ -1016,7 +1016,7 @@ function CustomerRow({
                             onClick={() =>
                               navigate({ to: "/admin/pedidos", search: { pedido: fifthOrder.id } })
                             }
-                            className="h-8 px-3 py-1"
+                            className="h-7 px-2 py-1 text-xs"
                           >
                             <Eye className="size-3.5" /> Ver pedido
                           </Button>
@@ -1024,7 +1024,7 @@ function CustomerRow({
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-8 px-3 py-1"
+                            className="h-7 px-2 py-1 text-xs"
                             onClick={() => {
                               setDocumentsOrder(fifthOrder);
                             }}
@@ -1039,7 +1039,7 @@ function CustomerRow({
                       <Button
                         type="button"
                         variant="outline"
-                        className="flex min-h-52px items-center justify-center rounded-xl border border-border/60 px-3 py-2 text-sm"
+                        className="flex min-h-8 items-center justify-center rounded-xl border border-border/60 px-2 py-1 text-xs"
                         onClick={() => setAllPurchasesOpen(true)}
                       >
                         <Plus className="size-3.5" /> Ver más
@@ -1053,38 +1053,38 @@ function CustomerRow({
       </Dialog>
 
       <Dialog open={allPurchasesOpen} onOpenChange={setAllPurchasesOpen}>
-        <DialogContent className="max-w-5xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+        <DialogContent className="max-md:inset-2 max-md:left-2 max-md:top-2 max-md:grid-rows-[auto_minmax(0,1fr)] max-md:h-[calc(100dvh-1rem)] max-md:w-[calc(100vw-1rem)] max-md:max-w-none max-md:overflow-hidden max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-2xl max-md:p-3 sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>Todas las compras</DialogTitle>
             <DialogDescription>{customer.name}</DialogDescription>
           </DialogHeader>
-          <div className="grid max-h-[calc(100dvh-10rem)] w-full min-w-0 grid-cols-1 gap-2 overflow-x-hidden overflow-y-auto sm:max-h-[65vh] sm:grid-cols-2">
+          <div className="grid min-h-0 w-full min-w-0 grid-cols-1 content-start gap-1.5 overflow-x-hidden overflow-y-auto overscroll-y-contain sm:max-h-[65vh] sm:grid-cols-2 sm:gap-2">
             {customer.orders.map((o) => (
               <div
                 key={o.id}
-                className="flex min-w-0 items-center rounded-xl border border-border/60 p-2 text-sm"
+                className="flex min-w-0 items-center rounded-xl border border-border/60 p-1.5 text-xs sm:p-2 sm:text-sm"
               >
                 <div className="flex w-full min-w-0 flex-col gap-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2">
                       <button
                         type="button"
-                        className="min-w-0 truncate text-left text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                        className="max-w-40 min-w-0 truncate text-left text-xs font-semibold text-primary underline-offset-4 hover:underline sm:text-sm"
                         onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
                       >
                         {o.id}
                       </button>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                      <span className="shrink-0 text-[10px] text-muted-foreground sm:text-[11px]">
                         {formatPurchaseDate(o.date)}
                       </span>
                     </div>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-1">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
-                        className="h-8 px-3 py-1"
+                        className="h-7 px-2 py-1 text-xs"
                       >
                         <Eye className="size-3.5" /> Ver pedido
                       </Button>
@@ -1092,7 +1092,7 @@ function CustomerRow({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 px-3 py-1"
+                        className="h-7 px-2 py-1 text-xs"
                         onClick={() => {
                           setAllPurchasesOpen(false);
                           setDocumentsOrder(o);

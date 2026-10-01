@@ -647,7 +647,7 @@ function ProductDetail() {
               </button>
             </div>
 
-            <div className="flex items-center justify-between gap-3 pt-1">
+            <div className="flex items-center justify-start gap-3 pt-1">
               <div className="flex items-center gap-0.5 rounded-full border border-border bg-background/70 p-0.5">
                 <Button
                   variant="ghost"

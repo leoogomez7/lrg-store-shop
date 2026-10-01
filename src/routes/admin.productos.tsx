@@ -3914,53 +3914,55 @@ function AdminProducts() {
             </div>
           ) : null}
           <div className={cn("space-y-4", isImportingStore && "hidden")}>
-            <div className="grid gap-2 sm:max-w-sm">
-              <Label htmlFor="import-code-all">SKU</Label>
-              <Select
-                id="import-code-all"
-                value={importCode || "none"}
-                onValueChange={(value) => {
-                  const code = value === "none" ? "" : value;
-                  setImportCode(code);
-                  setPendingImportedProducts((current) =>
-                    current.map((product) => ({ ...product, code: code || undefined })),
-                  );
-                }}
-              >
-                <SelectTrigger id="import-code-all" className="w-full">
-                  <SelectValue placeholder="Seleccionar SKU" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin SKU</SelectItem>
-                  {availableSkus
-                    .filter((sku) => sku.brand === importBrand)
-                    .map((sku) => (
-                      <SelectItem key={sku.key} value={sku.code}>
-                        {sku.code}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
-              General
-            </div>
-            <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-surface/40 p-3 text-sm">
-              <Checkbox
-                checked={applyImportFieldsToAll}
-                onCheckedChange={(checked) => setApplyImportFieldsToAll(checked === true)}
-                aria-label="Aplicar tienda y categorías a todos los productos"
-              />
-              <span>
-                <span className="block font-medium">Aplicar a todos los productos</span>
-                <span className="mt-1 block text-xs text-muted-foreground">
-                  Usar la misma tienda, categoría y subcategoría en cada producto.
-                </span>
-              </span>
-            </label>
+            <section className="space-y-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
+              <h3 className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                General
+              </h3>
+              <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(12rem,0.7fr)_minmax(18rem,1.3fr)] sm:items-end">
+                <div className="min-w-0 space-y-2">
+                  <Label htmlFor="import-code-all">SKU</Label>
+                  <Select
+                    value={importCode || "none"}
+                    onValueChange={(value) => {
+                      const code = value === "none" ? "" : value;
+                      setImportCode(code);
+                      setPendingImportedProducts((current) =>
+                        current.map((product) => ({ ...product, code: code || undefined })),
+                      );
+                    }}
+                  >
+                    <SelectTrigger id="import-code-all" className="w-full">
+                      <SelectValue placeholder="Seleccionar SKU" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin SKU</SelectItem>
+                      {availableSkus
+                        .filter((sku) => sku.brand === importBrand)
+                        .map((sku) => (
+                          <SelectItem key={sku.key} value={sku.code}>
+                            {sku.code}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <label className="flex min-w-0 items-center gap-3 rounded-xl border border-border/60 bg-background/60 p-3 text-sm">
+                  <Checkbox
+                    checked={applyImportFieldsToAll}
+                    onCheckedChange={(checked) => setApplyImportFieldsToAll(checked === true)}
+                    aria-label="Aplicar tienda y categorías a todos los productos"
+                  />
+                  <span className="min-w-0">
+                    <span className="block font-medium">Aplicar a todos los productos</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Usar la misma tienda, categoría y subcategoría en cada producto.
+                    </span>
+                  </span>
+                </label>
+              </div>
 
-            {applyImportFieldsToAll ? (
-              <div className="grid gap-3 rounded-xl border border-border/60 bg-surface/30 p-3 sm:grid-cols-3">
+              {applyImportFieldsToAll ? (
+                <div className="grid gap-3 rounded-xl border border-border/60 bg-surface/30 p-3 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="import-brand">Tienda para todos</Label>
                   <Select
@@ -4041,13 +4043,15 @@ function AdminProducts() {
                       );
                     })
                   : null}
-              </div>
-            ) : null}
+                </div>
+              ) : null}
+            </section>
 
-            <div className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
-              Productos
-            </div>
-            <div className="max-h-[48dvh] space-y-3 overflow-y-auto pr-1">
+            <section className="space-y-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
+              <h3 className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                Productos
+              </h3>
+              <div className="max-h-[48dvh] space-y-3 overflow-y-auto pr-1">
               {pendingImportedProducts
                 .slice(importPreviewPage * 30, (importPreviewPage + 1) * 30)
                 .map((product, visibleIndex) => {
@@ -4128,7 +4132,7 @@ function AdminProducts() {
                             <ImagePlus className="size-3.5" /> Imagen
                           </Button>
                         </div>
-                        <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+                        <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-3">
                           <div className="space-y-1.5">
                             <Label htmlFor={`import-name-${product.id}`}>Nombre del producto</Label>
                             <Input
@@ -4168,8 +4172,8 @@ function AdminProducts() {
                               />
                             </div>
                           ) : (
-                            <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
-                              <div className="space-y-1.5">
+                            <>
+                              <div className="min-w-0 space-y-1.5">
                                 <div className="flex items-center justify-between gap-2">
                                   <Label htmlFor={`import-expenses-${product.id}`}>Gastos</Label>
                                   <Select
@@ -4184,7 +4188,7 @@ function AdminProducts() {
                                       )
                                     }
                                   >
-                                    <SelectTrigger className="h-8 w-28">
+                                    <SelectTrigger className="h-8 w-24">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -4211,9 +4215,9 @@ function AdminProducts() {
                                   className="min-w-0"
                                 />
                               </div>
-                              <div className="space-y-1.5">
+                              <div className="min-w-0 space-y-1.5">
                                 <div className="flex items-center justify-between gap-2">
-                                  <Label htmlFor={`import-profit-${product.id}`}>Mi ganancia</Label>
+                                  <Label htmlFor={`import-profit-${product.id}`}>Mi comisión</Label>
                                   <Select
                                     value={product.comisionCurrency ?? "ARS"}
                                     onValueChange={(value) =>
@@ -4226,7 +4230,7 @@ function AdminProducts() {
                                       )
                                     }
                                   >
-                                    <SelectTrigger className="h-8 w-28">
+                                    <SelectTrigger className="h-8 w-24">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -4253,7 +4257,7 @@ function AdminProducts() {
                                   className="min-w-0"
                                 />
                               </div>
-                            </div>
+                            </>
                           )}
                           {importSource === "store" ? (
                             <>
@@ -4434,7 +4438,7 @@ function AdminProducts() {
                     </div>
                   );
                 })}
-            </div>
+              </div>
             {pendingImportedProducts.length > 30 ? (
               <div className="flex items-center justify-between gap-3 text-sm">
                 <p className="text-muted-foreground">
@@ -4464,6 +4468,7 @@ function AdminProducts() {
                 </div>
               </div>
             ) : null}
+            </section>
           </div>
           <DialogFooter className={isImportingStore ? "hidden" : undefined}>
             <Button
@@ -5440,7 +5445,7 @@ function ProductEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         tabIndex={-1}
-        className="top-[5dvh] box-border grid h-[90dvh] w-[calc(100vw-1rem)] max-w-5xl max-h-[90dvh] min-w-0 min-h-0 translate-y-0 touch-pan-y overscroll-y-contain overflow-x-hidden overflow-y-hidden rounded-3xl border border-border/60 bg-background p-3 pr-2 shadow-2xl &>*:min-w-0 max-md:flex max-md:flex-col md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:max-h-[calc(100vh-4rem)] sm:translate-y-[-50%] sm:overflow-y-auto sm:p-6"
+        className="top-[5dvh] box-border grid h-[90dvh] w-[calc(100vw-1rem)] max-w-5xl max-h-[90dvh] min-w-0 min-h-0 translate-y-0 touch-pan-y overscroll-y-contain overflow-x-hidden overflow-y-hidden rounded-3xl border border-border/60 bg-background p-3 pr-2 shadow-2xl &>*:min-w-0 max-md:grid-rows-[auto_minmax(0,1fr)_auto] md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:max-h-[calc(100vh-4rem)] sm:translate-y-[-50%] sm:overflow-y-auto sm:p-6"
         style={{ scrollbarGutter: "stable" }}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
@@ -5481,7 +5486,7 @@ function ProductEditDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex w-full min-w-0 max-w-full flex-col gap-4 overflow-y-auto overscroll-y-contain [&_input]:min-w-0 [&_textarea]:min-w-0 max-md:min-h-0 max-md:flex-1 max-md:touch-pan-y">
+        <div className="flex w-full min-w-0 max-w-full flex-col gap-4 overflow-y-auto overscroll-y-contain [&_input]:min-w-0 [&_textarea]:min-w-0 max-md:min-h-0 max-md:touch-pan-y">
           <div className="order-1 rounded-2xl border border-border/60 bg-surface/40 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
@@ -6090,7 +6095,7 @@ function ProductEditDialog({
                   {productForm.variants.map((variant, index) => (
                     <div
                       key={variant.id}
-                      className="flex items-center justify-between gap-2 rounded-xl border border-input p-3"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-input p-3 max-md:flex-col max-md:items-stretch"
                     >
                       {editingVariantIndex === index ? (
                         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
@@ -6146,7 +6151,7 @@ function ProductEditDialog({
                               </Badge>
                             )}
                           </div>
-                          <div className="flex shrink-0 items-center gap-1">
+                          <div className="flex shrink-0 items-center justify-end gap-1 max-md:w-full max-md:flex-wrap max-md:border-t max-md:border-border/50 max-md:pt-2">
                             <Button
                               type="button"
                               variant={selectedVariantId === variant.id ? "secondary" : "ghost"}
@@ -6691,59 +6696,63 @@ function ProductEditDialog({
           }}
         />
 
-        <DialogFooter>
-          <div className="flex w-full items-center justify-between gap-2">
-            <span />
-            <div className="flex items-center gap-2">
-              <div className="flex gap-2">
-                {onDelete ? (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={onDelete}
-                    disabled={isSaving}
-                    className="gap-2"
-                  >
-                    <Trash2 className="size-4" /> Eliminar
-                  </Button>
-                ) : null}
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    if (hasChanges) {
-                      setConfirmExitOpen(true);
-                    } else {
-                      setProductForm(null);
-                      onOpenChange(false);
-                    }
-                  }}
-                  disabled={isSaving}
-                  className="rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none"
-                  style={{ boxShadow: "none" }}
-                >
-                  <X className="h-4 w-4 mr-2" /> Cancelar
-                </Button>
-                <Button
-                  variant="default"
-                  disabled={!canSave || isSaving}
-                  onClick={() => setConfirmSaveOpen(true)}
-                  className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50"
-                  style={{ boxShadow: "none" }}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSaving
-                    ? "Guardando..."
-                    : isNewProduct
-                      ? "Guardar producto"
-                      : "Guardar cambios"}
-                </Button>
-              </div>
-            </div>
+        <DialogFooter className="max-md:w-full max-md:shrink-0 max-md:border-t max-md:border-border/60 max-md:pt-3">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end">
+            {onDelete ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={onDelete}
+                disabled={isSaving}
+                className="gap-2 max-md:col-start-1 max-md:row-start-1"
+              >
+                <Trash2 className="size-4" /> Eliminar
+              </Button>
+            ) : null}
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (hasChanges) {
+                  setConfirmExitOpen(true);
+                } else {
+                  setProductForm(null);
+                  onOpenChange(false);
+                }
+              }}
+              disabled={isSaving}
+              className={cn(
+                "rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none",
+                onDelete
+                  ? "max-md:col-start-2 max-md:row-start-1"
+                  : "max-md:col-start-1 max-md:row-start-1",
+              )}
+              style={{ boxShadow: "none" }}
+            >
+              <X className="mr-2 size-4" /> Cancelar
+            </Button>
+            <Button
+              variant="default"
+              disabled={!canSave || isSaving}
+              onClick={() => setConfirmSaveOpen(true)}
+              className={cn(
+                "rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50",
+                onDelete
+                  ? "max-md:col-span-2 max-md:row-start-2 max-md:w-full"
+                  : "max-md:col-start-2 max-md:row-start-1",
+              )}
+              style={{ boxShadow: "none" }}
+            >
+              <Save className="mr-2 size-4" />
+              {isSaving
+                ? "Guardando..."
+                : isNewProduct
+                  ? "Guardar producto"
+                  : "Guardar cambios"}
+            </Button>
           </div>
-        </DialogFooter>
 
-        {hasBulkNavigation ? (
-          <div className="mr-auto flex items-center gap-2">
+          {hasBulkNavigation ? (
+            <div className="mr-auto flex items-center gap-2 max-md:w-full max-md:justify-center">
             <Button
               type="button"
               variant="outline"
@@ -6765,7 +6774,8 @@ function ProductEditDialog({
               Siguiente <ArrowRight className="size-4" />
             </Button>
           </div>
-        ) : null}
+          ) : null}
+        </DialogFooter>
         <ConfirmDialog
           open={confirmSaveOpen}
           onOpenChange={(open) => setConfirmSaveOpen(open)}
