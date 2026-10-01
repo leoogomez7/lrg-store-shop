@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  LoaderCircle,
   Minus,
   Plus,
   ShoppingBag,
@@ -38,8 +39,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { applyAdminSettings, getBrand, refreshBrandData } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
+import {
+  getMercadoPagoCardIssuers,
+  getMercadoPagoCardMethods,
+  getMercadoPagoInstallments,
+} from "@/server/mercadopago";
 import { catalogQueries } from "@/services/catalog.service";
 import { useCart } from "@/store/cart-context";
 import { useNavigate } from "@tanstack/react-router";
@@ -109,6 +122,24 @@ function ProductDetail() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [installmentsDialogOpen, setInstallmentsDialogOpen] = useState(false);
+  const [installmentCards, setInstallmentCards] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedInstallmentCard, setSelectedInstallmentCard] = useState("");
+  const [installmentIssuers, setInstallmentIssuers] = useState<Array<{ id: string; name: string }>>(
+    [],
+  );
+  const [selectedInstallmentIssuer, setSelectedInstallmentIssuer] = useState("");
+  const [installmentOptions, setInstallmentOptions] = useState<
+    Array<{
+      installments: number;
+      installment_amount: number;
+      total_amount: number;
+      installment_rate: number;
+    }>
+  >([]);
+  const [isLoadingInstallmentCards, setIsLoadingInstallmentCards] = useState(false);
+  const [isLoadingInstallmentIssuers, setIsLoadingInstallmentIssuers] = useState(false);
+  const [isLoadingInstallmentOptions, setIsLoadingInstallmentOptions] = useState(false);
+  const [installmentError, setInstallmentError] = useState("");
   const navigate = useNavigate();
 
   const productImages = product?.images ?? [];
@@ -143,6 +174,127 @@ function ProductDetail() {
     product?.variants?.[0];
   const cardPriceWithSurcharge =
     Math.round((selectedVariant?.price ?? product?.price ?? 0) * 1.15 * 100) / 100;
+
+  useEffect(() => {
+    if (!installmentsDialogOpen) return;
+
+    let cancelled = false;
+    setInstallmentError("");
+    setIsLoadingInstallmentCards(true);
+    void getMercadoPagoCardMethods({ data: {} })
+      .then((methods) => {
+        if (cancelled) return;
+        setInstallmentCards(methods);
+        const visa = methods.find(
+          (method) => method.id.toLowerCase() === "visa" || method.name.toLowerCase() === "visa",
+        );
+        setSelectedInstallmentCard(visa?.id ?? "");
+        if (!visa) {
+          setInstallmentError("Mercado Pago no informó Visa como tarjeta disponible.");
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setInstallmentError(
+          error instanceof Error ? error.message : "No se pudieron consultar las tarjetas.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingInstallmentCards(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [installmentsDialogOpen]);
+
+  useEffect(() => {
+    if (
+      !installmentsDialogOpen ||
+      isLoadingInstallmentCards ||
+      !installmentCards.length ||
+      !selectedInstallmentCard
+    )
+      return;
+
+    let cancelled = false;
+    setSelectedInstallmentIssuer("");
+    setInstallmentIssuers([]);
+    setInstallmentOptions([]);
+    setInstallmentError("");
+    setIsLoadingInstallmentIssuers(true);
+    void getMercadoPagoCardIssuers({ data: { paymentMethodId: selectedInstallmentCard } })
+      .then((issuers) => {
+        if (cancelled) return;
+        setInstallmentIssuers(issuers);
+        const galicia = issuers.find((issuer) =>
+          issuer.name
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .includes("galicia"),
+        );
+        setSelectedInstallmentIssuer(galicia?.id ?? "");
+        if (!galicia) {
+          setInstallmentError("Mercado Pago no informó Banco Galicia como emisor de esta tarjeta.");
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setInstallmentError(
+          error instanceof Error ? error.message : "No se pudieron consultar los bancos emisores.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingInstallmentIssuers(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    installmentsDialogOpen,
+    installmentCards.length,
+    isLoadingInstallmentCards,
+    selectedInstallmentCard,
+  ]);
+
+  useEffect(() => {
+    if (!installmentsDialogOpen || !selectedInstallmentCard || !selectedInstallmentIssuer) return;
+
+    let cancelled = false;
+    setInstallmentError("");
+    setIsLoadingInstallmentOptions(true);
+    void getMercadoPagoInstallments({
+      data: {
+        amount: cardPriceWithSurcharge,
+        paymentMethodId: selectedInstallmentCard,
+        issuerId: selectedInstallmentIssuer,
+      },
+    })
+      .then((options) => {
+        if (!cancelled) setInstallmentOptions(options);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setInstallmentOptions([]);
+        setInstallmentError(
+          error instanceof Error ? error.message : "No se pudieron consultar las cuotas.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingInstallmentOptions(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    cardPriceWithSurcharge,
+    installmentsDialogOpen,
+    selectedInstallmentCard,
+    selectedInstallmentIssuer,
+  ]);
 
   if (!product) return null;
 
@@ -611,42 +763,109 @@ function ProductDetail() {
               <DialogHeader>
                 <DialogTitle>Tabla de cuotas</DialogTitle>
                 <DialogDescription>
-                  Precio total con recargo del 15%: {formatPrice(cardPriceWithSurcharge)}.
+                  Cuotas informadas por Mercado Pago para el precio con el recargo del 15%:{" "}
+                  {formatPrice(cardPriceWithSurcharge)}.
                 </DialogDescription>
               </DialogHeader>
-              <div className="overflow-hidden rounded-lg border border-border">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50 text-left text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Cuotas</th>
-                      <th className="px-3 py-2 text-right font-medium">Valor por cuota</th>
-                      <th className="px-3 py-2 text-right font-medium">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[1, 3, 6, 9, 12].map((term) => {
-                      const installmentAmount =
-                        Math.round((cardPriceWithSurcharge / term) * 100) / 100;
-                      return (
-                        <tr key={term} className="border-t border-border">
-                          <td className="px-3 py-2.5">
-                            {term} {term === 1 ? "cuota" : "cuotas"}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">Tarjeta</span>
+                  <Select
+                    value={selectedInstallmentCard}
+                    onValueChange={setSelectedInstallmentCard}
+                    disabled={isLoadingInstallmentCards || installmentCards.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccioná una tarjeta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {installmentCards.map((card) => (
+                        <SelectItem key={card.id} value={card.id}>
+                          {card.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">Banco emisor</span>
+                  <Select
+                    value={selectedInstallmentIssuer}
+                    onValueChange={setSelectedInstallmentIssuer}
+                    disabled={isLoadingInstallmentIssuers || installmentIssuers.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccioná un banco" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {installmentIssuers.map((issuer) => (
+                        <SelectItem key={issuer.id} value={issuer.id}>
+                          {issuer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {isLoadingInstallmentCards ||
+              isLoadingInstallmentIssuers ||
+              isLoadingInstallmentOptions ? (
+                <div className="flex items-center justify-center gap-2 py-5 text-sm text-muted-foreground">
+                  <LoaderCircle className="size-4 animate-spin" />
+                  Consultando planes y cuotas…
+                </div>
+              ) : installmentError ? (
+                <p
+                  role="alert"
+                  className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+                >
+                  {installmentError}
+                </p>
+              ) : installmentOptions.length === 0 ? (
+                <p className="rounded-lg border border-border p-3 text-center text-sm text-muted-foreground">
+                  Mercado Pago no informó cuotas disponibles para esta tarjeta, banco y monto.
+                </p>
+              ) : (
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <table className="w-full table-fixed text-center text-sm">
+                    <colgroup>
+                      <col className="w-1/3" />
+                      <col className="w-1/3" />
+                      <col className="w-1/3" />
+                    </colgroup>
+                    <thead className="bg-muted/50 text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 text-center font-medium">Cuotas</th>
+                        <th className="px-3 py-2 text-center font-medium">Valor por cuota</th>
+                        <th className="px-3 py-2 text-center font-medium">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {installmentOptions.map((option) => (
+                        <tr key={option.installments} className="border-t border-border">
+                          <td className="px-3 py-2.5 text-center">
+                            {option.installments} {option.installments === 1 ? "cuota" : "cuotas"}
+                            {option.installment_rate === 0 ? (
+                              <span className="mt-0.5 block text-xs text-green-500">
+                                Sin interés
+                              </span>
+                            ) : null}
                           </td>
-                          <td className="px-3 py-2.5 text-right font-medium">
-                            {formatPrice(installmentAmount)}
+                          <td className="px-3 py-2.5 text-center font-medium">
+                            {formatPrice(option.installment_amount)}
                           </td>
-                          <td className="px-3 py-2.5 text-right text-muted-foreground">
-                            {formatPrice(cardPriceWithSurcharge)}
+                          <td className="px-3 py-2.5 text-center text-muted-foreground">
+                            {formatPrice(option.total_amount)}
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
-                Valores estimados al dividir el total con recargo del 15%; las condiciones finales
-                pueden variar según la tarjeta y el banco.
+                Los planes y valores dependen de la tarjeta, el banco emisor y las condiciones
+                vigentes de Mercado Pago.
               </p>
             </DialogContent>
           </Dialog>

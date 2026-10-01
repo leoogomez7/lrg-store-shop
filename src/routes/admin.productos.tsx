@@ -90,6 +90,14 @@ type CategoryLabelNode = {
   name: string;
   children?: CategoryLabelNode[];
 };
+type AdminCategoryFilterNode = {
+  key: string;
+  brand: BrandSlug;
+  category: string;
+  path: string[];
+  label: string;
+  children: AdminCategoryFilterNode[];
+};
 const getSubcategoryOptionsAtLevel = (
   nodes: CategoryLabelNode[] | undefined,
   selectedPath: string[],
@@ -1917,17 +1925,6 @@ function AdminProducts() {
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [sortMenuOpen]);
 
-  const availableCategories = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          editableProducts
-            .map((product) => product.category)
-            .filter((category) => category && category.trim().length > 0),
-        ),
-      ).sort((a, b) => a.localeCompare(b)),
-    [editableProducts],
-  );
   const availableSuppliers = useMemo(() => {
     const supplierSetting = adminSettings.find((setting) => setting.settingKey === "lrg:suppliers");
     let registeredNames: string[] = [];
@@ -2019,6 +2016,193 @@ function AdminProducts() {
       .join(" ");
   };
 
+  const availableCategoryNodes = useMemo(() => {
+    const categoryTrees = new Map<
+      string,
+      { brand: BrandSlug; category: string; nodes: CategoryLabelNode[] }
+    >();
+    const ensureNode = (nodes: CategoryLabelNode[], slug: string): CategoryLabelNode => {
+      let node = nodes.find((entry) => entry.slug === slug);
+      if (!node) {
+        node = { slug, name: formatCategoryLabel(slug), children: [] };
+        nodes.push(node);
+      }
+      node.children ??= [];
+      return node;
+    };
+
+    editableProducts.forEach((product) => {
+      const category = product.category.trim();
+      if (!category) return;
+      const treeKey = `${product.brand}|${category}`;
+      let tree = categoryTrees.get(treeKey);
+      if (!tree) {
+        const configuredCategory = brands[product.brand]?.categories.find(
+          (entry) => entry.slug === category,
+        );
+        tree = {
+          brand: product.brand,
+          category,
+          nodes: structuredClone(configuredCategory?.subcategories ?? []),
+        };
+        categoryTrees.set(treeKey, tree);
+      }
+
+      const path = product.subcategoryPath?.length
+        ? product.subcategoryPath
+        : product.subcategory
+          ? [product.subcategory]
+          : [];
+      let nodes = tree.nodes;
+      path.forEach((slug) => {
+        const node = ensureNode(nodes, slug);
+        nodes = node.children ?? [];
+      });
+    });
+
+    const buildNodes = (
+      nodes: CategoryLabelNode[],
+      brand: BrandSlug,
+      category: string,
+      parentPath: string[],
+    ): AdminCategoryFilterNode[] =>
+      nodes.map((node) => {
+        const path = [...parentPath, node.slug];
+        return {
+          key: `subcategory:${brand}:${category}:${path.join("/")}`,
+          brand,
+          category,
+          path,
+          label: node.name,
+          children: buildNodes(node.children ?? [], brand, category, path),
+        };
+      });
+
+    return Array.from(categoryTrees.values())
+      .map(({ brand, category, nodes }) => {
+        const categoryName =
+          brands[brand]?.categories.find((entry) => entry.slug === category)?.name ??
+          formatCategoryLabel(category);
+        return {
+          key: `category:${brand}:${category}`,
+          brand,
+          category,
+          path: [],
+          label: `${categoryName} · ${brandList.find((entry) => entry.slug === brand)?.shortName ?? brand}`,
+          children: buildNodes(nodes, brand, category, []),
+        } satisfies AdminCategoryFilterNode;
+      })
+      .sort((first, second) => first.label.localeCompare(second.label, "es"));
+  }, [editableProducts, categoryLabels]);
+  const categoryFilterNodeMap = useMemo(() => {
+    const nodes = new Map<string, AdminCategoryFilterNode>();
+    const collect = (items: AdminCategoryFilterNode[]) => {
+      items.forEach((node) => {
+        nodes.set(node.key, node);
+        collect(node.children);
+      });
+    };
+    collect(availableCategoryNodes);
+    return nodes;
+  }, [availableCategoryNodes]);
+
+  const isCategoryFilterNodeCovered = (
+    node: AdminCategoryFilterNode,
+    selectedKeys: string[],
+  ): boolean => {
+    if (selectedKeys.includes(node.key)) return true;
+    if (node.path.length === 0) return false;
+    const ancestorKeys = [
+      `category:${node.brand}:${node.category}`,
+      ...node.path.slice(0, -1).map((_, index) =>
+        `subcategory:${node.brand}:${node.category}:${node.path.slice(0, index + 1).join("/")}`,
+      ),
+    ];
+    return ancestorKeys.some((key) => selectedKeys.includes(key));
+  };
+
+  const normalizeCategoryFilter = (selectedKeys: string[]) => {
+    const isFullyCovered = (node: AdminCategoryFilterNode, coveredKeys: string[]): boolean =>
+      coveredKeys.includes(node.key) ||
+      (node.children.length > 0 &&
+        node.children.every((child) => isFullyCovered(child, coveredKeys)));
+    const normalizeNode = (node: AdminCategoryFilterNode): string[] => {
+      if (selectedKeys.includes(node.key)) return [node.key];
+      const normalizedChildren = node.children.flatMap(normalizeNode);
+      if (
+        node.children.length > 0 &&
+        node.children.every((child) => isFullyCovered(child, normalizedChildren))
+      ) {
+        return [node.key];
+      }
+      return normalizedChildren;
+    };
+    return availableCategoryNodes.flatMap(normalizeNode);
+  };
+
+  const toggleCategoryFilterNode = (node: AdminCategoryFilterNode, checked: boolean) => {
+    setCategoryFilter((current) => {
+      const next = new Set(current);
+      const isDescendantOf = (candidate: AdminCategoryFilterNode, ancestor: AdminCategoryFilterNode) =>
+        candidate.brand === ancestor.brand &&
+        candidate.category === ancestor.category &&
+        candidate.path.length > ancestor.path.length &&
+        ancestor.path.every((slug, index) => candidate.path[index] === slug);
+
+      if (checked) {
+        for (const key of current) {
+          const selectedNode = categoryFilterNodeMap.get(key);
+          if (
+            selectedNode &&
+            (selectedNode.key === node.key ||
+              isDescendantOf(selectedNode, node) ||
+              isDescendantOf(node, selectedNode))
+          ) {
+            next.delete(key);
+          }
+        }
+        next.add(node.key);
+      } else {
+        const excludeCoveredNode = (
+          candidate: AdminCategoryFilterNode,
+          inheritedCoverage = false,
+        ): void => {
+          if (candidate.key === node.key) {
+            next.delete(candidate.key);
+            return;
+          }
+          if (
+            (inheritedCoverage || next.has(candidate.key)) &&
+            isDescendantOf(node, candidate)
+          ) {
+            next.delete(candidate.key);
+            candidate.children.forEach((child) => {
+              if (child.key === node.key || isDescendantOf(node, child)) {
+                excludeCoveredNode(child, true);
+              } else {
+                next.add(child.key);
+              }
+            });
+            return;
+          }
+          candidate.children.forEach((child) => {
+            if (child.key === node.key || isDescendantOf(node, child)) {
+              excludeCoveredNode(child, inheritedCoverage);
+            }
+          });
+        };
+
+        availableCategoryNodes.forEach(excludeCoveredNode);
+        for (const key of Array.from(next)) {
+          const selectedNode = categoryFilterNodeMap.get(key);
+          if (selectedNode && isDescendantOf(selectedNode, node)) next.delete(key);
+        }
+      }
+
+      return normalizeCategoryFilter(Array.from(next));
+    });
+  };
+
   const results = useMemo(() => {
     const filtered = editableProducts.filter((product) => {
       if (brandFilter.length && !brandFilter.includes(product.brand)) return false;
@@ -2041,7 +2225,26 @@ function AdminProducts() {
         if (onlyWithoutSku ? Boolean(productSkuKey) : !skuFilter.includes(productSkuKey))
           return false;
       }
-      if (categoryFilter.length && !categoryFilter.includes(product.category)) return false;
+      if (
+        categoryFilter.length &&
+        !categoryFilter.some((key) => {
+          const selectedNode = categoryFilterNodeMap.get(key);
+          if (
+            !selectedNode ||
+            selectedNode.brand !== product.brand ||
+            selectedNode.category !== product.category
+          )
+            return false;
+          if (!selectedNode.path.length) return true;
+          const productPath = product.subcategoryPath?.length
+            ? product.subcategoryPath
+            : product.subcategory
+              ? [product.subcategory]
+              : [];
+          return selectedNode.path.every((slug, index) => productPath[index] === slug);
+        })
+      )
+        return false;
       if (currencyFilter.length && !currencyFilter.includes(product.priceCurrency ?? "ARS"))
         return false;
       if (query && !productMatchesSearch(product, query)) return false;
@@ -2093,6 +2296,7 @@ function AdminProducts() {
     supplierFilter,
     skuFilter,
     categoryFilter,
+    categoryFilterNodeMap,
     currencyFilter,
     priceMode,
     priceMin,
@@ -2245,7 +2449,7 @@ function AdminProducts() {
     ...(query ? [{ key: "query", label: `Buscar: ${query}`, onRemove: () => setQuery("") }] : []),
     ...categoryFilter.map((value) => ({
       key: `category-${value}`,
-      label: value,
+      label: categoryFilterNodeMap.get(value)?.label ?? value,
       onRemove: () => setCategoryFilter((current) => current.filter((item) => item !== value)),
     })),
     ...brandFilter.map((value) => ({
@@ -2294,6 +2498,42 @@ function AdminProducts() {
       ? [{ key: "available", label: "Sólo disponible", onRemove: () => setAvailableOnly(false) }]
       : []),
   ];
+  const renderCategoryFilterNode = (node: AdminCategoryFilterNode, depth = 0) => {
+    const checked = isCategoryFilterNodeCovered(node, categoryFilter);
+    const hasSelectedDescendant = categoryFilter.some((key) => {
+      const selectedNode = categoryFilterNodeMap.get(key);
+      return Boolean(
+        selectedNode &&
+          selectedNode.brand === node.brand &&
+          selectedNode.category === node.category &&
+          selectedNode.path.length > node.path.length &&
+          node.path.every((slug, index) => selectedNode.path[index] === slug),
+      );
+    });
+    return (
+      <div key={node.key} className="space-y-2">
+        <label className="flex cursor-pointer items-start gap-3 text-sm">
+          <Checkbox
+            checked={checked}
+            onCheckedChange={(value) => toggleCategoryFilterNode(node, value === true)}
+          />
+          <span className={depth === 0 ? "font-medium" : "text-muted-foreground"}>
+            {node.path.length === 0 ? formatCategoryLabel(node.category) : node.label}
+            {node.path.length === 0 ? (
+              <span className="ml-1 text-xs text-muted-foreground">
+                ({brandList.find((entry) => entry.slug === node.brand)?.shortName ?? node.brand})
+              </span>
+            ) : null}
+          </span>
+        </label>
+        {node.children.length > 0 && (checked || hasSelectedDescendant) ? (
+          <div className="ml-4 space-y-2 border-l border-border/60 pl-3">
+            {node.children.map((child) => renderCategoryFilterNode(child, depth + 1))}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
@@ -2420,27 +2660,7 @@ function AdminProducts() {
                           />
                           <span className="font-medium">Todos</span>
                         </label>
-                        {availableCategories.map((category) => (
-                          <label
-                            key={category}
-                            className="flex cursor-pointer items-start gap-3 text-sm"
-                          >
-                            <Checkbox
-                              checked={categoryFilter.includes(category)}
-                              onCheckedChange={(checked) =>
-                                setCategoryFilter((current) => {
-                                  const next = checked
-                                    ? [...current, category]
-                                    : current.filter((value) => value !== category);
-                                  return availableCategories.every((value) => next.includes(value))
-                                    ? []
-                                    : Array.from(new Set(next));
-                                })
-                              }
-                            />
-                            <span className="font-medium">{formatCategoryLabel(category)}</span>
-                          </label>
-                        ))}
+                        {availableCategoryNodes.map((node) => renderCategoryFilterNode(node))}
                       </div>
                     )}
                   </div>
@@ -2741,7 +2961,7 @@ function AdminProducts() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-surface-2/60 px-3 py-2.5">
                       <Label
                         htmlFor="admin-filter-discount"

@@ -4255,11 +4255,11 @@ function AdminOrders() {
             }}
           />
 
-          <DialogFooter className="max-md:w-full max-md:shrink-0 max-md:border-t max-md:border-border/60 max-md:pt-2">
-            <div className="flex w-full items-center justify-between gap-2 max-md:flex-wrap max-md:justify-end">
-              <span />
+          <DialogFooter className="max-md:sticky max-md:bottom-0 max-md:z-20 max-md:w-full max-md:shrink-0 max-md:border-t max-md:border-border/60 max-md:bg-background/95 max-md:pt-2 max-md:pb-[env(safe-area-inset-bottom)]">
+            <div className="flex w-full items-center justify-between gap-2 max-md:grid max-md:grid-cols-2 max-md:gap-2">
+              <span className="max-md:hidden" />
               {!isCreatingOrder && bulkOrderEditQueue.length > 1 ? (
-                <div className="flex gap-2">
+                <div className="flex gap-2 max-md:col-span-2 max-md:justify-center">
                   <Button
                     type="button"
                     variant="outline"
@@ -4280,9 +4280,9 @@ function AdminOrders() {
                   </Button>
                 </div>
               ) : (
-                <span />
+                <span className="max-md:hidden" />
               )}
-              <div className="flex gap-2 max-md:flex-wrap max-md:justify-end">
+              <div className="flex gap-2 max-md:contents">
                 {!isCreatingOrder ? (
                   <Button
                     type="button"
@@ -4305,7 +4305,7 @@ function AdminOrders() {
                         },
                       });
                     }}
-                    className="gap-2"
+                    className="gap-2 max-md:col-span-2 max-md:w-full"
                   >
                     <Trash2 className="size-4" /> Eliminar
                   </Button>
@@ -4314,7 +4314,7 @@ function AdminOrders() {
                   variant="secondary"
                   onClick={closeOrderEditor}
                   disabled={isSavingOrder}
-                  className="rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none"
+                  className="rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none max-md:w-full"
                   style={{ boxShadow: "none" }}
                 >
                   <X className="h-4 w-4 mr-2" /> Cancelar
@@ -4323,7 +4323,7 @@ function AdminOrders() {
                   variant="default"
                   onClick={handleSaveOrder}
                   disabled={!hasOrderChanges || !isOrderFormValid || isSavingOrder}
-                  className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50"
+                  className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50 max-md:w-full"
                   style={{ boxShadow: "none" }}
                 >
                   <Save className="h-4 w-4 mr-2" />{" "}

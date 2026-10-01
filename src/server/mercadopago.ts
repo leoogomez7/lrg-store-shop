@@ -61,16 +61,11 @@ type MercadoPagoCardOption = { id: string; name: string };
 export const getMercadoPagoCardMethods = createServerFn({ method: "POST" })
   .validator((data: Record<string, never>) => data)
   .handler(async () => {
-    const paymentTypes = ["credit_card", "debit_card"];
-    const responses = await Promise.all(
-      paymentTypes.map((paymentType) =>
-        mercadoPagoGet<MercadoPagoCardOption[]>(
-          `/v1/payment_methods?payment_type_id=${paymentType}`,
-        ),
-      ),
+    const responses = await mercadoPagoGet<MercadoPagoCardOption[]>(
+      "/v1/payment_methods?payment_type_id=credit_card",
     );
     const methods = new Map<string, MercadoPagoCardOption>();
-    for (const method of responses.flat()) {
+    for (const method of responses) {
       if (method.id && method.name) methods.set(method.id, { id: method.id, name: method.name });
     }
     return Array.from(methods.values()).sort((left, right) => left.name.localeCompare(right.name));

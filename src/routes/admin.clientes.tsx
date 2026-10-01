@@ -947,111 +947,111 @@ function CustomerRow({
               Pedidos recientes de este cliente y sus archivos adjuntos.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid min-h-0 w-full grid-cols-1 content-start items-start gap-1.5 overflow-y-auto overscroll-y-contain sm:grid-cols-2 sm:gap-2">
-              {customer.orders.slice(0, 4).map((o) => (
-                <div
-                  key={o.id}
-                  className="flex min-w-0 items-center rounded-xl border border-border/60 p-1.5 text-sm"
-                >
-                  <div className="flex w-full min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <button
-                        type="button"
-                        className="max-w-44 min-w-0 truncate text-left text-xs font-semibold text-primary underline-offset-4 hover:underline sm:text-sm"
-                        onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
-                      >
-                        {o.id}
-                      </button>
-                      <span className="shrink-0 text-[10px] text-muted-foreground sm:text-[11px]">
-                        {formatPurchaseDate(o.date)}
-                      </span>
-                    </div>
-                    <div className="flex w-full flex-wrap items-center justify-start gap-1 sm:w-auto sm:justify-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
-                        className="h-7 px-2 py-1 text-xs"
-                      >
-                        <Eye className="size-3.5" /> Ver pedido
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 py-1 text-xs"
-                        onClick={() => {
-                          setDocumentsOrder(o);
-                        }}
-                      >
-                        <Paperclip className="size-3.5" /> Archivos adjuntos
-                      </Button>
-                    </div>
+          <div className="grid min-h-0 w-full grid-cols-1 content-start items-start gap-1.5 overflow-y-auto overscroll-y-contain sm:grid-cols-2 sm:gap-2 lg:grid-cols-3">
+            {customer.orders.slice(0, 4).map((o) => (
+              <div
+                key={o.id}
+                className="flex min-w-0 items-center rounded-xl border border-border/60 p-1.5 text-sm"
+              >
+                <div className="flex w-full min-w-0 flex-col gap-1 max-md:items-center max-md:text-center md:items-start md:text-left">
+                  <div className="flex min-w-0 items-center gap-2 max-md:justify-center md:justify-start">
+                    <button
+                      type="button"
+                      className="max-w-44 min-w-0 truncate text-left text-xs font-semibold text-primary underline-offset-4 hover:underline sm:text-sm"
+                      onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                    >
+                      {o.id}
+                    </button>
+                    <span className="shrink-0 text-[10px] text-muted-foreground sm:text-[11px]">
+                      {formatPurchaseDate(o.date)}
+                    </span>
+                  </div>
+                  <div className="flex w-full flex-wrap items-center justify-start gap-1 max-md:justify-center md:justify-start">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: o.id } })}
+                      className="h-7 px-2 py-1 text-xs"
+                    >
+                      <Eye className="size-3.5" /> Ver pedido
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 py-1 text-xs"
+                      onClick={() => {
+                        setDocumentsOrder(o);
+                      }}
+                    >
+                      <Paperclip className="size-3.5" /> Archivos adjuntos
+                    </Button>
                   </div>
                 </div>
-              ))}
+              </div>
+            ))}
 
-              {(() => {
-                const fifthOrder = customer.orders[4];
-                return fifthOrder ? (
-                  <>
-                    <div className="flex min-w-0 items-center rounded-xl border border-border/60 p-1.5 text-sm">
-                      <div className="flex w-full min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <button
-                            type="button"
-                            className="max-w-44 min-w-0 truncate text-left text-xs font-semibold text-primary underline-offset-4 hover:underline sm:text-sm"
-                            onClick={() =>
-                              navigate({ to: "/admin/pedidos", search: { pedido: fifthOrder.id } })
-                            }
-                          >
-                            {fifthOrder.id}
-                          </button>
-                          <span className="shrink-0 text-[10px] text-muted-foreground sm:text-[11px]">
-                            {formatPurchaseDate(fifthOrder.date)}
-                          </span>
-                        </div>
-                        <div className="flex w-full flex-wrap items-center justify-start gap-1 sm:w-auto sm:justify-end">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              navigate({ to: "/admin/pedidos", search: { pedido: fifthOrder.id } })
-                            }
-                            className="h-7 px-2 py-1 text-xs"
-                          >
-                            <Eye className="size-3.5" /> Ver pedido
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2 py-1 text-xs"
-                            onClick={() => {
-                              setDocumentsOrder(fifthOrder);
-                            }}
-                          >
-                            <Paperclip className="size-3.5" /> Archivos adjuntos
-                          </Button>
-                        </div>
+            {(() => {
+              const fifthOrder = customer.orders[4];
+              return fifthOrder ? (
+                <>
+                  <div className="flex min-w-0 items-center rounded-xl border border-border/60 p-1.5 text-sm">
+                    <div className="flex w-full min-w-0 flex-col gap-1 max-md:items-center max-md:text-center md:items-start md:text-left">
+                      <div className="flex min-w-0 items-center gap-2 max-md:justify-center md:justify-start">
+                        <button
+                          type="button"
+                          className="max-w-44 min-w-0 truncate text-left text-xs font-semibold text-primary underline-offset-4 hover:underline sm:text-sm"
+                          onClick={() =>
+                            navigate({ to: "/admin/pedidos", search: { pedido: fifthOrder.id } })
+                          }
+                        >
+                          {fifthOrder.id}
+                        </button>
+                        <span className="shrink-0 text-[10px] text-muted-foreground sm:text-[11px]">
+                          {formatPurchaseDate(fifthOrder.date)}
+                        </span>
+                      </div>
+                      <div className="flex w-full flex-wrap items-center justify-start gap-1 max-md:justify-center md:justify-start">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            navigate({ to: "/admin/pedidos", search: { pedido: fifthOrder.id } })
+                          }
+                          className="h-7 px-2 py-1 text-xs"
+                        >
+                          <Eye className="size-3.5" /> Ver pedido
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 py-1 text-xs"
+                          onClick={() => {
+                            setDocumentsOrder(fifthOrder);
+                          }}
+                        >
+                          <Paperclip className="size-3.5" /> Archivos adjuntos
+                        </Button>
                       </div>
                     </div>
+                  </div>
 
-                    {customer.orders.length > 5 ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="flex min-h-8 items-center justify-center rounded-xl border border-border/60 px-2 py-1 text-xs"
-                        onClick={() => setAllPurchasesOpen(true)}
-                      >
-                        <Plus className="size-3.5" /> Ver más
-                      </Button>
-                    ) : null}
-                  </>
-                ) : null;
-              })()}
+                  {customer.orders.length > 5 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex min-h-8 items-center justify-center rounded-xl border border-border/60 px-2 py-1 text-xs"
+                      onClick={() => setAllPurchasesOpen(true)}
+                    >
+                      <Plus className="size-3.5" /> Ver más
+                    </Button>
+                  ) : null}
+                </>
+              ) : null;
+            })()}
           </div>
         </DialogContent>
       </Dialog>
@@ -1068,9 +1068,9 @@ function CustomerRow({
                 key={o.id}
                 className="flex min-w-0 items-center rounded-xl border border-border/60 p-1.5 text-xs sm:p-2 sm:text-sm"
               >
-                <div className="flex w-full min-w-0 flex-col gap-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
+                <div className="flex w-full min-w-0 flex-col items-center gap-1.5 max-md:text-center">
+                  <div className="flex w-full items-center justify-between gap-2 max-md:flex-col max-md:justify-center">
+                    <div className="flex min-w-0 items-center gap-2 max-md:justify-center">
                       <button
                         type="button"
                         className="max-w-40 min-w-0 truncate text-left text-xs font-semibold text-primary underline-offset-4 hover:underline sm:text-sm"
@@ -1082,7 +1082,7 @@ function CustomerRow({
                         {formatPurchaseDate(o.date)}
                       </span>
                     </div>
-                    <div className="flex flex-wrap items-center justify-end gap-1">
+                    <div className="flex flex-wrap items-center justify-end gap-1 max-md:justify-center">
                       <Button
                         type="button"
                         variant="outline"
