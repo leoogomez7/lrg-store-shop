@@ -1,4 +1,5 @@
 import type { BrandSlug } from "@/config/brands";
+import { saveAdminProduct, saveAdminProductBatch, saveAdminProducts } from "@/server/persistence";
 
 const NON_TEXT_CONTENT_KEYS = new Set(["dataurl", "snapshotdata", "image", "images"]);
 
@@ -61,17 +62,14 @@ export function createProductSaveQueue<T>(persist: (items: T[]) => Promise<unkno
 }
 
 const productSaveQueue = createProductSaveQueue(async (products: Product[]) => {
-  const { saveAdminProducts } = await import("@/server/persistence");
   return saveAdminProducts({ data: { products } });
 });
 
 export async function saveProduct(product: Product) {
-  const { saveAdminProduct } = await import("@/server/persistence");
   return saveAdminProduct({ data: { product } });
 }
 
 export async function saveProductBatch(products: Product[]) {
-  const { saveAdminProductBatch } = await import("@/server/persistence");
   const batchSize = 500;
   for (let offset = 0; offset < products.length; offset += batchSize) {
     const saved = await saveAdminProductBatch({

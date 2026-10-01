@@ -8,7 +8,7 @@ import { ChevronLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Sheet = ({
-  modal = false,
+  modal = true,
   ...props
 }: React.ComponentPropsWithoutRef<typeof SheetPrimitive.Root>) => (
   <SheetPrimitive.Root modal={modal} {...props} />
@@ -72,7 +72,7 @@ const SheetContent = React.forwardRef<
         ref={ref}
         className={cn(
           sheetVariants({ side }),
-          "max-h-[100dvh] overflow-y-auto overscroll-contain sm:max-h-[100dvh]",
+          "max-h-100dvh overflow-y-auto overscroll-contain sm:max-h-100dvh",
           className,
         )}
         {...props}

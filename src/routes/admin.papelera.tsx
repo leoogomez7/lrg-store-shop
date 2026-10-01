@@ -416,10 +416,10 @@ function AdminTrash() {
       {selectionMode && (selectedDeleteKeys.length > 0 || selectedRestoreKeys.length > 0) ? (
         <div className="mt-3 mb-2 flex flex-wrap items-center gap-2">
           <Button type="button" variant="default" size="sm" onClick={restoreSelectedEntries}>
-            <RotateCcw className="size-4" /> Restaurar seleccionados
+            <RotateCcw className="size-4" /> Restaurar
           </Button>
           <Button type="button" variant="destructive" size="sm" onClick={deleteSelectedPermanently}>
-            <Trash2 className="size-4" /> Eliminar seleccionados
+            <Trash2 className="size-4" /> Eliminar
           </Button>
           <Button type="button" variant="outline" size="sm" onClick={clearSelection}>
             <X className="size-4" /> Cancelar

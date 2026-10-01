@@ -22,28 +22,12 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
-    chunkSizeWarningLimit: 1500,
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          // Separate vendor libraries
-          if (id.includes("node_modules")) {
-            if (id.includes("react")) return "vendor-react";
-            if (id.includes("@tanstack/react-query") || id.includes("@tanstack/react-router"))
-              return "vendor-tanstack";
-            if (
-              id.includes("recharts") ||
-              id.includes("sonner") ||
-              id.includes("date-fns") ||
-              id.includes("cmdk") ||
-              id.includes("vaul") ||
-              id.includes("@radix-ui")
-            )
-              return "vendor-ui";
-            return "vendor-other";
-          }
-          return undefined;
-        },
+    // officeparser ships as a self-contained browser bundle (~5.4 MB) and is loaded
+    // only when an admin imports a document, so keep the warning focused on regressions.
+    chunkSizeWarningLimit: 5600,
+    rolldownOptions: {
+      checks: {
+        pluginTimings: false,
       },
     },
   },
