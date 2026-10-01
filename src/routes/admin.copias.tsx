@@ -307,6 +307,10 @@ function AdminBackups() {
   const visibleBackups = filteredBackups.slice(safePage * pageSize, (safePage + 1) * pageSize);
   const hasPreviousPage = safePage > 0;
   const hasNextPage = safePage < totalPages - 1;
+  const goToBackupPage = (nextPage: number) => {
+    setPage(nextPage);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
+  };
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
@@ -516,6 +520,20 @@ function AdminBackups() {
         <div className="mt-3 mb-2 flex flex-wrap items-center gap-2">
           <Button
             type="button"
+            variant="outline"
+            size="sm"
+            className="border-sky-500/50 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300"
+            onClick={() => {
+              const selectedBackups = backups.filter((backup) =>
+                selectedBackupIds.includes(backup.id),
+              );
+              void Promise.all(selectedBackups.map((backup) => downloadBackup(backup)));
+            }}
+          >
+            <Download className="size-4" /> Descargar
+          </Button>
+          <Button
+            type="button"
             variant="destructive"
             size="sm"
             onClick={() => void deleteSelectedBackups()}
@@ -632,7 +650,7 @@ function AdminBackups() {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => setPage(0)}
+              onClick={() => goToBackupPage(0)}
               disabled={!hasPreviousPage}
               className="h-9 px-4"
             >
@@ -648,7 +666,7 @@ function AdminBackups() {
                       ? "bg-muted text-foreground"
                       : "bg-transparent text-muted-foreground hover:bg-surface-2"
                   }`}
-                  onClick={() => setPage(index)}
+                  onClick={() => goToBackupPage(index)}
                 >
                   {index + 1}
                 </button>
@@ -658,7 +676,7 @@ function AdminBackups() {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => setPage(totalPages - 1)}
+              onClick={() => goToBackupPage(totalPages - 1)}
               disabled={!hasNextPage}
               className="h-9 px-4"
             >

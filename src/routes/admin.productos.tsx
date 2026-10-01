@@ -24,6 +24,7 @@ import {
   X,
   Copy,
   ArrowUpDown,
+  Download,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -167,6 +168,7 @@ const getSupplierKey = (supplier: ProductSupplier) =>
   [supplier.name, supplier.phone, supplier.social].map((value) => value.trim()).join("|");
 const DELETED_SUPPLIERS_STORAGE_KEY = "lrg:deletedSuppliers";
 const UNASSIGNED_SUPPLIER_FILTER = "__unassigned__";
+const UNASSIGNED_SKU_FILTER = "__unassigned_sku__";
 
 const getBrandShortName = (brand: Product["brand"] | string | undefined) => {
   const brandKey = typeof brand === "string" ? brand : undefined;
@@ -178,6 +180,12 @@ const getBrandShortName = (brand: Product["brand"] | string | undefined) => {
 };
 
 export const Route = createFileRoute("/admin/productos")({
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(catalogQueries.allAdmin()),
+      context.queryClient.ensureQueryData(catalogQueries.settings()),
+    ]);
+  },
   validateSearch: z.object({
     productId: z.string().optional(),
     variantId: z.string().optional(),
@@ -204,10 +212,12 @@ function AdminProducts() {
   const navigate = useNavigate({ from: "/admin/productos" });
   const queryClient = useQueryClient();
   const { data: products } = useSuspenseQuery(catalogQueries.allAdmin());
+  const { data: adminSettings } = useSuspenseQuery(catalogQueries.settings());
   const [editableProducts, setEditableProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState<BrandSlug[]>([]);
   const [supplierFilter, setSupplierFilter] = useState<string[]>([]);
+  const [skuFilter, setSkuFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [currencyFilter, setCurrencyFilter] = useState<CurrencyCode[]>(["ARS", "USD"]);
   const [priceMode, setPriceMode] = useState<"price" | "storePrice">("storePrice");
@@ -220,6 +230,7 @@ function AdminProducts() {
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [brandsOpen, setBrandsOpen] = useState(false);
   const [suppliersOpen, setSuppliersOpen] = useState(false);
+  const [skusOpen, setSkusOpen] = useState(false);
   const [priceFilterOpen, setPriceFilterOpen] = useState(false);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrder>("createdAt_desc");
@@ -277,6 +288,7 @@ function AdminProducts() {
   const [quickEditVariantId, setQuickEditVariantId] = useState<string | null>(null);
   const [highlightedDeepLinkKey, setHighlightedDeepLinkKey] = useState<string | null>(null);
   const openedDeepLinkRef = useRef<string | null>(null);
+  const highlightedDeepLinkRef = useRef<string | null>(null);
 
   useEffect(() => {
     void loadAdminSettings({ data: {} }).then((settings) => {
@@ -1042,20 +1054,8 @@ function AdminProducts() {
       : undefined;
     if (routeSearch.variantId && !variant) return;
 
-    const timeoutId = window.setTimeout(() => {
-      openedDeepLinkRef.current = deepLinkKey;
-      const rowKey = `${productId}-${routeSearch.variantId ?? "base"}`;
-      setHighlightedDeepLinkKey(rowKey);
-      window.requestAnimationFrame(() => {
-        document.getElementById(`product-${rowKey}`)?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      });
-      window.setTimeout(() => setHighlightedDeepLinkKey(null), 4000);
-      openEditProductDialog(product, variant);
-    }, 900);
-    return () => window.clearTimeout(timeoutId);
+    openedDeepLinkRef.current = deepLinkKey;
+    openEditProductDialog(product, variant);
   }, [editableProducts, openEditProductDialog, routeSearch.productId, routeSearch.variantId]);
 
   const clearProductDeepLink = () => {
@@ -1893,21 +1893,68 @@ function AdminProducts() {
       ).sort((a, b) => a.localeCompare(b)),
     [editableProducts],
   );
-  const availableSuppliers = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          editableProducts
-            .flatMap((product) => [
-              product.supplier?.name,
-              ...(product.variants ?? []).map((variant) => variant.supplier?.name),
-            ])
-            .map((name) => name?.trim())
-            .filter((name): name is string => Boolean(name)),
-        ),
-      ).sort((first, second) => first.localeCompare(second, "es", { sensitivity: "base" })),
-    [editableProducts],
-  );
+  const availableSuppliers = useMemo(() => {
+    const supplierSetting = adminSettings.find((setting) => setting.settingKey === "lrg:suppliers");
+    let registeredNames: string[] = [];
+    try {
+      const parsed = JSON.parse(supplierSetting?.settingValue ?? "[]") as unknown;
+      if (Array.isArray(parsed)) {
+        registeredNames = parsed
+          .map((supplier) =>
+            supplier && typeof supplier === "object" && "name" in supplier
+              ? String(supplier.name).trim()
+              : "",
+          )
+          .filter(Boolean);
+      }
+    } catch {
+      registeredNames = [];
+    }
+    return Array.from(
+      new Set([
+        ...registeredNames,
+        ...editableProducts
+          .flatMap((product) => [
+            product.supplier?.name,
+            ...(product.variants ?? []).map((variant) => variant.supplier?.name),
+          ])
+          .map((name) => name?.trim())
+          .filter((name): name is string => Boolean(name)),
+      ]),
+    ).sort((first, second) => first.localeCompare(second, "es", { sensitivity: "base" }));
+  }, [adminSettings, editableProducts]);
+  const availableSkus = useMemo(() => {
+    const skuOptions = new Map<
+      string,
+      { key: string; label: string; brand: BrandSlug; code: string }
+    >();
+    const skuSetting = adminSettings.find((setting) => setting.settingKey === "lrg:productSkus");
+    let storedSkus: Partial<Record<BrandSlug, Array<{ code?: string }>>> = {};
+    try {
+      const parsed = JSON.parse(skuSetting?.settingValue ?? "{}") as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        storedSkus = parsed as Partial<Record<BrandSlug, Array<{ code?: string }>>>;
+      }
+    } catch {
+      storedSkus = {};
+    }
+    const addSku = (brand: BrandSlug, codeValue?: string) => {
+      const code = codeValue?.trim();
+      if (!code) return;
+      const key = `${brand}|${code}`;
+      const brandName = brandList.find((entry) => entry.slug === brand)?.name ?? brand;
+      skuOptions.set(key, { key, label: `${brandName} · ${code}`, brand, code });
+    };
+    brandList.forEach((brand) => {
+      [...(brand.productSkus ?? []), ...(storedSkus[brand.slug] ?? [])].forEach((sku) =>
+        addSku(brand.slug, sku.code),
+      );
+    });
+    editableProducts.forEach((product) => addSku(product.brand, product.code));
+    return Array.from(skuOptions.values()).sort((first, second) =>
+      first.label.localeCompare(second.label, "es", { sensitivity: "base" }),
+    );
+  }, [adminSettings, editableProducts]);
   const categoryLabels = useMemo(() => {
     const labels = new Map<string, string>();
     const collect = (items: CategoryLabelNode[]) => {
@@ -1951,6 +1998,12 @@ function AdminProducts() {
             ? assignedSuppliers.length > 0
             : !assignedSuppliers.some((name) => supplierFilter.includes(name.trim()))
         )
+          return false;
+      }
+      if (skuFilter.length) {
+        const onlyWithoutSku = skuFilter.includes(UNASSIGNED_SKU_FILTER);
+        const productSkuKey = product.code?.trim() ? `${product.brand}|${product.code.trim()}` : "";
+        if (onlyWithoutSku ? Boolean(productSkuKey) : !skuFilter.includes(productSkuKey))
           return false;
       }
       if (categoryFilter.length && !categoryFilter.includes(product.category)) return false;
@@ -2003,6 +2056,7 @@ function AdminProducts() {
     query,
     brandFilter,
     supplierFilter,
+    skuFilter,
     categoryFilter,
     currencyFilter,
     priceMode,
@@ -2048,6 +2102,39 @@ function AdminProducts() {
     if (!pageSize || pageSize <= 0) return [];
     return allDisplayRows.slice(page * pageSize, page * pageSize + pageSize);
   }, [allDisplayRows, page, pageSize]);
+
+  useEffect(() => {
+    const productId = routeSearch.productId;
+    if (!productId) {
+      highlightedDeepLinkRef.current = null;
+      return;
+    }
+    if (!displayRows.length) return;
+    const deepLinkKey = `${productId}:${routeSearch.variantId ?? ""}`;
+    if (highlightedDeepLinkRef.current === deepLinkKey) return;
+
+    const targetRow = displayRows.find(
+      ({ product, variant }) =>
+        product.id === productId && (variant?.id ?? undefined) === routeSearch.variantId,
+    );
+    if (!targetRow) return;
+
+    const rowKey = `${productId}-${routeSearch.variantId ?? "base"}`;
+    const frame = window.requestAnimationFrame(() => {
+      const rowElement = document.getElementById(`product-${rowKey}`);
+      if (!rowElement) return;
+
+      highlightedDeepLinkRef.current = deepLinkKey;
+      rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedDeepLinkKey(rowKey);
+      window.setTimeout(() => {
+        setHighlightedDeepLinkKey((current) => (current === rowKey ? null : current));
+      }, 4000);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [displayRows, routeSearch.productId, routeSearch.variantId]);
+
   const visibleProductSelectionKeys = Array.from(
     new Set(displayRows.map(({ product, variant }) => getProductSelectionKey(product, variant))),
   );
@@ -2063,11 +2150,17 @@ function AdminProducts() {
     pageSize && pageSize > 0 ? Math.max(1, Math.ceil(allDisplayRows.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
+  const goToProductPage = (nextPage: number) => {
+    setPage(nextPage);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
+  };
   const activeFilterCount =
+    (query.trim() ? 1 : 0) +
     categoryFilter.length +
     brandFilter.length +
     supplierFilter.length +
-    currencyFilter.length +
+    skuFilter.length +
+    (currencyFilter.length === 1 ? 1 : 0) +
     (priceMode !== "storePrice" ? 1 : 0) +
     (priceMin > 0 ? 1 : 0) +
     (priceMax < priceLimit ? 1 : 0) +
@@ -2079,6 +2172,7 @@ function AdminProducts() {
     setCategoryFilter([]);
     setBrandFilter([]);
     setSupplierFilter([]);
+    setSkuFilter([]);
     setCurrencyFilter(["ARS", "USD"]);
     setPriceMode("storePrice");
     setPriceMin(0);
@@ -2115,6 +2209,14 @@ function AdminProducts() {
       key: `supplier-${value}`,
       label: value === UNASSIGNED_SUPPLIER_FILTER ? "Ninguno" : value,
       onRemove: () => setSupplierFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...skuFilter.map((value) => ({
+      key: `sku-${value}`,
+      label:
+        value === UNASSIGNED_SKU_FILTER
+          ? "SKU: Ninguno"
+          : (availableSkus.find((sku) => sku.key === value)?.label ?? value),
+      onRemove: () => setSkuFilter((current) => current.filter((item) => item !== value)),
     })),
     ...(currencyFilter.length === 1
       ? [
@@ -2415,6 +2517,70 @@ function AdminProducts() {
                   <div className="space-y-3">
                     <button
                       type="button"
+                      onClick={() => setSkusOpen((current) => !current)}
+                      className="flex items-center gap-2 text-sm font-medium"
+                      aria-expanded={skusOpen}
+                      aria-controls="skus-list"
+                    >
+                      <span>SKU</span>
+                      {skuFilter.length > 0 && (
+                        <Badge variant="secondary">{skuFilter.length}</Badge>
+                      )}
+                      {skusOpen ? (
+                        <ChevronUp className="size-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="size-4 text-muted-foreground" />
+                      )}
+                    </button>
+                    {skusOpen && (
+                      <div id="skus-list" className="max-h-48 space-y-2.5 overflow-y-auto">
+                        <label className="flex cursor-pointer items-start gap-3 text-sm">
+                          <Checkbox
+                            checked={skuFilter.length === 0}
+                            onCheckedChange={() => setSkuFilter([])}
+                          />
+                          <span className="font-medium">Todos</span>
+                        </label>
+                        <label className="flex cursor-pointer items-start gap-3 text-sm">
+                          <Checkbox
+                            checked={skuFilter.includes(UNASSIGNED_SKU_FILTER)}
+                            onCheckedChange={(checked) =>
+                              setSkuFilter(checked ? [UNASSIGNED_SKU_FILTER] : [])
+                            }
+                          />
+                          <span className="font-medium">Ninguno</span>
+                        </label>
+                        {availableSkus.map((sku) => (
+                          <label
+                            key={sku.key}
+                            className="flex cursor-pointer items-start gap-3 text-sm"
+                          >
+                            <Checkbox
+                              checked={skuFilter.includes(sku.key)}
+                              onCheckedChange={(checked) =>
+                                setSkuFilter((current) => {
+                                  const selectedSkus = current.filter(
+                                    (value) => value !== UNASSIGNED_SKU_FILTER,
+                                  );
+                                  const next = checked
+                                    ? [...selectedSkus, sku.key]
+                                    : selectedSkus.filter((value) => value !== sku.key);
+                                  return availableSkus.every((option) => next.includes(option.key))
+                                    ? []
+                                    : Array.from(new Set(next));
+                                })
+                              }
+                            />
+                            <span className="font-medium">{sku.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <button
+                      type="button"
                       onClick={() => setPriceFilterOpen((current) => !current)}
                       className="flex items-center gap-2 text-sm font-medium"
                       aria-expanded={priceFilterOpen}
@@ -2571,7 +2737,7 @@ function AdminProducts() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 pt-0">
+                  <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-4">
                     <p className="text-xs text-muted-foreground">
                       {results.length} productos encontrados
                     </p>
@@ -2742,8 +2908,13 @@ function AdminProducts() {
                   >
                     <Check className="size-4" /> Guardar
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={cancelQuickEdit}>
-                    <X className="size-4" /> Saltar
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={cancelQuickEdit}
+                    className="text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                  >
+                    <ArrowRight className="size-4" /> Saltar
                   </Button>
                   <Button size="sm" variant="outline" onClick={cancelQuickEditSession}>
                     <X className="size-4" /> Cancelar
@@ -2756,6 +2927,54 @@ function AdminProducts() {
                   </Button>
                   <Button size="sm" variant="outline" onClick={handleBulkEditProducts}>
                     <Pencil className="size-4" /> Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-sky-500/50 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300"
+                    onClick={() => {
+                      const selectedRows = getSelectedProductEntries(selectedProductIds).flatMap(
+                        ({ productId, variantId }) => {
+                          const product = editableProducts.find((item) => item.id === productId);
+                          if (!product) return [];
+                          const variant = variantId
+                            ? product.variants?.find((item) => item.id === variantId)
+                            : undefined;
+                          return [
+                            [
+                              product.id,
+                              product.name,
+                              variant?.name ?? "",
+                              product.code ?? "",
+                              product.brand,
+                              product.category,
+                              variant?.stock ?? product.stock,
+                              variant?.price ?? product.price,
+                              variant?.discount ?? discounts[product.id] ?? 0,
+                            ],
+                          ];
+                        },
+                      );
+                      const worksheet = XLSX.utils.aoa_to_sheet([
+                        [
+                          "ID",
+                          "Producto",
+                          "Variante",
+                          "SKU",
+                          "Tienda",
+                          "Categoría",
+                          "Stock",
+                          "Precio",
+                          "Descuento",
+                        ],
+                        ...selectedRows,
+                      ]);
+                      const workbook = XLSX.utils.book_new();
+                      XLSX.utils.book_append_sheet(workbook, worksheet, "Productos seleccionados");
+                      XLSX.writeFile(workbook, "productos-seleccionados.xlsx");
+                    }}
+                  >
+                    <Download className="size-4" /> Descargar
                   </Button>
                   <Button
                     size="sm"
@@ -2806,9 +3025,10 @@ function AdminProducts() {
               hideScrollbarOnMobile
               stickyHeader
               stickyScrollbar
-              containerClassName="overflow-x-auto overflow-y-visible"
+              containerClassName="overflow-x-auto overflow-y-visible overscroll-x-contain"
               className={cn(
-                "w-full min-w-72rem table-fixed text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2",
+                "w-full min-w-72rem text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2",
+                quickEditProductId !== null ? "min-w-200 table-auto" : "table-fixed",
               )}
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
@@ -3240,7 +3460,7 @@ function AdminProducts() {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => setPage(0)}
+            onClick={() => goToProductPage(0)}
             disabled={!hasPreviousPage}
             className="h-9 px-4"
           >
@@ -3252,7 +3472,7 @@ function AdminProducts() {
                 key={index}
                 type="button"
                 className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                onClick={() => setPage(index)}
+                onClick={() => goToProductPage(index)}
               >
                 {index + 1}
               </button>
@@ -3262,7 +3482,7 @@ function AdminProducts() {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => setPage(totalPages - 1)}
+            onClick={() => goToProductPage(totalPages - 1)}
             disabled={!hasNextPage}
             className="h-9 px-4"
           >

@@ -622,6 +622,7 @@ function AdminOrders() {
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
   const [productListModalOrder, setProductListModalOrder] = useState<Order | null>(null);
+  const [productListSearch, setProductListSearch] = useState("");
   const [pendingOrderItemDeleteIndex, setPendingOrderItemDeleteIndex] = useState<number | null>(
     null,
   );
@@ -1345,6 +1346,10 @@ function AdminOrders() {
     pageSize && pageSize > 0 ? Math.max(1, Math.ceil(results.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
+  const goToOrderPage = (nextPage: number) => {
+    setPage(nextPage);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
+  };
   const activeFilterCount =
     deliveryFilter.length +
     paymentFilter.length +
@@ -1999,27 +2004,53 @@ function AdminOrders() {
     openEditOrderDialog(nextOrder);
   };
 
-  const getSupplierForItem = (
-    itemName: string,
-    productId?: string,
-    variantId?: string,
-    brand?: BrandSlug,
-  ) => {
-    const normalizedName = itemName.trim().toLowerCase();
-    const product = allProducts.find(
-      (candidate) =>
-        (!brand || candidate.brand === brand) &&
-        (candidate.id === productId ||
-          candidate.name.toLowerCase() === normalizedName ||
-          candidate.variants?.some((variant) => variant.name.toLowerCase() === normalizedName)),
-    );
-    const variant = product?.variants?.find(
-      (candidate) => candidate.id === variantId || candidate.name.toLowerCase() === normalizedName,
-    );
-    return product
-      ? { productName: product.name, supplier: variant?.supplier ?? product.supplier }
-      : undefined;
-  };
+  const getSupplierForItem = useCallback(
+    (itemName: string, productId?: string, variantId?: string, brand?: BrandSlug) => {
+      const normalizedName = itemName.trim().toLowerCase();
+      const product = allProducts.find(
+        (candidate) =>
+          (!brand || candidate.brand === brand) &&
+          (candidate.id === productId ||
+            candidate.name.toLowerCase() === normalizedName ||
+            candidate.variants?.some((variant) => variant.name.toLowerCase() === normalizedName)),
+      );
+      const variant = product?.variants?.find(
+        (candidate) =>
+          candidate.id === variantId || candidate.name.toLowerCase() === normalizedName,
+      );
+      return product
+        ? { productName: product.name, supplier: variant?.supplier ?? product.supplier }
+        : undefined;
+    },
+    [allProducts],
+  );
+
+  const productListEntries = useMemo(() => {
+    if (!productListModalOrder) return [];
+    const normalizedQuery = normalizeSearchText(productListSearch.trim());
+    return productListModalOrder.items
+      .map((item, itemIndex) => {
+        const product = allProducts.find(
+          (candidate) =>
+            candidate.id === item.productId ||
+            candidate.variantId === item.variantId ||
+            candidate.name === item.name,
+        );
+        const supplier = getSupplierForItem(item.name, item.productId, item.variantId)?.supplier;
+        const itemBrand = item.brand ?? product?.brand ?? productListModalOrder.brand;
+        const variantName =
+          item.variantName ??
+          product?.variantName ??
+          product?.variants?.find((variant) => variant.id === item.variantId)?.name;
+        return { item, itemIndex, product, supplier, itemBrand, variantName };
+      })
+      .filter(({ item, product, supplier, itemBrand, variantName }) => {
+        if (!normalizedQuery) return true;
+        return normalizeSearchText(
+          `${item.name} ${variantName ?? ""} ${toSearchableText(product)} ${supplier?.name ?? ""} ${getBrandFullName(itemBrand)}`,
+        ).includes(normalizedQuery);
+      });
+  }, [allProducts, getBrandFullName, getSupplierForItem, productListModalOrder, productListSearch]);
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
@@ -2427,8 +2458,13 @@ function AdminOrders() {
                   >
                     <Check className="size-4" /> Guardar
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={cancelQuickEditOrder}>
-                    <X className="size-4" /> Saltar
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={cancelQuickEditOrder}
+                    className="text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                  >
+                    <ArrowRight className="size-4" /> Saltar
                   </Button>
                   <Button size="sm" variant="outline" onClick={cancelQuickEditSession}>
                     <X className="size-4" /> Cancelar
@@ -2441,6 +2477,18 @@ function AdminOrders() {
                   </Button>
                   <Button size="sm" variant="outline" onClick={handleBulkEditOrders}>
                     <Pencil className="size-4" /> Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-sky-500/50 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300"
+                    onClick={() =>
+                      exportOrdersExcel(
+                        editableOrders.filter((order) => selectedOrderIds.includes(order.id)),
+                      )
+                    }
+                  >
+                    <Download className="size-4" /> Descargar
                   </Button>
                   <Button
                     size="sm"
@@ -2784,7 +2832,9 @@ function AdminOrders() {
                                 </div>
                               )}
 
-                              <p className="font-medium">Detalle del pedido</p>
+                              <p className="border-b border-border/50 pb-3 font-medium">
+                                Detalle del pedido
+                              </p>
 
                               <div className="grid w-full min-w-0 max-w-full gap-6 overflow-hidden lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
                                 <div className="min-w-0 space-y-3 rounded-xl border border-border/60 bg-surface/40 p-4">
@@ -3169,7 +3219,7 @@ function AdminOrders() {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => setPage(0)}
+            onClick={() => goToOrderPage(0)}
             disabled={!hasPreviousPage}
             className="h-9 px-4"
           >
@@ -3181,7 +3231,7 @@ function AdminOrders() {
                 key={index}
                 type="button"
                 className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                onClick={() => setPage(index)}
+                onClick={() => goToOrderPage(index)}
               >
                 {index + 1}
               </button>
@@ -3191,7 +3241,7 @@ function AdminOrders() {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => setPage(totalPages - 1)}
+            onClick={() => goToOrderPage(totalPages - 1)}
             disabled={!hasNextPage}
             className="h-9 px-4"
           >
@@ -3962,37 +4012,35 @@ function AdminOrders() {
 
       <Dialog
         open={productListModalOrder !== null}
-        onOpenChange={(open) => !open && setProductListModalOrder(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setProductListModalOrder(null);
+            setProductListSearch("");
+          }
+        }}
       >
         <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader>
             <DialogTitle>Productos del pedido</DialogTitle>
             <DialogDescription>{productListModalOrder?.id}</DialogDescription>
           </DialogHeader>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={productListSearch}
+              onChange={(event) => setProductListSearch(event.target.value)}
+              placeholder="Buscar producto"
+              aria-label="Buscar producto del pedido"
+              className="pl-9"
+            />
+          </div>
           <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
-            {productListModalOrder?.items.map((item, itemIndex) => {
-              const product = allProducts.find(
-                (candidate) =>
-                  candidate.id === item.productId ||
-                  candidate.variantId === item.variantId ||
-                  candidate.name === item.name,
-              );
-              const supplier = getSupplierForItem(
-                item.name,
-                item.productId,
-                item.variantId,
-              )?.supplier;
-              const itemBrand = item.brand ?? product?.brand ?? productListModalOrder.brand;
-              const variantName =
-                item.variantName ??
-                product?.variantName ??
-                product?.variants?.find((variant) => variant.id === item.variantId)?.name;
+            {productListEntries.map(({ item, itemIndex, supplier, itemBrand, variantName }) => {
               const variantText =
                 variantName && variantName !== item.name ? ` - ${variantName}` : "";
-
               return (
                 <div
-                  key={`${productListModalOrder.id}-${item.name}-${item.variantId ?? itemIndex}`}
+                  key={`${item.name}-${item.variantId ?? itemIndex}`}
                   className="rounded-xl bg-surface p-3"
                 >
                   <div className="flex min-w-0 items-start justify-between gap-3">
@@ -4021,6 +4069,11 @@ function AdminOrders() {
                 </div>
               );
             })}
+            {productListModalOrder?.items.length && productListEntries.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No se encontraron productos con esa búsqueda.
+              </p>
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>

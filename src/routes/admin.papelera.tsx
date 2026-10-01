@@ -374,7 +374,7 @@ function AdminTrash() {
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-col items-stretch gap-4">
         <div>
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Eliminaciones</p>
           <h1 className="mt-2 text-3xl font-semibold">Papelera</h1>
@@ -383,7 +383,7 @@ function AdminTrash() {
           </p>
         </div>
 
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="relative w-full sm:w-72">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input

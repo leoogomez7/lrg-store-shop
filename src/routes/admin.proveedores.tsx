@@ -9,6 +9,7 @@ import {
   ContactRound,
   ChevronDown,
   ChevronUp,
+  Download,
   Edit3,
   Eye,
   EyeOff,
@@ -183,7 +184,14 @@ function AdminSuppliers() {
   const queryClient = useQueryClient();
   const [query, setQuery] = React.useState("");
   const [sortOrder, setSortOrder] = React.useState<
-    "name_asc" | "name_desc" | "quantity_asc" | "quantity_desc" | "sales_asc" | "sales_desc"
+    | "name_asc"
+    | "name_desc"
+    | "product_count_asc"
+    | "product_count_desc"
+    | "quantity_asc"
+    | "quantity_desc"
+    | "sales_asc"
+    | "sales_desc"
   >("name_asc");
   const [storeFilter, setStoreFilter] = React.useState<string[]>([]);
   const [currencyFilter, setCurrencyFilter] = React.useState<Array<"ARS" | "USD">>(["ARS", "USD"]);
@@ -499,6 +507,8 @@ function AdminSuppliers() {
   const sortOptions = [
     ["name_asc", "Proveedor: A-Z"],
     ["name_desc", "Proveedor: Z-A"],
+    ["product_count_asc", "Cantidad de productos: menor a mayor"],
+    ["product_count_desc", "Cantidad de productos: mayor a menor"],
     ["quantity_asc", "Cantidad vendida: menor a mayor"],
     ["quantity_desc", "Cantidad vendida: mayor a menor"],
     ["sales_asc", "Vendido: menor a mayor"],
@@ -969,6 +979,10 @@ function AdminSuppliers() {
       switch (sortOrder) {
         case "name_desc":
           return b.name.localeCompare(a.name);
+        case "product_count_asc":
+          return a.productCount - b.productCount;
+        case "product_count_desc":
+          return b.productCount - a.productCount;
         case "quantity_asc":
           return a.soldQuantity - b.soldQuantity;
         case "quantity_desc":
@@ -1066,6 +1080,10 @@ function AdminSuppliers() {
   );
   const hasPreviousPage = page > 0;
   const hasNextPage = page + 1 < totalPages;
+  const goToSupplierPage = (nextPage: number) => {
+    setPage(nextPage);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
+  };
 
   React.useEffect(() => {
     setPage(0);
@@ -1617,8 +1635,13 @@ function AdminSuppliers() {
                     >
                       <Check className="size-4" /> Guardar
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={cancelQuickEditSupplier}>
-                      <X className="size-4" /> Saltar
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={cancelQuickEditSupplier}
+                      className="text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                    >
+                      <ArrowRight className="size-4" /> Saltar
                     </Button>
                     <Button size="sm" variant="outline" onClick={cancelQuickEditSupplierSession}>
                       <X className="size-4" /> Cancelar
@@ -1631,6 +1654,49 @@ function AdminSuppliers() {
                     </Button>
                     <Button size="sm" variant="outline" onClick={editSelectedSupplier}>
                       <Pencil className="size-4" /> Editar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-sky-500/50 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300"
+                      onClick={() => {
+                        const selectedRows = filteredRows
+                          .filter((row) => selectedSupplierKeys.includes(row.key))
+                          .map((row) => [
+                            row.name,
+                            row.phone,
+                            row.social,
+                            row.references,
+                            row.productCount,
+                            row.products
+                              .map((product) => `${product.name} (${product.quantity})`)
+                              .join(", "),
+                            row.sales,
+                            row.soldQuantity,
+                          ]);
+                        const worksheet = XLSX.utils.aoa_to_sheet([
+                          [
+                            "Nombre",
+                            "Celular",
+                            "Red social",
+                            "Referencias",
+                            "Productos",
+                            "Producto vendido",
+                            "Total vendido",
+                            "Cantidad vendida",
+                          ],
+                          ...selectedRows,
+                        ]);
+                        const workbook = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(
+                          workbook,
+                          worksheet,
+                          "Proveedores seleccionados",
+                        );
+                        XLSX.writeFile(workbook, "proveedores-seleccionados.xlsx");
+                      }}
+                    >
+                      <Download className="size-4" /> Descargar
                     </Button>
                     <Button
                       size="sm"
@@ -1906,6 +1972,13 @@ function AdminSuppliers() {
                                         </button>
                                       );
                                     })}
+                                  </div>
+                                  {row.products.length === 0 && (
+                                    <p className="mb-1 text-sm text-muted-foreground">
+                                      Este proveedor todavía no tiene productos vendidos.
+                                    </p>
+                                  )}
+                                  <div className="flex justify-center gap-3">
                                     {sortedProducts.length > 7 && (
                                       <Button
                                         type="button"
@@ -1915,7 +1988,7 @@ function AdminSuppliers() {
                                           setSoldProductsSearch("");
                                           setProductsModalSupplier(row);
                                         }}
-                                        className="h-auto min-h-9 justify-start px-3 py-2 text-xs"
+                                        className="h-auto min-h-9 justify-center px-3 py-2 text-xs text-foreground hover:bg-transparent hover:text-foreground"
                                       >
                                         Ver más productos vendidos
                                       </Button>
@@ -1928,16 +2001,11 @@ function AdminSuppliers() {
                                         setCatalogProductsSearch("");
                                         setCatalogModalSupplier(row);
                                       }}
-                                      className="h-auto min-h-9 justify-start px-3 py-2 text-xs"
+                                      className="h-auto min-h-9 justify-center px-3 py-2 text-xs text-foreground hover:bg-transparent hover:text-foreground"
                                     >
                                       Ver productos
                                     </Button>
                                   </div>
-                                  {row.products.length === 0 && (
-                                    <p className="text-sm text-muted-foreground">
-                                      Este proveedor todavía no tiene productos vendidos.
-                                    </p>
-                                  )}
                                 </div>
                               </>
                             </TableCell>
@@ -1964,7 +2032,7 @@ function AdminSuppliers() {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => setPage(0)}
+              onClick={() => goToSupplierPage(0)}
               disabled={!hasPreviousPage}
               className="h-9 px-4"
             >
@@ -1980,7 +2048,7 @@ function AdminSuppliers() {
                       ? "bg-muted text-foreground"
                       : "bg-transparent text-muted-foreground hover:bg-surface-2"
                   }`}
-                  onClick={() => setPage(index)}
+                  onClick={() => goToSupplierPage(index)}
                 >
                   {index + 1}
                 </button>
@@ -1990,7 +2058,7 @@ function AdminSuppliers() {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => setPage(totalPages - 1)}
+              onClick={() => goToSupplierPage(totalPages - 1)}
               disabled={!hasNextPage}
               className="h-9 px-4"
             >
