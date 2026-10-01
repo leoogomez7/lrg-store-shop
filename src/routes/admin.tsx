@@ -663,6 +663,7 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 <SheetContent
                   side="left"
                   closeIcon={<PanelLeftClose className="size-4 text-amber-500 hover:text-amber-400" />}
+                  closeButtonClassName="right-5 top-5 grid size-8 place-items-center rounded-md opacity-100 hover:bg-white/5 focus:ring-0 focus:ring-offset-0"
                   className="w-[min(86vw,20rem)] p-5"
                 >
                   <SheetHeader className="mb-6 text-left">

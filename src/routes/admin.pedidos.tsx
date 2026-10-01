@@ -2775,7 +2775,7 @@ function AdminOrders() {
                           ref={expandedOrderId === order.id ? quickEditDetailRef : undefined}
                           className={cn(
                             !isQuickEditing &&
-                              "max-md:fixed max-md:inset-0 max-md:z-100 max-md:block max-md:h-dvh max-md:w-screen max-md:overflow-y-auto max-md:overflow-x-hidden max-md:rounded-none max-md:border-0 max-md:bg-background max-md:shadow-2xl",
+                              "max-md:fixed max-md:inset-2 max-md:z-100 max-md:block max-md:h-[calc(100dvh-1rem)] max-md:w-[calc(100vw-1rem)] max-md:overflow-y-auto max-md:overflow-x-hidden max-md:rounded-2xl max-md:border max-md:border-border/70 max-md:bg-background max-md:shadow-2xl",
                           )}
                         >
                           <TableCell
@@ -3301,10 +3301,10 @@ function AdminOrders() {
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeOrderEditor()}>
         <DialogContent
           key={isCreatingOrder ? "new-order-dialog" : "edit-order-dialog"}
-          className="left-2 top-2 h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-h-0 translate-x-0 translate-y-0 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain p-3 shadow-none md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:left-[50%] sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:p-6"
+          className="left-2 top-2 grid h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-h-0 translate-x-0 translate-y-0 touch-pan-y overflow-x-hidden overflow-y-hidden overscroll-y-contain p-3 shadow-none md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 max-md:grid-rows-[auto_minmax(0,1fr)_auto] sm:left-[50%] sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:overflow-y-auto sm:p-6"
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
-          <DialogHeader>
+          <DialogHeader className="max-md:min-w-0 max-md:shrink-0">
             <div className="flex items-center justify-between gap-3">
               <DialogTitle>{isCreatingOrder ? "Nuevo pedido" : "Editar pedido"}</DialogTitle>
               {!isCreatingOrder && bulkOrderEditQueue.length > 1 ? (
@@ -3335,7 +3335,7 @@ function AdminOrders() {
             </div>
           </DialogHeader>
           {orderForm ? (
-            <div className="min-w-0 space-y-4">
+            <div className="min-w-0 space-y-4 max-md:min-h-0 max-md:overflow-y-auto max-md:overscroll-y-contain max-md:touch-pan-y max-md:pr-1">
               <div className="rounded-xl border border-border/60 bg-surface/40 p-4">
                 <span className="mb-3 block text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                   Datos cliente
@@ -3940,7 +3940,7 @@ function AdminOrders() {
             }}
           />
 
-          <DialogFooter>
+          <DialogFooter className="max-md:w-full max-md:shrink-0 max-md:border-t max-md:border-border/60 max-md:pt-2">
             <div className="flex w-full items-center justify-between gap-2">
               <span />
               {!isCreatingOrder && bulkOrderEditQueue.length > 1 ? (

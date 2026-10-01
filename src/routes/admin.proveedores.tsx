@@ -2065,7 +2065,15 @@ function AdminSuppliers() {
         open={productsModalSupplier !== null}
         onOpenChange={(open) => !open && setProductsModalSupplier(null)}
       >
-        <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+        <DialogContent
+          tabIndex={-1}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            const dialogElement = event.currentTarget;
+            requestAnimationFrame(() => dialogElement.focus({ preventScroll: true }));
+          }}
+          className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl"
+        >
           <DialogHeader>
             <DialogTitle>Productos vendidos de {productsModalSupplier?.name}</DialogTitle>
             <DialogDescription>
@@ -2120,7 +2128,15 @@ function AdminSuppliers() {
         open={catalogModalSupplier !== null}
         onOpenChange={(open) => !open && setCatalogModalSupplier(null)}
       >
-        <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+        <DialogContent
+          tabIndex={-1}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            const dialogElement = event.currentTarget;
+            requestAnimationFrame(() => dialogElement.focus({ preventScroll: true }));
+          }}
+          className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl"
+        >
           <DialogHeader>
             <DialogTitle>Productos de {catalogModalSupplier?.name}</DialogTitle>
             <DialogDescription>
