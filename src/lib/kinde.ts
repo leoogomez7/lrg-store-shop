@@ -1,6 +1,6 @@
 const PLACEHOLDER_PATTERN = /(placeholder|example|test|changeme|undefined)/i;
 
-export const KINDE_LOGOUT_REDIRECT_URI = "https://lrg-store-shop.vercel.app/login";
+export const KINDE_LOGOUT_REDIRECT_URI = "https://lrg-store-shop.vercel.app";
 
 export function getKindeConfig() {
   const clientId = import.meta.env["AUTH_USER"]?.trim();
