@@ -603,11 +603,20 @@ function AdminOrders() {
   const [query, setQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<OrderSort | null>("date_desc");
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 767px)");
+    const updateViewport = () => setIsMobileViewport(mobileQuery.matches);
+    updateViewport();
+    mobileQuery.addEventListener("change", updateViewport);
+    return () => mobileQuery.removeEventListener("change", updateViewport);
+  }, []);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -1306,6 +1315,9 @@ function AdminOrders() {
     if (!pageSize || pageSize <= 0) return [] as typeof results;
     return results.slice(page * pageSize, page * pageSize + pageSize);
   }, [results, page, pageSize]);
+  const expandedOrder = expandedOrderId
+    ? results.find((order) => order.id === expandedOrderId) ?? null
+    : null;
   const visibleOrderIds = visibleResults.map((order) => order.id);
   const hasExpandedOrder = expandedOrderId !== null;
   const selectedVisibleOrderIds = visibleOrderIds.filter((id) => selectedOrderIds.includes(id));
@@ -2516,10 +2528,7 @@ function AdminOrders() {
               alwaysShowScrollbarOnDesktop={selectionMode}
               stickyHeader
               stickyScrollbar
-              containerClassName={cn(
-                "[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]",
-                expandedOrderId && !quickEditOrderId && "max-md:!overflow-visible",
-              )}
+              containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
               className={cn(
                 "w-full table-fixed border-collapse text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:px-2 [&_th]:px-2 [&_td]:py-1.5 [&_th]:py-1.5 [&_td]:text-center [&_th]:text-center",
                 "min-w-200",
@@ -2775,7 +2784,7 @@ function AdminOrders() {
                           ref={expandedOrderId === order.id ? quickEditDetailRef : undefined}
                           className={cn(
                             !isQuickEditing &&
-                              "max-md:fixed max-md:inset-2 max-md:z-100 max-md:block max-md:h-[calc(100dvh-1rem)] max-md:w-[calc(100vw-1rem)] max-md:overflow-y-auto max-md:overflow-x-hidden max-md:rounded-2xl max-md:border max-md:border-border/70 max-md:bg-background max-md:shadow-2xl",
+                              "max-md:hidden",
                           )}
                         >
                           <TableCell
@@ -3222,6 +3231,156 @@ function AdminOrders() {
         </div>
       </div>
 
+      <Dialog
+        open={isMobileViewport && expandedOrder !== null && quickEditOrderId === null}
+        onOpenChange={(open) => !open && setExpandedOrderId(null)}
+      >
+        <DialogContent className="max-md:inset-0 max-md:left-0 max-md:top-0 max-md:grid-rows-[auto_minmax(0,1fr)_auto] max-md:h-dvh max-md:w-screen max-md:max-w-none max-md:overflow-hidden max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-none max-md:border-0 max-md:p-3 sm:max-w-3xl">
+          <DialogHeader className="min-w-0">
+            <DialogTitle>Detalle del pedido {expandedOrder?.id}</DialogTitle>
+            <DialogDescription className="truncate">
+              {expandedOrder?.customer} · {expandedOrder?.email}
+            </DialogDescription>
+          </DialogHeader>
+          {expandedOrder ? (
+            <div className="min-h-0 space-y-3 overflow-y-auto overscroll-y-contain pr-1 text-sm max-md:touch-pan-y">
+              <section className="grid gap-2 rounded-xl border border-border/60 bg-surface/40 p-3 sm:grid-cols-2">
+                {[
+                  ["Cliente", expandedOrder.customer],
+                  ["Correo", expandedOrder.email || "—"],
+                  ["Celular", expandedOrder.phone || "—"],
+                  [
+                    "Dirección",
+                    [
+                      [expandedOrder.street, expandedOrder.streetNumber].filter(Boolean).join(" "),
+                      expandedOrder.floor ? `Piso ${expandedOrder.floor}` : "",
+                      expandedOrder.apartment ? `Depto. ${expandedOrder.apartment}` : "",
+                      expandedOrder.city,
+                      expandedOrder.province,
+                      expandedOrder.postalCode ? `CP ${expandedOrder.postalCode}` : "",
+                    ]
+                      .filter(Boolean)
+                      .join(", ") || "—",
+                  ],
+                  ["Fecha", formatDate(expandedOrder.date)],
+                  ["Estado", capitalize(expandedOrder.status)],
+                  ["Método de pago", expandedOrder.paymentMethod || "—"],
+                  ["Método de envío", expandedOrder.shippingMethod || "—"],
+                  ["Número de envío", expandedOrder.shippingNumber || "—"],
+                  ["Observaciones", expandedOrder.extraInfo || "—"],
+                ].map(([label, value]) => (
+                  <div key={label} className="min-w-0">
+                    <span className="block text-xs text-muted-foreground">{label}</span>
+                    <span className="block wrap-break-word font-medium">{value}</span>
+                  </div>
+                ))}
+              </section>
+
+              <section className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-3">
+                <h3 className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                  Productos
+                </h3>
+                {expandedOrder.items.map((item, index) => {
+                  const supplier = getSupplierForItem(
+                    item.name,
+                    item.productId,
+                    item.variantId,
+                  )?.supplier;
+                  const brandName = getBrandFullName(item.brand ?? expandedOrder.brand);
+                  return (
+                    <div
+                      key={`${item.name}-${item.variantId ?? index}`}
+                      className="flex min-w-0 items-start justify-between gap-3 rounded-lg bg-background/60 p-2.5"
+                    >
+                      <div className="min-w-0">
+                        <p className="wrap-break-word font-medium">
+                          {item.name}
+                          {item.variantName ? ` · ${item.variantName}` : ""}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {brandName} · {item.quantity} × {formatPrice(item.price)}
+                          {supplier?.name ? ` · Proveedor: ${supplier.name}` : ""}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-right font-semibold">
+                        {formatPrice(item.price * item.quantity)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </section>
+
+              <section className="grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-surface/40 p-3 text-center">
+                <div>
+                  <span className="block text-xs text-muted-foreground">Gastos</span>
+                  <span className="font-medium">{formatPrice(expandedOrder.expenses)}</span>
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground">Ganancias</span>
+                  <span className="font-medium">{formatPrice(expandedOrder.profit)}</span>
+                </div>
+                <div>
+                  <span className="block text-xs text-muted-foreground">Total</span>
+                  <span className="font-semibold">{formatPrice(expandedOrder.total)}</span>
+                </div>
+              </section>
+            </div>
+          ) : null}
+          {expandedOrder ? (
+            <DialogFooter className="flex-wrap gap-2 border-t border-border/60 pt-2 max-md:w-full max-md:shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setExpandedOrderId(null);
+                  setReceiptsOrder(expandedOrder);
+                }}
+              >
+                <FileText className="size-4" /> Comprobantes
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setExpandedOrderId(null);
+                  setDocumentsOrder(expandedOrder);
+                  setPendingAttachments([]);
+                }}
+              >
+                <Paperclip className="size-4" /> Archivos
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setExpandedOrderId(null);
+                  startQuickEditOrder(expandedOrder);
+                }}
+              >
+                <Edit3 className="size-4" /> Editar rápido
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setExpandedOrderId(null);
+                  openEditOrderDialog(expandedOrder);
+                }}
+              >
+                <Pencil className="size-4" /> Editar
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setExpandedOrderId(null)}>
+                Cerrar
+              </Button>
+            </DialogFooter>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
       <div className="mt-4 flex flex-col gap-3 pb-4">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
@@ -3301,7 +3460,7 @@ function AdminOrders() {
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeOrderEditor()}>
         <DialogContent
           key={isCreatingOrder ? "new-order-dialog" : "edit-order-dialog"}
-          className="left-2 top-2 grid h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-h-0 translate-x-0 translate-y-0 touch-pan-y overflow-x-hidden overflow-y-hidden overscroll-y-contain p-3 shadow-none md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 max-md:grid-rows-[auto_minmax(0,1fr)_auto] sm:left-[50%] sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:overflow-y-auto sm:p-6"
+          className="left-2 top-2 grid h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] translate-x-0 translate-y-0 touch-pan-y overflow-x-hidden overflow-y-hidden overscroll-y-contain p-3 shadow-none md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:left-[50%] sm:top-[50%] sm:h-[calc(100vh-4rem)] sm:w-[calc(100vw-2rem)] sm:max-h-[calc(100vh-4rem)] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:p-6"
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <DialogHeader className="max-md:min-w-0 max-md:shrink-0">
@@ -3335,7 +3494,7 @@ function AdminOrders() {
             </div>
           </DialogHeader>
           {orderForm ? (
-            <div className="min-w-0 space-y-4 max-md:min-h-0 max-md:overflow-y-auto max-md:overscroll-y-contain max-md:touch-pan-y max-md:pr-1">
+            <div className="min-h-0 min-w-0 space-y-4 overflow-y-auto overscroll-y-contain touch-pan-y sm:pr-1">
               <div className="rounded-xl border border-border/60 bg-surface/40 p-4">
                 <span className="mb-3 block text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                   Datos cliente

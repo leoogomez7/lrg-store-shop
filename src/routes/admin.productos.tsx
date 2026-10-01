@@ -4510,7 +4510,12 @@ function AdminProducts() {
             ) : null}
             </section>
           </div>
-          <DialogFooter className={isImportingStore ? "hidden" : undefined}>
+          <DialogFooter
+            className={cn(
+              "gap-3 max-md:justify-between max-md:pt-3",
+              isImportingStore && "hidden",
+            )}
+          >
             <Button
               type="button"
               variant="outline"
