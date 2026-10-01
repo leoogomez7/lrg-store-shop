@@ -2462,7 +2462,7 @@ function AdminOrders() {
                     size="sm"
                     variant="ghost"
                     onClick={cancelQuickEditOrder}
-                    className="text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                    className="bg-green-700 text-white hover:bg-green-800 hover:text-white"
                   >
                     <ArrowRight className="size-4" /> Saltar
                   </Button>

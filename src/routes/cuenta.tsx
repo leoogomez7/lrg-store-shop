@@ -480,6 +480,10 @@ function AccountPageContent({
   const hasNextPage = ordersPage + 1 < totalOrdersPages;
   const hasPreviousPage = ordersPage > 0;
   const canEditOrdersPageSize = true;
+  const goToOrdersPage = (nextPage: number) => {
+    setOrdersPage(nextPage);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
+  };
   const ordersFilterCount =
     ordersBrandFilter.length +
     (ordersDateFrom ? 1 : 0) +
@@ -1622,7 +1626,7 @@ function AccountPageContent({
             <div className="flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
-                onClick={() => setOrdersPage(0)}
+                onClick={() => goToOrdersPage(0)}
                 disabled={!hasPreviousPage || !canEditOrdersPageSize}
                 className="h-9 px-4 disabled:opacity-60"
               >
@@ -1634,7 +1638,7 @@ function AccountPageContent({
                     key={index}
                     type="button"
                     className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                    onClick={() => setOrdersPage(index)}
+                    onClick={() => goToOrdersPage(index)}
                     disabled={!canEditOrdersPageSize}
                   >
                     {index + 1}
@@ -1643,7 +1647,7 @@ function AccountPageContent({
               </div>
               <button
                 type="button"
-                onClick={() => setOrdersPage(totalOrdersPages - 1)}
+                onClick={() => goToOrdersPage(totalOrdersPages - 1)}
                 disabled={!hasNextPage || !canEditOrdersPageSize}
                 className="h-9 px-4 disabled:opacity-60"
               >

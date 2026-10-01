@@ -172,6 +172,10 @@ function AdminTrash() {
   const paginatedEntries = filteredEntries.slice(safePage * pageSize, (safePage + 1) * pageSize);
   const hasPreviousPage = safePage > 0;
   const hasNextPage = safePage < totalPages - 1;
+  const goToTrashPage = (nextPage: number) => {
+    setPage(nextPage);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
+  };
 
   useEffect(() => {
     setPageSizeInput(String(pageSize));
@@ -588,7 +592,7 @@ function AdminTrash() {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => setPage(0)}
+              onClick={() => goToTrashPage(0)}
               disabled={!hasPreviousPage}
               className="h-9 px-4"
             >
@@ -604,7 +608,7 @@ function AdminTrash() {
                       ? "bg-muted text-foreground"
                       : "bg-transparent text-muted-foreground hover:bg-surface-2"
                   }`}
-                  onClick={() => setPage(index)}
+                  onClick={() => goToTrashPage(index)}
                 >
                   {index + 1}
                 </button>
@@ -614,7 +618,7 @@ function AdminTrash() {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => setPage(totalPages - 1)}
+              onClick={() => goToTrashPage(totalPages - 1)}
               disabled={!hasNextPage}
               className="h-9 px-4"
             >

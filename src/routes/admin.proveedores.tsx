@@ -1643,7 +1643,7 @@ function AdminSuppliers() {
                       size="sm"
                       variant="ghost"
                       onClick={cancelQuickEditSupplier}
-                      className="text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                      className="bg-green-700 text-white hover:bg-green-800 hover:text-white"
                     >
                       <ArrowRight className="size-4" /> Saltar
                     </Button>
@@ -1691,12 +1691,12 @@ function AdminSuppliers() {
                 hideScrollbarOnMobile
                 stickyHeader
                 stickyScrollbar
-                containerClassName="w-full touch-pan-x overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
-                className="w-full min-w-5xl table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_td]:py-1 [&_th]:py-1"
+                containerClassName="w-full touch-pan-x overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch] lg:overflow-x-hidden"
+                className="w-full min-w-5xl table-fixed text-center text-sm text-foreground [&_td]:align-middle [&_th]:align-middle [&_th]:whitespace-normal [&_td]:py-1 [&_th]:py-1 lg:min-w-0"
               >
                 <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                   <TableRow>
-                    <TableHead className="w-12 min-w-12 max-w-12 px-2 text-center">
+                    <TableHead className="w-12 min-w-12 max-w-12 px-2 text-center lg:w-[5%] lg:min-w-0 lg:max-w-none">
                       <div className="flex items-center justify-center">
                         <Checkbox
                           className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
@@ -1721,13 +1721,13 @@ function AdminSuppliers() {
                         />
                       </div>
                     </TableHead>
-                    <TableHead className="w-40 pl-3">Nombre</TableHead>
-                    <TableHead className="w-32">Celular</TableHead>
-                    <TableHead className="w-36">Red social</TableHead>
-                    <TableHead className="w-40">Referencias</TableHead>
-                    <TableHead className="w-28">Productos</TableHead>
-                    <TableHead className="w-40">Total vendido</TableHead>
-                    <TableHead className="w-36">Cantidad vendida</TableHead>
+                    <TableHead className="w-40 pl-3 lg:w-[13%]">Nombre</TableHead>
+                    <TableHead className="w-32 lg:w-[12%]">Celular</TableHead>
+                    <TableHead className="w-36 lg:w-[12%]">Red social</TableHead>
+                    <TableHead className="w-40 lg:w-[15%]">Referencias</TableHead>
+                    <TableHead className="w-28 lg:w-[9%]">Productos</TableHead>
+                    <TableHead className="w-40 lg:w-[17%]">Total vendido</TableHead>
+                    <TableHead className="w-36 lg:w-[17%]">Cantidad vendida</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1764,7 +1764,7 @@ function AdminSuppliers() {
                               : undefined
                           }
                         >
-                          <TableCell className="w-12 min-w-12 max-w-12 px-2 text-center">
+                          <TableCell className="w-12 min-w-12 max-w-12 px-2 text-center lg:w-[5%] lg:min-w-0 lg:max-w-none">
                             <div className="flex items-center justify-center">
                               <Checkbox
                                 className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
@@ -1784,7 +1784,7 @@ function AdminSuppliers() {
                             </div>
                           </TableCell>
 
-                          <TableCell className="pl-5 text-center text-sm font-medium text-foreground">
+                          <TableCell className="pl-5 text-center text-sm font-medium text-foreground lg:w-[13%] lg:pl-2">
                             {isQuickEditing ? (
                               <Input
                                 value={quickSupplier.name}
@@ -1794,13 +1794,13 @@ function AdminSuppliers() {
                                     name: event.target.value,
                                   })
                                 }
-                                className="h-9"
+                                className="h-9 w-full min-w-0"
                               />
                             ) : (
                               row.name
                             )}
                           </TableCell>
-                          <TableCell className="w-36 min-w-36 text-center text-sm text-foreground">
+                          <TableCell className="w-36 min-w-36 text-center text-sm text-foreground lg:w-[12%] lg:min-w-0">
                             {isQuickEditing ? (
                               <Input
                                 value={quickSupplier.phone}
@@ -1810,13 +1810,13 @@ function AdminSuppliers() {
                                     phone: event.target.value,
                                   })
                                 }
-                                className="h-9"
+                                className="h-9 w-full min-w-0"
                               />
                             ) : (
                               row.phone
                             )}
                           </TableCell>
-                          <TableCell className="text-center text-sm text-foreground">
+                          <TableCell className="text-center text-sm text-foreground lg:w-[12%]">
                             {isQuickEditing ? (
                               <Input
                                 value={quickSupplier.social}
@@ -1826,13 +1826,13 @@ function AdminSuppliers() {
                                     social: event.target.value,
                                   })
                                 }
-                                className="h-9"
+                                className="h-9 w-full min-w-0"
                               />
                             ) : (
                               row.social
                             )}
                           </TableCell>
-                          <TableCell className="text-center text-sm text-foreground">
+                          <TableCell className="text-center text-sm text-foreground lg:w-[15%]">
                             {isQuickEditing ? (
                               <Input
                                 value={quickSupplier.references ?? ""}
@@ -1850,10 +1850,10 @@ function AdminSuppliers() {
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-center text-sm text-foreground">
+                          <TableCell className="text-center text-sm text-foreground lg:w-[9%]">
                             {row.productCount}
                           </TableCell>
-                          <TableCell className="min-w-32 text-center">
+                          <TableCell className="min-w-32 text-center lg:w-[17%] lg:min-w-0">
                             <div className="flex flex-col items-center justify-center gap-1 leading-none text-foreground">
                               <div className="flex items-center justify-center gap-1.5">
                                 <span className="text-[11px] font-medium text-muted-foreground">
@@ -1873,7 +1873,7 @@ function AdminSuppliers() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="text-center text-sm text-foreground">
+                          <TableCell className="text-center text-sm text-foreground lg:w-[17%]">
                             {row.soldQuantity}
                           </TableCell>
                         </TableRow>

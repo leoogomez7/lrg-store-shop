@@ -2918,7 +2918,7 @@ function AdminProducts() {
                     size="sm"
                     variant="ghost"
                     onClick={cancelQuickEdit}
-                    className="text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                    className="bg-green-700 text-white hover:bg-green-800 hover:text-white"
                   >
                     <ArrowRight className="size-4" /> Saltar
                   </Button>
@@ -3954,9 +3954,6 @@ function AdminProducts() {
                   />
                   <span className="min-w-0">
                     <span className="block font-medium">Aplicar a todos los productos</span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      Usar la misma tienda, categoría y subcategoría en cada producto.
-                    </span>
                   </span>
                 </label>
               </div>
@@ -6151,13 +6148,13 @@ function ProductEditDialog({
                               </Badge>
                             )}
                           </div>
-                          <div className="flex shrink-0 items-center justify-end gap-1 max-md:w-full max-md:flex-wrap max-md:border-t max-md:border-border/50 max-md:pt-2">
+                          <div className="flex shrink-0 items-center justify-end gap-1 max-md:w-full max-md:flex-nowrap max-md:border-t max-md:border-border/50 max-md:pt-2">
                             <Button
                               type="button"
                               variant={selectedVariantId === variant.id ? "secondary" : "ghost"}
                               size="sm"
                               onClick={() => setSelectedVariantId(variant.id)}
-                              className="h-8 gap-2 px-3 text-sm"
+                              className="h-7 shrink-0 gap-1 px-1.5 text-[10px] whitespace-nowrap sm:h-8 sm:gap-2 sm:px-3 sm:text-sm"
                               disabled={selectedVariantId === variant.id}
                             >
                               {selectedVariantId === variant.id ? "Seleccionado" : "Seleccionar"}
@@ -6167,18 +6164,18 @@ function ProductEditDialog({
                               variant="ghost"
                               size="sm"
                               onClick={() => handleStartVariantEdit(index)}
-                              className="h-8 gap-2 px-3 text-sm"
+                              className="h-7 shrink-0 gap-1 px-1.5 text-[10px] whitespace-nowrap sm:h-8 sm:gap-2 sm:px-3 sm:text-sm"
                             >
-                              <Pencil className="size-4" /> Editar
+                              <Pencil className="size-3.5 sm:size-4" /> Editar
                             </Button>
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
                               onClick={() => removeVariant(index)}
-                              className="h-8 gap-2 px-3 text-sm text-destructive hover:bg-destructive/10"
+                              className="h-7 shrink-0 gap-1 px-1.5 text-[10px] whitespace-nowrap text-destructive hover:bg-destructive/10 sm:h-8 sm:gap-2 sm:px-3 sm:text-sm"
                             >
-                              <Trash2 className="size-4" /> Eliminar
+                              <Trash2 className="size-3.5 sm:size-4" /> Eliminar
                             </Button>
                           </div>
                         </>

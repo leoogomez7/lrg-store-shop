@@ -200,6 +200,10 @@ function AdminClients() {
     pageSize && pageSize > 0 ? Math.max(1, Math.ceil(filteredCustomers.length / pageSize)) : 1;
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
+  const goToCustomerPage = (nextPage: number) => {
+    setPage(nextPage);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
+  };
   const activeFilterCount =
     storeFilter.length +
     typeFilter.length +
@@ -771,7 +775,7 @@ function AdminClients() {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => setPage(0)}
+            onClick={() => goToCustomerPage(0)}
             disabled={!hasPreviousPage}
             className="h-9 px-4"
           >
@@ -783,7 +787,7 @@ function AdminClients() {
                 key={index}
                 type="button"
                 className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                onClick={() => setPage(index)}
+                onClick={() => goToCustomerPage(index)}
               >
                 {index + 1}
               </button>
@@ -793,7 +797,7 @@ function AdminClients() {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => setPage(totalPages - 1)}
+            onClick={() => goToCustomerPage(totalPages - 1)}
             disabled={!hasNextPage}
             className="h-9 px-4"
           >

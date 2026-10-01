@@ -238,6 +238,10 @@ function ProductosPage() {
   const totalPages = Math.max(1, Math.ceil(results.length / pageSize));
   const hasPreviousPage = page > 0;
   const hasNextPage = page + 1 < totalPages;
+  const goToCatalogPage = (nextPage: number) => {
+    setPage(nextPage);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
+  };
   const paginatedResults = results.slice(page * pageSize, page * pageSize + pageSize);
 
   useEffect(() => {
@@ -424,7 +428,7 @@ function ProductosPage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setPage(0)}
+                    onClick={() => goToCatalogPage(0)}
                     disabled={!hasPreviousPage}
                     className="h-9 px-4"
                   >
@@ -436,7 +440,7 @@ function ProductosPage() {
                         key={index}
                         type="button"
                         className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                        onClick={() => setPage(index)}
+                        onClick={() => goToCatalogPage(index)}
                       >
                         {index + 1}
                       </button>
@@ -446,7 +450,7 @@ function ProductosPage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setPage(totalPages - 1)}
+                    onClick={() => goToCatalogPage(totalPages - 1)}
                     disabled={!hasNextPage}
                     className="h-9 px-4"
                   >
