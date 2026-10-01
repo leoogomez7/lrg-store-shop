@@ -160,7 +160,8 @@ function ProductDetail() {
     setImageViewerOpen(false);
   }, [product?.id]);
 
-  const selectedVariant = product?.variants?.find((variant) => variant.id === selectedVariantId) ??
+  const selectedVariant =
+    product?.variants?.find((variant) => variant.id === selectedVariantId) ??
     product?.variants?.[0];
   const cardPriceWithSurcharge =
     Math.round((selectedVariant?.price ?? product?.price ?? 0) * 1.15 * 100) / 100;
@@ -179,7 +180,8 @@ function ProductDetail() {
         if (cancelled) return;
         setCardMethods(methods);
         setSelectedCardMethodId(methods[0]?.id ?? "");
-        if (methods.length === 0) setInstallmentsError("Mercado Pago no devolvió tarjetas disponibles.");
+        if (methods.length === 0)
+          setInstallmentsError("Mercado Pago no devolvió tarjetas disponibles.");
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -256,12 +258,7 @@ function ProductDetail() {
     return () => {
       cancelled = true;
     };
-  }, [
-    cardPriceWithSurcharge,
-    installmentsDialogOpen,
-    selectedCardMethodId,
-    selectedIssuerId,
-  ]);
+  }, [cardPriceWithSurcharge, installmentsDialogOpen, selectedCardMethodId, selectedIssuerId]);
 
   if (!product) return null;
 
@@ -419,7 +416,10 @@ function ProductDetail() {
                   <Link
                     to="/$brand/productos"
                     params={{ brand: brand.slug }}
-                    search={{ categoria: category?.slug ?? "", subcategoria: subcategory.slug ?? "" }}
+                    search={{
+                      categoria: category?.slug ?? "",
+                      subcategoria: subcategory.slug ?? "",
+                    }}
                   >
                     {subcategory.name}
                   </Link>
@@ -599,8 +599,8 @@ function ProductDetail() {
             ))}
           </div>
           <p className="mt-2 text-sm text-sky-400">
-            Si abonás con tarjeta de crédito/débito o Mercado Pago, se suma un 15% al precio.
-            Tenés hasta 6 cuotas sin interés.
+            Si abonás con tarjeta de crédito/débito o Mercado Pago, se suma un 15% al precio. Tenés
+            hasta 6 cuotas sin interés.
           </p>
 
           {product.variants && product.variants.length > 1 ? (
@@ -628,17 +628,26 @@ function ProductDetail() {
           ) : null}
 
           <div className="mt-6 w-full max-w-md space-y-3">
-            {product.compareAtPrice && (
-              <span className="block text-sm text-muted-foreground line-through">
-                {formatPrice(product.compareAtPrice)}
+            <div className="flex flex-wrap items-center gap-3">
+              {product.compareAtPrice && (
+                <span className="block text-sm text-muted-foreground line-through">
+                  {formatPrice(product.compareAtPrice)}
+                </span>
+              )}
+              <span className="font-display block text-3xl font-semibold leading-none">
+                {formatPrice(activeProduct.price)}
               </span>
-            )}
-            <span className="font-display block text-3xl font-semibold leading-none">
-              {formatPrice(activeProduct.price)}
-            </span>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 text-sm font-medium text-sky-400 transition hover:text-sky-300 hover:underline"
+                onClick={() => setInstallmentsDialogOpen(true)}
+              >
+                <CreditCard className="size-4" />
+                Tabla de cuotas
+              </button>
+            </div>
 
             <div className="flex items-center justify-between gap-3 pt-1">
-              <span className="text-sm font-medium text-foreground">Elegí la cantidad</span>
               <div className="flex items-center gap-0.5 rounded-full border border-border bg-background/70 p-0.5">
                 <Button
                   variant="ghost"
@@ -677,24 +686,15 @@ function ProductDetail() {
                   <Plus className="size-3.5" />
                 </Button>
               </div>
+
+              <p className="text-sm font-medium text-muted-foreground">
+                {activeProduct.stockUnlimited
+                  ? "∞ Stock ilimitado"
+                  : activeProduct.stock > 0
+                    ? `${activeProduct.stock} en stock`
+                    : "Sin stock"}
+              </p>
             </div>
-
-            <p className="text-sm font-medium text-muted-foreground">
-              {activeProduct.stockUnlimited
-                ? "∞ Stock ilimitado"
-                : activeProduct.stock > 0
-                  ? `${activeProduct.stock} en stock`
-                  : "Sin stock"}
-            </p>
-
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 text-sm font-medium text-sky-400 transition hover:text-sky-300 hover:underline"
-              onClick={() => setInstallmentsDialogOpen(true)}
-            >
-              <CreditCard className="size-4" />
-              Tabla de cuotas
-            </button>
 
             <div className="flex flex-nowrap items-center justify-start gap-2 pt-1">
               <Button
@@ -775,7 +775,10 @@ function ProductDetail() {
                 </p>
               )}
               {installmentsError && (
-                <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">
+                <p
+                  className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+                  role="alert"
+                >
                   {installmentsError}
                 </p>
               )}
@@ -820,8 +823,9 @@ function ProductDetail() {
                       })}
                     </tbody>
                   </table>
-                  {installmentOptions.filter((option) => [1, 3, 6, 9, 12].includes(option.installments))
-                    .length === 0 && (
+                  {installmentOptions.filter((option) =>
+                    [1, 3, 6, 9, 12].includes(option.installments),
+                  ).length === 0 && (
                     <p className="p-4 text-sm text-muted-foreground">
                       No hay planes de 1, 3, 6, 9 o 12 cuotas para esta tarjeta y banco.
                     </p>

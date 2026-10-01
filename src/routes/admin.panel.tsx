@@ -581,7 +581,7 @@ function AdminDashboard() {
               stickyHeader
               stickyScrollbar
               className="min-w-40rem w-full text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
-              containerClassName="overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+              containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
@@ -619,8 +619,8 @@ function AdminDashboard() {
               </TableBody>
             </Table>
           </div>
-          <div className="mt-4 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden sm:w-full">
-            <div className="flex w-full flex-wrap items-center justify-center gap-2">
+          <div className="mt-4 flex flex-col gap-3 pb-4">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -664,7 +664,7 @@ function AdminDashboard() {
                 max={1000}
                 value={ordersPageSizeInput}
                 onChange={(e) => setOrdersPageSizeInput(e.target.value)}
-                className="h-8 w-20 bg-background/50 desktop-no-spinner"
+                className="h-8 w-20 bg-background/50 text-center desktop-no-spinner"
               />
               {(() => {
                 const v = Number(ordersPageSizeInput);
@@ -698,14 +698,14 @@ function AdminDashboard() {
         </div>
 
         <div>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
               <h2 className="font-display font-semibold">Total de unidades</h2>
               <span className="rounded-full bg-linear-to-r from-blue-600 to-blue-500 px-3 py-1 text-sm font-medium text-white shadow-lg">
                 {formatNumber(totalStockUnits)}
               </span>
             </div>
-            <div className="relative w-full sm:w-64">
+            <div className="relative w-full min-w-0 sm:w-64">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
@@ -721,39 +721,41 @@ function AdminDashboard() {
             </div>
           </div>
           <div className="glass-panel mt-4 w-full overflow-hidden rounded-2xl">
-            <ul className="w-full divide-y divide-border/60">
-              {currentStockItems.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex min-w-0 items-center justify-between gap-2 px-4 py-2 sm:px-5"
-                >
-                  <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm">
-                    <span className="min-w-0 wrap-break-word">{item.name}</span>
-                    {item.variantName ? (
-                      <span className="max-w-full shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
-                        {item.variantName}
-                      </span>
-                    ) : null}
-                  </span>
-                  <Badge
-                    variant={item.stock === 0 ? "destructive" : "secondary"}
-                    className="px-2 py-1 text-[11px]"
+            <div className="w-full overflow-x-auto [touch-action:pan-x_pan-y]">
+              <ul className="min-w-full w-full divide-y divide-border/60">
+                {currentStockItems.map((item) => (
+                  <li
+                    key={item.id}
+                    className="flex min-w-0 items-center justify-between gap-2 px-4 py-2 sm:px-5"
                   >
-                    {item.stock} unidades
-                  </Badge>
-                </li>
-              ))}
-              {searchedStockItems.length === 0 ? (
-                <li className="flex min-h-22.5 items-center justify-center px-5 py-3 text-center text-sm text-muted-foreground">
-                  {normalizedStockSearch
-                    ? "No se encontraron productos."
-                    : "No hay productos disponibles."}
-                </li>
-              ) : null}
-            </ul>
+                    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm">
+                      <span className="min-w-0 wrap-break-word">{item.name}</span>
+                      {item.variantName ? (
+                        <span className="max-w-full shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+                          {item.variantName}
+                        </span>
+                      ) : null}
+                    </span>
+                    <Badge
+                      variant={item.stock === 0 ? "destructive" : "secondary"}
+                      className="px-2 py-1 text-[11px]"
+                    >
+                      {item.stock} unidades
+                    </Badge>
+                  </li>
+                ))}
+                {searchedStockItems.length === 0 ? (
+                  <li className="flex min-h-22.5 items-center justify-center px-5 py-3 text-center text-sm text-muted-foreground">
+                    {normalizedStockSearch
+                      ? "No se encontraron productos."
+                      : "No hay productos disponibles."}
+                  </li>
+                ) : null}
+              </ul>
+            </div>
           </div>
-          <div className="mt-4 flex w-[calc(100vw-2rem)] max-w-full flex-col gap-3 overflow-hidden pb-4 sm:w-full">
-            <div className="flex w-full flex-wrap items-center justify-center gap-2">
+          <div className="mt-4 flex flex-col gap-3 pb-4">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -797,7 +799,7 @@ function AdminDashboard() {
                 max={1000}
                 value={stockPageSizeInput}
                 onChange={(e) => setStockPageSizeInput(e.target.value)}
-                className="h-8 w-20 bg-background/50 desktop-no-spinner"
+                className="h-8 w-20 bg-background/50 text-center desktop-no-spinner"
               />
               {(() => {
                 const v = Number(stockPageSizeInput);

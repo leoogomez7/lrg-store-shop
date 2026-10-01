@@ -104,7 +104,8 @@ function CheckoutPage() {
   );
   const isCardPayment = mercadoPagoBrands.size > 0;
   const isMercadoPagoPayment = isCardPayment;
-  const hasCashOrTransferPayment = Object.values(paymentMethodsByBrand).some(isCashOrTransferMethod);
+  const hasCashOrTransferPayment =
+    Object.values(paymentMethodsByBrand).some(isCashOrTransferMethod);
   const shouldAutoMarkPaymentAsPaid = Object.values(paymentMethodsByBrand).some((method) =>
     isCardMethod(method),
   );
@@ -757,7 +758,7 @@ function CheckoutPage() {
                 )}
                 <div className="space-y-2 sm:col-span-2">
                   <div className="grid gap-3 pt-2">
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2.2fr_1fr_2.2fr_1fr_1fr]">
+                    <div className="hidden gap-3 md:grid md:grid-cols-2 lg:grid-cols-[2.2fr_1fr_2.2fr_1fr_1fr]">
                       {(
                         [
                           ["Calle", street, setStreet, false],
@@ -782,7 +783,7 @@ function CheckoutPage() {
                       ))}
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(7rem,1.1fr)_2fr_2fr_3fr]">
+                    <div className="hidden gap-3 md:grid md:grid-cols-2 lg:grid-cols-[minmax(7rem,1.1fr)_2fr_2fr_3fr]">
                       {(
                         [
                           ["Código Postal", postalCode, setPostalCode, false],
@@ -806,6 +807,29 @@ function CheckoutPage() {
                                 ? "Entre calles, color de la casa, etc."
                                 : undefined
                             }
+                          />
+                        </label>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 md:hidden">
+                      {(
+                        [
+                          ["Depto", apartment, setApartment, false],
+                          ["Código Postal", postalCode, setPostalCode, false],
+                          ["Ciudad", city, setCity, false],
+                          ["Provincia", province, setProvince, false],
+                        ] as Array<[string, string, (next: string) => void, boolean]>
+                      ).map(([label, value, setter, synced]) => (
+                        <label key={String(label)} className="space-y-1 text-sm">
+                          <span>{label}</span>
+                          <Input
+                            value={String(value)}
+                            onChange={(event) => {
+                              (setter as (next: string) => void)(event.target.value);
+                              setSelectedSavedAddress("");
+                            }}
+                            readOnly={Boolean(synced)}
+                            className={synced ? "h-10 bg-muted/40" : "h-10"}
                           />
                         </label>
                       ))}

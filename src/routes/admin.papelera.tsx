@@ -394,10 +394,20 @@ function AdminTrash() {
               className="h-9 pl-9"
             />
           </div>
-          <Button type="button" variant="outline" className="h-9" onClick={emptyTrash}>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 max-md:flex-1 max-md:justify-center"
+            onClick={emptyTrash}
+          >
             <Trash2 className="size-4" /> Vaciar papelera
           </Button>
-          <Button type="button" variant="outline" className="h-9" onClick={restoreAllEntries}>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 max-md:flex-1 max-md:justify-center"
+            onClick={restoreAllEntries}
+          >
             <RotateCcw className="size-4" /> Restaurar todos
           </Button>
         </div>
@@ -423,7 +433,7 @@ function AdminTrash() {
         <Table
           hideScrollbarOnMobile
           hideScrollbar
-          containerClassName="overflow-x-hidden overflow-y-visible"
+          containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
           className="w-full min-w-0 table-fixed text-center text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-3 [&_th]:py-3 [&_td]:text-center [&_th]:text-center"
         >
           <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">

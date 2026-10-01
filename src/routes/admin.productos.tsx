@@ -3593,6 +3593,7 @@ function AdminProducts() {
       <Dialog
         open={importSetupOpen}
         onOpenChange={(open) => {
+          setCreateChoiceOpen(false);
           setImportSetupOpen(open);
           if (!open) setImportSetupSource(null);
         }}
@@ -3711,6 +3712,7 @@ function AdminProducts() {
               type="button"
               className="w-full sm:col-span-2 lg:col-span-1"
               onClick={() => {
+                setCreateChoiceOpen(false);
                 setImportSetupOpen(false);
                 setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
                 if (importSetupSource === "images") multiProductInputRef.current?.click();
@@ -3718,13 +3720,22 @@ function AdminProducts() {
                 if (importSetupSource === "store") setStoreImportLinkOpen(true);
               }}
             >
-              Continuar
+              <span className="inline-flex items-center gap-2 text-current">
+                <span>Continuar</span>
+                <ArrowRight className="size-4 text-current" />
+              </span>
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={storeImportLinkOpen} onOpenChange={setStoreImportLinkOpen}>
+      <Dialog
+        open={storeImportLinkOpen}
+        onOpenChange={(open) => {
+          if (open) setImportSetupOpen(false);
+          setStoreImportLinkOpen(open);
+        }}
+      >
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Importar desde PlayStation Store</DialogTitle>

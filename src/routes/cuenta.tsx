@@ -2275,7 +2275,7 @@ function AccountPageContent({
                               className="h-10 border-border/60"
                             />
                           </div>
-                          <div className="grid gap-3">
+                          <div className="hidden gap-3 md:grid">
                             <div className="grid gap-3">
                               {(
                                 [
@@ -2332,6 +2332,33 @@ function AccountPageContent({
                                       label === "Referencias"
                                         ? "Entre calles, color de la casa, etc."
                                         : undefined
+                                    }
+                                  />
+                                </label>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 md:hidden">
+                              {(
+                                [
+                                  ["Depto", addressApartment, setAddressApartment, false],
+                                  ["Código Postal", addressPostalCode, setAddressPostalCode, false],
+                                  ["Ciudad", addressCity, setAddressCity, false],
+                                  ["Provincia", addressProvince, setAddressProvince, false],
+                                ] as const
+                              ).map(([label, value, setter, synced]) => (
+                                <label
+                                  key={String(label)}
+                                  className="space-y-2 text-sm font-medium"
+                                >
+                                  <span>{label}</span>
+                                  <Input
+                                    value={String(value)}
+                                    onChange={(event) =>
+                                      (setter as (next: string) => void)(event.target.value)
+                                    }
+                                    readOnly={Boolean(synced)}
+                                    className={
+                                      synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"
                                     }
                                   />
                                 </label>
@@ -2559,7 +2586,7 @@ function AccountPageContent({
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-3">
+              <div className="mt-5 hidden gap-3 md:grid">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2.2fr_1fr_2.2fr_1fr_1fr]">
                   {(
                     [
@@ -2603,6 +2630,26 @@ function AccountPageContent({
                             ? "Entre calles, color de la casa, etc."
                             : undefined
                         }
+                      />
+                    </label>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-3 md:hidden">
+                  {(
+                    [
+                      ["Depto", addressApartment, setAddressApartment, false],
+                      ["Código Postal", addressPostalCode, setAddressPostalCode, false],
+                      ["Ciudad", addressCity, setAddressCity, false],
+                      ["Provincia", addressProvince, setAddressProvince, false],
+                    ] as const
+                  ).map(([label, value, setter, synced]) => (
+                    <label key={String(label)} className="space-y-2 text-sm font-medium">
+                      <span>{label}</span>
+                      <Input
+                        value={String(value)}
+                        onChange={(event) => (setter as (next: string) => void)(event.target.value)}
+                        readOnly={Boolean(synced)}
+                        className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
                       />
                     </label>
                   ))}
