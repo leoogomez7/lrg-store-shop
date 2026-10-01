@@ -4512,7 +4512,7 @@ function AdminProducts() {
           </div>
           <DialogFooter
             className={cn(
-              "gap-3 max-md:justify-between max-md:pt-3",
+              "gap-6 max-md:justify-between max-md:pt-3",
               isImportingStore && "hidden",
             )}
           >
