@@ -685,9 +685,9 @@ function AccountPageContent({
   ]);
 
   useEffect(() => {
-    const nextTab = resolveTabFromPath(location.pathname);
-    setActiveTab(nextTab);
     setMobileMenuOpen(false);
+    if (location.pathname !== "/cuenta" && !location.pathname.startsWith("/cuenta/")) return;
+    setActiveTab(resolveTabFromPath(location.pathname));
   }, [location.pathname]);
 
   useEffect(() => {
