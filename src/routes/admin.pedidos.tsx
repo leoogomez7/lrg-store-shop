@@ -1316,7 +1316,7 @@ function AdminOrders() {
     return results.slice(page * pageSize, page * pageSize + pageSize);
   }, [results, page, pageSize]);
   const expandedOrder = expandedOrderId
-    ? results.find((order) => order.id === expandedOrderId) ?? null
+    ? (results.find((order) => order.id === expandedOrderId) ?? null)
     : null;
   const visibleOrderIds = visibleResults.map((order) => order.id);
   const hasExpandedOrder = expandedOrderId !== null;
@@ -2782,10 +2782,7 @@ function AdminOrders() {
                         <TableRow
                           key={`${order.id}-details`}
                           ref={expandedOrderId === order.id ? quickEditDetailRef : undefined}
-                          className={cn(
-                            !isQuickEditing &&
-                              "max-md:hidden",
-                          )}
+                          className={cn(!isQuickEditing && "max-md:hidden")}
                         >
                           <TableCell
                             colSpan={10}
@@ -2797,7 +2794,8 @@ function AdminOrders() {
                             <div
                               className={cn(
                                 "relative w-full max-w-[calc(100vw-2rem)] min-w-0 space-y-4 overflow-x-hidden overflow-y-visible rounded-2xl bg-surface-2/90 p-3 text-sm sm:max-w-full sm:p-5",
-                                !isQuickEditing && "max-md:min-h-full max-md:max-w-none max-md:rounded-none max-md:px-3 max-md:pb-4 max-md:pt-12",
+                                !isQuickEditing &&
+                                  "max-md:min-h-full max-md:max-w-none max-md:rounded-none max-md:px-3 max-md:pb-4 max-md:pt-12",
                               )}
                             >
                               {!isQuickEditing ? (
@@ -3264,16 +3262,14 @@ function AdminOrders() {
                   ],
                   ["Fecha", formatDate(expandedOrder.date)],
                   ["Estado", capitalize(expandedOrder.status)],
-                  ["Método de pago", expandedOrder.paymentMethod || "—"],
-                  ["Método de envío", expandedOrder.shippingMethod || "—"],
                   ["Número de envío", expandedOrder.shippingNumber || "—"],
-                  ["Observaciones", expandedOrder.extraInfo || "—"],
                 ].map(([label, value]) => (
                   <div key={label} className="min-w-0">
                     <span className="block text-xs text-muted-foreground">{label}</span>
                     <span className="block wrap-break-word font-medium">{value}</span>
                   </div>
                 ))}
+                {expandedOrder.isGuest ? <Badge variant="warning">Invitado</Badge> : null}
               </section>
 
               <section className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-3">
@@ -3281,12 +3277,24 @@ function AdminOrders() {
                   Productos
                 </h3>
                 {expandedOrder.items.map((item, index) => {
+                  const product = allProducts.find(
+                    (candidate) =>
+                      candidate.id === item.productId ||
+                      candidate.variantId === item.variantId ||
+                      candidate.name === item.name,
+                  );
                   const supplier = getSupplierForItem(
                     item.name,
                     item.productId,
                     item.variantId,
                   )?.supplier;
-                  const brandName = getBrandFullName(item.brand ?? expandedOrder.brand);
+                  const brandName = getBrandFullName(
+                    item.brand ?? product?.brand ?? expandedOrder.brand,
+                  );
+                  const variantName =
+                    item.variantName ??
+                    product?.variantName ??
+                    product?.variants?.find((variant) => variant.id === item.variantId)?.name;
                   return (
                     <div
                       key={`${item.name}-${item.variantId ?? index}`}
@@ -3295,11 +3303,11 @@ function AdminOrders() {
                       <div className="min-w-0">
                         <p className="wrap-break-word font-medium">
                           {item.name}
-                          {item.variantName ? ` · ${item.variantName}` : ""}
+                          {variantName ? ` · ${variantName}` : ""}
                         </p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           {brandName} · {item.quantity} × {formatPrice(item.price)}
-                          {supplier?.name ? ` · Proveedor: ${supplier.name}` : ""}
+                          {` · Proveedor: ${supplier?.name ?? "No asignado"}`}
                         </p>
                       </div>
                       <span className="shrink-0 text-right font-semibold">
@@ -3309,6 +3317,133 @@ function AdminOrders() {
                   );
                 })}
               </section>
+
+              {(() => {
+                const storeSlugs = Array.from(
+                  new Map(
+                    expandedOrder.items.map((item) => {
+                      const product = allProducts.find(
+                        (candidate) =>
+                          candidate.id === item.productId ||
+                          candidate.variantId === item.variantId ||
+                          candidate.name === item.name,
+                      );
+                      const itemBrand = item.brand ?? product?.brand ?? expandedOrder.brand;
+                      return [itemBrand, itemBrand] as const;
+                    }),
+                  ).values(),
+                );
+
+                return (
+                  <section className="grid min-w-0 gap-3 border-t border-border/50 pt-4 sm:grid-cols-2">
+                    {storeSlugs.map((brandSlug) => {
+                      const itemsInBrand = expandedOrder.items.filter((item) => {
+                        const product = allProducts.find(
+                          (candidate) =>
+                            candidate.id === item.productId ||
+                            candidate.variantId === item.variantId ||
+                            candidate.name === item.name,
+                        );
+                        return (item.brand ?? product?.brand ?? expandedOrder.brand) === brandSlug;
+                      });
+                      const suppliers = Array.from(
+                        new Set(
+                          itemsInBrand
+                            .map(
+                              (item) =>
+                                getSupplierForItem(item.name, item.productId, item.variantId)
+                                  ?.supplier?.name,
+                            )
+                            .filter((name): name is string => Boolean(name)),
+                        ),
+                      );
+                      const paymentStatuses = [
+                        ...new Set(
+                          itemsInBrand.map(
+                            (item) =>
+                              item.paymentStatus ??
+                              expandedOrder.paymentStatus ??
+                              getPaymentStatus(expandedOrder.status),
+                          ),
+                        ),
+                      ];
+                      const deliveryStatuses = [
+                        ...new Set(
+                          itemsInBrand.map(
+                            (item) =>
+                              item.deliveryStatus ??
+                              expandedOrder.deliveryStatus ??
+                              getDeliveryStatus(expandedOrder.status),
+                          ),
+                        ),
+                      ];
+                      const storeDisplayName = getBrandFullName(brandSlug);
+                      const getStoreMethod = (
+                        method: "paymentMethod" | "shippingMethod",
+                        orderMethod?: string,
+                      ) => {
+                        const itemMethods = [
+                          ...new Set(
+                            itemsInBrand
+                              .map((item) => item[method])
+                              .filter((value): value is string => Boolean(value)),
+                          ),
+                        ];
+                        if (itemMethods.length === 1) return itemMethods[0];
+                        if (itemMethods.length > 1) return "Mixto";
+
+                        const legacyStoreMethod = (orderMethod ?? "")
+                          .split(" | ")
+                          .find((value) => value.startsWith(`${storeDisplayName}:`));
+                        return legacyStoreMethod
+                          ? legacyStoreMethod.slice(storeDisplayName.length + 1).trim()
+                          : orderMethod || "—";
+                      };
+
+                      return (
+                        <div
+                          key={brandSlug}
+                          className="rounded-xl border border-border/60 bg-surface/40 p-3"
+                        >
+                          <h3 className="mb-3 text-sm font-semibold">{storeDisplayName}</h3>
+                          <div className="space-y-2.5 text-sm">
+                            {[
+                              [
+                                "Método de pago",
+                                getStoreMethod("paymentMethod", expandedOrder.paymentMethod),
+                              ],
+                              [
+                                "Método de envío",
+                                getStoreMethod("shippingMethod", expandedOrder.shippingMethod),
+                              ],
+                              [
+                                "Estado de pago",
+                                paymentStatuses.length === 1 ? paymentStatuses[0] : "Mixto",
+                              ],
+                              [
+                                "Estado de envío",
+                                deliveryStatuses.length === 1 ? deliveryStatuses[0] : "Mixto",
+                              ],
+                              [
+                                "Proveedor",
+                                suppliers.length ? suppliers.join(", ") : "No asignado",
+                              ],
+                              ["Observaciones", expandedOrder.extraInfo || "—"],
+                            ].map(([label, value]) => (
+                              <div key={label} className="flex items-start justify-between gap-3">
+                                <span className="min-w-0 text-muted-foreground">{label}</span>
+                                <span className="min-w-0 max-w-[60%] text-right wrap-break-word font-medium">
+                                  {String(value)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </section>
+                );
+              })()}
 
               <section className="grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-surface/40 p-3 text-center">
                 <div>
@@ -3327,7 +3462,7 @@ function AdminOrders() {
             </div>
           ) : null}
           {expandedOrder ? (
-            <DialogFooter className="flex-wrap gap-2 border-t border-border/60 pt-2 max-md:w-full max-md:shrink-0">
+            <DialogFooter className="flex-wrap gap-2 border-t border-border/60 pt-2 max-md:w-full max-md:shrink-0 max-md:flex-row max-md:justify-center max-md:overflow-y-auto">
               <Button
                 type="button"
                 variant="outline"
@@ -3373,8 +3508,29 @@ function AdminOrders() {
               >
                 <Pencil className="size-4" /> Editar
               </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setExpandedOrderId(null)}>
-                Cerrar
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setConfirmState({
+                    open: true,
+                    title: `Eliminar pedido ${expandedOrder.id}?`,
+                    description: "Esta acción no se puede deshacer.",
+                    onConfirm: () => handleDeleteOrder(expandedOrder),
+                  })
+                }
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="size-4" /> Eliminar
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setExpandedOrderId(null)}
+              >
+                <EyeOff className="size-4" /> Ocultar
               </Button>
             </DialogFooter>
           ) : null}
@@ -3460,11 +3616,11 @@ function AdminOrders() {
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeOrderEditor()}>
         <DialogContent
           key={isCreatingOrder ? "new-order-dialog" : "edit-order-dialog"}
-          className="left-2 top-2 grid h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] translate-x-0 translate-y-0 touch-pan-y overflow-x-hidden overflow-y-hidden overscroll-y-contain p-3 shadow-none md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:left-[50%] sm:top-[50%] sm:h-[calc(100vh-4rem)] sm:w-[calc(100vw-2rem)] sm:max-h-[calc(100vh-4rem)] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:p-6"
+          className="left-2 top-2 grid h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] translate-x-0 translate-y-0 touch-pan-y overflow-x-hidden overflow-y-hidden overscroll-y-contain p-3 shadow-none md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 md:left-[50%] md:top-[50%] md:h-[calc(100vh-4rem)] md:w-[calc(100vw-2rem)] md:max-h-[calc(100vh-4rem)] md:translate-x-[-50%] md:translate-y-[-50%] md:p-6 max-md:fixed max-md:inset-0 max-md:left-0 max-md:top-0 max-md:h-dvh max-md:max-h-dvh max-md:w-screen max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:gap-3 max-md:p-3 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <DialogHeader className="max-md:min-w-0 max-md:shrink-0">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-3 max-md:flex-wrap">
               <DialogTitle>{isCreatingOrder ? "Nuevo pedido" : "Editar pedido"}</DialogTitle>
               {!isCreatingOrder && bulkOrderEditQueue.length > 1 ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -3494,7 +3650,7 @@ function AdminOrders() {
             </div>
           </DialogHeader>
           {orderForm ? (
-            <div className="min-h-0 min-w-0 space-y-4 overflow-y-auto overscroll-y-contain touch-pan-y sm:pr-1">
+            <div className="min-h-0 min-w-0 space-y-4 overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y max-md:pb-2 sm:pr-1">
               <div className="rounded-xl border border-border/60 bg-surface/40 p-4">
                 <span className="mb-3 block text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                   Datos cliente
@@ -4100,7 +4256,7 @@ function AdminOrders() {
           />
 
           <DialogFooter className="max-md:w-full max-md:shrink-0 max-md:border-t max-md:border-border/60 max-md:pt-2">
-            <div className="flex w-full items-center justify-between gap-2">
+            <div className="flex w-full items-center justify-between gap-2 max-md:flex-wrap max-md:justify-end">
               <span />
               {!isCreatingOrder && bulkOrderEditQueue.length > 1 ? (
                 <div className="flex gap-2">
@@ -4126,7 +4282,7 @@ function AdminOrders() {
               ) : (
                 <span />
               )}
-              <div className="flex gap-2">
+              <div className="flex gap-2 max-md:flex-wrap max-md:justify-end">
                 {!isCreatingOrder ? (
                   <Button
                     type="button"

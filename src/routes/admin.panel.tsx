@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
@@ -74,6 +74,8 @@ export const Route = createFileRoute("/admin/panel")({
 
 function AdminDashboard() {
   const navigate = useNavigate();
+  const ordersSectionRef = useRef<HTMLDivElement | null>(null);
+  const stockSectionRef = useRef<HTMLDivElement | null>(null);
   const ordersTablePointerStart = useRef<{ x: number; y: number } | null>(null);
   const ordersTableDidSwipe = useRef(false);
   const { data: orders } = useSuspenseQuery(orderQueries.list());
@@ -284,10 +286,6 @@ function AdminDashboard() {
   const [stockPageSize, setStockPageSize] = useState<number>(16);
   const [stockPageSizeInput, setStockPageSizeInput] = useState<string>("16");
 
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [stockPage, stockPageSize]);
-
   const stockPages = Math.max(1, Math.ceil(searchedStockItems.length / stockPageSize));
   const currentStockItems = searchedStockItems.slice(
     stockPage * stockPageSize,
@@ -300,10 +298,6 @@ function AdminDashboard() {
   const [ordersPage, setOrdersPage] = useState(0);
   const [ordersPageSize, setOrdersPageSize] = useState<number>(16);
   const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("16");
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [ordersPage, ordersPageSize]);
 
   const ordersPages = Math.max(1, Math.ceil(recentOrders.length / ordersPageSize));
   const currentOrders = recentOrders.slice(
@@ -321,6 +315,12 @@ function AdminDashboard() {
     return sectors
       .map((sector) => brands[sector]?.shortName ?? brands[sector]?.name ?? sector)
       .join(" / ");
+  };
+  const scrollToTableSection = (section: HTMLDivElement | null) => {
+    if (!section) return;
+    const topOffset = window.matchMedia("(max-width: 1023px)").matches ? 72 : 24;
+    const top = section.getBoundingClientRect().top + window.scrollY - topOffset;
+    window.scrollTo({ top: Math.max(top, 0), behavior: "smooth" });
   };
 
   return (
@@ -574,8 +574,8 @@ function AdminDashboard() {
         {/* Sectores ya están resumidos en las tarjetas. */}
       </section>
 
-      <section className="mt-8 grid gap-6">
-        <div>
+      <section className="mt-8 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
+        <div ref={ordersSectionRef} className="min-w-0">
           <h2 className="mb-3 font-display text-xl font-semibold">Últimos pedidos</h2>
           <div className="glass-panel mt-4 overflow-visible rounded-2xl">
             <Table
@@ -638,24 +638,30 @@ function AdminDashboard() {
             </Table>
           </div>
           <div className="mt-4 flex flex-col gap-3 pb-4">
-            <div className="flex w-full max-w-full flex-wrap items-center justify-center gap-2">
+            <div className="flex w-full min-w-0 max-w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setOrdersPage(0)}
+                onClick={() => {
+                  setOrdersPage(0);
+                  scrollToTableSection(ordersSectionRef.current);
+                }}
                 disabled={ordersPage === 0 || ordersPages === 0}
                 className="h-9 px-4"
               >
                 Principio
               </Button>
-              <div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+              <div className="flex min-w-0 max-w-full flex-wrap items-center justify-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
                 {Array.from({ length: Math.max(ordersPages, 1) }, (_, index) => (
                   <button
                     key={index}
                     type="button"
                     className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                    onClick={() => setOrdersPage(index)}
+                    onClick={() => {
+                      setOrdersPage(index);
+                      scrollToTableSection(ordersSectionRef.current);
+                    }}
                     disabled={ordersPages === 0}
                   >
                     {index + 1}
@@ -666,7 +672,10 @@ function AdminDashboard() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setOrdersPage(ordersPages - 1)}
+                onClick={() => {
+                  setOrdersPage(ordersPages - 1);
+                  scrollToTableSection(ordersSectionRef.current);
+                }}
                 disabled={ordersPage >= ordersPages - 1 || ordersPages === 0}
                 className="h-9 px-4"
               >
@@ -698,6 +707,7 @@ function AdminDashboard() {
                       const final = Math.min(1000, Math.floor(v));
                       setOrdersPageSize(final);
                       setOrdersPage(0);
+                      scrollToTableSection(ordersSectionRef.current);
                     }}
                     disabled={!isValid || !isChanged}
                     className="h-8 px-4"
@@ -715,7 +725,7 @@ function AdminDashboard() {
           </div>
         </div>
 
-        <div>
+        <div ref={stockSectionRef} className="min-w-0">
           <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3">
               <h2 className="font-display font-semibold">Total de unidades</h2>
@@ -738,7 +748,7 @@ function AdminDashboard() {
               />
             </div>
           </div>
-          <div className="glass-panel mt-4 w-full overflow-hidden rounded-2xl">
+          <div className="glass-panel mt-4 w-full min-w-0 max-w-full overflow-hidden rounded-2xl">
             <div className="w-full min-w-0 max-w-full overflow-hidden">
               <ul className="w-full min-w-0 max-w-full divide-y divide-border/60">
                 {currentStockItems.map((item) => (
@@ -773,24 +783,30 @@ function AdminDashboard() {
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-3 pb-4">
-            <div className="flex w-full max-w-full flex-wrap items-center justify-center gap-2">
+            <div className="flex w-full min-w-0 max-w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setStockPage(0)}
+                onClick={() => {
+                  setStockPage(0);
+                  scrollToTableSection(stockSectionRef.current);
+                }}
                 disabled={stockPage === 0 || stockPages === 0}
                 className="h-9 px-4"
               >
                 Principio
               </Button>
-              <div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+              <div className="flex min-w-0 max-w-full flex-wrap items-center justify-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
                 {Array.from({ length: Math.max(stockPages, 1) }, (_, index) => (
                   <button
                     key={index}
                     type="button"
                     className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === stockPage ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                    onClick={() => setStockPage(index)}
+                    onClick={() => {
+                      setStockPage(index);
+                      scrollToTableSection(stockSectionRef.current);
+                    }}
                     disabled={stockPages === 0}
                   >
                     {index + 1}
@@ -801,7 +817,10 @@ function AdminDashboard() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setStockPage(stockPages - 1)}
+                onClick={() => {
+                  setStockPage(stockPages - 1);
+                  scrollToTableSection(stockSectionRef.current);
+                }}
                 disabled={stockPage >= stockPages - 1 || stockPages === 0}
                 className="h-9 px-4"
               >
@@ -833,6 +852,7 @@ function AdminDashboard() {
                       const final = Math.min(1000, Math.floor(v));
                       setStockPageSize(final);
                       setStockPage(0);
+                      scrollToTableSection(stockSectionRef.current);
                     }}
                     disabled={!isValid || !isChanged}
                     className="h-8 px-4"

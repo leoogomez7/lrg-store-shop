@@ -274,6 +274,7 @@ function AdminProducts() {
   const [importSource, setImportSource] = useState<"images" | "text" | "store" | null>(null);
   const [storeImportLinkOpen, setStoreImportLinkOpen] = useState(false);
   const [storeImportLink, setStoreImportLink] = useState("");
+  const [isPreparingImport, setIsPreparingImport] = useState(false);
   const [isImportingStore, setIsImportingStore] = useState(false);
   const [isSavingImports, setIsSavingImports] = useState(false);
   const [importPreviewPage, setImportPreviewPage] = useState(0);
@@ -555,6 +556,9 @@ function AdminProducts() {
   const handleImportTextProduct = async (file: File | null, append = false) => {
     if (!file) return;
 
+    setIsPreparingImport(true);
+    setImportCategoryOpen(true);
+
     let parsedProducts: Array<{ name: string; price: number }>;
     try {
       parsedProducts = await parseTextImportProducts(file);
@@ -562,12 +566,16 @@ function AdminProducts() {
       toast.error(
         error instanceof Error ? error.message : "No se pudo leer el archivo seleccionado.",
       );
+      setIsPreparingImport(false);
+      setImportCategoryOpen(false);
       return;
     }
     if (!parsedProducts.length) {
       toast.error(
         "No pude detectar productos con nombre y precio. Si el PDF es una imagen escaneada, necesitás un PDF con texto seleccionable.",
       );
+      setIsPreparingImport(false);
+      setImportCategoryOpen(false);
       return;
     }
 
@@ -622,7 +630,7 @@ function AdminProducts() {
     setImportSubcategory(importSubcategory);
     if (!append) setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
     setImportPreviewPage(append ? Math.floor(pendingImportedProducts.length / 30) : 0);
-    setImportCategoryOpen(true);
+    setIsPreparingImport(false);
   };
 
   const handleImportMultipleProducts = async (files: FileList | null, append = false) => {
@@ -638,11 +646,21 @@ function AdminProducts() {
       return;
     }
 
-    const imageDataUrls = await Promise.all(
-      imageFiles.map(async (file) =>
-        optimizeImageDataUrl(await cropImageDataUrl(await fileToDataUrl(file))),
-      ),
-    );
+    setIsPreparingImport(true);
+    setImportCategoryOpen(true);
+    let imageDataUrls: string[];
+    try {
+      imageDataUrls = await Promise.all(
+        imageFiles.map(async (file) =>
+          optimizeImageDataUrl(await cropImageDataUrl(await fileToDataUrl(file))),
+        ),
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudieron procesar las imágenes.");
+      setIsPreparingImport(false);
+      setImportCategoryOpen(false);
+      return;
+    }
 
     const importedProducts = imageFiles.map((file, index) => {
       const baseName = file.name
@@ -696,7 +714,7 @@ function AdminProducts() {
     setImportSubcategory(importSubcategory);
     if (!append) setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
     setImportPreviewPage(append ? Math.floor(pendingImportedProducts.length / 30) : 0);
-    setImportCategoryOpen(true);
+    setIsPreparingImport(false);
   };
 
   const addMoreImportedProducts = () => {
@@ -3918,7 +3936,7 @@ function AdminProducts() {
       <Dialog
         open={importCategoryOpen}
         onOpenChange={(open) => {
-          if (!open && isImportingStore) return;
+          if (!open && (isImportingStore || isPreparingImport)) return;
           setImportCategoryOpen(open);
         }}
       >
@@ -3927,22 +3945,30 @@ function AdminProducts() {
             <DialogTitle>
               {isImportingStore
                 ? "Cargando productos de PlayStation Store…"
-                : "Revisar productos antes de importar"}
+                : isPreparingImport
+                  ? "Cargando productos…"
+                  : "Revisar productos antes de importar"}
             </DialogTitle>
             <DialogDescription>
               {isImportingStore
                 ? "Consultando todas las páginas de la categoría. Esto puede tardar un poco."
-                : `Se encontraron ${pendingImportedProducts.length} productos. Revisá y editá los datos antes de agregarlos.`}
+                : isPreparingImport
+                  ? "Estamos procesando los archivos y preparando la vista previa."
+                  : `Se encontraron ${pendingImportedProducts.length} productos. Revisá y editá los datos antes de agregarlos.`}
             </DialogDescription>
           </DialogHeader>
-          {isImportingStore ? (
+          {isImportingStore || isPreparingImport ? (
             <div className="flex min-h-56 flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
               <LoaderCircle className="size-8 animate-spin text-primary" />
-              <p>Buscando productos y precios en todas las páginas…</p>
-              <p className="text-xs">No cierres esta ventana mientras se completa la consulta.</p>
+              <p>
+                {isImportingStore
+                  ? "Buscando productos y precios en todas las páginas…"
+                  : "Leyendo archivos y cargando productos…"}
+              </p>
+              <p className="text-xs">Esperá un momento mientras se completa el proceso.</p>
             </div>
           ) : null}
-          <div className={cn("space-y-4", isImportingStore && "hidden")}>
+          <div className={cn("space-y-4", (isImportingStore || isPreparingImport) && "hidden")}>
             <section className="space-y-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
               <h3 className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                 General
@@ -4513,7 +4539,7 @@ function AdminProducts() {
           <DialogFooter
             className={cn(
               "gap-6 max-md:justify-between max-md:pt-3",
-              isImportingStore && "hidden",
+              (isImportingStore || isPreparingImport) && "hidden",
             )}
           >
             <Button
