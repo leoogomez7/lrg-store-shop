@@ -254,6 +254,7 @@ function AdminProducts() {
   const [bulkEditQueue, setBulkEditQueue] = useState<string[]>([]);
   const [bulkQuickEditQueue, setBulkQuickEditQueue] = useState<string[]>([]);
   const [bulkEditPosition, setBulkEditPosition] = useState(0);
+  const [isBulkEditSession, setIsBulkEditSession] = useState(false);
   const bulkEditQueueRef = useRef<string[]>([]);
   const bulkEditPositionRef = useRef(0);
   const [initialVariantId, setInitialVariantId] = useState<string | null>(null);
@@ -1255,6 +1256,7 @@ function AdminProducts() {
     setBulkEditQueue([]);
     setBulkQuickEditQueue([]);
     setBulkEditPosition(0);
+    setIsBulkEditSession(false);
     bulkEditQueueRef.current = [];
     bulkEditPositionRef.current = 0;
   };
@@ -1499,6 +1501,7 @@ function AdminProducts() {
 
     bulkEditQueueRef.current = selectedProductIdsForBulk;
     bulkEditPositionRef.current = 0;
+    setIsBulkEditSession(selectedProductIdsForBulk.length > 1);
     setBulkEditQueue(selectedProductIdsForBulk);
     setBulkEditPosition(0);
 
@@ -1541,6 +1544,38 @@ function AdminProducts() {
 
     const nextVariant = nextProduct.variants?.[0];
     openEditProductDialog(nextProduct, nextVariant);
+  };
+
+  const skipBulkEditProduct = () => {
+    const queue = bulkEditQueueRef.current;
+    const currentProductId = productForm?.id;
+    if (!currentProductId || !queue.length || !isBulkEditSession) return;
+
+    const currentPosition = bulkEditPositionRef.current;
+    const remainingQueue = queue.filter((productId) => productId !== currentProductId);
+    const nextPosition = Math.min(currentPosition, remainingQueue.length - 1);
+    const nextProductId = remainingQueue[nextPosition];
+    if (!nextProductId) {
+      closeProductEditor();
+      return;
+    }
+
+    setSelectedProductIds((current) =>
+      current.filter((selectionKey) => getProductIdFromSelectionKey(selectionKey) !== currentProductId),
+    );
+    bulkEditQueueRef.current = remainingQueue;
+    bulkEditPositionRef.current = nextPosition;
+    setBulkEditQueue(remainingQueue);
+    setBulkEditPosition(nextPosition);
+
+    const nextProduct =
+      editableProducts.find((product) => product.id === nextProductId) ??
+      (productsData as Product[]).find((product) => product.id === nextProductId);
+    if (!nextProduct) {
+      closeProductEditor();
+      return;
+    }
+    openEditProductDialog(nextProduct, nextProduct.variants?.[0]);
   };
 
   const getQuickEditKey = (product: Product, variant?: ProductVariant) =>
@@ -2003,7 +2038,7 @@ function AdminProducts() {
     });
     return labels;
   }, []);
-  const formatCategoryLabel = (slug: string) => {
+  const formatCategoryLabel = useCallback((slug: string) => {
     const configuredLabel =
       categoryLabels.get(slug) ?? categoryLabels.get(slug.replace(/^root-/, ""));
     if (configuredLabel) return configuredLabel;
@@ -2014,7 +2049,7 @@ function AdminProducts() {
       .filter(Boolean)
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
-  };
+  }, [categoryLabels]);
 
   const availableCategoryNodes = useMemo(() => {
     const categoryTrees = new Map<
@@ -2093,7 +2128,7 @@ function AdminProducts() {
         } satisfies AdminCategoryFilterNode;
       })
       .sort((first, second) => first.label.localeCompare(second.label, "es"));
-  }, [editableProducts, categoryLabels]);
+  }, [editableProducts, formatCategoryLabel]);
   const categoryFilterNodeMap = useMemo(() => {
     const nodes = new Map<string, AdminCategoryFilterNode>();
     const collect = (items: AdminCategoryFilterNode[]) => {
@@ -3606,6 +3641,40 @@ function AdminProducts() {
                                   Oculto
                                 </span>
                               ) : null}
+                              {selectionMode ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  aria-label={`Eliminar ${product.name}${variant ? ` ${variant.name}` : ""}`}
+                                  title="Eliminar producto"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setConfirmState({
+                                      open: true,
+                                      title: variant
+                                        ? `¿Eliminar la variante ${variant.name}?`
+                                        : `¿Eliminar el producto ${product.name}?`,
+                                      description: "Esta acción enviará el elemento a la papelera.",
+                                      confirmLabel: "Eliminar",
+                                      onConfirm: () => {
+                                        void handleDeleteProduct(product.id, variant?.id);
+                                        setSelectedProductIds((current) => {
+                                          const next = current.filter(
+                                            (selectionKey) =>
+                                              selectionKey !== getProductSelectionKey(product, variant),
+                                          );
+                                          setSelectionMode(next.length > 0);
+                                          return next;
+                                        });
+                                      },
+                                    });
+                                  }}
+                                >
+                                  <Trash2 className="size-4" />
+                                </Button>
+                              ) : null}
                             </div>
                           </TableCell>
                           <TableCell className="text-center">
@@ -4909,6 +4978,8 @@ function AdminProducts() {
         bulkEditPosition={-1}
         bulkEditCount={0}
         onNavigateBulkEdit={() => {}}
+        onSkipBulkEdit={() => {}}
+        canSkipBulkEdit={false}
         onSave={handleSaveProduct}
         isSaving={isSavingProduct}
         supplierProducts={products}
@@ -4930,6 +5001,8 @@ function AdminProducts() {
         bulkEditPosition={bulkEditQueue.length > 0 ? bulkEditPosition : -1}
         bulkEditCount={bulkEditQueue.length}
         onNavigateBulkEdit={navigateBulkEditProduct}
+        onSkipBulkEdit={skipBulkEditProduct}
+        canSkipBulkEdit={isBulkEditSession && bulkEditQueue.length > 0}
         onSave={handleSaveProduct}
         isSaving={isSavingProduct}
         onDelete={
@@ -5017,6 +5090,8 @@ function ProductEditDialog({
   bulkEditPosition,
   bulkEditCount,
   onNavigateBulkEdit,
+  onSkipBulkEdit,
+  canSkipBulkEdit,
   onSave,
   isSaving,
   onDelete,
@@ -5032,6 +5107,8 @@ function ProductEditDialog({
   bulkEditPosition: number;
   bulkEditCount: number;
   onNavigateBulkEdit: (direction: -1 | 1) => void;
+  onSkipBulkEdit: () => void;
+  canSkipBulkEdit: boolean;
   onSave: () => void;
   isSaving: boolean;
   onDelete?: () => void;
@@ -5697,6 +5774,7 @@ function ProductEditDialog({
   const activeProfit = activeStorePrice - activeExpensesValue;
   const activeUsdRequired = activeCommissionCurrency === "USD" || activeExpensesCurrency === "USD";
   const hasBulkNavigation = bulkEditCount > 1;
+  const hasBulkSkip = canSkipBulkEdit;
   const canNavigatePrevious = bulkEditPosition > 0;
   const canNavigateNext = hasBulkNavigation && bulkEditPosition < bulkEditCount - 1;
   const confirmDescription = () => {
@@ -5746,9 +5824,9 @@ function ProductEditDialog({
         }}
       >
         <DialogHeader className="space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 pr-10 sm:pr-12">
             <DialogTitle>{modeTitle}</DialogTitle>
-            {hasBulkNavigation ? (
+            {hasBulkSkip ? (
               <div className="flex max-w-full flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <Button
                   type="button"
@@ -6988,8 +7066,32 @@ function ProductEditDialog({
           }}
         />
 
-        <DialogFooter className="max-md:w-full max-md:shrink-0 max-md:border-t max-md:border-border/60 max-md:pt-3">
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end">
+        <DialogFooter className="flex-wrap items-center justify-between gap-2 max-md:w-full max-md:shrink-0 max-md:border-t max-md:border-border/60 max-md:pt-3">
+          {hasBulkNavigation ? (
+            <div className="mr-auto flex shrink-0 items-center gap-2 max-md:order-first max-md:w-full max-md:justify-start">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onNavigateBulkEdit(-1)}
+                disabled={!canNavigatePrevious}
+                aria-label="Producto anterior"
+              >
+                <ArrowLeft className="size-4" /> Anterior
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onNavigateBulkEdit(1)}
+                disabled={!canNavigateNext}
+                aria-label="Producto siguiente"
+              >
+                Siguiente <ArrowRight className="size-4" />
+              </Button>
+            </div>
+          ) : null}
+          <div className="grid w-full grid-cols-2 gap-2 sm:ml-auto sm:w-auto sm:flex sm:items-center sm:justify-end">
             {onDelete ? (
               <Button
                 type="button"
@@ -7014,23 +7116,47 @@ function ProductEditDialog({
               disabled={isSaving}
               className={cn(
                 "rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none",
-                onDelete
-                  ? "max-md:col-start-2 max-md:row-start-1"
-                  : "max-md:col-start-1 max-md:row-start-1",
+                hasBulkSkip
+                  ? onDelete
+                    ? "max-md:col-start-2 max-md:row-start-1"
+                    : "max-md:col-start-1 max-md:row-start-1"
+                  : onDelete
+                    ? "max-md:col-start-1 max-md:row-start-2"
+                    : "max-md:col-start-1 max-md:row-start-1",
               )}
               style={{ boxShadow: "none" }}
             >
               <X className="mr-2 size-4" /> Cancelar
             </Button>
+            {hasBulkSkip ? (
+              <Button
+                type="button"
+                variant="default"
+                onClick={onSkipBulkEdit}
+                disabled={isSaving}
+                className={cn(
+                  "bg-emerald-600 text-white hover:bg-emerald-700",
+                  onDelete
+                    ? "max-md:col-start-1 max-md:row-start-2"
+                    : "max-md:col-start-2 max-md:row-start-1",
+                )}
+              >
+                Saltar <ArrowRight className="ml-2 size-4" />
+              </Button>
+            ) : null}
             <Button
               variant="default"
               disabled={!canSave || isSaving}
               onClick={() => setConfirmSaveOpen(true)}
               className={cn(
                 "rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50",
-                onDelete
-                  ? "max-md:col-span-2 max-md:row-start-2 max-md:w-full"
-                  : "max-md:col-start-2 max-md:row-start-1",
+                hasBulkSkip
+                  ? onDelete
+                    ? "max-md:col-start-2 max-md:row-start-2 max-md:w-full"
+                    : "max-md:col-span-2 max-md:row-start-2 max-md:w-full"
+                  : onDelete
+                    ? "max-md:col-start-2 max-md:row-start-2"
+                    : "max-md:col-start-2 max-md:row-start-1",
               )}
               style={{ boxShadow: "none" }}
             >
@@ -7043,30 +7169,6 @@ function ProductEditDialog({
             </Button>
           </div>
 
-          {hasBulkNavigation ? (
-            <div className="mr-auto flex items-center gap-2 max-md:w-full max-md:justify-center">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onNavigateBulkEdit(-1)}
-              disabled={!canNavigatePrevious}
-              aria-label="Producto anterior"
-            >
-              <ArrowLeft className="size-4" /> Anterior
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onNavigateBulkEdit(1)}
-              disabled={!canNavigateNext}
-              aria-label="Producto siguiente"
-            >
-              Siguiente <ArrowRight className="size-4" />
-            </Button>
-          </div>
-          ) : null}
         </DialogFooter>
         <ConfirmDialog
           open={confirmSaveOpen}

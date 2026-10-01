@@ -57,28 +57,37 @@ import { catalogQueries } from "@/services/catalog.service";
 import { useCart } from "@/store/cart-context";
 import { useNavigate } from "@tanstack/react-router";
 
+const formatInstallmentPrice = (value: number) =>
+  new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    maximumFractionDigits: 2,
+  }).format(value);
+
 export const Route = createFileRoute("/$brand/producto/$slug")({
   loader: async ({ params, context }) => {
     const brand = getBrand(params.brand);
     if (!brand) throw notFound();
     const [settings, product] = await Promise.all([
-      context.queryClient.ensureQueryData(catalogQueries.settings()),
+      context.queryClient.fetchQuery({ ...catalogQueries.settings(), staleTime: 0 }),
       context.queryClient.ensureQueryData(catalogQueries.detail(brand.slug, params.slug)),
     ]);
     applyAdminSettings(settings);
     refreshBrandData();
     if (!product) throw notFound();
     await context.queryClient.ensureQueryData(catalogQueries.related(brand.slug, params.slug));
+    const refreshedBrand = getBrand(params.brand);
+    if (!refreshedBrand) throw notFound();
     return {
       name: product.name,
       short: product.short,
-      brandName: brand.name,
-      favicon: brand.favicon,
-      configuredCategories: brand.categories,
-      configuredPaymentMethods: (brand.paymentMethods ?? [])
+      brandName: refreshedBrand.name,
+      favicon: refreshedBrand.favicon,
+      configuredCategories: refreshedBrand.categories,
+      configuredPaymentMethods: (refreshedBrand.paymentMethods ?? [])
         .filter((method) => method.enabled)
         .map((method) => method.name),
-      configuredFreeShippingThreshold: brand.shipping?.freeShippingThreshold ?? 0,
+      configuredFreeShippingThreshold: refreshedBrand.shipping?.freeShippingThreshold ?? 0,
     };
   },
   head: ({ loaderData }) => {
@@ -827,23 +836,23 @@ function ProductDetail() {
                 </p>
               ) : (
                 <div className="overflow-hidden rounded-lg border border-border">
-                  <table className="w-full table-fixed text-center text-sm">
+                  <table className="w-full table-fixed text-center text-sm tabular-nums">
                     <colgroup>
-                      <col className="w-1/3" />
-                      <col className="w-1/3" />
-                      <col className="w-1/3" />
+                      <col style={{ width: "33.333%" }} />
+                      <col style={{ width: "33.333%" }} />
+                      <col style={{ width: "33.334%" }} />
                     </colgroup>
                     <thead className="bg-muted/50 text-muted-foreground">
                       <tr>
-                        <th className="px-3 py-2 text-center font-medium">Cuotas</th>
-                        <th className="px-3 py-2 text-center font-medium">Valor por cuota</th>
-                        <th className="px-3 py-2 text-center font-medium">Total</th>
+                        <th className="px-2 py-2 text-center! font-medium">Cuotas</th>
+                        <th className="px-2 py-2 text-center! font-medium">Valor por cuota</th>
+                        <th className="px-2 py-2 text-center! font-medium">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {installmentOptions.map((option) => (
                         <tr key={option.installments} className="border-t border-border">
-                          <td className="px-3 py-2.5 text-center">
+                          <td className="px-2 py-2.5 text-center!">
                             {option.installments} {option.installments === 1 ? "cuota" : "cuotas"}
                             {option.installment_rate === 0 ? (
                               <span className="mt-0.5 block text-xs text-green-500">
@@ -851,11 +860,11 @@ function ProductDetail() {
                               </span>
                             ) : null}
                           </td>
-                          <td className="px-3 py-2.5 text-center font-medium">
-                            {formatPrice(option.installment_amount)}
+                          <td className="px-2 py-2.5 text-center! font-medium">
+                            {formatInstallmentPrice(option.installment_amount)}
                           </td>
-                          <td className="px-3 py-2.5 text-center text-muted-foreground">
-                            {formatPrice(option.total_amount)}
+                          <td className="px-2 py-2.5 text-center! text-muted-foreground">
+                            {formatInstallmentPrice(option.total_amount)}
                           </td>
                         </tr>
                       ))}

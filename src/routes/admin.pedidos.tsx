@@ -628,6 +628,7 @@ function AdminOrders() {
   const [bulkOrderEditQueue, setBulkOrderEditQueue] = useState<string[]>([]);
   const [bulkQuickEditOrderQueue, setBulkQuickEditOrderQueue] = useState<string[]>([]);
   const [bulkOrderEditPosition, setBulkOrderEditPosition] = useState(0);
+  const [isBulkOrderEditSession, setIsBulkOrderEditSession] = useState(false);
   const [documentsOrder, setDocumentsOrder] = useState<Order | null>(null);
   const [receiptsOrder, setReceiptsOrder] = useState<Order | null>(null);
   const [productListModalOrder, setProductListModalOrder] = useState<Order | null>(null);
@@ -1870,6 +1871,7 @@ function AdminOrders() {
     setCustomerSuggestionsOpen(false);
     setBulkOrderEditQueue([]);
     setBulkOrderEditPosition(0);
+    setIsBulkOrderEditSession(false);
     setSelectedOrderIds([]);
     setSelectionMode(false);
   };
@@ -2003,6 +2005,7 @@ function AdminOrders() {
       clearOrderSelection();
       setBulkOrderEditQueue(selectedOrderIds);
       setBulkOrderEditPosition(0);
+      setIsBulkOrderEditSession(selectedOrderIds.length > 1);
       openEditOrderDialog(order);
     }
   };
@@ -2012,6 +2015,22 @@ function AdminOrders() {
     const nextOrderId = bulkOrderEditQueue[nextPosition];
     const nextOrder = editableOrders.find((order) => order.id === nextOrderId);
     if (!nextOrder) return;
+    setBulkOrderEditPosition(nextPosition);
+    openEditOrderDialog(nextOrder);
+  };
+
+  const skipBulkEditOrder = () => {
+    if (!orderForm || !isBulkOrderEditSession || !bulkOrderEditQueue.length) return;
+    const currentPosition = bulkOrderEditQueue.indexOf(orderForm.id);
+    const remainingQueue = bulkOrderEditQueue.filter((orderId) => orderId !== orderForm.id);
+    const nextPosition = Math.min(Math.max(currentPosition, 0), remainingQueue.length - 1);
+    const nextOrder = editableOrders.find((order) => order.id === remainingQueue[nextPosition]);
+
+    setBulkOrderEditQueue(remainingQueue);
+    if (!nextOrder) {
+      closeOrderEditor();
+      return;
+    }
     setBulkOrderEditPosition(nextPosition);
     openEditOrderDialog(nextOrder);
   };
@@ -3620,7 +3639,7 @@ function AdminOrders() {
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <DialogHeader className="max-md:min-w-0 max-md:shrink-0">
-            <div className="flex items-center justify-between gap-3 max-md:flex-wrap">
+            <div className="flex items-center justify-between gap-3 pr-10 max-md:flex-wrap sm:pr-12">
               <DialogTitle>{isCreatingOrder ? "Nuevo pedido" : "Editar pedido"}</DialogTitle>
               {!isCreatingOrder && bulkOrderEditQueue.length > 1 ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -4255,11 +4274,9 @@ function AdminOrders() {
             }}
           />
 
-          <DialogFooter className="max-md:sticky max-md:bottom-0 max-md:z-20 max-md:w-full max-md:shrink-0 max-md:border-t max-md:border-border/60 max-md:bg-background/95 max-md:pt-2 max-md:pb-[env(safe-area-inset-bottom)]">
-            <div className="flex w-full items-center justify-between gap-2 max-md:grid max-md:grid-cols-2 max-md:gap-2">
-              <span className="max-md:hidden" />
+          <DialogFooter className="flex-wrap items-center justify-between gap-2 max-md:sticky max-md:bottom-0 max-md:z-20 max-md:w-full max-md:shrink-0 max-md:border-t max-md:border-border/60 max-md:bg-background/95 max-md:pt-2 max-md:pb-[env(safe-area-inset-bottom)]">
               {!isCreatingOrder && bulkOrderEditQueue.length > 1 ? (
-                <div className="flex gap-2 max-md:col-span-2 max-md:justify-center">
+                <div className="mr-auto flex shrink-0 gap-2 max-md:order-first max-md:w-full max-md:justify-start">
                   <Button
                     type="button"
                     variant="outline"
@@ -4279,10 +4296,8 @@ function AdminOrders() {
                     Siguiente <ArrowRight className="size-4" />
                   </Button>
                 </div>
-              ) : (
-                <span className="max-md:hidden" />
-              )}
-              <div className="flex gap-2 max-md:contents">
+              ) : null}
+              <div className="ml-auto flex flex-wrap gap-2 max-md:ml-auto max-md:w-full max-md:grid max-md:grid-cols-2">
                 {!isCreatingOrder ? (
                   <Button
                     type="button"
@@ -4305,7 +4320,7 @@ function AdminOrders() {
                         },
                       });
                     }}
-                    className="gap-2 max-md:col-span-2 max-md:w-full"
+                    className="gap-2 max-md:col-span-2 max-md:row-start-1 max-md:w-full"
                   >
                     <Trash2 className="size-4" /> Eliminar
                   </Button>
@@ -4314,23 +4329,47 @@ function AdminOrders() {
                   variant="secondary"
                   onClick={closeOrderEditor}
                   disabled={isSavingOrder}
-                  className="rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none max-md:w-full"
+                  className={cn(
+                    "rounded-md border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80 hover:text-secondary-foreground hover:shadow-none max-md:w-full",
+                    !isCreatingOrder
+                      ? bulkOrderEditQueue.length > 1
+                        ? "max-md:col-start-1 max-md:row-start-2"
+                        : "max-md:col-start-1 max-md:row-start-2"
+                      : "max-md:col-start-1 max-md:row-start-1",
+                  )}
                   style={{ boxShadow: "none" }}
                 >
                   <X className="h-4 w-4 mr-2" /> Cancelar
                 </Button>
+                {!isCreatingOrder && isBulkOrderEditSession && bulkOrderEditQueue.length > 0 ? (
+                  <Button
+                    type="button"
+                    variant="default"
+                    onClick={skipBulkEditOrder}
+                    disabled={isSavingOrder}
+                    className="bg-emerald-600 text-white hover:bg-emerald-700 max-md:col-start-2 max-md:row-start-2 max-md:w-full"
+                  >
+                    Saltar <ArrowRight className="ml-2 size-4" />
+                  </Button>
+                ) : null}
                 <Button
                   variant="default"
                   onClick={handleSaveOrder}
                   disabled={!hasOrderChanges || !isOrderFormValid || isSavingOrder}
-                  className="rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50 max-md:w-full"
+                  className={cn(
+                    "rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50 max-md:w-full",
+                    !isCreatingOrder && isBulkOrderEditSession && bulkOrderEditQueue.length > 0
+                      ? "max-md:col-span-2 max-md:row-start-3"
+                      : !isCreatingOrder
+                        ? "max-md:col-start-2 max-md:row-start-2"
+                        : "max-md:col-start-2 max-md:row-start-1",
+                  )}
                   style={{ boxShadow: "none" }}
                 >
                   <Save className="h-4 w-4 mr-2" />{" "}
                   {isSavingOrder ? "Guardando..." : "Guardar pedido"}
                 </Button>
               </div>
-            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

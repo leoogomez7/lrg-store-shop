@@ -609,18 +609,20 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
         <div
           className={cn("min-w-0 flex-1 pt-16 lg:pt-0", sidebarCollapsed ? "lg:pl-20" : "lg:pl-64")}
         >
-          <header className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur-xl lg:hidden">
+          <header className="fixed inset-x-0 top-0 z-30 grid h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/60 bg-background/95 px-4 py-2 backdrop-blur-xl lg:hidden">
             <DropdownMenu open={adminUserMenuOpen} onOpenChange={setAdminUserMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   aria-label="Menú de Administrador"
-                  className="inline-flex min-w-0 items-center gap-2 text-left text-sm text-muted-foreground"
+                  className="inline-flex h-9 min-w-0 flex-1 items-center gap-2 text-left text-sm text-muted-foreground"
                 >
                   <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-amber-600 text-xs font-bold uppercase text-white">
                     {adminUserInitials}
                   </span>
-                  <span className="truncate font-medium text-foreground">{adminUserName}</span>
+                  <span className="min-w-0 truncate font-medium text-foreground">
+                    {adminUserName}
+                  </span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="min-w-56 w-auto p-1">
@@ -652,17 +654,19 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <div className="flex items-center gap-2">
+            <div className="flex h-9 shrink-0 items-center gap-2">
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button type="button" variant="outline" size="sm" className="gap-2">
+                  <Button type="button" variant="outline" size="sm" className="h-9 shrink-0 gap-2">
                     <Menu className="size-4" />
                     Menú
                   </Button>
                 </SheetTrigger>
                 <SheetContent
                   side="left"
-                  closeIcon={<PanelLeftClose className="size-4 text-amber-500 hover:text-amber-400" />}
+                  closeIcon={
+                    <PanelLeftClose className="size-4 text-amber-500 hover:text-amber-400" />
+                  }
                   closeButtonClassName="right-5 top-5 grid size-8 place-items-center rounded-md opacity-100 hover:bg-white/5 focus:ring-0 focus:ring-offset-0"
                   className="w-[min(86vw,20rem)] p-5"
                 >

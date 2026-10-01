@@ -268,6 +268,7 @@ function AdminSuppliers() {
   const [selectedSupplierKeys, setSelectedSupplierKeys] = React.useState<string[]>([]);
   const [bulkSupplierEditQueue, setBulkSupplierEditQueue] = React.useState<string[]>([]);
   const [bulkSupplierEditPosition, setBulkSupplierEditPosition] = React.useState(0);
+  const [isBulkSupplierEditSession, setIsBulkSupplierEditSession] = React.useState(false);
   const [bulkSupplierEditCompletedKeys, setBulkSupplierEditCompletedKeys] = React.useState<
     string[]
   >([]);
@@ -532,6 +533,7 @@ function AdminSuppliers() {
     setEditingSupplierKey(null);
     setBulkSupplierEditQueue([]);
     setBulkSupplierEditPosition(0);
+    setIsBulkSupplierEditSession(false);
     setBulkSupplierEditCompletedKeys([]);
     setSelectedSupplierKeys([]);
     setSelectionMode(false);
@@ -806,6 +808,7 @@ function AdminSuppliers() {
       const queue = filteredRows.filter((row) => selectedKeys.has(row.key)).map((row) => row.key);
       setBulkSupplierEditQueue(queue);
       setBulkSupplierEditPosition(0);
+      setIsBulkSupplierEditSession(queue.length > 1);
       setBulkSupplierEditCompletedKeys([]);
       openSupplierEditor(selectedRow);
     }
@@ -816,6 +819,45 @@ function AdminSuppliers() {
     const nextRow = filteredRows.find((row) => row.key === bulkSupplierEditQueue[nextPosition]);
     if (!nextRow) return;
     setBulkSupplierEditPosition(nextPosition);
+    openSupplierEditor(nextRow);
+  };
+
+  const skipBulkEditSupplier = () => {
+    if (!editingSupplierKey || !isBulkSupplierEditSession || !bulkSupplierEditQueue.length) return;
+    const completedKeys = new Set([...bulkSupplierEditCompletedKeys, editingSupplierKey]);
+    const currentIndex = bulkSupplierEditQueue.indexOf(editingSupplierKey);
+    const remainingQueue = bulkSupplierEditQueue.filter((key) => key !== editingSupplierKey);
+    let nextKey: string | null = null;
+
+    for (let offset = 1; offset < bulkSupplierEditQueue.length; offset += 1) {
+      const candidateKey = bulkSupplierEditQueue[currentIndex + offset];
+      if (candidateKey && !completedKeys.has(candidateKey)) {
+        nextKey = candidateKey;
+        break;
+      }
+    }
+    if (!nextKey) {
+      for (let offset = 1; offset <= currentIndex; offset += 1) {
+        const candidateKey = bulkSupplierEditQueue[currentIndex - offset];
+        if (candidateKey && !completedKeys.has(candidateKey)) {
+          nextKey = candidateKey;
+          break;
+        }
+      }
+    }
+
+    setBulkSupplierEditCompletedKeys(Array.from(completedKeys));
+    setBulkSupplierEditQueue(remainingQueue);
+    if (!nextKey) {
+      closeSupplierEditor();
+      return;
+    }
+    const nextRow = filteredRows.find((row) => row.key === nextKey) ?? rows.find((row) => row.key === nextKey);
+    if (!nextRow) {
+      closeSupplierEditor();
+      return;
+    }
+    setBulkSupplierEditPosition(remainingQueue.indexOf(nextKey));
     openSupplierEditor(nextRow);
   };
 
@@ -1472,7 +1514,7 @@ function AdminSuppliers() {
             onOpenAutoFocus={(event) => event.preventDefault()}
           >
             <DialogHeader>
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-3 pr-10 sm:pr-12">
                 <DialogTitle>
                   {editingSupplierKey ? "Editar proveedor" : "Nuevo proveedor"}
                 </DialogTitle>
@@ -1555,9 +1597,8 @@ function AdminSuppliers() {
             </div>
             <DialogFooter>
               <div className="flex w-full items-center justify-between gap-2">
-                <span />
                 {editingSupplierKey && bulkSupplierEditQueue.length > 1 ? (
-                  <div className="flex gap-2">
+                  <div className="mr-auto flex shrink-0 gap-2">
                     <Button
                       type="button"
                       variant="outline"
@@ -1577,10 +1618,8 @@ function AdminSuppliers() {
                       Siguiente <ArrowRight className="size-4" />
                     </Button>
                   </div>
-                ) : (
-                  <span />
-                )}
-                <div className="flex items-center gap-2">
+                ) : null}
+                <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
                   {editingSupplierKey ? (
                     <Button
                       type="button"
@@ -1596,6 +1635,26 @@ function AdminSuppliers() {
                       className="gap-2"
                     >
                       <Trash2 className="size-4" /> Eliminar
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={closeSupplierEditor}
+                    className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  >
+                    <X className="size-4" /> Cancelar
+                  </Button>
+                  {editingSupplierKey &&
+                  isBulkSupplierEditSession &&
+                  bulkSupplierEditQueue.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="default"
+                      onClick={skipBulkEditSupplier}
+                      className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+                    >
+                      Saltar <ArrowRight className="size-4" />
                     </Button>
                   ) : null}
                   <Button
