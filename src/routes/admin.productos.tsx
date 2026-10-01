@@ -3624,6 +3624,7 @@ function AdminProducts() {
                   setImportCategory("");
                   setImportSubcategory("");
                   setImportSubcategoryPath([]);
+                  setImportCode("");
                 }}
               >
                 <SelectTrigger id="import-setup-brand">
@@ -3701,12 +3702,24 @@ function AdminProducts() {
               : null}
             <div className="space-y-2">
               <Label htmlFor="import-setup-code">SKU</Label>
-              <Input
-                id="import-setup-code"
-                value={importCode}
-                onChange={(event) => setImportCode(event.target.value)}
-                placeholder="SKU (opcional)"
-              />
+              <Select
+                value={importCode || "none"}
+                onValueChange={(value) => setImportCode(value === "none" ? "" : value)}
+              >
+                <SelectTrigger id="import-setup-code" className="w-full">
+                  <SelectValue placeholder="Seleccionar SKU" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin SKU</SelectItem>
+                  {availableSkus
+                    .filter((sku) => sku.brand === importBrand)
+                    .map((sku) => (
+                      <SelectItem key={sku.key} value={sku.code}>
+                        {sku.code}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button
               type="button"
