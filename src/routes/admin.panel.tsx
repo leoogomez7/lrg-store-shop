@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
@@ -74,6 +74,8 @@ export const Route = createFileRoute("/admin/panel")({
 
 function AdminDashboard() {
   const navigate = useNavigate();
+  const ordersTablePointerStart = useRef<{ x: number; y: number } | null>(null);
+  const ordersTableDidSwipe = useRef(false);
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const { data: revenue } = useSuspenseQuery(orderQueries.revenue());
   const { data: products } = useSuspenseQuery(catalogQueries.all());
@@ -580,8 +582,8 @@ function AdminDashboard() {
               hideScrollbarOnMobile
               stickyHeader
               stickyScrollbar
-              className="min-w-40rem w-full text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
-              containerClassName="[touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+              className="min-w-160 w-full text-sm [&_td]:align-middle [&_th]:align-middle [&_td]:py-2 [&_th]:py-2 [&_td]:text-center [&_th]:text-center"
+              containerClassName="w-full touch-pan-x [touch-action:pan-x_pan-y] overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch]"
             >
               <TableHeader className="[&_th]:bg-surface-2 [&_th]:text-center [&_th]:text-sm [&_th]:font-medium [&_th]:text-foreground/90 [&_th]:shadow-[0_1px_0_var(--border)]">
                 <TableRow>
@@ -597,7 +599,23 @@ function AdminDashboard() {
                   <TableRow
                     key={order.id}
                     className="cursor-pointer"
-                    onClick={() => navigate({ to: "/admin/pedidos", search: { pedido: order.id } })}
+                    onPointerDown={(event) => {
+                      ordersTablePointerStart.current = { x: event.clientX, y: event.clientY };
+                      ordersTableDidSwipe.current = false;
+                    }}
+                    onPointerMove={(event) => {
+                      const start = ordersTablePointerStart.current;
+                      if (start && Math.abs(event.clientX - start.x) > 10) {
+                        ordersTableDidSwipe.current = true;
+                      }
+                    }}
+                    onClick={() => {
+                      if (ordersTableDidSwipe.current) {
+                        ordersTableDidSwipe.current = false;
+                        return;
+                      }
+                      navigate({ to: "/admin/pedidos", search: { pedido: order.id } });
+                    }}
                   >
                     <TableCell className="font-medium">{order.id}</TableCell>
                     <TableCell>{order.customer}</TableCell>
@@ -620,7 +638,7 @@ function AdminDashboard() {
             </Table>
           </div>
           <div className="mt-4 flex flex-col gap-3 pb-4">
-            <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="flex w-full max-w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -631,7 +649,7 @@ function AdminDashboard() {
               >
                 Principio
               </Button>
-              <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+              <div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
                 {Array.from({ length: Math.max(ordersPages, 1) }, (_, index) => (
                   <button
                     key={index}
@@ -705,7 +723,7 @@ function AdminDashboard() {
                 {formatNumber(totalStockUnits)}
               </span>
             </div>
-            <div className="relative w-full min-w-0 sm:w-64">
+            <div className="relative box-border w-full min-w-0 max-w-full sm:w-64">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
@@ -716,17 +734,17 @@ function AdminDashboard() {
                 }}
                 placeholder="Buscar productos..."
                 aria-label="Buscar productos en stock"
-                className="w-full pl-9"
+                className="box-border w-full min-w-0 max-w-full pl-9"
               />
             </div>
           </div>
           <div className="glass-panel mt-4 w-full overflow-hidden rounded-2xl">
-            <div className="w-full overflow-x-auto [touch-action:pan-x_pan-y]">
-              <ul className="min-w-full w-full divide-y divide-border/60">
+            <div className="w-full min-w-0 max-w-full overflow-hidden">
+              <ul className="w-full min-w-0 max-w-full divide-y divide-border/60">
                 {currentStockItems.map((item) => (
                   <li
                     key={item.id}
-                    className="flex min-w-0 items-center justify-between gap-2 px-4 py-2 sm:px-5"
+                    className="flex w-full min-w-0 max-w-full items-center justify-between gap-2 px-4 py-2 sm:px-5"
                   >
                     <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm">
                       <span className="min-w-0 wrap-break-word">{item.name}</span>
@@ -738,7 +756,7 @@ function AdminDashboard() {
                     </span>
                     <Badge
                       variant={item.stock === 0 ? "destructive" : "secondary"}
-                      className="px-2 py-1 text-[11px]"
+                      className="max-w-full shrink-0 px-2 py-1 text-[11px]"
                     >
                       {item.stock} unidades
                     </Badge>
@@ -755,7 +773,7 @@ function AdminDashboard() {
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-3 pb-4">
-            <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="flex w-full max-w-full flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -766,7 +784,7 @@ function AdminDashboard() {
               >
                 Principio
               </Button>
-              <div className="flex flex-wrap items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
+              <div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
                 {Array.from({ length: Math.max(stockPages, 1) }, (_, index) => (
                   <button
                     key={index}

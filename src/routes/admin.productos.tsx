@@ -5438,7 +5438,7 @@ function ProductEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         tabIndex={-1}
-        className="top-2 box-border grid h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl max-h-[calc(100dvh-1rem)] min-w-0 min-h-0 translate-y-0 touch-pan-y overscroll-y-contain overflow-x-hidden overflow-y-auto rounded-3xl border border-border/60 bg-background p-3 pr-2 shadow-2xl &>*:min-w-0 md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:translate-y-[-50%] sm:p-6"
+        className="top-[5dvh] box-border grid h-[90dvh] w-[calc(100vw-1rem)] max-w-5xl max-h-[90dvh] min-w-0 min-h-0 translate-y-0 touch-pan-y overscroll-y-contain overflow-x-hidden overflow-y-hidden rounded-3xl border border-border/60 bg-background p-3 pr-2 shadow-2xl &>*:min-w-0 max-md:flex max-md:flex-col md:scrollbar-width:thin md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 sm:top-[50%] sm:h-auto sm:w-[calc(100vw-2rem)] sm:max-h-[calc(100vh-4rem)] sm:translate-y-[-50%] sm:overflow-y-auto sm:p-6"
         style={{ scrollbarGutter: "stable" }}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
@@ -5479,7 +5479,7 @@ function ProductEditDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex w-full min-w-0 max-w-full flex-col gap-4 [&_input]:min-w-0 [&_textarea]:min-w-0">
+        <div className="flex w-full min-w-0 max-w-full flex-col gap-4 overflow-y-auto overscroll-y-contain [&_input]:min-w-0 [&_textarea]:min-w-0 max-md:min-h-0 max-md:flex-1 max-md:touch-pan-y">
           <div className="order-1 rounded-2xl border border-border/60 bg-surface/40 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
