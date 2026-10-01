@@ -1622,16 +1622,18 @@ function AccountPageContent({
             </Table>
           </div>
 
-          <div className="mt-4 hidden flex-col gap-3 lg:-mt-7 lg:flex">
+          <div className="mt-4 hidden flex-col gap-3 pb-4 lg:flex">
             <div className="flex flex-wrap items-center justify-center gap-2">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => goToOrdersPage(0)}
                 disabled={!hasPreviousPage || !canEditOrdersPageSize}
-                className="h-9 px-4 disabled:opacity-60"
+                className="h-9 px-4"
               >
                 Principio
-              </button>
+              </Button>
               <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
                 {Array.from({ length: totalOrdersPages }, (_, index) => (
                   <button
@@ -1645,14 +1647,16 @@ function AccountPageContent({
                   </button>
                 ))}
               </div>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => goToOrdersPage(totalOrdersPages - 1)}
                 disabled={!hasNextPage || !canEditOrdersPageSize}
-                className="h-9 px-4 disabled:opacity-60"
+                className="h-9 px-4"
               >
                 Último
-              </button>
+              </Button>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-3">
@@ -3106,10 +3110,9 @@ function AccountPageContent({
           <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
             <div className="min-h-[calc(100vh-8rem)]">{renderAccountContent()}</div>
           </div>
+          <BrandFooter brand={webDesignConfig} section="account" />
         </main>
       </div>
-
-      <BrandFooter brand={webDesignConfig} section="account" />
 
       <ConfirmDialog
         open={logoutOpen}
