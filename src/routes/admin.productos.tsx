@@ -2155,7 +2155,7 @@ function AdminProducts() {
           openedDeepLinkRef.current = deepLinkKey;
           openEditProductDialog(targetRow.product, targetRow.variant);
         });
-      }, 6000);
+      }, 3000);
     });
 
     return () => {

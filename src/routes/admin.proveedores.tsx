@@ -2066,13 +2066,8 @@ function AdminSuppliers() {
         onOpenChange={(open) => !open && setProductsModalSupplier(null)}
       >
         <DialogContent
-          tabIndex={-1}
-          onOpenAutoFocus={(event) => {
-            event.preventDefault();
-            const dialogElement = event.currentTarget;
-            requestAnimationFrame(() => dialogElement.focus({ preventScroll: true }));
-          }}
           className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl"
+          onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <DialogHeader>
             <DialogTitle>Productos vendidos de {productsModalSupplier?.name}</DialogTitle>
@@ -2129,13 +2124,8 @@ function AdminSuppliers() {
         onOpenChange={(open) => !open && setCatalogModalSupplier(null)}
       >
         <DialogContent
-          tabIndex={-1}
-          onOpenAutoFocus={(event) => {
-            event.preventDefault();
-            const dialogElement = event.currentTarget;
-            requestAnimationFrame(() => dialogElement.focus({ preventScroll: true }));
-          }}
           className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl"
+          onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <DialogHeader>
             <DialogTitle>Productos de {catalogModalSupplier?.name}</DialogTitle>
