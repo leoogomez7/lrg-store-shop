@@ -166,6 +166,7 @@ const fileToDataUrl = (file: File) =>
 const getSupplierKey = (supplier: ProductSupplier) =>
   [supplier.name, supplier.phone, supplier.social].map((value) => value.trim()).join("|");
 const DELETED_SUPPLIERS_STORAGE_KEY = "lrg:deletedSuppliers";
+const UNASSIGNED_SUPPLIER_FILTER = "__unassigned__";
 
 const getBrandShortName = (brand: Product["brand"] | string | undefined) => {
   const brandKey = typeof brand === "string" ? brand : undefined;
@@ -206,6 +207,7 @@ function AdminProducts() {
   const [editableProducts, setEditableProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState<BrandSlug[]>([]);
+  const [supplierFilter, setSupplierFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [currencyFilter, setCurrencyFilter] = useState<CurrencyCode[]>(["ARS", "USD"]);
   const [priceMode, setPriceMode] = useState<"price" | "storePrice">("storePrice");
@@ -217,6 +219,7 @@ function AdminProducts() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [brandsOpen, setBrandsOpen] = useState(false);
+  const [suppliersOpen, setSuppliersOpen] = useState(false);
   const [priceFilterOpen, setPriceFilterOpen] = useState(false);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrder>("createdAt_desc");
@@ -1890,6 +1893,21 @@ function AdminProducts() {
       ).sort((a, b) => a.localeCompare(b)),
     [editableProducts],
   );
+  const availableSuppliers = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          editableProducts
+            .flatMap((product) => [
+              product.supplier?.name,
+              ...(product.variants ?? []).map((variant) => variant.supplier?.name),
+            ])
+            .map((name) => name?.trim())
+            .filter((name): name is string => Boolean(name)),
+        ),
+      ).sort((first, second) => first.localeCompare(second, "es", { sensitivity: "base" })),
+    [editableProducts],
+  );
   const categoryLabels = useMemo(() => {
     const labels = new Map<string, string>();
     const collect = (items: CategoryLabelNode[]) => {
@@ -1922,6 +1940,19 @@ function AdminProducts() {
   const results = useMemo(() => {
     const filtered = editableProducts.filter((product) => {
       if (brandFilter.length && !brandFilter.includes(product.brand)) return false;
+      if (supplierFilter.length) {
+        const assignedSuppliers = [
+          product.supplier?.name,
+          ...(product.variants ?? []).map((variant) => variant.supplier?.name),
+        ].filter((name): name is string => Boolean(name?.trim()));
+        const onlyUnassigned = supplierFilter.includes(UNASSIGNED_SUPPLIER_FILTER);
+        if (
+          onlyUnassigned
+            ? assignedSuppliers.length > 0
+            : !assignedSuppliers.some((name) => supplierFilter.includes(name.trim()))
+        )
+          return false;
+      }
       if (categoryFilter.length && !categoryFilter.includes(product.category)) return false;
       if (currencyFilter.length && !currencyFilter.includes(product.priceCurrency ?? "ARS"))
         return false;
@@ -1971,6 +2002,7 @@ function AdminProducts() {
     editableProducts,
     query,
     brandFilter,
+    supplierFilter,
     categoryFilter,
     currencyFilter,
     priceMode,
@@ -2034,6 +2066,7 @@ function AdminProducts() {
   const activeFilterCount =
     categoryFilter.length +
     brandFilter.length +
+    supplierFilter.length +
     currencyFilter.length +
     (priceMode !== "storePrice" ? 1 : 0) +
     (priceMin > 0 ? 1 : 0) +
@@ -2045,6 +2078,7 @@ function AdminProducts() {
   const resetFilters = () => {
     setCategoryFilter([]);
     setBrandFilter([]);
+    setSupplierFilter([]);
     setCurrencyFilter(["ARS", "USD"]);
     setPriceMode("storePrice");
     setPriceMin(0);
@@ -2076,6 +2110,11 @@ function AdminProducts() {
       key: `brand-${value}`,
       label: brandList.find((brand) => brand.slug === value)?.name ?? value,
       onRemove: () => setBrandFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...supplierFilter.map((value) => ({
+      key: `supplier-${value}`,
+      label: value === UNASSIGNED_SUPPLIER_FILTER ? "Ninguno" : value,
+      onRemove: () => setSupplierFilter((current) => current.filter((item) => item !== value)),
     })),
     ...(currencyFilter.length === 1
       ? [
@@ -2312,6 +2351,70 @@ function AdminProducts() {
                   <div className="space-y-3">
                     <button
                       type="button"
+                      onClick={() => setSuppliersOpen((current) => !current)}
+                      className="flex items-center gap-2 text-sm font-medium"
+                      aria-expanded={suppliersOpen}
+                      aria-controls="suppliers-list"
+                    >
+                      <span>Proveedores</span>
+                      {supplierFilter.length > 0 && (
+                        <Badge variant="secondary">{supplierFilter.length}</Badge>
+                      )}
+                      {suppliersOpen ? (
+                        <ChevronUp className="size-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="size-4 text-muted-foreground" />
+                      )}
+                    </button>
+                    {suppliersOpen && (
+                      <div id="suppliers-list" className="space-y-2.5">
+                        <label className="flex cursor-pointer items-start gap-3 text-sm">
+                          <Checkbox
+                            checked={supplierFilter.length === 0}
+                            onCheckedChange={() => setSupplierFilter([])}
+                          />
+                          <span className="font-medium">Todos</span>
+                        </label>
+                        <label className="flex cursor-pointer items-start gap-3 text-sm">
+                          <Checkbox
+                            checked={supplierFilter.includes(UNASSIGNED_SUPPLIER_FILTER)}
+                            onCheckedChange={(checked) =>
+                              setSupplierFilter(checked ? [UNASSIGNED_SUPPLIER_FILTER] : [])
+                            }
+                          />
+                          <span className="font-medium">Ninguno</span>
+                        </label>
+                        {availableSuppliers.map((supplier) => (
+                          <label
+                            key={supplier}
+                            className="flex cursor-pointer items-start gap-3 text-sm"
+                          >
+                            <Checkbox
+                              checked={supplierFilter.includes(supplier)}
+                              onCheckedChange={(checked) =>
+                                setSupplierFilter((current) => {
+                                  const namedSuppliers = current.filter(
+                                    (value) => value !== UNASSIGNED_SUPPLIER_FILTER,
+                                  );
+                                  const next = checked
+                                    ? [...namedSuppliers, supplier]
+                                    : namedSuppliers.filter((value) => value !== supplier);
+                                  return availableSuppliers.every((value) => next.includes(value))
+                                    ? []
+                                    : Array.from(new Set(next));
+                                })
+                              }
+                            />
+                            <span className="font-medium">{supplier}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <button
+                      type="button"
                       onClick={() => setPriceFilterOpen((current) => !current)}
                       className="flex items-center gap-2 text-sm font-medium"
                       aria-expanded={priceFilterOpen}
@@ -2424,37 +2527,48 @@ function AdminProducts() {
                     )}
                   </div>
 
-                  <div className="mx-1 flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
-                    <Label htmlFor="admin-filter-discount" className="cursor-pointer text-sm">
-                      Sólo con descuento
-                    </Label>
-                    <Switch
-                      id="admin-filter-discount"
-                      checked={discountOnly}
-                      onCheckedChange={setDiscountOnly}
-                    />
-                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-surface-2/60 px-3 py-2.5">
+                      <Label
+                        htmlFor="admin-filter-discount"
+                        className="cursor-pointer text-xs sm:text-sm"
+                      >
+                        Sólo con descuento
+                      </Label>
+                      <Switch
+                        id="admin-filter-discount"
+                        checked={discountOnly}
+                        onCheckedChange={setDiscountOnly}
+                      />
+                    </div>
 
-                  <div className="mx-1 flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
-                    <Label htmlFor="admin-filter-stock" className="cursor-pointer text-sm">
-                      Sólo con stock
-                    </Label>
-                    <Switch
-                      id="admin-filter-stock"
-                      checked={stockOnly}
-                      onCheckedChange={setStockOnly}
-                    />
-                  </div>
+                    <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-surface-2/60 px-3 py-2.5">
+                      <Label
+                        htmlFor="admin-filter-stock"
+                        className="cursor-pointer text-xs sm:text-sm"
+                      >
+                        Sólo con stock
+                      </Label>
+                      <Switch
+                        id="admin-filter-stock"
+                        checked={stockOnly}
+                        onCheckedChange={setStockOnly}
+                      />
+                    </div>
 
-                  <div className="mx-1 flex items-center justify-between rounded-xl bg-surface-2/60 px-3 py-2.5">
-                    <Label htmlFor="admin-filter-available" className="cursor-pointer text-sm">
-                      Sólo disponible
-                    </Label>
-                    <Switch
-                      id="admin-filter-available"
-                      checked={availableOnly}
-                      onCheckedChange={setAvailableOnly}
-                    />
+                    <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-surface-2/60 px-3 py-2.5">
+                      <Label
+                        htmlFor="admin-filter-available"
+                        className="cursor-pointer text-xs sm:text-sm"
+                      >
+                        Sólo disponible
+                      </Label>
+                      <Switch
+                        id="admin-filter-available"
+                        checked={availableOnly}
+                        onCheckedChange={setAvailableOnly}
+                      />
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between gap-2 pt-0">

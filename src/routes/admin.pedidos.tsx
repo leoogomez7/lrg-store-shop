@@ -3280,7 +3280,7 @@ function AdminOrders() {
                 <span className="mb-3 block text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                   Datos cliente
                 </span>
-                <div className="mb-3 grid min-w-0 items-start gap-3 sm:grid-cols-2">
+                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-[1fr_1fr_2fr]">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Número de pedido</Label>
                     <Input value={orderForm.id} disabled />
@@ -3295,9 +3295,6 @@ function AdminOrders() {
                       }
                     />
                   </div>
-                </div>
-
-                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Correo</Label>
                     <div className="relative">
@@ -3355,6 +3352,9 @@ function AdminOrders() {
                       )}
                     </div>
                   </div>
+                </div>
+
+                <div className="mt-3 grid min-w-0 items-start gap-3 grid-cols-2 sm:grid-cols-[2fr_2fr_1fr_1fr_1fr]">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Celular</Label>
                     <Input
@@ -3365,81 +3365,75 @@ function AdminOrders() {
                       }
                     />
                   </div>
-                </div>
-                <div className="mt-3 space-y-3">
-                  <div className="grid min-w-0 items-start gap-3 grid-cols-2 sm:grid-cols-5">
-                    <div className="flex min-w-0 flex-col gap-0">
-                      <Label className="min-h-5">Calle</Label>
-                      <Input
-                        value={orderForm.street ?? ""}
-                        disabled={!isCreatingOrder}
-                        onChange={(event) =>
-                          setOrderForm({ ...orderForm, street: event.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="flex min-w-0 flex-col gap-0">
-                      <Label className="min-h-5">Altura</Label>
-                      <Input
-                        value={orderForm.streetNumber ?? ""}
-                        disabled={!isCreatingOrder}
-                        onChange={(event) =>
-                          setOrderForm({ ...orderForm, streetNumber: event.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="flex min-w-0 flex-col gap-0">
-                      <Label className="min-h-5">Piso</Label>
-                      <Input
-                        value={orderForm.floor ?? ""}
-                        disabled={!isCreatingOrder}
-                        onChange={(event) =>
-                          setOrderForm({ ...orderForm, floor: event.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="flex min-w-0 flex-col gap-0">
-                      <Label className="min-h-5">Depto</Label>
-                      <Input
-                        value={orderForm.apartment ?? ""}
-                        disabled={!isCreatingOrder}
-                        onChange={(event) =>
-                          setOrderForm({ ...orderForm, apartment: event.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="flex min-w-0 flex-col gap-0">
-                      <Label className="min-h-5">Código postal</Label>
-                      <Input
-                        value={orderForm.postalCode ?? ""}
-                        disabled={!isCreatingOrder}
-                        onChange={(event) =>
-                          setOrderForm({ ...orderForm, postalCode: event.target.value })
-                        }
-                      />
-                    </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Calle</Label>
+                    <Input
+                      value={orderForm.street ?? ""}
+                      disabled={!isCreatingOrder}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, street: event.target.value })
+                      }
+                    />
                   </div>
-                  <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-                    <div className="flex min-w-0 flex-col gap-0">
-                      <Label className="min-h-5">Ciudad</Label>
-                      <Input
-                        value={orderForm.city ?? ""}
-                        disabled={!isCreatingOrder}
-                        onChange={(event) =>
-                          setOrderForm({ ...orderForm, city: event.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="flex min-w-0 flex-col gap-0">
-                      <Label className="min-h-5">Provincia</Label>
-                      <Input
-                        value={orderForm.province ?? ""}
-                        disabled={!isCreatingOrder}
-                        onChange={(event) =>
-                          setOrderForm({ ...orderForm, province: event.target.value })
-                        }
-                      />
-                    </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Altura</Label>
+                    <Input
+                      value={orderForm.streetNumber ?? ""}
+                      disabled={!isCreatingOrder}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, streetNumber: event.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Piso</Label>
+                    <Input
+                      value={orderForm.floor ?? ""}
+                      disabled={!isCreatingOrder}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, floor: event.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Depto</Label>
+                    <Input
+                      value={orderForm.apartment ?? ""}
+                      disabled={!isCreatingOrder}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, apartment: event.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 grid min-w-0 items-start gap-3 grid-cols-2 sm:grid-cols-[1fr_2fr_2fr]">
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Código postal</Label>
+                    <Input
+                      value={orderForm.postalCode ?? ""}
+                      disabled={!isCreatingOrder}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, postalCode: event.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Ciudad</Label>
+                    <Input
+                      value={orderForm.city ?? ""}
+                      disabled={!isCreatingOrder}
+                      onChange={(event) => setOrderForm({ ...orderForm, city: event.target.value })}
+                    />
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0">
+                    <Label className="min-h-5">Provincia</Label>
+                    <Input
+                      value={orderForm.province ?? ""}
+                      disabled={!isCreatingOrder}
+                      onChange={(event) =>
+                        setOrderForm({ ...orderForm, province: event.target.value })
+                      }
+                    />
                   </div>
                 </div>
               </div>
@@ -3482,7 +3476,7 @@ function AdminOrders() {
                   </div>
                 </div>
 
-                <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2">
+                <div className="grid min-w-0 items-start gap-3 grid-cols-2 sm:grid-cols-4">
                   <div className="flex min-w-0 flex-col gap-0">
                     <Label className="min-h-5">Método de pago</Label>
                     <Select
