@@ -184,7 +184,7 @@ function BrandFooterContent({
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isHomePage = pathname === "/";
   const isCatalogPage = pathname === "/productos" || pathname.endsWith("/productos");
-  const isAccountOrdersPage = pathname === "/cuenta/compras";
+  const isAccountOrdersPage = pathname === "/cuenta/compras" || pathname === "/cuenta/pedidos";
   const categories =
     section === "brand" && !pathname.includes("/producto/") ? brand.categories : [];
   type FooterMenuItem = [
@@ -405,8 +405,11 @@ function BrandFooterContent({
           to="/"
           className="block w-full px-4 text-xs text-muted-foreground transition-colors hover:text-foreground sm:px-6 lg:px-8"
         >
-          © {new Date().getFullYear()} LRG Store Shop ·{" "}
-          {section === "admin" ? "LRG Store Shop" : brand.name}. Todos los derechos reservados.
+          © {new Date().getFullYear()}{" "}
+          {section === "admin" || section === "account"
+            ? "LRG Store Shop"
+            : `LRG Store Shop · ${brand.name}`}
+          . Todos los derechos reservados.
         </Link>
       </div>
     </footer>

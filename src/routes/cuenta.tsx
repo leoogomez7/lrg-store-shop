@@ -1622,7 +1622,7 @@ function AccountPageContent({
             </Table>
           </div>
 
-          <div className="mt-4 hidden flex-col gap-3 pb-4 lg:flex">
+          <div className="mt-4 hidden flex-col gap-3 pb-0 lg:flex">
             <div className="flex flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
@@ -3107,8 +3107,15 @@ function AccountPageContent({
               </SheetContent>
             </Sheet>
           </header>
-          <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-            <div className="min-h-[calc(100vh-8rem)]">{renderAccountContent()}</div>
+          <div
+            className={cn(
+              "mx-auto w-full max-w-6xl px-4 pt-10 sm:px-6",
+              activeTab === "orders" ? "pb-4" : "pb-10",
+            )}
+          >
+            <div className={cn(activeTab !== "orders" && "min-h-[calc(100vh-8rem)]")}>
+              {renderAccountContent()}
+            </div>
           </div>
           <BrandFooter brand={webDesignConfig} section="account" />
         </main>
