@@ -4747,24 +4747,6 @@ function AdminProducts() {
                               }
                               className="min-w-0"
                             />
-                            {importSource === "store" ? (
-                              <div className="mt-2 space-y-1.5">
-                                <Label htmlFor={`import-price-${product.id}`}>Precio de venta</Label>
-                                <Input
-                                  id={`import-price-${product.id}`}
-                                  type="number"
-                                  min={0}
-                                  step="0.01"
-                                  value={product.price}
-                                  onChange={(event) =>
-                                    updateImportedProduct(product.id, {
-                                      price: Number(event.target.value),
-                                    })
-                                  }
-                                  className="min-w-0"
-                                />
-                              </div>
-                            ) : null}
                           </div>
                           {importSource !== "store" ? (
                             <>
