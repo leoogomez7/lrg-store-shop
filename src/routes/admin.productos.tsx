@@ -150,6 +150,21 @@ type StoreImportProduct = {
   lowestPrice: number;
 };
 
+const getPendingImportSignature = (products: Product[]) =>
+  JSON.stringify(
+    products.map((product) => ({
+      ...product,
+      images: (product.images ?? []).map((image) => {
+        let hash = 2166136261;
+        const stride = Math.max(1, Math.floor(image.length / 1024));
+        for (let index = 0; index < image.length; index += stride) {
+          hash = Math.imul(hash ^ image.charCodeAt(index), 16777619);
+        }
+        return `${image.length}:${hash >>> 0}`;
+      }),
+    })),
+  );
+
 const normalizeProductName = (name: string) =>
   name
     .normalize("NFD")
@@ -249,7 +264,7 @@ function AdminProducts() {
   const { data: adminSettings } = useSuspenseQuery(catalogQueries.settings());
   const [editableProducts, setEditableProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
-  const [brandFilter, setBrandFilter] = useState<BrandSlug[]>([]);
+    const [brandFilter, setBrandFilter] = useState<BrandSlug[]>([]);
   const [supplierFilter, setSupplierFilter] = useState<string[]>([]);
   const [skuFilter, setSkuFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
@@ -297,13 +312,14 @@ function AdminProducts() {
   const [pendingImportedProducts, setPendingImportedProducts] = useState<Product[]>([]);
   const [applyingImportFieldsFromProductId, setApplyingImportFieldsFromProductId] =
     useState<string | null>(null);
+  const [lastAppliedImportSignature, setLastAppliedImportSignature] = useState<string | null>(null);
+  const pendingImportSignature = getPendingImportSignature(pendingImportedProducts);
   const [importCategoryOpen, setImportCategoryOpen] = useState(false);
   const [importBrand, setImportBrand] = useState<BrandSlug>("arcade");
   const [importCategory, setImportCategory] = useState("");
   const [importSubcategory, setImportSubcategory] = useState("");
   const [importSubcategoryPath, setImportSubcategoryPath] = useState<string[]>([]);
   const [importCode, setImportCode] = useState("");
-  const [importDescription, setImportDescription] = useState("");
   const [applyImportFieldsToAll, setApplyImportFieldsToAll] = useState(true);
   const [importSetupOpen, setImportSetupOpen] = useState(false);
   const [importSetupSource, setImportSetupSource] = useState<"images" | "text" | "store" | null>(
@@ -411,12 +427,6 @@ function AdminProducts() {
     priceCurrency: "ARS",
     comision: 0,
     comisionCurrency: "ARS",
-    stock: 0,
-    stockUnlimited: false,
-    description: "",
-    features: [],
-    includes: [],
-    images: [],
     gastos: 0,
     gastosCurrency: "ARS",
     usdRate: 0,
@@ -652,8 +662,8 @@ function AdminProducts() {
         deliveryAmount: 0,
         rating: 0,
         reviews: 0,
-        short: importDescription,
-        description: importDescription,
+        short: "",
+        description: "",
         features: [],
         images: [],
         createdAt: new Date().toISOString(),
@@ -733,8 +743,8 @@ function AdminProducts() {
         deliveryAmount: 0,
         rating: 0,
         reviews: 0,
-        short: importDescription,
-        description: importDescription,
+        short: "",
+        description: "",
         features: [],
         images: [imageDataUrls[index]],
         createdAt: new Date().toISOString().slice(0, 10),
@@ -832,54 +842,39 @@ function AdminProducts() {
 
     const sourceSubcategoryPath =
       source.subcategoryPath ?? (source.subcategory ? [source.subcategory] : []);
-    const sourceSubcategoryLabel = getSubcategoryPathLabel(
-      source.brand,
-      source.category,
-      sourceSubcategoryPath,
-    );
-
-    setPendingImportedProducts((current) =>
-      current.map((product) => {
-        if (product.id === productId) return product;
-
-        const productSubcategoryPath =
-          product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []);
-        const previousSubcategoryLabel = getSubcategoryPathLabel(
-          product.brand,
-          product.category,
-          productSubcategoryPath,
-        );
-
-        return {
+    const nextProducts = pendingImportedProducts.map((product) =>
+      product.id === productId
+        ? product
+        : {
           ...product,
           brand: source.brand,
           code: source.code,
           category: source.category,
-          subcategory: sourceSubcategoryPath[0],
+          subcategory: sourceSubcategoryPath[0] || undefined,
           subcategoryPath: sourceSubcategoryPath.length ? [...sourceSubcategoryPath] : undefined,
+          price: source.price,
+          priceCurrency: source.priceCurrency,
           comision: source.comision,
           comisionCurrency: source.comisionCurrency,
           gastos: source.gastos,
           gastosCurrency: source.gastosCurrency,
+          usdRate: source.usdRate,
+          compareAtPrice: source.compareAtPrice,
+          cardCommission: source.cardCommission,
           supplier: source.supplier ? { ...source.supplier } : undefined,
           stock: source.stock,
           stockUnlimited: source.stockUnlimited,
           deliveryUnit: source.deliveryUnit,
           deliveryAmount: source.deliveryAmount,
+          discount: source.discount,
+          features: source.features ? [...source.features] : [],
+          includes: source.includes ? [...source.includes] : [],
           short: source.short,
           description: source.description,
-          ...(importSource === "store"
-            ? {
-                name: replaceSubcategorySuffix(
-                  product.name,
-                  previousSubcategoryLabel,
-                  sourceSubcategoryLabel,
-                ),
-              }
-            : {}),
-        };
-      }),
-    );
+            },
+            );
+    setPendingImportedProducts(nextProducts);
+    setLastAppliedImportSignature(getPendingImportSignature(nextProducts));
 
     setApplyingImportFieldsFromProductId(null);
     toast.success("Datos aplicados a los demás productos");
@@ -1004,8 +999,8 @@ function AdminProducts() {
           deliveryAmount: 0,
           rating: 0,
           reviews: 0,
-          short: importDescription,
-          description: importDescription,
+          short: "",
+          description: "",
           features: [],
           images: item.image ? [item.image] : [],
           createdAt: new Date().toISOString(),
@@ -4086,7 +4081,6 @@ function AdminProducts() {
                 setImportSubcategory("");
                 setImportSubcategoryPath([]);
                 setImportCode("");
-                setImportDescription("");
                 setApplyImportFieldsToAll(true);
                 setImportSetupOpen(true);
               }}
@@ -4109,7 +4103,6 @@ function AdminProducts() {
                 setImportSubcategory("");
                 setImportSubcategoryPath([]);
                 setImportCode("");
-                setImportDescription("");
                 setApplyImportFieldsToAll(true);
                 setImportSetupOpen(true);
               }}
@@ -4133,7 +4126,6 @@ function AdminProducts() {
                 setImportSubcategoryPath([]);
                 setImportCode("");
                 setImportSetupSource("store");
-                setImportDescription("");
                 setApplyImportFieldsToAll(true);
                 setImportSetupOpen(true);
               }}
@@ -4284,7 +4276,6 @@ function AdminProducts() {
               onClick={() => {
                 setCreateChoiceOpen(false);
                 setImportSetupOpen(false);
-                setImportDescription("");
                 setApplyImportFieldsToAll(true);
                 appendImportedProductsRef.current = false;
                 if (importSetupSource === "images") multiProductInputRef.current?.click();
@@ -4610,27 +4601,6 @@ function AdminProducts() {
                     )}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="import-description-all">Descripción para todos los productos</Label>
-                  <Textarea
-                    id="import-description-all"
-                    value={importDescription}
-                    onChange={(event) => {
-                      const description = event.target.value;
-                      setImportDescription(description);
-                      setPendingImportedProducts((current) =>
-                        current.map((product) => ({
-                          ...product,
-                          short: description,
-                          description,
-                        })),
-                      );
-                    }}
-                    rows={2}
-                    placeholder="Escribí una descripción común para los productos"
-                    className="min-h-16 w-full resize-y"
-                  />
-                </div>
               </div>
             </section>
 
@@ -4650,9 +4620,9 @@ function AdminProducts() {
                       key={product.id}
                       className="grid min-w-0 gap-3 overflow-hidden rounded-xl border border-border/60 bg-background/70 p-3"
                     >
-                      <div className="grid min-w-0 gap-3 xl:grid-cols-[11rem_minmax(0,1.2fr)_minmax(0,1fr)]">
-                        <div className="grid min-w-0 grid-cols-[4rem_minmax(0,1fr)] items-start gap-2">
-                          <div className="relative size-16">
+                      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[11rem_repeat(4,minmax(0,1fr))]">
+                        <div className="order-first flex min-w-0 flex-col items-center gap-2 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+                          <div className="relative size-20">
                             {(product.images?.[0] ?? storeImportPriceDetails[product.id]?.image) ? (
                               <img
                                 src={
@@ -4661,10 +4631,10 @@ function AdminProducts() {
                                   ""
                                 }
                                 alt=""
-                                className="size-16 rounded-lg border border-border/60 object-cover"
+                                className="size-20 rounded-lg border border-border/60 object-cover"
                               />
                             ) : (
-                              <div className="grid size-16 place-items-center rounded-lg border border-border/60 bg-surface/50 text-muted-foreground">
+                              <div className="grid size-20 place-items-center rounded-lg border border-border/60 bg-surface/50 text-muted-foreground">
                                 <ImagePlus className="size-5" />
                               </div>
                             )}
@@ -4718,12 +4688,12 @@ function AdminProducts() {
                               }
                             }}
                           />
-                          <div className="flex min-w-0 flex-col gap-2">
+                          <div className="flex w-full min-w-0 flex-col gap-2">
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="h-auto min-h-8 w-full justify-start whitespace-normal px-2 py-1 text-left text-xs leading-tight"
+                              className="h-auto! min-h-9 w-full justify-start whitespace-normal px-2 py-1 text-left text-xs leading-tight"
                               onClick={() => additionalImagesInputRefs.current[product.id]?.click()}
                             >
                               <ImagePlus className="size-3.5 shrink-0" /> Cambiar imagen
@@ -4732,13 +4702,14 @@ function AdminProducts() {
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="h-auto min-h-8 w-full justify-start whitespace-normal px-2 py-1 text-left text-xs leading-tight"
+                              className="h-auto! min-h-9 w-full justify-start whitespace-normal px-2 py-1 text-left text-xs leading-tight"
                               aria-label={`Aplicar los datos de ${product.name} a los demás productos`}
-                              title="Aplicar sus datos a los demás productos, manteniendo nombre, imagen y precio propios"
+                              title="Aplicar todos los datos editables, excepto el nombre y la imagen"
                               disabled={
                                 pendingImportedProducts.length < 2 ||
                                 applyingImportFieldsFromProductId !== null ||
-                                isSavingImports
+                                isSavingImports ||
+                                lastAppliedImportSignature === pendingImportSignature
                               }
                               onClick={() => void applyImportedProductFieldsToAll(product.id)}
                             >
@@ -4755,8 +4726,8 @@ function AdminProducts() {
                             </Button>
                           </div>
                         </div>
-                          <div className="grid min-w-0 content-start gap-3 sm:grid-cols-2">
-                          <div className="min-w-0 space-y-1.5">
+                          <div className="contents">
+                          <div className="order-1 min-w-0 space-y-1.5 sm:col-span-2 lg:col-span-1 lg:col-start-2 lg:row-start-1">
                             <div className="flex min-h-8 items-center">
                               <Label htmlFor={`import-name-${product.id}`}>
                                 Nombre del producto
@@ -4776,31 +4747,28 @@ function AdminProducts() {
                               }
                               className="min-w-0"
                             />
+                            {importSource === "store" ? (
+                              <div className="mt-2 space-y-1.5">
+                                <Label htmlFor={`import-price-${product.id}`}>Precio de venta</Label>
+                                <Input
+                                  id={`import-price-${product.id}`}
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  value={product.price}
+                                  onChange={(event) =>
+                                    updateImportedProduct(product.id, {
+                                      price: Number(event.target.value),
+                                    })
+                                  }
+                                  className="min-w-0"
+                                />
+                              </div>
+                            ) : null}
                           </div>
-                          {importSource === "store" ? (
-                            <div className="space-y-1.5">
-                              <Label htmlFor={`import-price-${product.id}`}>Precio de venta</Label>
-                              <Input
-                                id={`import-price-${product.id}`}
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                value={product.price}
-                                onChange={(event) =>
-                                  setPendingImportedProducts((current) =>
-                                    current.map((item, itemIndex) =>
-                                      itemIndex === index
-                                        ? { ...item, price: Number(event.target.value) }
-                                        : item,
-                                    ),
-                                  )
-                                }
-                                className="min-w-0"
-                              />
-                            </div>
-                          ) : (
+                          {importSource !== "store" ? (
                             <>
-                              <div className="min-w-0 space-y-1.5">
+                              <div className="order-3 min-w-0 space-y-1.5 lg:col-start-4 lg:row-start-1">
                                 <div className="flex min-h-8 flex-wrap items-center justify-between gap-1">
                                   <Label htmlFor={`import-expenses-${product.id}`}>Gastos</Label>
                                   <Select
@@ -4842,7 +4810,7 @@ function AdminProducts() {
                                   className="min-w-0"
                                 />
                               </div>
-                              <div className="min-w-0 space-y-1.5">
+                              <div className="order-4 min-w-0 space-y-1.5 lg:col-start-5 lg:row-start-1">
                                 <div className="flex min-h-8 flex-wrap items-center justify-between gap-1">
                                   <Label htmlFor={`import-profit-${product.id}`}>Mi comisión</Label>
                                   <Select
@@ -4885,10 +4853,10 @@ function AdminProducts() {
                                 />
                               </div>
                             </>
-                          )}
+                          ) : null}
                           {importSource === "store" ? (
                             <>
-                              <div className="space-y-1.5">
+                              <div className="order-4 min-w-0 space-y-1.5 lg:col-start-5 lg:row-start-1">
                                 <Label>Mi ganancia</Label>
                                 <div className="flex min-w-0 gap-2">
                                   <Select
@@ -4928,7 +4896,7 @@ function AdminProducts() {
                                   />
                                 </div>
                               </div>
-                              <div className="space-y-1.5">
+                              <div className="order-3 min-w-0 space-y-1.5 lg:col-start-4 lg:row-start-1">
                                 <Label>Gastos</Label>
                                 <div className="flex min-w-0 gap-2">
                                   <Select
@@ -4979,8 +4947,8 @@ function AdminProducts() {
                             </>
                           ) : null}
                         </div>
-                        <div className="grid min-w-0 content-start gap-3 sm:grid-cols-2">
-                          <div className="min-w-0 space-y-1.5">
+                        <div className="contents">
+                          <div className="order-2 min-w-0 space-y-1.5 sm:col-span-2 lg:col-span-1 lg:col-start-3 lg:row-start-1">
                             <Label htmlFor={`import-supplier-${product.id}`}>Proveedor</Label>
                             <Select
                               value={product.supplier?.name ? getSupplierKey(product.supplier) : "none"}
@@ -5006,7 +4974,7 @@ function AdminProducts() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="min-w-0 space-y-1.5">
+                          <div className="order-5 min-w-0 space-y-1.5 lg:col-start-2 lg:row-start-2">
                             <Label htmlFor={`import-stock-mode-${product.id}`}>Stock</Label>
                             <Select
                               value={product.stockUnlimited ? "unlimited" : "limited"}
@@ -5039,7 +5007,7 @@ function AdminProducts() {
                               />
                             ) : null}
                           </div>
-                          <div className="min-w-0 space-y-1.5">
+                          <div className="order-6 min-w-0 space-y-1.5 lg:col-start-3 lg:row-start-2">
                             <Label htmlFor={`import-delivery-unit-${product.id}`}>Tiempo de entrega</Label>
                             <Select
                               value={product.deliveryUnit ?? "inmediata"}
@@ -5074,8 +5042,24 @@ function AdminProducts() {
                               />
                             ) : null}
                           </div>
+                          <div className="order-7 min-w-0 space-y-1.5 sm:col-span-2 lg:col-span-2 lg:col-start-4 lg:row-start-2">
+                            <Label htmlFor={`import-description-${product.id}`}>Descripción</Label>
+                            <Textarea
+                              id={`import-description-${product.id}`}
+                              value={product.description ?? ""}
+                              onChange={(event) =>
+                                updateImportedProduct(product.id, {
+                                  short: event.target.value,
+                                  description: event.target.value,
+                                })
+                              }
+                              rows={2}
+                              className="min-h-20 w-full resize-y"
+                              placeholder="Escribí una descripción para este producto"
+                            />
+                          </div>
                           {potentialMatches.length > 0 ? (
-                            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 sm:col-span-2">
+                            <div className="order-8 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 sm:col-span-2 lg:col-span-4 lg:col-start-2 lg:row-start-3">
                               <span className="min-w-0 flex-1 text-xs text-amber-200">
                                 Posible producto existente: {potentialMatches[0]?.product.name}
                                 {potentialMatches.length > 1

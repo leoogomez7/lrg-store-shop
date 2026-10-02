@@ -738,6 +738,30 @@ type AdminEntryNoticeData = {
   newOrders: Array<{ id: string; customer: string; date: string; total: number }>;
 };
 
+function getAdminNoticeCategoryLabel(product: {
+  brand: keyof typeof brands;
+  category: string;
+  subcategory?: string;
+  subcategoryPath?: string[];
+}) {
+  const category = brands[product.brand]?.categories.find(
+    (item) => item.slug === product.category,
+  );
+  const subcategoryPath =
+    product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []);
+  const subcategoryNames: string[] = [];
+  let subcategories = category?.subcategories ?? [];
+
+  for (const slug of subcategoryPath) {
+    const subcategory = subcategories.find((item) => item.slug === slug);
+    if (!subcategory) break;
+    subcategoryNames.push(subcategory.name);
+    subcategories = subcategory.children ?? [];
+  }
+
+  return [category?.name ?? product.category, ...subcategoryNames].filter(Boolean).join(" - ");
+}
+
 function AdminEntryNotice() {
 function readSeenAdminNoticeIds(key: string) {
   try {
@@ -779,9 +803,7 @@ function readSeenAdminNoticeIds(key: string) {
           ? product.variants.map((variant) => ({
               id: `${product.id}-${variant.id}`,
               name: product.name,
-              category:
-                brands[product.brand]?.categories.find((category) => category.slug === product.category)
-                  ?.name ?? product.category,
+              category: getAdminNoticeCategoryLabel(product),
               variantName: variant.name,
               stock: variant.stock,
               stockUnlimited: variant.stockUnlimited ?? product.stockUnlimited ?? false,
@@ -790,9 +812,7 @@ function readSeenAdminNoticeIds(key: string) {
               {
                 id: product.id,
                 name: product.name,
-                category:
-                  brands[product.brand]?.categories.find((category) => category.slug === product.category)
-                    ?.name ?? product.category,
+                category: getAdminNoticeCategoryLabel(product),
                 variantName: "",
                 stock: product.stock,
                 stockUnlimited: product.stockUnlimited ?? false,
@@ -850,14 +870,14 @@ function readSeenAdminNoticeIds(key: string) {
                       <span className="min-w-0 space-y-1">
                         <span className="block font-medium text-foreground">{product.name}</span>
                         <span className="block text-xs text-muted-foreground">
-                          Categoría: {product.category}
+                          {product.category}
                         </span>
                         {product.variantName ? (
                           <Badge
                             variant="outline"
                             className="mt-0.5 border-primary/40 bg-primary/10 text-primary"
                           >
-                            Variante: {product.variantName}
+                            {product.variantName}
                           </Badge>
                         ) : null}
                       </span>
