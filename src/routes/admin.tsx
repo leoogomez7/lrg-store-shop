@@ -738,7 +738,7 @@ type AdminEntryNoticeData = {
 };
 
 function AdminEntryNotice() {
-  const { data: products } = useSuspenseQuery(catalogQueries.all());
+  const { data: products } = useSuspenseQuery(catalogQueries.allAdmin());
   const { data: orders } = useSuspenseQuery(orderQueries.list());
   const [notice, setNotice] = useState<AdminEntryNoticeData | null>(null);
 

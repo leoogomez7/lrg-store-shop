@@ -158,6 +158,32 @@ const normalizeProductName = (name: string) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
+const getNameSimilarity = (firstName: string, secondName: string) => {
+  const first = normalizeProductName(firstName);
+  const second = normalizeProductName(secondName);
+  if (!first || !second) return 0;
+  if (first === second) return 1;
+  if (first.includes(second) || second.includes(first)) {
+    return Math.min(first.length, second.length) / Math.max(first.length, second.length);
+  }
+
+  const firstTokens = new Set(first.split(/\s+/).filter(Boolean));
+  const secondTokens = new Set(second.split(/\s+/).filter(Boolean));
+  const overlap = [...firstTokens].filter((token) => secondTokens.has(token)).length;
+  return (2 * overlap) / (firstTokens.size + secondTokens.size);
+};
+
+const getProductImageReference = (product: Product) => product.images?.[0] ?? product.image ?? "";
+
+const getImageImportProductName = (fileName: string, sequence: number) => {
+  const baseName = fileName
+    .replace(/\.[^.]+$/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return baseName || `Producto importado ${sequence}`;
+};
+
 const fileToDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -296,6 +322,10 @@ function AdminProducts() {
   const [duplicateReviewOpen, setDuplicateReviewOpen] = useState(false);
   const [duplicateCandidateIds, setDuplicateCandidateIds] = useState<string[]>([]);
   const [keepDuplicateIds, setKeepDuplicateIds] = useState<string[]>([]);
+  const [productComparison, setProductComparison] = useState<{
+    importedProductId: string;
+    existingProductId: string;
+  } | null>(null);
   const [quickEditProductId, setQuickEditProductId] = useState<string | null>(null);
   const [quickEditVariantId, setQuickEditVariantId] = useState<string | null>(null);
   const [highlightedDeepLinkKey, setHighlightedDeepLinkKey] = useState<string | null>(null);
@@ -618,6 +648,9 @@ function AdminProducts() {
         comision: 0,
         comisionCurrency: "ARS",
         stock: 1,
+        stockUnlimited: false,
+        deliveryUnit: "inmediata",
+        deliveryAmount: 0,
         rating: 0,
         reviews: 0,
         short: "Producto creado desde archivo de texto.",
@@ -672,11 +705,8 @@ function AdminProducts() {
     }
 
     const importedProducts = imageFiles.map((file, index) => {
-      const baseName = file.name
-        .replace(/\.[^.]+$/, "")
-        .replace(/[_-]+/g, " ")
-        .trim();
-      const productName = baseName || `Producto importado ${index + 1}`;
+      const sequence = (append ? pendingImportedProducts.length : 0) + index + 1;
+      const productName = getImageImportProductName(file.name, sequence);
       const slugBase =
         productName
           .toLowerCase()
@@ -703,6 +733,9 @@ function AdminProducts() {
         comision: 0,
         comisionCurrency: "ARS",
         stock: 1,
+        stockUnlimited: false,
+        deliveryUnit: "inmediata",
+        deliveryAmount: 0,
         rating: 0,
         reviews: 0,
         short: "Producto agregado desde importación múltiple.",
@@ -740,9 +773,70 @@ function AdminProducts() {
   };
 
   const importCategories = brands[importBrand].categories;
+  const importSupplierOptions = useMemo(() => {
+    const unique = new Map<string, ProductSupplier>();
+    products.forEach((product) => {
+      [product.supplier, ...(product.variants ?? []).map((variant) => variant.supplier)]
+        .filter((supplier): supplier is ProductSupplier => Boolean(supplier?.name))
+        .forEach((supplier) => unique.set(getSupplierKey(supplier), supplier));
+    });
+    const supplierSetting = adminSettings.find((setting) => setting.settingKey === "lrg:suppliers");
+    if (supplierSetting) {
+      try {
+        const storedSuppliers = JSON.parse(supplierSetting.settingValue) as ProductSupplier[];
+        storedSuppliers.forEach((supplier) => {
+          if (supplier.name) unique.set(getSupplierKey(supplier), supplier);
+        });
+      } catch {
+        // Ignore malformed supplier settings and keep suppliers found on products.
+      }
+    }
+    const deletedSetting = adminSettings.find(
+      (setting) => setting.settingKey === DELETED_SUPPLIERS_STORAGE_KEY,
+    );
+    let deletedKeys: string[] = [];
+    if (deletedSetting) {
+      try {
+        const parsed = JSON.parse(deletedSetting.settingValue) as unknown;
+        deletedKeys = Array.isArray(parsed)
+          ? parsed.filter((key): key is string => typeof key === "string")
+          : [];
+      } catch {
+        deletedKeys = [];
+      }
+    }
+    return Array.from(unique.entries())
+      .filter(([key]) => !deletedKeys.includes(key))
+      .map(([, supplier]) => supplier);
+  }, [adminSettings, products]);
   const selectedImportCategory = importCategories.find(
     (category) => category.slug === importCategory,
   );
+
+  const getImportedSalePrice = (product: Product) => {
+    const toArs = (amount: number, currency: CurrencyCode) =>
+      currency === "USD" ? (usdRate > 0 ? amount * usdRate : 0) : amount;
+    return (
+      toArs(product.comision ?? 0, product.comisionCurrency ?? "ARS") +
+      toArs(product.gastos ?? 0, product.gastosCurrency ?? "ARS")
+    );
+  };
+
+  const updateImportedProduct = (productId: string, updates: Partial<Product>) => {
+    setPendingImportedProducts((current) =>
+      current.map((product) => (product.id === productId ? { ...product, ...updates } : product)),
+    );
+  };
+
+  const removeImportedProduct = (productId: string) => {
+    setPendingImportedProducts((current) => current.filter((product) => product.id !== productId));
+    setStoreImportPriceDetails((current) => {
+      const next = { ...current };
+      delete next[productId];
+      return next;
+    });
+    setImportPreviewPage(0);
+  };
 
   const changeGlobalImportFields = (
     nextBrand: BrandSlug,
@@ -888,12 +982,15 @@ function AdminProducts() {
           gastos: item.lowestPrice,
           gastosCurrency: "USD",
           stock: 1,
+          stockUnlimited: false,
+          deliveryUnit: "inmediata",
+          deliveryAmount: 0,
           rating: 0,
           reviews: 0,
           short: "Importado desde PlayStation Store.",
           description: "Producto importado desde PlayStation Store.",
           features: [],
-          images: [],
+          images: item.image ? [item.image] : [],
           createdAt: new Date().toISOString(),
         } satisfies Product;
       });
@@ -949,6 +1046,30 @@ function AdminProducts() {
     });
   };
 
+  const getPotentialProductMatches = (product: Product) =>
+    products
+      .filter((existing) => existing.id !== product.id && existing.brand === product.brand)
+      .map((existing) => {
+        const nameSimilarity = getNameSimilarity(product.name, existing.name);
+        const importedImage = getProductImageReference(product);
+        const existingImage = getProductImageReference(existing);
+        const sameImage = Boolean(importedImage && existingImage && importedImage === existingImage);
+        return { product: existing, nameSimilarity, sameImage };
+      })
+      .filter((match) => match.sameImage || match.nameSimilarity >= 0.45)
+      .sort(
+        (first, second) =>
+          Number(second.sameImage) - Number(first.sameImage) ||
+          second.nameSimilarity - first.nameSimilarity,
+      );
+
+  const openProductComparison = (importedProduct: Product, existingProduct: Product) => {
+    setProductComparison({
+      importedProductId: importedProduct.id,
+      existingProductId: existingProduct.id,
+    });
+  };
+
   const commitImportedProducts = async (importedProducts: Product[]) => {
     if (!importedProducts.length) {
       toast.info("No seleccionaste productos para agregar.");
@@ -988,7 +1109,7 @@ function AdminProducts() {
 
     const importedProducts = pendingImportedProducts.reduce<Product[]>((result, product) => {
       const rawName = product.name.trim();
-      const price = Number(product.price);
+      const price = getImportedSalePrice(product);
       if (!rawName || !Number.isFinite(price) || price < 0) return result;
 
       const appliesGlobalFields = applyImportFieldsToAll;
@@ -1022,6 +1143,8 @@ function AdminProducts() {
         name,
         slug: `${slugBase}-${product.id.replace(/[^a-zA-Z0-9-]/g, "-")}`,
         price,
+        priceCurrency: "ARS",
+        deliveryUnit: product.deliveryUnit ?? "inmediata",
         brand,
         code,
         category,
@@ -1059,6 +1182,52 @@ function AdminProducts() {
       (product) => !duplicateIdSet.has(product.id) || keepIdSet.has(product.id),
     );
     void commitImportedProducts(acceptedProducts);
+  };
+
+  const handleReplaceComparedProduct = async () => {
+    if (!productComparison || isSavingImports) return;
+    const importedProduct = pendingImportedProducts.find(
+      (product) => product.id === productComparison.importedProductId,
+    );
+    const existingProduct = products.find(
+      (product) => product.id === productComparison.existingProductId,
+    );
+    if (!importedProduct || !existingProduct) {
+      toast.error("No se encontró uno de los productos para reemplazar.");
+      setProductComparison(null);
+      return;
+    }
+
+    const replacement: Product = { ...importedProduct, id: existingProduct.id };
+    setIsSavingImports(true);
+    try {
+      const saved = await saveProductBatch([replacement]);
+      if (!saved) throw new Error("La base de datos no aceptó el reemplazo.");
+
+      const nextProducts = products.map((product) =>
+        product.id === existingProduct.id ? replacement : product,
+      );
+      productsData.splice(0, productsData.length, ...nextProducts);
+      setEditableProducts(nextProducts);
+      queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
+      void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
+      setPendingImportedProducts((current) =>
+        current.filter((product) => product.id !== importedProduct.id),
+      );
+      setStoreImportPriceDetails((current) => {
+        const next = { ...current };
+        delete next[importedProduct.id];
+        return next;
+      });
+      setProductComparison(null);
+      if (pendingImportedProducts.length <= 1) setImportCategoryOpen(false);
+      toast.success(`Se reemplazaron los datos de «${existingProduct.name}»`);
+    } catch (error) {
+      console.error("Error reemplazando producto existente:", error);
+      toast.error(error instanceof Error ? error.message : "No se pudo reemplazar el producto.");
+    } finally {
+      setIsSavingImports(false);
+    }
   };
 
   const openEditProductDialog = useCallback(
@@ -2570,6 +2739,16 @@ function AdminProducts() {
     );
   };
 
+  const comparedImportedProduct = pendingImportedProducts.find(
+    (product) => product.id === productComparison?.importedProductId,
+  );
+  const comparisonCandidates = comparedImportedProduct
+    ? getPotentialProductMatches(comparedImportedProduct)
+    : [];
+  const comparedExistingProduct = products.find(
+    (product) => product.id === productComparison?.existingProductId,
+  );
+
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
       <div className="flex flex-wrap items-center gap-2">
@@ -3641,40 +3820,6 @@ function AdminProducts() {
                                   Oculto
                                 </span>
                               ) : null}
-                              {selectionMode ? (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-7 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                  aria-label={`Eliminar ${product.name}${variant ? ` ${variant.name}` : ""}`}
-                                  title="Eliminar producto"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    setConfirmState({
-                                      open: true,
-                                      title: variant
-                                        ? `¿Eliminar la variante ${variant.name}?`
-                                        : `¿Eliminar el producto ${product.name}?`,
-                                      description: "Esta acción enviará el elemento a la papelera.",
-                                      confirmLabel: "Eliminar",
-                                      onConfirm: () => {
-                                        void handleDeleteProduct(product.id, variant?.id);
-                                        setSelectedProductIds((current) => {
-                                          const next = current.filter(
-                                            (selectionKey) =>
-                                              selectionKey !== getProductSelectionKey(product, variant),
-                                          );
-                                          setSelectionMode(next.length > 0);
-                                          return next;
-                                        });
-                                      },
-                                    });
-                                  }}
-                                >
-                                  <Trash2 className="size-4" />
-                                </Button>
-                              ) : null}
                             </div>
                           </TableCell>
                           <TableCell className="text-center">
@@ -4225,7 +4370,7 @@ function AdminProducts() {
       <Dialog
         open={importCategoryOpen}
         onOpenChange={(open) => {
-          if (!open && (isImportingStore || isPreparingImport)) return;
+          if (!open && (isImportingStore || isPreparingImport || isSavingImports)) return;
           setImportCategoryOpen(open);
         }}
       >
@@ -4236,14 +4381,18 @@ function AdminProducts() {
                 ? "Cargando productos de PlayStation Store…"
                 : isPreparingImport
                   ? "Cargando productos…"
-                  : "Revisar productos antes de importar"}
+                  : isSavingImports
+                    ? "Aplicando cambios…"
+                    : "Revisar productos antes de importar"}
             </DialogTitle>
             <DialogDescription>
               {isImportingStore
                 ? "Consultando todas las páginas de la categoría. Esto puede tardar un poco."
-                : isPreparingImport
-                  ? "Estamos procesando los archivos y preparando la vista previa."
-                  : `Se encontraron ${pendingImportedProducts.length} productos. Revisá y editá los datos antes de agregarlos.`}
+                : isSavingImports
+                  ? "Estamos guardando los productos y actualizando el catálogo."
+                  : isPreparingImport
+                    ? "Estamos procesando los archivos y preparando la vista previa."
+                    : `Se encontraron ${pendingImportedProducts.length} productos. Revisá y editá los datos antes de agregarlos.`}
             </DialogDescription>
           </DialogHeader>
           {isImportingStore || isPreparingImport ? (
@@ -4257,7 +4406,19 @@ function AdminProducts() {
               <p className="text-xs">Esperá un momento mientras se completa el proceso.</p>
             </div>
           ) : null}
-          <div className={cn("space-y-4", (isImportingStore || isPreparingImport) && "hidden")}>
+          {isSavingImports ? (
+            <div className="flex min-h-56 flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
+              <LoaderCircle className="size-8 animate-spin text-primary" />
+              <p>Guardando productos y aplicando cambios…</p>
+              <p className="text-xs">No cierres esta ventana hasta que termine.</p>
+            </div>
+          ) : null}
+          <div
+            className={cn(
+              "space-y-4",
+              (isImportingStore || isPreparingImport || isSavingImports) && "hidden",
+            )}
+          >
             <section className="space-y-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
               <h3 className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                 General
@@ -4392,6 +4553,7 @@ function AdminProducts() {
               <h3 className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                 Productos
               </h3>
+              {/* prettier-ignore */}
               <div className="max-h-[48dvh] space-y-3 overflow-y-auto pr-1">
               {pendingImportedProducts
                 .slice(importPreviewPage * 30, (importPreviewPage + 1) * 30)
@@ -4404,10 +4566,11 @@ function AdminProducts() {
                   );
                   const rowSubcategoryPath =
                     product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []);
+                  const potentialMatches = getPotentialProductMatches(product);
                   return (
                     <div
                       key={product.id}
-                      className="grid gap-3 rounded-xl border border-border/60 bg-background/70 p-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(8rem,0.7fr)]"
+                      className="grid gap-3 rounded-xl border border-border/60 bg-background/70 p-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(8rem,0.7fr)_auto]"
                     >
                       <div className="flex min-w-0 gap-3">
                         <div className="flex shrink-0 flex-col items-center gap-2">
@@ -4697,6 +4860,129 @@ function AdminProducts() {
                             </>
                           ) : null}
                         </div>
+                        <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                          <div className="min-w-0 space-y-1.5">
+                            <Label htmlFor={`import-supplier-${product.id}`}>Proveedor</Label>
+                            <Select
+                              value={product.supplier?.name ? getSupplierKey(product.supplier) : "none"}
+                              onValueChange={(value) => {
+                                const supplier = importSupplierOptions.find(
+                                  (option) => getSupplierKey(option) === value,
+                                );
+                                updateImportedProduct(product.id, {
+                                  supplier: value === "none" ? undefined : supplier,
+                                });
+                              }}
+                            >
+                              <SelectTrigger id={`import-supplier-${product.id}`}>
+                                <SelectValue placeholder="Seleccionar proveedor" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Sin proveedor</SelectItem>
+                                {importSupplierOptions.map((supplier) => (
+                                  <SelectItem key={getSupplierKey(supplier)} value={getSupplierKey(supplier)}>
+                                    {supplier.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="min-w-0 space-y-1.5">
+                            <Label htmlFor={`import-stock-mode-${product.id}`}>Stock</Label>
+                            <Select
+                              value={product.stockUnlimited ? "unlimited" : "limited"}
+                              onValueChange={(value) =>
+                                updateImportedProduct(product.id, {
+                                  stockUnlimited: value === "unlimited",
+                                })
+                              }
+                            >
+                              <SelectTrigger id={`import-stock-mode-${product.id}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="limited">Cantidad</SelectItem>
+                                <SelectItem value="unlimited">Ilimitado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {!product.stockUnlimited ? (
+                              <Input
+                                type="number"
+                                min={0}
+                                step={1}
+                                aria-label={`Cantidad en stock de ${product.name}`}
+                                value={product.stock}
+                                onChange={(event) =>
+                                  updateImportedProduct(product.id, {
+                                    stock: Math.max(0, Number(event.target.value) || 0),
+                                  })
+                                }
+                              />
+                            ) : null}
+                          </div>
+                          <div className="min-w-0 space-y-1.5">
+                            <Label htmlFor={`import-delivery-unit-${product.id}`}>Tiempo de entrega</Label>
+                            <Select
+                              value={product.deliveryUnit ?? "inmediata"}
+                              onValueChange={(value) =>
+                                updateImportedProduct(product.id, {
+                                  deliveryUnit: value as DeliveryUnit,
+                                  deliveryAmount: value === "inmediata" ? 0 : product.deliveryAmount ?? 1,
+                                })
+                              }
+                            >
+                              <SelectTrigger id={`import-delivery-unit-${product.id}`}>
+                                <SelectValue placeholder="Seleccionar tipo" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="inmediata">Inmediata</SelectItem>
+                                <SelectItem value="horas">Horas</SelectItem>
+                                <SelectItem value="dias">Días</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {product.deliveryUnit === "horas" || product.deliveryUnit === "dias" ? (
+                              <Input
+                                type="number"
+                                min={1}
+                                step={1}
+                                aria-label={`Tiempo de entrega de ${product.name}`}
+                                value={product.deliveryAmount ?? 1}
+                                onChange={(event) =>
+                                  updateImportedProduct(product.id, {
+                                    deliveryAmount: Math.max(1, Number(event.target.value) || 1),
+                                  })
+                                }
+                              />
+                            ) : null}
+                          </div>
+                          <div className="min-w-0 space-y-1.5">
+                            <Label>Precio de venta calculado</Label>
+                            <div className="flex h-10 items-center rounded-md border border-border/60 bg-surface/30 px-3 text-sm font-medium">
+                              {formatPrice(getImportedSalePrice(product))}
+                            </div>
+                          </div>
+                          {potentialMatches.length > 0 ? (
+                            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 sm:col-span-2 lg:col-span-4">
+                              <span className="min-w-0 flex-1 text-xs text-amber-200">
+                                Posible producto existente: {potentialMatches[0]?.product.name}
+                                {potentialMatches.length > 1
+                                  ? ` (+${potentialMatches.length - 1} más)`
+                                  : ""}
+                              </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  const match = potentialMatches[0];
+                                  if (match) openProductComparison(product, match.product);
+                                }}
+                              >
+                                Comparar posible producto existente
+                              </Button>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
 
                       {!applyImportFieldsToAll ? (
@@ -4780,55 +5066,66 @@ function AdminProducts() {
                           })}
                         </div>
                       ) : null}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-9 shrink-0 self-start text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        aria-label={`Quitar ${product.name} de la importación`}
+                        title="Quitar producto"
+                        onClick={() => removeImportedProduct(product.id)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
                     </div>
                   );
                 })}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full border-dashed"
-                  onClick={addMoreImportedProducts}
-                  disabled={!importSource || isImportingStore}
-                >
-                  <Plus className="size-4" />
-                  Agregar productos
-                </Button>
               </div>
-            {pendingImportedProducts.length > 30 ? (
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <p className="text-muted-foreground">
-                  Productos {importPreviewPage * 30 + 1}–
-                  {Math.min((importPreviewPage + 1) * 30, pendingImportedProducts.length)} de{" "}
-                  {pendingImportedProducts.length}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={importPreviewPage === 0}
-                    onClick={() => setImportPreviewPage((current) => Math.max(0, current - 1))}
-                  >
-                    Anterior
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={(importPreviewPage + 1) * 30 >= pendingImportedProducts.length}
-                    onClick={() => setImportPreviewPage((current) => current + 1)}
-                  >
-                    Siguiente
-                  </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-dashed"
+                onClick={addMoreImportedProducts}
+                disabled={!importSource || isImportingStore}
+              >
+                <Plus className="size-4" />
+                Agregar productos
+              </Button>
+              {pendingImportedProducts.length > 30 ? (
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <p className="text-muted-foreground">
+                    Productos {importPreviewPage * 30 + 1}–
+                    {Math.min((importPreviewPage + 1) * 30, pendingImportedProducts.length)} de{" "}
+                    {pendingImportedProducts.length}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={importPreviewPage === 0}
+                      onClick={() => setImportPreviewPage((current) => Math.max(0, current - 1))}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={(importPreviewPage + 1) * 30 >= pendingImportedProducts.length}
+                      onClick={() => setImportPreviewPage((current) => current + 1)}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
             </section>
           </div>
           <DialogFooter
             className={cn(
               "gap-6 max-md:justify-between max-md:pt-3",
-              (isImportingStore || isPreparingImport) && "hidden",
+              (isImportingStore || isPreparingImport || isSavingImports) && "hidden",
             )}
           >
             <Button
@@ -4851,7 +5148,9 @@ function AdminProducts() {
                 (applyImportFieldsToAll && !importCategory) ||
                 pendingImportedProducts.some(
                   (product) =>
-                    !product.name.trim() || !Number.isFinite(product.price) || product.price < 0,
+                    !product.name.trim() ||
+                    !Number.isFinite(getImportedSalePrice(product)) ||
+                    getImportedSalePrice(product) < 0,
                 )
               }
             >
@@ -4964,6 +5263,118 @@ function AdminProducts() {
                 : `Agregar ${pendingImportedProducts.length - duplicateCandidateIds.length + keepDuplicateIds.length} productos`}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(productComparison)}
+        onOpenChange={(open) => {
+          if (!open && !isSavingImports) setProductComparison(null);
+        }}
+      >
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Comparar posible producto existente</DialogTitle>
+            <DialogDescription>
+              Revisá el nombre y la imagen antes de reemplazar. Los campos que no estén en el
+              producto nuevo se quitarán del registro existente.
+            </DialogDescription>
+          </DialogHeader>
+          {comparedImportedProduct && comparedExistingProduct ? (
+            <>
+              {comparisonCandidates.length > 1 ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="comparison-existing-product">Producto existente para comparar</Label>
+                  <Select
+                    value={comparedExistingProduct.id}
+                    onValueChange={(existingProductId) =>
+                      setProductComparison((current) =>
+                        current ? { ...current, existingProductId } : current,
+                      )
+                    }
+                  >
+                    <SelectTrigger id="comparison-existing-product">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {comparisonCandidates.map((match) => (
+                        <SelectItem key={match.product.id} value={match.product.id}>
+                          {match.product.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[
+                  { label: "Producto nuevo", product: comparedImportedProduct },
+                  { label: "Producto existente", product: comparedExistingProduct },
+                ].map(({ label, product }) => {
+                  const image = getProductImageReference(product);
+                  return (
+                    <section
+                      key={label}
+                      className="min-w-0 space-y-3 rounded-xl border border-border/60 bg-surface/30 p-4"
+                    >
+                      <h3 className="text-sm font-semibold">{label}</h3>
+                      {image ? (
+                        <img
+                          src={image}
+                          alt={`Imagen de ${product.name}`}
+                          className="mx-auto aspect-square max-h-56 w-full rounded-lg border border-border/60 bg-background object-contain"
+                        />
+                      ) : (
+                        <ProductVisual
+                          seed={product.id}
+                          label={product.name}
+                          className="mx-auto aspect-square max-h-56 rounded-lg"
+                        />
+                      )}
+                      <p className="wrap-break-word text-center font-semibold">{product.name}</p>
+                      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
+                        <dt className="text-muted-foreground">Tienda</dt>
+                        <dd>{getBrandShortName(product.brand)}</dd>
+                        <dt className="text-muted-foreground">Categoría</dt>
+                        <dd className="wrap-break-word">{formatCategoryLabel(product.category)}</dd>
+                        <dt className="text-muted-foreground">Precio</dt>
+                        <dd>{formatPrice(product.price, product.priceCurrency ?? "ARS")}</dd>
+                        <dt className="text-muted-foreground">Stock</dt>
+                        <dd>{product.stockUnlimited ? "Ilimitado" : product.stock}</dd>
+                      </dl>
+                    </section>
+                  );
+                })}
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSavingImports}
+                  onClick={() => setProductComparison(null)}
+                >
+                  Cancelar reemplazo
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={isSavingImports}
+                  onClick={() => void handleReplaceComparedProduct()}
+                >
+                  {isSavingImports ? (
+                    <LoaderCircle className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <Check className="mr-2 size-4" />
+                  )}
+                  {isSavingImports ? "Reemplazando…" : "Reemplazar"}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No se pudieron cargar los datos para comparar. Cerrá el diálogo e intentá de nuevo.
+            </p>
+          )}
         </DialogContent>
       </Dialog>
 
