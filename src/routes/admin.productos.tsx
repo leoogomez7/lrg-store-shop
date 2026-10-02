@@ -4621,8 +4621,8 @@ function AdminProducts() {
                       className="grid min-w-0 gap-3 overflow-hidden rounded-xl border border-border/60 bg-background/70 p-3"
                     >
                       <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[11rem_repeat(4,minmax(0,1fr))]">
-                        <div className="order-first flex min-w-0 flex-col items-center gap-2 lg:col-start-1 lg:row-span-2 lg:row-start-1">
-                          <div className="relative size-20">
+                        <div className="order-first grid w-full min-w-0 justify-items-center gap-2 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+                          <div className="relative size-24 shrink-0">
                             {(product.images?.[0] ?? storeImportPriceDetails[product.id]?.image) ? (
                               <img
                                 src={
@@ -4631,10 +4631,10 @@ function AdminProducts() {
                                   ""
                                 }
                                 alt=""
-                                className="size-20 rounded-lg border border-border/60 object-cover"
+                                className="size-24 rounded-lg border border-border/60 object-cover"
                               />
                             ) : (
-                              <div className="grid size-20 place-items-center rounded-lg border border-border/60 bg-surface/50 text-muted-foreground">
+                              <div className="grid size-24 place-items-center rounded-lg border border-border/60 bg-surface/50 text-muted-foreground">
                                 <ImagePlus className="size-5" />
                               </div>
                             )}
@@ -4693,7 +4693,7 @@ function AdminProducts() {
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="h-auto! min-h-9 w-full justify-start whitespace-normal px-2 py-1 text-left text-xs leading-tight"
+                              className="h-auto! min-h-10 w-full justify-start whitespace-normal px-2 py-1 text-left text-xs leading-tight"
                               onClick={() => additionalImagesInputRefs.current[product.id]?.click()}
                             >
                               <ImagePlus className="size-3.5 shrink-0" /> Cambiar imagen
@@ -4702,7 +4702,7 @@ function AdminProducts() {
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="h-auto! min-h-9 w-full justify-start whitespace-normal px-2 py-1 text-left text-xs leading-tight"
+                              className="h-auto! min-h-10 w-full justify-start whitespace-normal px-2 py-1 text-left text-xs leading-tight"
                               aria-label={`Aplicar los datos de ${product.name} a los demás productos`}
                               title="Aplicar todos los datos editables, excepto el nombre y la imagen"
                               disabled={
