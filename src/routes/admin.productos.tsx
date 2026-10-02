@@ -352,6 +352,7 @@ function AdminProducts() {
         gastos: number;
         gastosCurrency: CurrencyCode;
         stock: number;
+        stockUnlimited: boolean;
         discount: number;
       }
     >
@@ -1048,7 +1049,11 @@ function AdminProducts() {
 
   const getPotentialProductMatches = (product: Product) =>
     products
-      .filter((existing) => existing.id !== product.id && existing.brand === product.brand)
+      .filter(
+        (existing) =>
+          existing.id !== product.id &&
+          existing.brand === (applyImportFieldsToAll ? importBrand : product.brand),
+      )
       .map((existing) => {
         const nameSimilarity = getNameSimilarity(product.name, existing.name);
         const importedImage = getProductImageReference(product);
@@ -1750,6 +1755,11 @@ function AdminProducts() {
   const getQuickEditKey = (product: Product, variant?: ProductVariant) =>
     `${product.id}:${variant?.id ?? "base"}`;
 
+  const normalizeQuickEditSelectionKey = (selectionKey: string) => {
+    const [productId, ...variantParts] = selectionKey.split(":");
+    return `${productId}:${variantParts.length ? variantParts.join(":") : "base"}`;
+  };
+
   const startQuickEdit = (product: Product, variant?: ProductVariant) => {
     const key = getQuickEditKey(product, variant);
     const source = variant ?? product;
@@ -1768,6 +1778,7 @@ function AdminProducts() {
         gastos: source.gastos ?? 0,
         gastosCurrency: source.gastosCurrency ?? product.gastosCurrency ?? "ARS",
         stock: source.stock,
+        stockUnlimited: source.stockUnlimited ?? product.stockUnlimited ?? false,
         discount: variant?.discount ?? discounts[product.id] ?? 0,
       },
     }));
@@ -1778,7 +1789,7 @@ function AdminProducts() {
       ? `${quickEditProductId}:${quickEditVariantId ?? "base"}`
       : null;
     const remainingQueue = bulkQuickEditQueue.filter(
-      (selectionKey) => selectionKey !== currentSelectionKey,
+      (selectionKey) => normalizeQuickEditSelectionKey(selectionKey) !== currentSelectionKey,
     );
     const nextQueuedSelectionKey = remainingQueue[0];
     const nextQuickEditEntry = nextQueuedSelectionKey
@@ -1836,7 +1847,7 @@ function AdminProducts() {
     const nextComisionCurrency = draft.comisionCurrency;
     const nextGastos = Math.max(0, Number(draft.gastos) || 0);
     const nextGastosCurrency = draft.gastosCurrency;
-    const nextStock = Number(draft.stock) || product.stock;
+    const nextStock = Math.max(0, Number(draft.stock) || 0);
     const nextDiscount = Math.max(0, Math.min(100, Number(draft.discount) || 0));
 
     setEditableProducts((current) =>
@@ -1857,6 +1868,7 @@ function AdminProducts() {
                     gastos: nextGastos,
                     gastosCurrency: nextGastosCurrency,
                     stock: nextStock,
+                    stockUnlimited: draft.stockUnlimited,
                     discount: nextDiscount,
                   }
                 : itemVariant,
@@ -1874,6 +1886,7 @@ function AdminProducts() {
           gastos: nextGastos,
           gastosCurrency: nextGastosCurrency,
           stock: nextStock,
+          stockUnlimited: draft.stockUnlimited,
         };
       }),
     );
@@ -1894,6 +1907,7 @@ function AdminProducts() {
                 gastos: nextGastos,
                 gastosCurrency: nextGastosCurrency,
                 stock: nextStock,
+                stockUnlimited: draft.stockUnlimited,
                 discount: nextDiscount,
               }
             : itemVariant,
@@ -1908,6 +1922,7 @@ function AdminProducts() {
         existing.gastos = nextGastos;
         existing.gastosCurrency = nextGastosCurrency;
         existing.stock = nextStock;
+        existing.stockUnlimited = draft.stockUnlimited;
       }
       saveProducts(productsData as Product[]);
     }
@@ -1923,7 +1938,7 @@ function AdminProducts() {
 
     const currentSelectionKey = key;
     const remainingQueue = bulkQuickEditQueue.filter(
-      (selectionKey) => selectionKey !== currentSelectionKey,
+      (selectionKey) => normalizeQuickEditSelectionKey(selectionKey) !== currentSelectionKey,
     );
     const nextQueuedSelectionKey = remainingQueue[0];
     const nextQuickEditEntry = nextQueuedSelectionKey
@@ -3550,6 +3565,7 @@ function AdminProducts() {
                     gastos: product.gastos ?? 0,
                     gastosCurrency: product.gastosCurrency ?? "ARS",
                     stock: product.stock,
+                    stockUnlimited: variant?.stockUnlimited ?? product.stockUnlimited ?? false,
                     discount,
                     variantName: variant?.name ?? "",
                   };
@@ -3668,21 +3684,49 @@ function AdminProducts() {
                             </Select>
                           </TableCell>
                           <TableCell className="min-w-32 align-middle">
-                            <Input
-                              type="number"
-                              min={0}
-                              value={quickDraft.stock}
-                              onChange={(event) =>
-                                setQuickEditForm((current) => ({
-                                  ...current,
-                                  [quickEditKey]: {
-                                    ...quickDraft,
-                                    stock: Number(event.target.value),
-                                  },
-                                }))
-                              }
-                              className="w-full min-w-28 text-center"
-                            />
+                            <div className="flex min-w-28 flex-col gap-1.5">
+                              <Select
+                                value={quickDraft.stockUnlimited ? "unlimited" : "limited"}
+                                onValueChange={(value) =>
+                                  setQuickEditForm((current) => ({
+                                    ...current,
+                                    [quickEditKey]: {
+                                      ...quickDraft,
+                                      stockUnlimited: value === "unlimited",
+                                    },
+                                  }))
+                                }
+                              >
+                                <SelectTrigger
+                                  className="h-8 w-full"
+                                  aria-label={`Tipo de stock de ${product.name}`}
+                                >
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="limited">Cantidad</SelectItem>
+                                  <SelectItem value="unlimited">Infinito</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {!quickDraft.stockUnlimited ? (
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  value={quickDraft.stock}
+                                  onChange={(event) =>
+                                    setQuickEditForm((current) => ({
+                                      ...current,
+                                      [quickEditKey]: {
+                                        ...quickDraft,
+                                        stock: Number(event.target.value),
+                                      },
+                                    }))
+                                  }
+                                  className="w-full min-w-28 text-center"
+                                  aria-label={`Cantidad en stock de ${product.name}`}
+                                />
+                              ) : null}
+                            </div>
                           </TableCell>
                           <TableCell className="min-w-36 align-middle">
                             <div className="flex flex-col gap-2">
@@ -5531,7 +5575,6 @@ function ProductEditDialog({
   const [editingIncludeIndex, setEditingIncludeIndex] = useState<number | null>(null);
   const [inlineFeatureText, setInlineFeatureText] = useState("");
   const [inlineIncludeText, setInlineIncludeText] = useState("");
-  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [confirmExitOpen, setConfirmExitOpen] = useState(false);
   const initialFormRef = useRef<string | null>(null);
   const productFormRef = useRef<ProductFormState | null>(null);
@@ -5540,8 +5583,6 @@ function ProductEditDialog({
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(null);
   const [inlineVariantName, setInlineVariantName] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
-  const [descriptionConfirmed, setDescriptionConfirmed] = useState(true);
-  const descriptionInitialRef = useRef("");
   const descriptionAppliedRef = useRef("");
   const featuresAppliedRef = useRef("");
   const includesAppliedRef = useRef("");
@@ -5692,8 +5733,6 @@ function ProductEditDialog({
     );
     const description = selectedVariant?.description ?? currentProductForm.description;
     setDescriptionDraft(description);
-    setDescriptionConfirmed(true);
-    descriptionInitialRef.current = description;
     descriptionAppliedRef.current = description;
     featuresAppliedRef.current = JSON.stringify(
       selectedVariant?.features ?? currentProductForm.features,
@@ -6095,7 +6134,6 @@ function ProductEditDialog({
   const canApplyDescription =
     Boolean(activeVariant) &&
     productForm.variants.length >= 2 &&
-    descriptionConfirmed &&
     descriptionDraft !== descriptionAppliedRef.current;
   const canApplyFeatures =
     Boolean(activeVariant) &&
@@ -6188,12 +6226,6 @@ function ProductEditDialog({
   const hasBulkSkip = canSkipBulkEdit;
   const canNavigatePrevious = bulkEditPosition > 0;
   const canNavigateNext = hasBulkNavigation && bulkEditPosition < bulkEditCount - 1;
-  const confirmDescription = () => {
-    if (!productForm || descriptionDraft === descriptionInitialRef.current) return;
-    updateActiveVariant({ description: descriptionDraft });
-    setDescriptionConfirmed(true);
-    descriptionInitialRef.current = descriptionDraft;
-  };
   const updateActivePricing = (updates: Partial<ProductVariant>) => {
     if (!productForm) return;
     if (!activeVariant) {
@@ -7229,23 +7261,13 @@ function ProductEditDialog({
                     rows={3}
                     className="min-h-90px w-full min-w-0"
                     onChange={(event) => {
-                      setDescriptionDraft(event.target.value);
-                      setDescriptionConfirmed(false);
+                      const nextDescription = event.target.value;
+                      setDescriptionDraft(nextDescription);
+                      updateActiveVariant({ description: nextDescription });
                     }}
                     placeholder="Descripción de esta variante"
                   />
                   <div className="flex w-fit max-w-full flex-col items-start gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="default"
-                      onClick={confirmDescription}
-                      disabled={descriptionDraft === descriptionInitialRef.current}
-                      className="h-10 w-fit text-sm"
-                    >
-                      <Check className="mr-2 size-3.5" />
-                      Confirmar
-                    </Button>
                     <label className="inline-flex h-10 w-fit max-w-full items-center justify-between gap-2 whitespace-nowrap rounded-2xl border border-border/60 bg-background/80 px-3 py-1">
                       <span className="text-[11px] leading-none sm:text-sm">
                         Aplicar a todas las variantes
@@ -7556,9 +7578,10 @@ function ProductEditDialog({
               </Button>
             ) : null}
             <Button
+              type="button"
               variant="default"
               disabled={!canSave || isSaving}
-              onClick={() => setConfirmSaveOpen(true)}
+              onClick={() => void onSave()}
               className={cn(
                 "rounded-md border border-transparent bg-primary text-primary-foreground shadow-none hover:bg-primary/90 hover:text-primary-foreground hover:shadow-none disabled:opacity-50",
                 hasBulkSkip
@@ -7581,20 +7604,6 @@ function ProductEditDialog({
           </div>
 
         </DialogFooter>
-        <ConfirmDialog
-          open={confirmSaveOpen}
-          onOpenChange={(open) => setConfirmSaveOpen(open)}
-          title={"Guardar cambios?"}
-          description={"¿Deseas guardar los cambios realizados en el producto?"}
-          confirmLabel="Guardar"
-          cancelLabel="Cancelar"
-          onConfirm={() => {
-            if (isSaving) return;
-            setConfirmSaveOpen(false);
-            onSave();
-          }}
-        />
-
         <ConfirmDialog
           open={confirmExitOpen}
           onOpenChange={(open) => setConfirmExitOpen(open)}
