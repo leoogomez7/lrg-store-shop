@@ -804,7 +804,7 @@ function CheckoutPage() {
                             className={synced ? "h-10 bg-muted/40" : "h-10"}
                             placeholder={
                               label === "Referencias"
-                                ? "Entre calles, color de la casa, etc."
+                                ? "Referencias del domicilio."
                                 : undefined
                             }
                           />

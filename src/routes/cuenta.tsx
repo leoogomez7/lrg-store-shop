@@ -2338,7 +2338,7 @@ function AccountPageContent({
                                     }
                                     placeholder={
                                       label === "Referencias"
-                                        ? "Entre calles, color de la casa, etc."
+                                        ? "Referencias del domicilio."
                                         : undefined
                                     }
                                   />
@@ -2635,7 +2635,7 @@ function AccountPageContent({
                         className={synced ? "h-10 bg-muted/40" : "h-10 bg-background/40"}
                         placeholder={
                           label === "Referencias"
-                            ? "Entre calles, color de la casa, etc."
+                            ? "Referencias del domicilio."
                             : undefined
                         }
                       />

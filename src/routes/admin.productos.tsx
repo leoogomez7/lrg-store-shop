@@ -303,6 +303,7 @@ function AdminProducts() {
   const [importSubcategory, setImportSubcategory] = useState("");
   const [importSubcategoryPath, setImportSubcategoryPath] = useState<string[]>([]);
   const [importCode, setImportCode] = useState("");
+  const [importDescription, setImportDescription] = useState("");
   const [applyImportFieldsToAll, setApplyImportFieldsToAll] = useState(true);
   const [importSetupOpen, setImportSetupOpen] = useState(false);
   const [importSetupSource, setImportSetupSource] = useState<"images" | "text" | "store" | null>(
@@ -621,9 +622,6 @@ function AdminProducts() {
       return;
     }
 
-    const defaultBrand: BrandSlug = "arcade";
-    const defaultCategory = brands[defaultBrand].categories[0]?.slug ?? "consolas";
-
     const importedProducts = parsedProducts.map(({ name, price }, index) => {
       const slugBase =
         name
@@ -633,17 +631,15 @@ function AdminProducts() {
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)/g, "") || `producto-importado-${Date.now()}-${index + 1}`;
 
-      const importedBrand: BrandSlug = defaultBrand;
-
       return {
         id: `import-text-${Date.now()}-${index + 1}`,
         slug: `${slugBase}-${index + 1}`,
-        brand: importedBrand,
+        brand: importBrand,
         code: importCode.trim() || undefined,
         name,
-        category: defaultCategory,
+        category: importCategory,
         subcategory: importSubcategoryPath[0] || undefined,
-        subcategoryPath: importSubcategoryPath.length ? importSubcategoryPath : undefined,
+        subcategoryPath: importSubcategoryPath.length ? [...importSubcategoryPath] : undefined,
         price,
         priceCurrency: "ARS",
         gastos: 0,
@@ -656,9 +652,8 @@ function AdminProducts() {
         deliveryAmount: 0,
         rating: 0,
         reviews: 0,
-        short: "Producto creado desde archivo de texto.",
-        description:
-          "Producto generado automáticamente a partir del contenido del archivo cargado.",
+        short: importDescription,
+        description: importDescription,
         features: [],
         images: [],
         createdAt: new Date().toISOString(),
@@ -673,7 +668,7 @@ function AdminProducts() {
     setImportBrand(importBrand);
     setImportCategory(importCategory);
     setImportSubcategory(importSubcategory);
-    if (!append) setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
+    if (!append) setApplyImportFieldsToAll(true);
     setImportPreviewPage(append ? Math.floor(pendingImportedProducts.length / 30) : 0);
     setIsPreparingImport(false);
   };
@@ -717,18 +712,15 @@ function AdminProducts() {
           .replace(/[\u0300-\u036f]/g, "")
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)/g, "") || `producto-importado-${Date.now()}-${index + 1}`;
-      const defaultBrand: BrandSlug = "arcade";
-      const defaultCategory = brands[defaultBrand].categories[0]?.slug ?? "consolas";
-
       return {
         id: `import-${Date.now()}-${index + 1}`,
         slug: `${slugBase}-${index + 1}`,
-        brand: defaultBrand,
+        brand: importBrand,
         code: importCode.trim() || undefined,
         name: productName,
-        category: defaultCategory,
+        category: importCategory,
         subcategory: importSubcategoryPath[0] || undefined,
-        subcategoryPath: importSubcategoryPath.length ? importSubcategoryPath : undefined,
+        subcategoryPath: importSubcategoryPath.length ? [...importSubcategoryPath] : undefined,
         price: 0,
         priceCurrency: "ARS",
         gastos: 0,
@@ -741,8 +733,8 @@ function AdminProducts() {
         deliveryAmount: 0,
         rating: 0,
         reviews: 0,
-        short: "Producto agregado desde importación múltiple.",
-        description: "Producto creado a partir de una imagen importada desde el dispositivo.",
+        short: importDescription,
+        description: importDescription,
         features: [],
         images: [imageDataUrls[index]],
         createdAt: new Date().toISOString().slice(0, 10),
@@ -757,7 +749,7 @@ function AdminProducts() {
     setImportBrand(importBrand);
     setImportCategory(importCategory);
     setImportSubcategory(importSubcategory);
-    if (!append) setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
+    if (!append) setApplyImportFieldsToAll(true);
     setImportPreviewPage(append ? Math.floor(pendingImportedProducts.length / 30) : 0);
     setIsPreparingImport(false);
   };
@@ -874,6 +866,8 @@ function AdminProducts() {
           stockUnlimited: source.stockUnlimited,
           deliveryUnit: source.deliveryUnit,
           deliveryAmount: source.deliveryAmount,
+          short: source.short,
+          description: source.description,
           ...(importSource === "store"
             ? {
                 name: replaceSubcategorySuffix(
@@ -932,45 +926,6 @@ function AdminProducts() {
     setImportSubcategory(nextSubcategoryPath[0] ?? "");
   };
 
-  const updateIndividualImportFields = (
-    index: number,
-    updates: {
-      brand?: BrandSlug;
-      category?: string;
-      subcategoryPath?: string[];
-      code?: string;
-    },
-  ) => {
-    setPendingImportedProducts((current) =>
-      current.map((product, productIndex) => {
-        if (productIndex !== index) return product;
-        const brand = updates.brand ?? product.brand;
-        const category = updates.category ?? product.category;
-        const subcategoryPath =
-          updates.subcategoryPath ??
-          product.subcategoryPath ??
-          (product.subcategory ? [product.subcategory] : []);
-        const previousLabel = getSubcategoryPathLabel(
-          product.brand,
-          product.category,
-          product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []),
-        );
-        const nextLabel = getSubcategoryPathLabel(brand, category, subcategoryPath);
-        return {
-          ...product,
-          brand,
-          category,
-          code: updates.code ?? product.code,
-          subcategory: subcategoryPath[0],
-          subcategoryPath: subcategoryPath.length ? subcategoryPath : undefined,
-          ...(importSource === "store"
-            ? { name: replaceSubcategorySuffix(product.name, previousLabel, nextLabel) }
-            : {}),
-        };
-      }),
-    );
-  };
-
   const getSubcategoryPathLabel = (brand: BrandSlug, categorySlug: string, path: string[]) => {
     let nodes = brands[brand].categories.find(
       (category) => category.slug === categorySlug,
@@ -1009,7 +964,7 @@ function AdminProducts() {
       setPendingImportedProducts([]);
       setStoreImportPriceDetails({});
       setImportPreviewPage(0);
-      setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
+      setApplyImportFieldsToAll(true);
     }
     setIsImportingStore(true);
     setImportCategoryOpen(true);
@@ -1034,7 +989,7 @@ function AdminProducts() {
           brand: importBrand,
           code: importCode.trim() || undefined,
           name,
-          category: importCategory || brands[importBrand].categories[0]?.slug || "",
+          category: importCategory,
           subcategory: importSubcategoryPath[0] || undefined,
           subcategoryPath: importSubcategoryPath.length ? importSubcategoryPath : undefined,
           price: 0,
@@ -1049,8 +1004,8 @@ function AdminProducts() {
           deliveryAmount: 0,
           rating: 0,
           reviews: 0,
-          short: "Importado desde PlayStation Store.",
-          description: "Producto importado desde PlayStation Store.",
+          short: importDescription,
+          description: importDescription,
           features: [],
           images: item.image ? [item.image] : [],
           createdAt: new Date().toISOString(),
@@ -1322,8 +1277,8 @@ function AdminProducts() {
         gastos: product.gastos ?? 0,
         gastosCurrency: product.gastosCurrency ?? "ARS",
         usdRate: product.usdRate && product.usdRate > 0 ? product.usdRate : usdRate,
-        deliveryUnit: "inmediata",
-        deliveryAmount: 1,
+        deliveryUnit: product.deliveryUnit ?? "inmediata",
+        deliveryAmount: product.deliveryAmount ?? 0,
         discount: discounts[product.id] ?? 0,
         variants: product.variants ?? [],
         supplier: product.supplier ?? { name: "", phone: "", social: "", purchaseDate: "" },
@@ -4131,7 +4086,8 @@ function AdminProducts() {
                 setImportSubcategory("");
                 setImportSubcategoryPath([]);
                 setImportCode("");
-                setApplyImportFieldsToAll(false);
+                setImportDescription("");
+                setApplyImportFieldsToAll(true);
                 setImportSetupOpen(true);
               }}
             >
@@ -4153,7 +4109,8 @@ function AdminProducts() {
                 setImportSubcategory("");
                 setImportSubcategoryPath([]);
                 setImportCode("");
-                setApplyImportFieldsToAll(false);
+                setImportDescription("");
+                setApplyImportFieldsToAll(true);
                 setImportSetupOpen(true);
               }}
             >
@@ -4176,6 +4133,8 @@ function AdminProducts() {
                 setImportSubcategoryPath([]);
                 setImportCode("");
                 setImportSetupSource("store");
+                setImportDescription("");
+                setApplyImportFieldsToAll(true);
                 setImportSetupOpen(true);
               }}
             >
@@ -4325,7 +4284,8 @@ function AdminProducts() {
               onClick={() => {
                 setCreateChoiceOpen(false);
                 setImportSetupOpen(false);
-                setApplyImportFieldsToAll(Boolean(importCategory || importSubcategoryPath.length));
+                setImportDescription("");
+                setApplyImportFieldsToAll(true);
                 appendImportedProductsRef.current = false;
                 if (importSetupSource === "images") multiProductInputRef.current?.click();
                 if (importSetupSource === "text") textProductInputRef.current?.click();
@@ -4650,6 +4610,27 @@ function AdminProducts() {
                     )}
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="import-description-all">Descripción para todos los productos</Label>
+                  <Textarea
+                    id="import-description-all"
+                    value={importDescription}
+                    onChange={(event) => {
+                      const description = event.target.value;
+                      setImportDescription(description);
+                      setPendingImportedProducts((current) =>
+                        current.map((product) => ({
+                          ...product,
+                          short: description,
+                          description,
+                        })),
+                      );
+                    }}
+                    rows={2}
+                    placeholder="Escribí una descripción común para los productos"
+                    className="min-h-16 w-full resize-y"
+                  />
+                </div>
               </div>
             </section>
 
@@ -4663,32 +4644,43 @@ function AdminProducts() {
                 .slice(importPreviewPage * 30, (importPreviewPage + 1) * 30)
                 .map((product, visibleIndex) => {
                   const index = importPreviewPage * 30 + visibleIndex;
-                  const rowBrand = product.brand;
-                  const rowCategories = brands[rowBrand].categories;
-                  const rowCategory = rowCategories.find(
-                    (category) => category.slug === product.category,
-                  );
-                  const rowSubcategoryPath =
-                    product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []);
                   const potentialMatches = getPotentialProductMatches(product);
                   return (
                     <div
                       key={product.id}
-                      className="grid gap-3 rounded-xl border border-border/60 bg-background/70 p-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(8rem,0.7fr)_auto]"
+                      className="grid min-w-0 gap-3 overflow-hidden rounded-xl border border-border/60 bg-background/70 p-3"
                     >
-                      <div className="flex min-w-0 gap-3">
-                        <div className="flex shrink-0 flex-col items-center gap-2">
-                          {(product.images?.[0] ?? storeImportPriceDetails[product.id]?.image) ? (
-                            <img
-                              src={
-                                product.images?.[0] ??
-                                storeImportPriceDetails[product.id]?.image ??
-                                ""
-                              }
-                              alt=""
-                              className="size-16 rounded-lg border border-border/60 object-cover"
-                            />
-                          ) : null}
+                      <div className="grid min-w-0 gap-3 xl:grid-cols-[11rem_minmax(0,1.2fr)_minmax(0,1fr)]">
+                        <div className="grid min-w-0 grid-cols-[4rem_minmax(0,1fr)] items-start gap-2">
+                          <div className="relative size-16">
+                            {(product.images?.[0] ?? storeImportPriceDetails[product.id]?.image) ? (
+                              <img
+                                src={
+                                  product.images?.[0] ??
+                                  storeImportPriceDetails[product.id]?.image ??
+                                  ""
+                                }
+                                alt=""
+                                className="size-16 rounded-lg border border-border/60 object-cover"
+                              />
+                            ) : (
+                              <div className="grid size-16 place-items-center rounded-lg border border-border/60 bg-surface/50 text-muted-foreground">
+                                <ImagePlus className="size-5" />
+                              </div>
+                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute -right-2 -top-2 size-7 rounded-full border border-border/70 bg-background/95 text-white hover:bg-surface hover:text-white"
+                              aria-label={`Quitar ${product.name} de la importación`}
+                              title="Quitar producto"
+                              disabled={applyingImportFieldsFromProductId !== null || isSavingImports}
+                              onClick={() => removeImportedProduct(product.id)}
+                            >
+                              <X className="size-4" />
+                            </Button>
+                          </div>
                           <input
                             ref={(node) => {
                               additionalImagesInputRefs.current[product.id] = node;
@@ -4726,19 +4718,46 @@ function AdminProducts() {
                               }
                             }}
                           />
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8 gap-1 px-2 text-xs"
-                            onClick={() => additionalImagesInputRefs.current[product.id]?.click()}
-                          >
-                            <ImagePlus className="size-3.5" /> Cambiar imagen
-                          </Button>
+                          <div className="flex min-w-0 flex-col gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-auto min-h-8 w-full justify-start whitespace-normal px-2 py-1 text-left text-xs leading-tight"
+                              onClick={() => additionalImagesInputRefs.current[product.id]?.click()}
+                            >
+                              <ImagePlus className="size-3.5 shrink-0" /> Cambiar imagen
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-auto min-h-8 w-full justify-start whitespace-normal px-2 py-1 text-left text-xs leading-tight"
+                              aria-label={`Aplicar los datos de ${product.name} a los demás productos`}
+                              title="Aplicar sus datos a los demás productos, manteniendo nombre, imagen y precio propios"
+                              disabled={
+                                pendingImportedProducts.length < 2 ||
+                                applyingImportFieldsFromProductId !== null ||
+                                isSavingImports
+                              }
+                              onClick={() => void applyImportedProductFieldsToAll(product.id)}
+                            >
+                              {applyingImportFieldsFromProductId === product.id ? (
+                                <LoaderCircle className="size-4 shrink-0 animate-spin" />
+                              ) : (
+                                <Check className="size-4 shrink-0" />
+                              )}
+                              <span>
+                                {applyingImportFieldsFromProductId === product.id
+                                  ? "Aplicando…"
+                                  : "Aplicar a todos"}
+                              </span>
+                            </Button>
+                          </div>
                         </div>
-                        <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-3">
+                          <div className="grid min-w-0 content-start gap-3 sm:grid-cols-2">
                           <div className="min-w-0 space-y-1.5">
-                            <div className="flex h-8 items-center">
+                            <div className="flex min-h-8 items-center">
                               <Label htmlFor={`import-name-${product.id}`}>
                                 Nombre del producto
                               </Label>
@@ -4782,7 +4801,7 @@ function AdminProducts() {
                           ) : (
                             <>
                               <div className="min-w-0 space-y-1.5">
-                                <div className="flex h-8 items-center justify-between gap-2">
+                                <div className="flex min-h-8 flex-wrap items-center justify-between gap-1">
                                   <Label htmlFor={`import-expenses-${product.id}`}>Gastos</Label>
                                   <Select
                                     value={product.gastosCurrency ?? "ARS"}
@@ -4824,7 +4843,7 @@ function AdminProducts() {
                                 />
                               </div>
                               <div className="min-w-0 space-y-1.5">
-                                <div className="flex h-8 items-center justify-between gap-2">
+                                <div className="flex min-h-8 flex-wrap items-center justify-between gap-1">
                                   <Label htmlFor={`import-profit-${product.id}`}>Mi comisión</Label>
                                   <Select
                                     value={product.comisionCurrency ?? "ARS"}
@@ -4960,7 +4979,7 @@ function AdminProducts() {
                             </>
                           ) : null}
                         </div>
-                        <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="grid min-w-0 content-start gap-3 sm:grid-cols-2">
                           <div className="min-w-0 space-y-1.5">
                             <Label htmlFor={`import-supplier-${product.id}`}>Proveedor</Label>
                             <Select
@@ -5055,14 +5074,8 @@ function AdminProducts() {
                               />
                             ) : null}
                           </div>
-                          <div className="min-w-0 space-y-1.5">
-                            <Label>Precio de venta calculado</Label>
-                            <div className="flex h-10 items-center rounded-md border border-border/60 bg-surface/30 px-3 text-sm font-medium">
-                              {formatPrice(getImportedSalePrice(product))}
-                            </div>
-                          </div>
                           {potentialMatches.length > 0 ? (
-                            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 sm:col-span-2 lg:col-span-4">
+                            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 sm:col-span-2">
                               <span className="min-w-0 flex-1 text-xs text-amber-200">
                                 Posible producto existente: {potentialMatches[0]?.product.name}
                                 {potentialMatches.length > 1
@@ -5085,126 +5098,6 @@ function AdminProducts() {
                         </div>
                       </div>
 
-                      {!applyImportFieldsToAll ? (
-                        <div className="grid min-w-0 gap-2 sm:grid-cols-1">
-                          <Select
-                            value={rowBrand}
-                            onValueChange={(value) => {
-                              const nextBrand = value as BrandSlug;
-                              updateIndividualImportFields(index, {
-                                brand: nextBrand,
-                                category: brands[nextBrand].categories[0]?.slug ?? "",
-                                subcategoryPath: [],
-                              });
-                            }}
-                          >
-                            <SelectTrigger aria-label={`Tienda para ${product.name}`}>
-                              <SelectValue placeholder="Tienda" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {brandList.map((brand) => (
-                                <SelectItem key={brand.slug} value={brand.slug}>
-                                  {brand.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select
-                            value={product.category}
-                            onValueChange={(value) =>
-                              updateIndividualImportFields(index, {
-                                category: value,
-                                subcategoryPath: [],
-                              })
-                            }
-                          >
-                            <SelectTrigger aria-label={`Categoría para ${product.name}`}>
-                              <SelectValue placeholder="Categoría" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {rowCategories.map((category) => (
-                                <SelectItem key={category.slug} value={category.slug}>
-                                  {category.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {Array.from({ length: rowSubcategoryPath.length + 1 }, (_, level) => {
-                            const options = getSubcategoryOptionsAtLevel(
-                              rowCategory?.subcategories,
-                              rowSubcategoryPath,
-                              level,
-                            );
-                            if (!options.length) return null;
-                            return (
-                              <Select
-                                key={`import-row-subcategory-${product.id}-${level}`}
-                                value={rowSubcategoryPath[level] ?? "none"}
-                                onValueChange={(value) => {
-                                  const nextPath = rowSubcategoryPath.slice(0, level);
-                                  if (value !== "none") nextPath.push(value);
-                                  updateIndividualImportFields(index, {
-                                    subcategoryPath: nextPath,
-                                  });
-                                }}
-                              >
-                                <SelectTrigger
-                                  aria-label={`${level === 0 ? "Subcategoría" : `Subcategoría ${level + 1}`} para ${product.name}`}
-                                >
-                                  <SelectValue placeholder={`Subcategoría ${level + 1}`} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">Sin subcategoría</SelectItem>
-                                  {options.map((subcategory) => (
-                                    <SelectItem key={subcategory.slug} value={subcategory.slug}>
-                                      {subcategory.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            );
-                          })}
-                        </div>
-                      ) : null}
-                      <div className="flex shrink-0 items-start gap-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-auto min-h-9 max-w-32 whitespace-normal px-2 text-xs leading-tight"
-                          aria-label={`Aplicar los datos de ${product.name} a los demás productos`}
-                          title="Aplicar sus datos a los demás productos, manteniendo nombre, imagen y precio propios"
-                          disabled={
-                            pendingImportedProducts.length < 2 ||
-                            applyingImportFieldsFromProductId !== null ||
-                            isSavingImports
-                          }
-                          onClick={() => void applyImportedProductFieldsToAll(product.id)}
-                        >
-                          {applyingImportFieldsFromProductId === product.id ? (
-                            <LoaderCircle className="size-4 shrink-0 animate-spin" />
-                          ) : (
-                            <Check className="size-4 shrink-0" />
-                          )}
-                          <span>
-                            {applyingImportFieldsFromProductId === product.id
-                              ? "Aplicando…"
-                              : "Aplicar a todos"}
-                          </span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-9 shrink-0 self-start text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          aria-label={`Quitar ${product.name} de la importación`}
-                          title="Quitar producto"
-                          disabled={applyingImportFieldsFromProductId !== null || isSavingImports}
-                          onClick={() => removeImportedProduct(product.id)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
                     </div>
                   );
                 })}
@@ -6697,9 +6590,17 @@ function ProductEditDialog({
                     <Label htmlFor="delivery-unit">Tiempo de entrega</Label>
                     <Select
                       value={productForm.deliveryUnit}
-                      onValueChange={(value) =>
-                        setProductForm({ ...productForm, deliveryUnit: value as DeliveryUnit })
-                      }
+                      onValueChange={(value) => {
+                        const deliveryUnit = value as DeliveryUnit;
+                        setProductForm({
+                          ...productForm,
+                          deliveryUnit,
+                          deliveryAmount:
+                            deliveryUnit === "inmediata"
+                              ? 0
+                              : Math.max(productForm.deliveryAmount, 1),
+                        });
+                      }}
                     >
                       <SelectTrigger id="delivery-unit" className="w-full">
                         <SelectValue />
@@ -6920,9 +6821,14 @@ function ProductEditDialog({
                   <Label className="min-h-8">Tiempo de entrega</Label>
                   <Select
                     value={activeDeliveryUnit}
-                    onValueChange={(value) =>
-                      updateActiveVariant({ deliveryUnit: value as DeliveryUnit })
-                    }
+                    onValueChange={(value) => {
+                      const deliveryUnit = value as DeliveryUnit;
+                      updateActiveVariant({
+                        deliveryUnit,
+                        deliveryAmount:
+                          deliveryUnit === "inmediata" ? 0 : Math.max(activeDeliveryAmount, 1),
+                      });
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccionar tipo" />
