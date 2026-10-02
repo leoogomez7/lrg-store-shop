@@ -295,6 +295,8 @@ function AdminProducts() {
   const appendImportedProductsRef = useRef(false);
   const additionalImagesInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [pendingImportedProducts, setPendingImportedProducts] = useState<Product[]>([]);
+  const [applyingImportFieldsFromProductId, setApplyingImportFieldsFromProductId] =
+    useState<string | null>(null);
   const [importCategoryOpen, setImportCategoryOpen] = useState(false);
   const [importBrand, setImportBrand] = useState<BrandSlug>("arcade");
   const [importCategory, setImportCategory] = useState("");
@@ -829,6 +831,66 @@ function AdminProducts() {
     );
   };
 
+  const applyImportedProductFieldsToAll = async (productId: string) => {
+    const source = pendingImportedProducts.find((product) => product.id === productId);
+    if (!source || pendingImportedProducts.length < 2 || applyingImportFieldsFromProductId) return;
+
+    setApplyingImportFieldsFromProductId(productId);
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+
+    const sourceSubcategoryPath =
+      source.subcategoryPath ?? (source.subcategory ? [source.subcategory] : []);
+    const sourceSubcategoryLabel = getSubcategoryPathLabel(
+      source.brand,
+      source.category,
+      sourceSubcategoryPath,
+    );
+
+    setPendingImportedProducts((current) =>
+      current.map((product) => {
+        if (product.id === productId) return product;
+
+        const productSubcategoryPath =
+          product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []);
+        const previousSubcategoryLabel = getSubcategoryPathLabel(
+          product.brand,
+          product.category,
+          productSubcategoryPath,
+        );
+
+        return {
+          ...product,
+          brand: source.brand,
+          code: source.code,
+          category: source.category,
+          subcategory: sourceSubcategoryPath[0],
+          subcategoryPath: sourceSubcategoryPath.length ? [...sourceSubcategoryPath] : undefined,
+          comision: source.comision,
+          comisionCurrency: source.comisionCurrency,
+          gastos: source.gastos,
+          gastosCurrency: source.gastosCurrency,
+          supplier: source.supplier ? { ...source.supplier } : undefined,
+          stock: source.stock,
+          stockUnlimited: source.stockUnlimited,
+          deliveryUnit: source.deliveryUnit,
+          deliveryAmount: source.deliveryAmount,
+          ...(importSource === "store"
+            ? {
+                name: replaceSubcategorySuffix(
+                  product.name,
+                  previousSubcategoryLabel,
+                  sourceSubcategoryLabel,
+                ),
+              }
+            : {}),
+        };
+      }),
+    );
+
+    setApplyingImportFieldsFromProductId(null);
+    toast.success("Datos aplicados a los demás productos");
+  };
+
   const removeImportedProduct = (productId: string) => {
     setPendingImportedProducts((current) => current.filter((product) => product.id !== productId));
     setStoreImportPriceDetails((current) => {
@@ -854,17 +916,16 @@ function AdminProducts() {
       current.map((product) => ({
         ...product,
         code: importCode.trim() || undefined,
+        brand: nextBrand,
+        category: nextCategory,
+        subcategory: nextSubcategoryPath[0] || undefined,
+        subcategoryPath: nextSubcategoryPath.length ? [...nextSubcategoryPath] : undefined,
         ...(importSource === "store"
-          ? {
-              name: replaceSubcategorySuffix(product.name, previousLabel, nextLabel),
-              brand: nextBrand,
-              category: nextCategory,
-              subcategory: nextSubcategoryPath[0] || undefined,
-              subcategoryPath: nextSubcategoryPath.length ? nextSubcategoryPath : undefined,
-            }
+          ? { name: replaceSubcategorySuffix(product.name, previousLabel, nextLabel) }
           : {}),
       })),
     );
+    setApplyImportFieldsToAll(true);
     setImportBrand(nextBrand);
     setImportCategory(nextCategory);
     setImportSubcategoryPath(nextSubcategoryPath);
@@ -1110,7 +1171,7 @@ function AdminProducts() {
   };
 
   const handleConfirmMultipleImport = () => {
-    if (!pendingImportedProducts.length || (applyImportFieldsToAll && !importCategory)) return;
+    if (!pendingImportedProducts.length) return;
 
     const importedProducts = pendingImportedProducts.reduce<Product[]>((result, product) => {
       const rawName = product.name.trim();
@@ -4467,130 +4528,129 @@ function AdminProducts() {
               <h3 className="text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                 General
               </h3>
-              <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(12rem,0.7fr)_minmax(18rem,1.3fr)] sm:items-end">
-                <div className="min-w-0 space-y-2">
-                  <Label htmlFor="import-code-all">SKU</Label>
-                  <Select
-                    value={importCode || "none"}
-                    onValueChange={(value) => {
-                      const code = value === "none" ? "" : value;
-                      setImportCode(code);
-                      setPendingImportedProducts((current) =>
-                        current.map((product) => ({ ...product, code: code || undefined })),
-                      );
-                    }}
-                  >
-                    <SelectTrigger id="import-code-all" className="w-full">
-                      <SelectValue placeholder="Seleccionar SKU" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin SKU</SelectItem>
-                      {availableSkus
-                        .filter((sku) => sku.brand === importBrand)
-                        .map((sku) => (
-                          <SelectItem key={sku.key} value={sku.code}>
-                            {sku.code}
+              <div className="space-y-3 rounded-xl border border-border/60 bg-background/40 p-3">
+                <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="import-code-all">SKU</Label>
+                    <Select
+                      value={importCode || "none"}
+                      onValueChange={(value) => {
+                        const code = value === "none" ? "" : value;
+                        setImportCode(code);
+                        setPendingImportedProducts((current) =>
+                          current.map((product) => ({ ...product, code: code || undefined })),
+                        );
+                      }}
+                    >
+                      <SelectTrigger id="import-code-all" className="w-full">
+                        <SelectValue placeholder="Seleccionar SKU" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin SKU</SelectItem>
+                        {availableSkus
+                          .filter((sku) => sku.brand === importBrand)
+                          .map((sku) => (
+                            <SelectItem key={sku.key} value={sku.code}>
+                              {sku.code}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="import-brand">Tienda para todos</Label>
+                    <Select
+                      value={importBrand}
+                      onValueChange={(value) => {
+                        const nextBrand = value as BrandSlug;
+                        changeGlobalImportFields(
+                          nextBrand,
+                          brands[nextBrand].categories[0]?.slug ?? "",
+                          [],
+                        );
+                      }}
+                    >
+                      <SelectTrigger id="import-brand" className="w-full">
+                        <SelectValue placeholder="Seleccioná una tienda" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {brandList.map((brand) => (
+                          <SelectItem key={brand.slug} value={brand.slug}>
+                            {brand.name}
                           </SelectItem>
                         ))}
-                    </SelectContent>
-                  </Select>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="import-category">Categoría para todos</Label>
+                    <Select
+                      value={importCategory || "none"}
+                      onValueChange={(value) =>
+                        changeGlobalImportFields(importBrand, value === "none" ? "" : value, [])
+                      }
+                    >
+                      <SelectTrigger id="import-category" className="w-full">
+                        <SelectValue placeholder="Seleccioná una categoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin categoría</SelectItem>
+                        {importCategories.map((category) => (
+                          <SelectItem key={category.slug} value={category.slug}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="import-subcategory-0">Subcategoría para todos</Label>
+                    {importCategory ? (
+                      <div className="flex min-w-0 gap-2">
+                        {Array.from({ length: importSubcategoryPath.length + 1 }, (_, level) => {
+                          const options = getSubcategoryOptionsAtLevel(
+                            selectedImportCategory?.subcategories,
+                            importSubcategoryPath,
+                            level,
+                          );
+                          if (!options.length) return null;
+                          return (
+                            <Select
+                              key={`import-global-subcategory-${level}`}
+                              value={importSubcategoryPath[level] ?? "none"}
+                              onValueChange={(value) => {
+                                const nextPath = importSubcategoryPath.slice(0, level);
+                                if (value !== "none") nextPath.push(value);
+                                changeGlobalImportFields(importBrand, importCategory, nextPath);
+                              }}
+                            >
+                              <SelectTrigger
+                                id={`import-subcategory-${level}`}
+                                className="min-w-0 flex-1"
+                                aria-label={`Subcategoría ${level + 1} para todos`}
+                              >
+                                <SelectValue placeholder="Seleccioná" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Sin subcategoría</SelectItem>
+                                {options.map((subcategory) => (
+                                  <SelectItem key={subcategory.slug} value={subcategory.slug}>
+                                    {subcategory.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex h-9 items-center rounded-md border border-input px-3 text-sm text-muted-foreground">
+                        Elegí una categoría
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <label className="flex min-w-0 items-center gap-3 rounded-xl border border-border/60 bg-background/60 p-3 text-sm">
-                  <Checkbox
-                    checked={applyImportFieldsToAll}
-                    onCheckedChange={(checked) => setApplyImportFieldsToAll(checked === true)}
-                    aria-label="Aplicar tienda y categorías a todos los productos"
-                  />
-                  <span className="min-w-0">
-                    <span className="block font-medium">Aplicar a todos los productos</span>
-                  </span>
-                </label>
               </div>
-
-              {applyImportFieldsToAll ? (
-                <div className="grid gap-3 rounded-xl border border-border/60 bg-surface/30 p-3 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="import-brand">Tienda para todos</Label>
-                  <Select
-                    value={importBrand}
-                    onValueChange={(value) => {
-                      const nextBrand = value as BrandSlug;
-                      changeGlobalImportFields(
-                        nextBrand,
-                        brands[nextBrand].categories[0]?.slug ?? "",
-                        [],
-                      );
-                    }}
-                  >
-                    <SelectTrigger id="import-brand">
-                      <SelectValue placeholder="Seleccioná una tienda" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {brandList.map((brand) => (
-                        <SelectItem key={brand.slug} value={brand.slug}>
-                          {brand.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="import-category">Categoría para todos</Label>
-                  <Select
-                    value={importCategory}
-                    onValueChange={(value) => changeGlobalImportFields(importBrand, value, [])}
-                  >
-                    <SelectTrigger id="import-category">
-                      <SelectValue placeholder="Seleccioná una categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {importCategories.map((category) => (
-                        <SelectItem key={category.slug} value={category.slug}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {importCategory
-                  ? Array.from({ length: importSubcategoryPath.length + 1 }, (_, level) => {
-                      const options = getSubcategoryOptionsAtLevel(
-                        selectedImportCategory?.subcategories,
-                        importSubcategoryPath,
-                        level,
-                      );
-                      if (!options.length) return null;
-                      return (
-                        <div key={`import-global-subcategory-${level}`} className="space-y-2">
-                          <Label htmlFor={`import-subcategory-${level}`}>
-                            {level === 0 ? "Subcategoría para todos" : `Subcategoría ${level + 1}`}
-                          </Label>
-                          <Select
-                            value={importSubcategoryPath[level] ?? "none"}
-                            onValueChange={(value) => {
-                              const nextPath = importSubcategoryPath.slice(0, level);
-                              if (value !== "none") nextPath.push(value);
-                              changeGlobalImportFields(importBrand, importCategory, nextPath);
-                            }}
-                          >
-                            <SelectTrigger id={`import-subcategory-${level}`}>
-                              <SelectValue placeholder="Seleccioná una subcategoría" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Sin subcategoría</SelectItem>
-                              {options.map((subcategory) => (
-                                <SelectItem key={subcategory.slug} value={subcategory.slug}>
-                                  {subcategory.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      );
-                    })
-                  : null}
-                </div>
-              ) : null}
             </section>
 
             <section className="space-y-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
@@ -4635,37 +4695,33 @@ function AdminProducts() {
                             }}
                             type="file"
                             accept="image/*"
-                            multiple
                             className="hidden"
                             onChange={async (event) => {
-                              const files = Array.from(event.target.files ?? []).filter((file) =>
-                                file.type.startsWith("image/"),
+                              const file = Array.from(event.target.files ?? []).find((selectedFile) =>
+                                selectedFile.type.startsWith("image/"),
                               );
                               event.target.value = "";
-                              if (!files.length) return;
+                              if (!file) return;
                               try {
-                                const addedImages = await Promise.all(
-                                  files.map(async (file) =>
-                                    optimizeImageDataUrl(
-                                      await cropImageDataUrl(await fileToDataUrl(file)),
-                                    ),
-                                  ),
+                                const replacementImage = await optimizeImageDataUrl(
+                                  await cropImageDataUrl(await fileToDataUrl(file)),
                                 );
                                 setPendingImportedProducts((current) =>
                                   current.map((item) =>
                                     item.id === product.id
-                                      ? { ...item, images: [...(item.images ?? []), ...addedImages] }
+                                      ? {
+                                          ...item,
+                                          images: [replacementImage, ...(item.images ?? []).slice(1)],
+                                        }
                                       : item,
                                   ),
                                 );
-                                toast.success(
-                                  `${addedImages.length} imagen${addedImages.length === 1 ? " agregada" : "es agregadas"}`,
-                                );
+                                toast.success("Imagen reemplazada");
                               } catch (error) {
                                 toast.error(
                                   error instanceof Error
                                     ? error.message
-                                    : "No se pudieron agregar las imágenes.",
+                                    : "No se pudo cambiar la imagen.",
                                 );
                               }
                             }}
@@ -4677,7 +4733,7 @@ function AdminProducts() {
                             className="h-8 gap-1 px-2 text-xs"
                             onClick={() => additionalImagesInputRefs.current[product.id]?.click()}
                           >
-                            <ImagePlus className="size-3.5" /> Imagen
+                            <ImagePlus className="size-3.5" /> Cambiar imagen
                           </Button>
                         </div>
                         <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-3">
@@ -5110,17 +5166,45 @@ function AdminProducts() {
                           })}
                         </div>
                       ) : null}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-9 shrink-0 self-start text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        aria-label={`Quitar ${product.name} de la importación`}
-                        title="Quitar producto"
-                        onClick={() => removeImportedProduct(product.id)}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
+                      <div className="flex shrink-0 items-start gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-auto min-h-9 max-w-32 whitespace-normal px-2 text-xs leading-tight"
+                          aria-label={`Aplicar los datos de ${product.name} a los demás productos`}
+                          title="Aplicar sus datos a los demás productos, manteniendo nombre, imagen y precio propios"
+                          disabled={
+                            pendingImportedProducts.length < 2 ||
+                            applyingImportFieldsFromProductId !== null ||
+                            isSavingImports
+                          }
+                          onClick={() => void applyImportedProductFieldsToAll(product.id)}
+                        >
+                          {applyingImportFieldsFromProductId === product.id ? (
+                            <LoaderCircle className="size-4 shrink-0 animate-spin" />
+                          ) : (
+                            <Check className="size-4 shrink-0" />
+                          )}
+                          <span>
+                            {applyingImportFieldsFromProductId === product.id
+                              ? "Aplicando…"
+                              : "Aplicar a todos"}
+                          </span>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-9 shrink-0 self-start text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          aria-label={`Quitar ${product.name} de la importación`}
+                          title="Quitar producto"
+                          disabled={applyingImportFieldsFromProductId !== null || isSavingImports}
+                          onClick={() => removeImportedProduct(product.id)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}
@@ -5189,7 +5273,6 @@ function AdminProducts() {
               disabled={
                 isSavingImports ||
                 !pendingImportedProducts.length ||
-                (applyImportFieldsToAll && !importCategory) ||
                 pendingImportedProducts.some(
                   (product) =>
                     !product.name.trim() ||
