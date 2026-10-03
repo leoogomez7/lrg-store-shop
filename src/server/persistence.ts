@@ -611,8 +611,11 @@ function parseStorePrice(value: string | undefined): number | null {
 }
 
 export const importPlayStationStoreCategory = createServerFn({ method: "POST" })
-  .validator((data: { url: string }) => data)
+  .validator((data: { url: string; page?: number }) => data)
   .handler(async ({ data }) => {
+    if (data.page !== undefined && (!Number.isInteger(data.page) || data.page < 1 || data.page > 1250)) {
+      throw new Error("El número de página debe estar entre 1 y 1250.");
+    }
     let sourceUrl: URL;
     try {
       sourceUrl = new URL(data.url);
@@ -649,14 +652,15 @@ export const importPlayStationStoreCategory = createServerFn({ method: "POST" })
     const sortName = sourceUrl.searchParams.get("sortBy");
     const sortOrder = sourceUrl.searchParams.get("sortOrder");
     const sortBy = sortName ? { name: sortName, isAscending: sortOrder !== "desc" } : null;
-    const pageSize = 1000;
+    const pageSize = data.page === undefined ? 1000 : 24;
+    const startOffset = data.page === undefined ? 0 : (data.page - 1) * pageSize;
     const maxProducts = 30_000;
     const products: PlayStationStoreProduct[] = [];
     let totalCount = 0;
     let isLast = false;
 
-    for (let offset = 0, page = 0; !isLast; offset += pageSize, page += 1) {
-      if (page >= 31 || offset >= maxProducts) {
+    for (let offset = startOffset, pageIndex = 0; !isLast; offset += pageSize, pageIndex += 1) {
+      if (pageIndex >= 31 || offset >= maxProducts) {
         throw new Error("La categoría supera el límite seguro de 30 000 productos.");
       }
 
@@ -738,10 +742,13 @@ export const importPlayStationStoreCategory = createServerFn({ method: "POST" })
       if (totalCount > maxProducts) {
         throw new Error("La categoría supera el límite seguro de 30 000 productos.");
       }
+      if (data.page !== undefined) break;
     }
 
+    const resolvedTotalCount = totalCount || products.length;
     return {
-      totalCount: totalCount || products.length,
+      totalCount: resolvedTotalCount,
+      totalPages: Math.max(1, Math.ceil(resolvedTotalCount / 24)),
       products: products.map((product) => {
         const regularPrice = parseStorePrice(product.basePrice);
         const offerPrice = parseStorePrice(product.discountedPrice);

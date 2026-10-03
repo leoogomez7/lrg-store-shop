@@ -275,6 +275,7 @@ function AdminProducts() {
   const [discountOnly, setDiscountOnly] = useState(false);
   const [stockOnly, setStockOnly] = useState(false);
   const [availableOnly, setAvailableOnly] = useState(false);
+  const [hiddenOnly, setHiddenOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [brandsOpen, setBrandsOpen] = useState(false);
@@ -328,6 +329,8 @@ function AdminProducts() {
   const [importSource, setImportSource] = useState<"images" | "text" | "store" | null>(null);
   const [storeImportLinkOpen, setStoreImportLinkOpen] = useState(false);
   const [storeImportLink, setStoreImportLink] = useState("");
+  const [storeImportPageMode, setStoreImportPageMode] = useState<"all" | "single">("all");
+  const [storeImportPageNumber, setStoreImportPageNumber] = useState("1");
   const [isPreparingImport, setIsPreparingImport] = useState(false);
   const [isImportingStore, setIsImportingStore] = useState(false);
   const [isSavingImports, setIsSavingImports] = useState(false);
@@ -344,6 +347,7 @@ function AdminProducts() {
   const [productComparison, setProductComparison] = useState<{
     importedProductId: string;
     existingProductId: string;
+    selectedProductId: string | null;
   } | null>(null);
   const [quickEditProductId, setQuickEditProductId] = useState<string | null>(null);
   const [quickEditVariantId, setQuickEditVariantId] = useState<string | null>(null);
@@ -366,7 +370,7 @@ function AdminProducts() {
         variantName: string;
         category: string;
         price: number;
-        comision: number;
+        comision: string;
         comisionCurrency: CurrencyCode;
         gastos: number;
         gastosCurrency: CurrencyCode;
@@ -735,7 +739,7 @@ function AdminProducts() {
         priceCurrency: "ARS",
         gastos: 0,
         gastosCurrency: "ARS",
-        comision: 0,
+        comision: 5000,
         comisionCurrency: "ARS",
         stock: 1,
         stockUnlimited: false,
@@ -818,14 +822,28 @@ function AdminProducts() {
     (category) => category.slug === importCategory,
   );
 
-  const getImportedSalePrice = (product: Product) => {
+  const effectiveUsdRate =
+    usdRate ||
+    (Number(
+      adminSettings.find((setting) => setting.settingKey === "lrg:usdRate")?.settingValue,
+    ) || 0);
+
+  const getImportedSalePrice = (product: Product, conversionRate = effectiveUsdRate) => {
     const toArs = (amount: number, currency: CurrencyCode) =>
-      currency === "USD" ? (usdRate > 0 ? amount * usdRate : 0) : amount;
+      currency === "USD" ? (conversionRate > 0 ? amount * conversionRate : 0) : amount;
     return (
       toArs(product.comision ?? 0, product.comisionCurrency ?? "ARS") +
       toArs(product.gastos ?? 0, product.gastosCurrency ?? "ARS")
     );
   };
+
+  const prepareImportedProductForSave = (product: Product): Product => ({
+    ...product,
+    price: getImportedSalePrice(product, effectiveUsdRate),
+    priceCurrency: "ARS",
+    usdRate: effectiveUsdRate || product.usdRate,
+    stockUnlimited: importSource === "store" ? true : product.stockUnlimited,
+  });
 
   const updateImportedProduct = (productId: string, updates: Partial<Product>) => {
     setPendingImportedProducts((current) =>
@@ -840,39 +858,32 @@ function AdminProducts() {
     setApplyingImportFieldsFromProductId(productId);
     await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
 
-    const sourceSubcategoryPath =
-      source.subcategoryPath ?? (source.subcategory ? [source.subcategory] : []);
     const nextProducts = pendingImportedProducts.map((product) =>
       product.id === productId
         ? product
         : {
-          ...product,
-          brand: source.brand,
-          code: source.code,
-          category: source.category,
-          subcategory: sourceSubcategoryPath[0] || undefined,
-          subcategoryPath: sourceSubcategoryPath.length ? [...sourceSubcategoryPath] : undefined,
-          price: source.price,
-          priceCurrency: source.priceCurrency,
-          comision: source.comision,
-          comisionCurrency: source.comisionCurrency,
-          gastos: source.gastos,
-          gastosCurrency: source.gastosCurrency,
-          usdRate: source.usdRate,
-          compareAtPrice: source.compareAtPrice,
-          cardCommission: source.cardCommission,
-          supplier: source.supplier ? { ...source.supplier } : undefined,
-          stock: source.stock,
-          stockUnlimited: source.stockUnlimited,
-          deliveryUnit: source.deliveryUnit,
-          deliveryAmount: source.deliveryAmount,
-          discount: source.discount,
-          features: source.features ? [...source.features] : [],
-          includes: source.includes ? [...source.includes] : [],
-          short: source.short,
-          description: source.description,
-            },
-            );
+            ...product,
+            comision: source.comision,
+            comisionCurrency: source.comisionCurrency,
+            supplier: source.supplier ? { ...source.supplier } : undefined,
+            stock: source.stock,
+            stockUnlimited: source.stockUnlimited,
+            deliveryUnit: source.deliveryUnit,
+            deliveryAmount: source.deliveryAmount,
+            short: source.short,
+            description: source.description,
+            price: getImportedSalePrice(
+              {
+                ...product,
+                comision: source.comision,
+                comisionCurrency: source.comisionCurrency,
+              },
+              effectiveUsdRate,
+            ),
+            priceCurrency: "ARS" as const,
+            usdRate: effectiveUsdRate || product.usdRate,
+          },
+    );
     setPendingImportedProducts(nextProducts);
     setLastAppliedImportSignature(getPendingImportSignature(nextProducts));
 
@@ -949,6 +960,14 @@ function AdminProducts() {
       toast.error("Ingresá el link para continuar.");
       return;
     }
+    const pageNumber = Number(storeImportPageNumber);
+    if (
+      storeImportPageMode === "single" &&
+      (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > 1250)
+    ) {
+      toast.error("Ingresá un número de página entre 1 y 1250.");
+      return;
+    }
 
     const append = appendImportedProductsRef.current;
     appendImportedProductsRef.current = false;
@@ -966,7 +985,10 @@ function AdminProducts() {
 
     try {
       const result = await importPlayStationStoreCategory({
-        data: { url: storeImportLink.trim() },
+        data: {
+          url: storeImportLink.trim(),
+          ...(storeImportPageMode === "single" ? { page: pageNumber } : {}),
+        },
       });
       const subcategoryName = getSubcategoryPathLabel(
         importBrand,
@@ -989,12 +1011,12 @@ function AdminProducts() {
           subcategoryPath: importSubcategoryPath.length ? importSubcategoryPath : undefined,
           price: 0,
           priceCurrency: "ARS",
-          comision: 4500,
+          comision: 5000,
           comisionCurrency: "ARS",
           gastos: item.lowestPrice,
           gastosCurrency: "USD",
           stock: 1,
-          stockUnlimited: false,
+          stockUnlimited: true,
           deliveryUnit: "inmediata",
           deliveryAmount: 0,
           rating: 0,
@@ -1025,7 +1047,10 @@ function AdminProducts() {
       setPendingImportedProducts((current) => (append ? [...current, ...drafts] : drafts));
       setImportPreviewPage(append ? Math.floor(pendingImportedProducts.length / 30) : 0);
       toast.success(`${drafts.length} productos encontrados`, {
-        description: `Se revisaron todas las páginas (${result.totalCount} resultados en Store).`,
+        description:
+          storeImportPageMode === "single"
+            ? `Página ${pageNumber} de ${result.totalPages} (${result.totalCount} resultados en Store).`
+            : `Se revisaron todas las páginas (${result.totalCount} resultados en Store).`,
       });
     } catch (error) {
       console.error("PlayStation Store import failed", error);
@@ -1083,6 +1108,7 @@ function AdminProducts() {
     setProductComparison({
       importedProductId: importedProduct.id,
       existingProductId: existingProduct.id,
+      selectedProductId: null,
     });
   };
 
@@ -1097,10 +1123,14 @@ function AdminProducts() {
 
     setIsSavingImports(true);
     try {
-      const saved = await saveProductBatch(importedProducts);
+      const productsToSave =
+        importSource === "text"
+          ? importedProducts
+          : importedProducts.map(prepareImportedProductForSave);
+      const saved = await saveProductBatch(productsToSave);
       if (!saved) throw new Error("La base de datos no aceptó los productos importados.");
 
-      const nextProducts = [...(productsData as Product[]), ...importedProducts];
+      const nextProducts = [...(productsData as Product[]), ...productsToSave];
       productsData.splice(0, productsData.length, ...nextProducts);
       setEditableProducts(nextProducts);
       queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
@@ -1123,9 +1153,20 @@ function AdminProducts() {
   const handleConfirmMultipleImport = () => {
     if (!pendingImportedProducts.length) return;
 
+    const requiresUsdRate = pendingImportedProducts.some(
+      (product) =>
+        ((product.comisionCurrency ?? "ARS") === "USD" && (product.comision ?? 0) > 0) ||
+        ((product.gastosCurrency ?? "ARS") === "USD" && (product.gastos ?? 0) > 0),
+    );
+    if (requiresUsdRate && effectiveUsdRate <= 0) {
+      toast.error("Configurá el tipo de cambio del dólar antes de confirmar los productos.");
+      setUsdRatePromptOpen(true);
+      return;
+    }
+
     const importedProducts = pendingImportedProducts.reduce<Product[]>((result, product) => {
       const rawName = product.name.trim();
-      const price = getImportedSalePrice(product);
+      const price = getImportedSalePrice(product, effectiveUsdRate);
       if (!rawName || !Number.isFinite(price) || price < 0) return result;
 
       const appliesGlobalFields = applyImportFieldsToAll;
@@ -1160,6 +1201,8 @@ function AdminProducts() {
         slug: `${slugBase}-${product.id.replace(/[^a-zA-Z0-9-]/g, "-")}`,
         price,
         priceCurrency: "ARS",
+        usdRate: effectiveUsdRate || product.usdRate,
+        stockUnlimited: importSource === "store" ? true : product.stockUnlimited,
         deliveryUnit: product.deliveryUnit ?? "inmediata",
         brand,
         code,
@@ -1214,7 +1257,30 @@ function AdminProducts() {
       return;
     }
 
-    const replacement: Product = { ...importedProduct, id: existingProduct.id };
+    if (!productComparison.selectedProductId) {
+      toast.error("Seleccioná cuál producto querés conservar.");
+      return;
+    }
+
+    if (productComparison.selectedProductId === existingProduct.id) {
+      setPendingImportedProducts((current) =>
+        current.filter((product) => product.id !== importedProduct.id),
+      );
+      setStoreImportPriceDetails((current) => {
+        const next = { ...current };
+        delete next[importedProduct.id];
+        return next;
+      });
+      setProductComparison(null);
+      if (pendingImportedProducts.length <= 1) setImportCategoryOpen(false);
+      toast.success(`Se conservó «${existingProduct.name}» y se descartó el producto importado`);
+      return;
+    }
+
+    const replacement: Product = {
+      ...prepareImportedProductForSave(importedProduct),
+      id: existingProduct.id,
+    };
     setIsSavingImports(true);
     try {
       const saved = await saveProductBatch([replacement]);
@@ -1446,7 +1512,21 @@ function AdminProducts() {
     bulkEditPositionRef.current = 0;
   };
 
-  const getBulkProductQueue = () => normalizeProductSelection(selectedProductIds);
+  const getBulkProductQueue = () => Array.from(new Set(selectedProductIds));
+
+  const resolveBulkEditSelection = (selectionKey: string) => {
+    const [productId, ...variantParts] = selectionKey.split(":");
+    const variantId = variantParts.length ? variantParts.join(":") : undefined;
+    const product =
+      (productsData as Product[]).find((item) => item.id === productId) ??
+      editableProducts.find((item) => item.id === productId);
+    if (!product) return null;
+    const variant =
+      variantId && variantId !== "base"
+        ? product.variants?.find((item) => item.id === variantId)
+        : undefined;
+    return { product, variant };
+  };
 
   const resolveQuickEditSelection = (selectionKey: string) => {
     const [productId, ...variantParts] = selectionKey.split(":");
@@ -1674,24 +1754,19 @@ function AdminProducts() {
   };
 
   const handleBulkEditProducts = () => {
-    const selectedProductIdsForBulk = getBulkProductQueue();
-    if (!selectedProductIdsForBulk.length) return;
+    const selectedEntriesForBulk = getBulkProductQueue();
+    if (!selectedEntriesForBulk.length) return;
 
-    const firstProductId = selectedProductIdsForBulk[0];
-    const product =
-      editableProducts.find((item) => item.id === firstProductId) ??
-      (productsData as Product[]).find((item) => item.id === firstProductId);
+    const firstEntry = resolveBulkEditSelection(selectedEntriesForBulk[0]!);
+    if (!firstEntry) return;
 
-    if (!product) return;
-
-    bulkEditQueueRef.current = selectedProductIdsForBulk;
+    bulkEditQueueRef.current = selectedEntriesForBulk;
     bulkEditPositionRef.current = 0;
-    setIsBulkEditSession(selectedProductIdsForBulk.length > 1);
-    setBulkEditQueue(selectedProductIdsForBulk);
+    setIsBulkEditSession(selectedEntriesForBulk.length > 1);
+    setBulkEditQueue(selectedEntriesForBulk);
     setBulkEditPosition(0);
 
-    const firstVariant = product.variants?.[0];
-    openEditProductDialog(product, firstVariant);
+    openEditProductDialog(firstEntry.product, firstEntry.variant);
   };
 
   const handleBulkQuickEditProducts = () => {
@@ -1714,21 +1789,17 @@ function AdminProducts() {
     const nextPosition = bulkEditPositionRef.current + direction;
     if (nextPosition < 0 || nextPosition >= queue.length) return;
 
-    const nextProductId = queue[nextPosition];
-    if (!nextProductId) return;
-
-    const nextProduct =
-      editableProducts.find((product) => product.id === nextProductId) ??
-      (productsData as Product[]).find((product) => product.id === nextProductId);
-    if (!nextProduct) return;
+    const nextSelectionKey = queue[nextPosition];
+    if (!nextSelectionKey) return;
+    const nextEntry = resolveBulkEditSelection(nextSelectionKey);
+    if (!nextEntry) return;
 
     bulkEditQueueRef.current = queue;
     bulkEditPositionRef.current = nextPosition;
     setBulkEditQueue(queue);
     setBulkEditPosition(nextPosition);
 
-    const nextVariant = nextProduct.variants?.[0];
-    openEditProductDialog(nextProduct, nextVariant);
+    openEditProductDialog(nextEntry.product, nextEntry.variant);
   };
 
   const skipBulkEditProduct = () => {
@@ -1737,30 +1808,31 @@ function AdminProducts() {
     if (!currentProductId || !queue.length || !isBulkEditSession) return;
 
     const currentPosition = bulkEditPositionRef.current;
-    const remainingQueue = queue.filter((productId) => productId !== currentProductId);
+    const currentSelectionKey = initialVariantId
+      ? `${currentProductId}:${initialVariantId}`
+      : currentProductId;
+    const remainingQueue = queue.filter((selectionKey) => selectionKey !== currentSelectionKey);
     const nextPosition = Math.min(currentPosition, remainingQueue.length - 1);
-    const nextProductId = remainingQueue[nextPosition];
-    if (!nextProductId) {
+    const nextSelectionKey = remainingQueue[nextPosition];
+    if (!nextSelectionKey) {
       closeProductEditor();
       return;
     }
 
     setSelectedProductIds((current) =>
-      current.filter((selectionKey) => getProductIdFromSelectionKey(selectionKey) !== currentProductId),
+      current.filter((selectionKey) => selectionKey !== currentSelectionKey),
     );
     bulkEditQueueRef.current = remainingQueue;
     bulkEditPositionRef.current = nextPosition;
     setBulkEditQueue(remainingQueue);
     setBulkEditPosition(nextPosition);
 
-    const nextProduct =
-      editableProducts.find((product) => product.id === nextProductId) ??
-      (productsData as Product[]).find((product) => product.id === nextProductId);
-    if (!nextProduct) {
+    const nextEntry = resolveBulkEditSelection(nextSelectionKey);
+    if (!nextEntry) {
       closeProductEditor();
       return;
     }
-    openEditProductDialog(nextProduct, nextProduct.variants?.[0]);
+    openEditProductDialog(nextEntry.product, nextEntry.variant);
   };
 
   const getQuickEditKey = (product: Product, variant?: ProductVariant) =>
@@ -1784,7 +1856,7 @@ function AdminProducts() {
         variantName: variant?.name ?? "",
         category: product.category,
         price: source.price,
-        comision: source.comision ?? 0,
+        comision: String(source.comision ?? 0),
         comisionCurrency: source.comisionCurrency ?? product.comisionCurrency ?? "ARS",
         gastos: source.gastos ?? 0,
         gastosCurrency: source.gastosCurrency ?? product.gastosCurrency ?? "ARS",
@@ -2093,13 +2165,16 @@ function AdminProducts() {
       return;
     }
 
-    const remainingQueue = queueBeforeSave.filter((productId) => productId !== currentProductId);
+    const currentSelectionKey = initialVariantId
+      ? `${currentProductId}:${initialVariantId}`
+      : currentProductId;
+    const remainingQueue = queueBeforeSave.filter(
+      (selectionKey) => selectionKey !== currentSelectionKey,
+    );
     const nextBulkSelectionKey = remainingQueue[0];
 
     setSelectedProductIds((current) =>
-      current.filter(
-        (selectionKey) => getProductIdFromSelectionKey(selectionKey) !== currentProductId,
-      ),
+      current.filter((selectionKey) => selectionKey !== currentSelectionKey),
     );
 
     bulkEditQueueRef.current = remainingQueue;
@@ -2108,21 +2183,9 @@ function AdminProducts() {
     setBulkEditPosition(0);
 
     if (nextBulkSelectionKey) {
-      const nextProduct =
-        (productsData as Product[]).find(
-          (product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey),
-        ) ??
-        editableProducts.find(
-          (product) => product.id === getProductIdFromSelectionKey(nextBulkSelectionKey),
-        );
-      if (nextProduct) {
-        const variantId = nextBulkSelectionKey.split(":")[1];
-        openEditProductDialog(
-          nextProduct,
-          variantId && variantId !== "base"
-            ? nextProduct.variants?.find((variant) => variant.id === variantId)
-            : undefined,
-        );
+      const nextEntry = resolveBulkEditSelection(nextBulkSelectionKey);
+      if (nextEntry) {
+        openEditProductDialog(nextEntry.product, nextEntry.variant);
         return;
       }
     }
@@ -2480,7 +2543,6 @@ function AdminProducts() {
       if (query && !productMatchesSearch(product, query)) return false;
       if (discountOnly && (discounts[product.id] ?? 0) <= 0) return false;
       if (stockOnly && product.stock <= 0) return false;
-      if (availableOnly && product.hidden) return false;
       const storePrice = product.price * (1 - (discounts[product.id] ?? 0) / 100);
       const selectedPrice = priceMode === "storePrice" ? storePrice : product.price;
       if (selectedPrice < priceMin || selectedPrice > priceMax) return false;
@@ -2534,6 +2596,7 @@ function AdminProducts() {
     discountOnly,
     stockOnly,
     availableOnly,
+    hiddenOnly,
     sortOrder,
     discounts,
   ]);
@@ -2554,8 +2617,13 @@ function AdminProducts() {
         return product.variants.map((variant) => ({ product, variant }));
       }
       return [{ product, variant: undefined }];
+    }).filter(({ product, variant }) => {
+      const isHidden = variant?.hidden ?? product.hidden ?? false;
+      if (availableOnly && isHidden) return false;
+      if (hiddenOnly && !isHidden) return false;
+      return true;
     });
-  }, [results]);
+  }, [results, availableOnly, hiddenOnly]);
   useEffect(() => {
     if (!routeSearch.productId || !pageSize) return;
     const rowIndex = allDisplayRows.findIndex(
@@ -2648,7 +2716,8 @@ function AdminProducts() {
     (priceMax < priceLimit ? 1 : 0) +
     (discountOnly ? 1 : 0) +
     (stockOnly ? 1 : 0) +
-    (availableOnly ? 1 : 0);
+    (availableOnly ? 1 : 0) +
+    (hiddenOnly ? 1 : 0);
 
   const resetFilters = () => {
     setCategoryFilter([]);
@@ -2662,6 +2731,7 @@ function AdminProducts() {
     setDiscountOnly(false);
     setStockOnly(false);
     setAvailableOnly(false);
+    setHiddenOnly(false);
   };
   const priceDisplayCurrency = currencyFilter.length === 1 ? currencyFilter[0] : "ARS";
   const priceCurrencyLabel =
@@ -2726,6 +2796,9 @@ function AdminProducts() {
       : []),
     ...(availableOnly
       ? [{ key: "available", label: "Sólo disponible", onRemove: () => setAvailableOnly(false) }]
+      : []),
+    ...(hiddenOnly
+      ? [{ key: "hidden", label: "Sólo ocultos", onRemove: () => setHiddenOnly(false) }]
       : []),
   ];
   const renderCategoryFilterNode = (node: AdminCategoryFilterNode, depth = 0) => {
@@ -3201,7 +3274,7 @@ function AdminProducts() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
                     <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-surface-2/60 px-3 py-2.5">
                       <Label
                         htmlFor="admin-filter-discount"
@@ -3241,6 +3314,20 @@ function AdminProducts() {
                         id="admin-filter-available"
                         checked={availableOnly}
                         onCheckedChange={setAvailableOnly}
+                      />
+                    </div>
+
+                    <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-surface-2/60 px-3 py-2.5">
+                      <Label
+                        htmlFor="admin-filter-hidden"
+                        className="cursor-pointer text-xs sm:text-sm"
+                      >
+                        Sólo ocultos
+                      </Label>
+                      <Switch
+                        id="admin-filter-hidden"
+                        checked={hiddenOnly}
+                        onCheckedChange={setHiddenOnly}
                       />
                     </div>
                   </div>
@@ -3571,7 +3658,7 @@ function AdminProducts() {
                     name: product.name,
                     category: product.category,
                     price: product.price,
-                    comision: product.comision ?? 0,
+                    comision: String(product.comision ?? 0),
                     comisionCurrency: product.comisionCurrency ?? "ARS",
                     gastos: product.gastos ?? 0,
                     gastosCurrency: product.gastosCurrency ?? "ARS",
@@ -3763,13 +3850,14 @@ function AdminProducts() {
                               </Select>
                               <Input
                                 type="number"
+                                step="any"
                                 value={quickDraft.comision}
                                 onChange={(event) =>
                                   setQuickEditForm((current) => ({
                                     ...current,
                                     [quickEditKey]: {
                                       ...quickDraft,
-                                      comision: Number(event.target.value),
+                                      comision: event.target.value,
                                     },
                                   }))
                                 }
@@ -4302,10 +4390,6 @@ function AdminProducts() {
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Importar desde PlayStation Store</DialogTitle>
-            <DialogDescription>
-              Pegá un link de categoría. Se consultarán todas sus páginas, no solo la que aparece en
-              el link.
-            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -4318,6 +4402,37 @@ function AdminProducts() {
                 placeholder="https://store.playstation.com/es-ar/category/..."
                 autoComplete="url"
               />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="store-import-page-mode">Páginas a importar</Label>
+                <Select
+                  value={storeImportPageMode}
+                  onValueChange={(value) => setStoreImportPageMode(value as "all" | "single")}
+                >
+                  <SelectTrigger id="store-import-page-mode">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las páginas</SelectItem>
+                    <SelectItem value="single">Una página específica</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {storeImportPageMode === "single" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="store-import-page-number">Número de página</Label>
+                  <Input
+                    id="store-import-page-number"
+                    type="number"
+                    min={1}
+                    max={1250}
+                    step={1}
+                    value={storeImportPageNumber}
+                    onChange={(event) => setStoreImportPageNumber(event.target.value)}
+                  />
+                </div>
+              ) : null}
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="space-y-2">
@@ -4404,12 +4519,13 @@ function AdminProducts() {
               })}
             </div>
             <p className="text-xs text-muted-foreground">
-              El nombre se guardará como «juego - subcategoría». Los gastos usarán el menor entre el
-              precio normal y el de oferta, en USD; la comisión inicial será $4.500 ARS.
+              El producto se guardará como «juego - subcategoría». Los gastos usarán el menor entre el
+              precio normal y el de oferta, en USD; la comisión inicial será $5.000 ARS.
             </p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setStoreImportLinkOpen(false)}>
+              <X className="mr-2 size-4" />
               Cancelar
             </Button>
             <Button
@@ -4417,7 +4533,7 @@ function AdminProducts() {
               onClick={() => void handleImportFromStore()}
               disabled={isImportingStore}
             >
-              <ArrowDown className="mr-2 size-4" /> Consultar Store
+              <ArrowLeft className="mr-2 size-4" /> Consultar Store
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -4693,7 +4809,7 @@ function AdminProducts() {
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="h-auto! min-h-10 w-full justify-start whitespace-normal px-2 py-1 text-left text-xs leading-tight"
+                              className="h-auto! min-h-10 w-full justify-center whitespace-normal px-2 py-1 text-center text-xs leading-tight"
                               onClick={() => additionalImagesInputRefs.current[product.id]?.click()}
                             >
                               <ImagePlus className="size-3.5 shrink-0" /> Cambiar imagen
@@ -4702,7 +4818,7 @@ function AdminProducts() {
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="h-auto! min-h-10 w-full justify-start whitespace-normal px-2 py-1 text-left text-xs leading-tight"
+                              className="h-auto! min-h-10 w-full justify-center whitespace-normal px-2 py-1 text-center text-xs leading-tight"
                               aria-label={`Aplicar los datos de ${product.name} a los demás productos`}
                               title="Aplicar todos los datos editables, excepto el nombre y la imagen"
                               disabled={
@@ -4931,7 +5047,9 @@ function AdminProducts() {
                         </div>
                         <div className="contents">
                           <div className="order-2 min-w-0 space-y-1.5 sm:col-span-2 lg:col-span-1 lg:col-start-3 lg:row-start-1">
-                            <Label htmlFor={`import-supplier-${product.id}`}>Proveedor</Label>
+                            <div className="flex min-h-8 items-center">
+                              <Label htmlFor={`import-supplier-${product.id}`}>Proveedor</Label>
+                            </div>
                             <Select
                               value={product.supplier?.name ? getSupplierKey(product.supplier) : "none"}
                               onValueChange={(value) => {
@@ -4959,7 +5077,12 @@ function AdminProducts() {
                           <div className="order-5 min-w-0 space-y-1.5 lg:col-start-2 lg:row-start-2">
                             <Label htmlFor={`import-stock-mode-${product.id}`}>Stock</Label>
                             <Select
-                              value={product.stockUnlimited ? "unlimited" : "limited"}
+                              value={
+                                importSource === "store" || product.stockUnlimited
+                                  ? "unlimited"
+                                  : "limited"
+                              }
+                              disabled={importSource === "store"}
                               onValueChange={(value) =>
                                 updateImportedProduct(product.id, {
                                   stockUnlimited: value === "unlimited",
@@ -4974,7 +5097,7 @@ function AdminProducts() {
                                 <SelectItem value="unlimited">Ilimitado</SelectItem>
                               </SelectContent>
                             </Select>
-                            {!product.stockUnlimited ? (
+                            {!product.stockUnlimited && importSource !== "store" ? (
                               <Input
                                 type="number"
                                 min={0}
@@ -5111,7 +5234,7 @@ function AdminProducts() {
           </div>
           <DialogFooter
             className={cn(
-              "gap-6 max-md:justify-between max-md:pt-3",
+              "gap-2 space-x-0 max-md:justify-end max-md:pt-3",
               (isImportingStore || isPreparingImport || isSavingImports) && "hidden",
             )}
           >
@@ -5270,12 +5393,16 @@ function AdminProducts() {
             <>
               {comparisonCandidates.length > 1 ? (
                 <div className="space-y-1.5">
-                  <Label htmlFor="comparison-existing-product">Producto existente para comparar</Label>
+                  <Label htmlFor="comparison-existing-product">
+                    Producto existente para comparar
+                  </Label>
                   <Select
                     value={comparedExistingProduct.id}
                     onValueChange={(existingProductId) =>
                       setProductComparison((current) =>
-                        current ? { ...current, existingProductId } : current,
+                        current
+                          ? { ...current, existingProductId, selectedProductId: null }
+                          : current,
                       )
                     }
                   >
@@ -5298,12 +5425,38 @@ function AdminProducts() {
                   { label: "Producto existente", product: comparedExistingProduct },
                 ].map(({ label, product }) => {
                   const image = getProductImageReference(product);
+                  const isSelectedToKeep = productComparison?.selectedProductId === product.id;
                   return (
                     <section
                       key={label}
-                      className="min-w-0 space-y-3 rounded-xl border border-border/60 bg-surface/30 p-4"
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isSelectedToKeep}
+                      onClick={() =>
+                        setProductComparison((current) =>
+                          current ? { ...current, selectedProductId: product.id } : current,
+                        )
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+                        setProductComparison((current) =>
+                          current ? { ...current, selectedProductId: product.id } : current,
+                        );
+                      }}
+                      className={cn(
+                        "min-w-0 cursor-pointer space-y-3 rounded-xl border p-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                        isSelectedToKeep
+                          ? "border-primary bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.35)]"
+                          : "border-border/60 bg-surface/30 hover:border-primary/50",
+                      )}
                     >
-                      <h3 className="text-sm font-semibold">{label}</h3>
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-sm font-semibold">{label}</h3>
+                        {isSelectedToKeep ? (
+                          <Badge className="shrink-0">Se selecciona este producto</Badge>
+                        ) : null}
+                      </div>
                       {image ? (
                         <img
                           src={image}
@@ -5339,12 +5492,12 @@ function AdminProducts() {
                   disabled={isSavingImports}
                   onClick={() => setProductComparison(null)}
                 >
+                  <X className="mr-2 size-4" />
                   Cancelar reemplazo
                 </Button>
                 <Button
                   type="button"
-                  variant="destructive"
-                  disabled={isSavingImports}
+                  disabled={isSavingImports || !productComparison?.selectedProductId}
                   onClick={() => void handleReplaceComparedProduct()}
                 >
                   {isSavingImports ? (
