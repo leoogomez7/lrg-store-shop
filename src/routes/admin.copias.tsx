@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { normalizeSearchText } from "@/data/products";
+import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
 import {
   Table,
   TableBody,
@@ -307,6 +308,39 @@ function AdminBackups() {
   const visibleBackups = filteredBackups.slice(safePage * pageSize, (safePage + 1) * pageSize);
   const hasPreviousPage = safePage > 0;
   const hasNextPage = safePage < totalPages - 1;
+  const filterChips: FilterChipItem[] = [
+    ...(query.trim()
+      ? [{ key: "query", label: `Buscar: ${query}`, onRemove: () => setQuery("") }]
+      : []),
+    ...typeFilters.map((type) => ({
+      key: `type-${type}`,
+      label: type,
+      onRemove: () => {
+        setTypeFilters((current) => current.filter((item) => item !== type));
+        setPage(0);
+      },
+    })),
+    ...(dateFrom
+      ? [{
+          key: "date-from",
+          label: `Desde ${dateFrom}`,
+          onRemove: () => {
+            setDateFrom("");
+            setPage(0);
+          },
+        }]
+      : []),
+    ...(dateTo
+      ? [{
+          key: "date-to",
+          label: `Hasta ${dateTo}`,
+          onRemove: () => {
+            setDateTo("");
+            setPage(0);
+          },
+        }]
+      : []),
+  ];
   const goToBackupPage = (nextPage: number) => {
     setPage(nextPage);
     requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
@@ -516,6 +550,8 @@ function AdminBackups() {
         </div>
       </div>
 
+      <FilterChipList chips={filterChips} />
+
       {selectedBackupIds.length > 0 ? (
         <div className="mt-3 mb-2 flex flex-wrap items-center gap-2">
           <Button
@@ -547,7 +583,7 @@ function AdminBackups() {
       ) : null}
 
       <div
-        className={`mt-4 glass-panel w-full overflow-visible rounded-2xl border border-border/60 ${filteredBackups.length === 0 ? "mb-4" : ""}`}
+        className={`mt-2 glass-panel w-full overflow-visible rounded-2xl border border-border/60 ${filteredBackups.length === 0 ? "mb-4" : ""}`}
       >
         <Table
           hideScrollbarOnMobile

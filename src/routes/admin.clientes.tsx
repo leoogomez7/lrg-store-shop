@@ -728,7 +728,7 @@ function AdminClients() {
       </div>
 
       <FilterChipList chips={filterChips} />
-      <div className="glass-panel mt-4 w-full max-w-full overflow-visible rounded-2xl">
+      <div className="glass-panel mt-2 w-full max-w-full overflow-visible rounded-2xl">
         <Table
           hideScrollbarOnMobile
           stickyHeader

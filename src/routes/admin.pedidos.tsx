@@ -30,6 +30,7 @@ import * as XLSX from "xlsx";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
 import {
   Dialog,
   DialogContent,
@@ -1481,6 +1482,66 @@ function AdminOrders() {
     },
   ];
 
+  const filterChips: FilterChipItem[] = [
+    ...(query.trim()
+      ? [{ key: "query", label: `Buscar: ${query}`, onRemove: () => setQuery("") }]
+      : []),
+    ...brand.map((value) => ({
+      key: `brand-${value}`,
+      label: `Tienda: ${brands[value].name}`,
+      onRemove: () => setBrand((current) => current.filter((item) => item !== value)),
+    })),
+    ...deliveryFilter.map((value) => ({
+      key: `delivery-${value}`,
+      label: `Entrega: ${value}`,
+      onRemove: () => setDeliveryFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...paymentFilter.map((value) => ({
+      key: `payment-${value}`,
+      label: `Pago: ${value}`,
+      onRemove: () => setPaymentFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...shippingMethodFilter.map((value) => ({
+      key: `shipping-${value}`,
+      label: `Envío: ${value}`,
+      onRemove: () =>
+        setShippingMethodFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...paymentMethodFilter.map((value) => ({
+      key: `payment-method-${value}`,
+      label: `Método de pago: ${value}`,
+      onRemove: () =>
+        setPaymentMethodFilter((current) => current.filter((item) => item !== value)),
+    })),
+    ...(currencyFilter.length === 1
+      ? [{
+          key: `currency-${currencyFilter[0]}`,
+          label: currencyFilter[0] === "ARS" ? "$ (ARS)" : "USD (Dólar)",
+          onRemove: () => setCurrencyFilter(["ARS", "USD"]),
+        }]
+      : []),
+    ...(priceMin > 0
+      ? [{ key: "price-min", label: `Precio desde ${priceMin}`, onRemove: () => setPriceMin(0) }]
+      : []),
+    ...(priceMax < priceLimit
+      ? [{
+          key: "price-max",
+          label: `Precio hasta ${priceMax}`,
+          onRemove: () => setPriceMax(priceLimit),
+        }]
+      : []),
+    ...(quantityMin > 0
+      ? [{ key: "quantity-min", label: `Cantidad desde ${quantityMin}`, onRemove: () => setQuantityMin(0) }]
+      : []),
+    ...(quantityMax < quantityLimit
+      ? [{
+          key: "quantity-max",
+          label: `Cantidad hasta ${quantityMax}`,
+          onRemove: () => setQuantityMax(quantityLimit),
+        }]
+      : []),
+  ];
+
   const selectCustomerSuggestion = (customerOrder: Order) => {
     setOrderForm((current) =>
       current
@@ -2450,6 +2511,8 @@ function AdminOrders() {
         </div>
       </div>
 
+      <FilterChipList chips={filterChips} />
+
       <ConfirmDialog
         open={confirmState.open}
         onOpenChange={(v) => setConfirmState((s) => ({ ...s, open: v }))}
@@ -2539,7 +2602,7 @@ function AdminOrders() {
           ) : null}
         </div>
 
-        <div className="order-2 mt-4 rounded-2xl">
+        <div className="order-2 mt-2 rounded-2xl">
           <div className="glass-panel min-w-0 flex-1 overflow-visible rounded-2xl">
             <Table
               hideScrollbarOnMobile

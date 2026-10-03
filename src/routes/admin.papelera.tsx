@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
 import {
   Table,
   TableBody,
@@ -172,6 +173,9 @@ function AdminTrash() {
   const paginatedEntries = filteredEntries.slice(safePage * pageSize, (safePage + 1) * pageSize);
   const hasPreviousPage = safePage > 0;
   const hasNextPage = safePage < totalPages - 1;
+  const filterChips: FilterChipItem[] = query.trim()
+    ? [{ key: "query", label: `Buscar: ${query}`, onRemove: () => setQuery("") }]
+    : [];
   const goToTrashPage = (nextPage: number) => {
     setPage(nextPage);
     requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
@@ -419,6 +423,8 @@ function AdminTrash() {
         </div>
       </div>
 
+      <FilterChipList chips={filterChips} />
+
       {selectionMode && (selectedDeleteKeys.length > 0 || selectedRestoreKeys.length > 0) ? (
         <div className="mt-3 mb-2 flex flex-wrap items-center gap-2">
           <Button type="button" variant="default" size="sm" onClick={restoreSelectedEntries}>
@@ -434,7 +440,7 @@ function AdminTrash() {
       ) : null}
 
       <div
-        className={`mt-4 glass-panel w-full overflow-hidden rounded-2xl border border-border/60 ${isLoading || entries.length === 0 || filteredEntries.length === 0 ? "mb-4" : ""}`}
+        className={`mt-2 glass-panel w-full overflow-hidden rounded-2xl border border-border/60 ${isLoading || entries.length === 0 || filteredEntries.length === 0 ? "mb-4" : ""}`}
       >
         {isLoading ? (
           <div className="px-4 py-12 text-center text-sm text-muted-foreground md:hidden">

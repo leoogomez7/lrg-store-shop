@@ -1,6 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, ArrowUpRight, Boxes, Layers, ShieldCheck, Star, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Boxes,
+  Layers,
+  LoaderCircle,
+  ShieldCheck,
+  Star,
+  Zap,
+} from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { Reveal } from "@/components/common/motion-primitives";
@@ -129,6 +138,9 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     logout: async () => undefined,
   };
   const [sortBy, setSortBy] = useState<"date" | "rating">("date");
+  const [pendingCatalog, setPendingCatalog] = useState<
+    "arcade" | "scents" | "web-design" | "all" | null
+  >(null);
   const [sortDirection, setSortDirection] = useState<"newest" | "oldest" | "highest" | "lowest">(
     "newest",
   );
@@ -230,8 +242,22 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               size="lg"
               className="gap-2"
             >
-              <Link to="/$brand/productos" params={{ brand: "arcade" }} preload="intent">
-                LRG Arcade <ArrowRight className="size-4" />
+              <Link
+                to="/$brand/productos"
+                params={{ brand: "arcade" }}
+                preload="intent"
+                aria-disabled={pendingCatalog !== null}
+                className={pendingCatalog && pendingCatalog !== "arcade" ? "pointer-events-none opacity-60" : undefined}
+                onClick={(event) => {
+                  if (pendingCatalog) event.preventDefault();
+                  else setPendingCatalog("arcade");
+                }}
+              >
+                {pendingCatalog === "arcade" ? (
+                  <><LoaderCircle className="size-4 animate-spin" /> Cargando...</>
+                ) : (
+                  <>LRG Arcade <ArrowRight className="size-4" /></>
+                )}
               </Link>
             </Button>
             <Button
@@ -239,8 +265,22 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               size="lg"
               className="gap-2"
             >
-              <Link to="/$brand/productos" params={{ brand: "scents" }} preload="intent">
-                LRG Scents <ArrowRight className="size-4" />
+              <Link
+                to="/$brand/productos"
+                params={{ brand: "scents" }}
+                preload="intent"
+                aria-disabled={pendingCatalog !== null}
+                className={pendingCatalog && pendingCatalog !== "scents" ? "pointer-events-none opacity-60" : undefined}
+                onClick={(event) => {
+                  if (pendingCatalog) event.preventDefault();
+                  else setPendingCatalog("scents");
+                }}
+              >
+                {pendingCatalog === "scents" ? (
+                  <><LoaderCircle className="size-4 animate-spin" /> Cargando...</>
+                ) : (
+                  <>LRG Scents <ArrowRight className="size-4" /></>
+                )}
               </Link>
             </Button>
             <Button
@@ -248,8 +288,22 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               size="lg"
               className="gap-2"
             >
-              <Link to="/$brand/productos" params={{ brand: "web-design" }} preload="intent">
-                LRG Web Design <ArrowRight className="size-4" />
+              <Link
+                to="/$brand/productos"
+                params={{ brand: "web-design" }}
+                preload="intent"
+                aria-disabled={pendingCatalog !== null}
+                className={pendingCatalog && pendingCatalog !== "web-design" ? "pointer-events-none opacity-60" : undefined}
+                onClick={(event) => {
+                  if (pendingCatalog) event.preventDefault();
+                  else setPendingCatalog("web-design");
+                }}
+              >
+                {pendingCatalog === "web-design" ? (
+                  <><LoaderCircle className="size-4 animate-spin" /> Cargando...</>
+                ) : (
+                  <>LRG Web Design <ArrowRight className="size-4" /></>
+                )}
               </Link>
             </Button>
             <Button
@@ -257,11 +311,29 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               size="lg"
               className="gap-2 bg-surface-2 text-foreground hover:bg-surface-3"
             >
-              <Link to="/productos" preload="intent">
-                Mostrar todos los productos <ArrowRight className="size-4" />
+              <Link
+                to="/productos"
+                preload="intent"
+                aria-disabled={pendingCatalog !== null}
+                className={pendingCatalog && pendingCatalog !== "all" ? "pointer-events-none opacity-60" : undefined}
+                onClick={(event) => {
+                  if (pendingCatalog) event.preventDefault();
+                  else setPendingCatalog("all");
+                }}
+              >
+                {pendingCatalog === "all" ? (
+                  <><LoaderCircle className="size-4 animate-spin" /> Cargando...</>
+                ) : (
+                  <>Mostrar todos los productos <ArrowRight className="size-4" /></>
+                )}
               </Link>
             </Button>
           </div>
+          {pendingCatalog ? (
+            <p role="status" aria-live="polite" className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+              <LoaderCircle className="size-4 animate-spin" /> Cargando productos...
+            </p>
+          ) : null}
 
           <div className="mt-6 flex w-full flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-foreground">Ordenar por</span>

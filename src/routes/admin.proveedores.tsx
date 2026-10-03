@@ -1744,7 +1744,7 @@ function AdminSuppliers() {
             ) : null}
           </div>
 
-          <div className="order-2 mt-4 rounded-2xl">
+          <div className="order-2 mt-2 rounded-2xl">
             <div className="glass-panel min-w-0 overflow-visible rounded-2xl">
               <Table
                 hideScrollbarOnMobile

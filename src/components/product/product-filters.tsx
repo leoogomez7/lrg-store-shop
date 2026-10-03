@@ -43,6 +43,7 @@ type ActiveFilterChipsProps = {
   priceLimit: number;
   onChange: (next: Partial<CatalogFilters>) => void;
   showBrandFilter?: boolean;
+  className?: string;
 };
 
 export type FilterChipItem = {
@@ -51,11 +52,20 @@ export type FilterChipItem = {
   onRemove: () => void;
 };
 
-export function FilterChipList({ chips }: { chips: FilterChipItem[] }) {
+export function FilterChipList({
+  chips,
+  className,
+}: {
+  chips: FilterChipItem[];
+  className?: string;
+}) {
   if (chips.length === 0) return null;
 
   return (
-    <div className="my-2 flex flex-wrap items-center gap-2" aria-label="Filtros activos">
+    <div
+      className={`${className ?? "mt-2 mb-0"} flex flex-wrap items-center gap-2`}
+      aria-label="Filtros activos"
+    >
       {chips.map((chip) => (
         <span
           key={chip.key}
@@ -82,6 +92,7 @@ export function ActiveFilterChips({
   priceLimit,
   onChange,
   showBrandFilter = false,
+  className,
 }: ActiveFilterChipsProps) {
   const chips: FilterChipItem[] = [];
   const addChip = (key: string, label: string, onRemove: () => void) =>
@@ -165,7 +176,7 @@ export function ActiveFilterChips({
     );
   }
 
-  return <FilterChipList chips={chips} />;
+  return <FilterChipList chips={chips} className={className} />;
 }
 
 function FilterOptionsSection({

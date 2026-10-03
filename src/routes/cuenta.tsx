@@ -1489,7 +1489,7 @@ function AccountPageContent({
             </div>
           </div>
 
-          <FilterChipList chips={orderFilterChips} />
+          <FilterChipList chips={orderFilterChips} className="-my-2" />
           <div className="glass-panel overflow-visible rounded-2xl">
             <Table
               hideScrollbarOnMobile
