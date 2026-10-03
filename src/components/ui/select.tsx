@@ -30,7 +30,7 @@ const SelectTrigger = React.forwardRef<
   >
     {children}
     {showValue ? (
-      <span className="ml-2 text-sm text-muted-foreground max-w-[8rem] truncate text-right">
+      <span className="ml-2 text-sm text-muted-foreground max-w-8rem truncate text-right">
         <SelectPrimitive.Value />
       </span>
     ) : (

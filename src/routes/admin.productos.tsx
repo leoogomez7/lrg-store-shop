@@ -329,8 +329,9 @@ function AdminProducts() {
   const [importSource, setImportSource] = useState<"images" | "text" | "store" | null>(null);
   const [storeImportLinkOpen, setStoreImportLinkOpen] = useState(false);
   const [storeImportLink, setStoreImportLink] = useState("");
-  const [storeImportPageMode, setStoreImportPageMode] = useState<"all" | "single">("all");
+  const [storeImportPageMode, setStoreImportPageMode] = useState<"all" | "single" | "range">("all");
   const [storeImportPageNumber, setStoreImportPageNumber] = useState("1");
+  const [storeImportPageEndNumber, setStoreImportPageEndNumber] = useState("2");
   const [isPreparingImport, setIsPreparingImport] = useState(false);
   const [isImportingStore, setIsImportingStore] = useState(false);
   const [isSavingImports, setIsSavingImports] = useState(false);
@@ -431,6 +432,12 @@ function AdminProducts() {
     priceCurrency: "ARS",
     comision: 0,
     comisionCurrency: "ARS",
+    stock: 1,
+    stockUnlimited: false,
+    description: "",
+    features: [],
+    includes: [],
+    images: [],
     gastos: 0,
     gastosCurrency: "ARS",
     usdRate: 0,
@@ -961,11 +968,19 @@ function AdminProducts() {
       return;
     }
     const pageNumber = Number(storeImportPageNumber);
+    const pageEndNumber = Number(storeImportPageEndNumber);
     if (
-      storeImportPageMode === "single" &&
+      (storeImportPageMode === "single" || storeImportPageMode === "range") &&
       (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > 1250)
     ) {
       toast.error("Ingresá un número de página entre 1 y 1250.");
+      return;
+    }
+    if (
+      storeImportPageMode === "range" &&
+      (!Number.isInteger(pageEndNumber) || pageEndNumber < pageNumber || pageEndNumber > 1250)
+    ) {
+      toast.error("La página final debe ser igual o mayor a la inicial, hasta 1250.");
       return;
     }
 
@@ -987,7 +1002,12 @@ function AdminProducts() {
       const result = await importPlayStationStoreCategory({
         data: {
           url: storeImportLink.trim(),
-          ...(storeImportPageMode === "single" ? { page: pageNumber } : {}),
+          ...(storeImportPageMode !== "all"
+            ? {
+                page: pageNumber,
+                ...(storeImportPageMode === "range" ? { pageTo: pageEndNumber } : {}),
+              }
+            : {}),
         },
       });
       const subcategoryName = getSubcategoryPathLabel(
@@ -1048,8 +1068,8 @@ function AdminProducts() {
       setImportPreviewPage(append ? Math.floor(pendingImportedProducts.length / 30) : 0);
       toast.success(`${drafts.length} productos encontrados`, {
         description:
-          storeImportPageMode === "single"
-            ? `Página ${pageNumber} de ${result.totalPages} (${result.totalCount} resultados en Store).`
+          storeImportPageMode !== "all"
+            ? `Página${storeImportPageMode === "range" ? "es" : ""} ${pageNumber}${storeImportPageMode === "range" ? ` a ${pageEndNumber}` : ""} de ${result.totalPages} (${result.totalCount} resultados en Store).`
             : `Se revisaron todas las páginas (${result.totalCount} resultados en Store).`,
       });
     } catch (error) {
@@ -2485,7 +2505,9 @@ function AdminProducts() {
           });
         };
 
-        availableCategoryNodes.forEach(excludeCoveredNode);
+        for (const candidate of availableCategoryNodes) {
+          excludeCoveredNode(candidate);
+        }
         for (const key of Array.from(next)) {
           const selectedNode = categoryFilterNodeMap.get(key);
           if (selectedNode && isDescendantOf(selectedNode, node)) next.delete(key);
@@ -4408,7 +4430,9 @@ function AdminProducts() {
                 <Label htmlFor="store-import-page-mode">Páginas a importar</Label>
                 <Select
                   value={storeImportPageMode}
-                  onValueChange={(value) => setStoreImportPageMode(value as "all" | "single")}
+                  onValueChange={(value) =>
+                    setStoreImportPageMode(value as "all" | "single" | "range")
+                  }
                 >
                   <SelectTrigger id="store-import-page-mode">
                     <SelectValue />
@@ -4416,21 +4440,53 @@ function AdminProducts() {
                   <SelectContent>
                     <SelectItem value="all">Todas las páginas</SelectItem>
                     <SelectItem value="single">Una página específica</SelectItem>
+                    <SelectItem value="range">Desde una página hasta otra</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {storeImportPageMode === "single" ? (
+              {storeImportPageMode !== "all" ? (
                 <div className="space-y-2">
-                  <Label htmlFor="store-import-page-number">Número de página</Label>
-                  <Input
-                    id="store-import-page-number"
-                    type="number"
-                    min={1}
-                    max={1250}
-                    step={1}
-                    value={storeImportPageNumber}
-                    onChange={(event) => setStoreImportPageNumber(event.target.value)}
-                  />
+                  {storeImportPageMode === "single" ? (
+                    <>
+                      <Label htmlFor="store-import-page-number">Número de página</Label>
+                      <Input
+                        id="store-import-page-number"
+                        type="number"
+                        min={1}
+                        max={1250}
+                        step={1}
+                        value={storeImportPageNumber}
+                        onChange={(event) => setStoreImportPageNumber(event.target.value)}
+                      />
+                    </>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="store-import-page-number">Desde la página</Label>
+                        <Input
+                          id="store-import-page-number"
+                          type="number"
+                          min={1}
+                          max={1250}
+                          step={1}
+                          value={storeImportPageNumber}
+                          onChange={(event) => setStoreImportPageNumber(event.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="store-import-page-end-number">Hasta la página</Label>
+                        <Input
+                          id="store-import-page-end-number"
+                          type="number"
+                          min={Number(storeImportPageNumber) || 1}
+                          max={1250}
+                          step={1}
+                          value={storeImportPageEndNumber}
+                          onChange={(event) => setStoreImportPageEndNumber(event.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -4533,7 +4589,7 @@ function AdminProducts() {
               onClick={() => void handleImportFromStore()}
               disabled={isImportingStore}
             >
-              <ArrowLeft className="mr-2 size-4" /> Consultar Store
+              <ArrowRight className="mr-2 size-4" /> Consultar Store
             </Button>
           </DialogFooter>
         </DialogContent>

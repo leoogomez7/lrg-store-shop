@@ -611,10 +611,19 @@ function parseStorePrice(value: string | undefined): number | null {
 }
 
 export const importPlayStationStoreCategory = createServerFn({ method: "POST" })
-  .validator((data: { url: string; page?: number }) => data)
+  .validator((data: { url: string; page?: number; pageTo?: number }) => data)
   .handler(async ({ data }) => {
     if (data.page !== undefined && (!Number.isInteger(data.page) || data.page < 1 || data.page > 1250)) {
       throw new Error("El número de página debe estar entre 1 y 1250.");
+    }
+    if (
+      data.pageTo !== undefined &&
+      (data.page === undefined ||
+        !Number.isInteger(data.pageTo) ||
+        data.pageTo < data.page ||
+        data.pageTo > 1250)
+    ) {
+      throw new Error("El rango de páginas no es válido.");
     }
     let sourceUrl: URL;
     try {
@@ -654,13 +663,19 @@ export const importPlayStationStoreCategory = createServerFn({ method: "POST" })
     const sortBy = sortName ? { name: sortName, isAscending: sortOrder !== "desc" } : null;
     const pageSize = data.page === undefined ? 1000 : 24;
     const startOffset = data.page === undefined ? 0 : (data.page - 1) * pageSize;
+    const endOffset =
+      data.pageTo === undefined ? startOffset : (data.pageTo - 1) * pageSize;
     const maxProducts = 30_000;
     const products: PlayStationStoreProduct[] = [];
     let totalCount = 0;
     let isLast = false;
 
-    for (let offset = startOffset, pageIndex = 0; !isLast; offset += pageSize, pageIndex += 1) {
-      if (pageIndex >= 31 || offset >= maxProducts) {
+    for (
+      let offset = startOffset, pageIndex = 0;
+      data.pageTo !== undefined ? offset <= endOffset : !isLast;
+      offset += pageSize, pageIndex += 1
+    ) {
+      if (pageIndex >= (data.pageTo === undefined ? 31 : 1250) || offset >= maxProducts) {
         throw new Error("La categoría supera el límite seguro de 30 000 productos.");
       }
 
@@ -718,8 +733,12 @@ export const importPlayStationStoreCategory = createServerFn({ method: "POST" })
 
       const grid = payload.data?.categoryGridRetrieve;
       const pageProducts = grid?.products ?? [];
-      if (!grid || (pageProducts.length === 0 && offset === 0)) {
-        throw new Error("El link no contiene productos importables o la categoría no existe.");
+      if (!grid || (pageProducts.length === 0 && (offset === 0 || data.pageTo !== undefined))) {
+        throw new Error(
+          data.pageTo !== undefined
+            ? `No se encontraron productos en la página ${Math.floor(offset / pageSize) + 1}.`
+            : "El link no contiene productos importables o la categoría no existe.",
+        );
       }
       totalCount = grid.pageInfo?.totalCount ?? totalCount;
       for (const product of pageProducts) {
@@ -742,7 +761,7 @@ export const importPlayStationStoreCategory = createServerFn({ method: "POST" })
       if (totalCount > maxProducts) {
         throw new Error("La categoría supera el límite seguro de 30 000 productos.");
       }
-      if (data.page !== undefined) break;
+      if (data.pageTo === undefined && data.page !== undefined) break;
     }
 
     const resolvedTotalCount = totalCount || products.length;
