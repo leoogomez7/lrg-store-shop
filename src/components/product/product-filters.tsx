@@ -55,7 +55,7 @@ export function FilterChipList({ chips }: { chips: FilterChipItem[] }) {
   if (chips.length === 0) return null;
 
   return (
-    <div className="mb-5 flex flex-wrap items-center gap-2" aria-label="Filtros activos">
+    <div className="my-2 flex flex-wrap items-center gap-2" aria-label="Filtros activos">
       {chips.map((chip) => (
         <span
           key={chip.key}

@@ -936,7 +936,7 @@ function AccountPageContent({
 
     if (activeTab === "orders") {
       return (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="mb-2">
             <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Mis pedidos</p>
             <h1 className="mt-2 text-3xl font-semibold">Compras</h1>

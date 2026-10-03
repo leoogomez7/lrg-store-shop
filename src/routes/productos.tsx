@@ -404,7 +404,7 @@ function ProductosPage() {
                 setFilters((current) => ({ ...current, ...next }));
               }}
             />
-            <section className="mt-8">
+            <section className="mt-4">
               {results.length === 0 ? (
                 <div className="glass-panel mb-8 rounded-2xl p-12 text-center">
                   <h2 className="font-display text-lg font-semibold">Sin resultados</h2>
