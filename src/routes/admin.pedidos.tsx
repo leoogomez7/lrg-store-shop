@@ -626,6 +626,7 @@ function AdminOrders() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const hasScrolledOnOrderSelectionRef = useRef(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [bulkOrderEditQueue, setBulkOrderEditQueue] = useState<string[]>([]);
   const [bulkQuickEditOrderQueue, setBulkQuickEditOrderQueue] = useState<string[]>([]);
@@ -793,6 +794,7 @@ function AdminOrders() {
     setExpandedOrderId(null);
     setSelectionMode(false);
     setSelectedOrderIds([]);
+    hasScrolledOnOrderSelectionRef.current = false;
   }, [quickEditOrderId]);
 
   const saveQuickEditOrder = async (order: Order) => {
@@ -1935,6 +1937,7 @@ function AdminOrders() {
     setIsBulkOrderEditSession(false);
     setSelectedOrderIds([]);
     setSelectionMode(false);
+    hasScrolledOnOrderSelectionRef.current = false;
   };
 
   const handleSaveOrder = async () => {
@@ -1990,15 +1993,22 @@ function AdminOrders() {
   const clearOrderSelection = useCallback(() => {
     setSelectedOrderIds([]);
     setSelectionMode(false);
+    hasScrolledOnOrderSelectionRef.current = false;
   }, []);
 
   const toggleOrderSelection = (orderId: string, checked: boolean) => {
+    scrollToTopOnFirstSelection(
+      selectedOrderIds.length,
+      checked,
+      hasScrolledOnOrderSelectionRef,
+    );
     setSelectedOrderIds((current) => {
       const next = checked
         ? current.includes(orderId)
           ? current
           : [...current, orderId]
         : current.filter((id) => id !== orderId);
+      if (next.length === 0) hasScrolledOnOrderSelectionRef.current = false;
       setSelectionMode(next.length > 0);
       return next;
     });
@@ -2592,6 +2602,7 @@ function AdminOrders() {
                     onClick={() => {
                       setSelectionMode(false);
                       setSelectedOrderIds([]);
+                      hasScrolledOnOrderSelectionRef.current = false;
                     }}
                   >
                     <X className="size-4" /> Cancelar
@@ -2631,11 +2642,16 @@ function AdminOrders() {
                         }
                         onCheckedChange={(checked) => {
                           const shouldSelect = checked === true || checked === "indeterminate";
-                          scrollToTopOnFirstSelection(selectedOrderIds.length, shouldSelect);
+                          scrollToTopOnFirstSelection(
+                            selectedOrderIds.length,
+                            shouldSelect,
+                            hasScrolledOnOrderSelectionRef,
+                          );
                           setSelectedOrderIds((current) => {
                             const next = shouldSelect
                               ? [...new Set([...current, ...visibleOrderIds])]
                               : current.filter((id) => !visibleOrderIds.includes(id));
+                            if (next.length === 0) hasScrolledOnOrderSelectionRef.current = false;
                             setSelectionMode(next.length > 0);
                             return next;
                           });
@@ -2714,19 +2730,9 @@ function AdminOrders() {
                               className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                               checked={selectedOrderIds.includes(order.id)}
                               onClick={(event) => event.stopPropagation()}
-                              onCheckedChange={(checked) => {
-                                const isChecked = checked === true;
-                                scrollToTopOnFirstSelection(selectedOrderIds.length, isChecked);
-                                setSelectedOrderIds((current) => {
-                                  const next = isChecked
-                                    ? current.includes(order.id)
-                                      ? current
-                                      : [...current, order.id]
-                                    : current.filter((id) => id !== order.id);
-                                  setSelectionMode(next.length > 0);
-                                  return next;
-                                });
-                              }}
+                              onCheckedChange={(checked) =>
+                                toggleOrderSelection(order.id, checked === true)
+                              }
                               aria-label={`Seleccionar pedido ${order.id}`}
                             />
                           </div>
