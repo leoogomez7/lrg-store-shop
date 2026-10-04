@@ -84,6 +84,10 @@ import { moveToTrash } from "@/data/trash";
 import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
 import { importPlayStationStoreCategory } from "@/server/persistence";
 import {
+  buildImportedProductsWithVariants,
+  type ImportedVariantChoice,
+} from "@/lib/product-import-variants";
+import {
   parseDollarDelimitedProductLine,
   parseLocalizedImportPrice,
   replaceSubcategorySuffix,
@@ -354,6 +358,9 @@ function AdminProducts() {
   const [duplicateReviewOpen, setDuplicateReviewOpen] = useState(false);
   const [duplicateCandidateIds, setDuplicateCandidateIds] = useState<string[]>([]);
   const [keepDuplicateIds, setKeepDuplicateIds] = useState<string[]>([]);
+  const [importedVariantChoices, setImportedVariantChoices] = useState<
+    Record<string, ImportedVariantChoice>
+  >({});
   const [productComparison, setProductComparison] = useState<{
     importedProductId: string;
     existingProductId: string;
@@ -1133,13 +1140,26 @@ function AdminProducts() {
       product.category,
       subcategoryPath,
     );
-    const importedBaseName =
-      importSource === "store" && subcategoryName
-        ? normalizeProductName(replaceSubcategorySuffix(product.name, subcategoryName, ""))
-        : importedName;
+    const importedBaseName = subcategoryName
+      ? normalizeProductName(replaceSubcategorySuffix(product.name, subcategoryName, ""))
+      : importedName;
+    if (importSource === "store") {
+      return products.filter((existing) => {
+        const existingName = normalizeProductName(existing.name);
+        return existingName === importedName || existingName === importedBaseName;
+      });
+    }
+
     return products.filter((existing) => {
       const existingName = normalizeProductName(existing.name);
-      return existingName === importedName || existingName === importedBaseName;
+      const existingPath =
+        existing.subcategoryPath ?? (existing.subcategory ? [existing.subcategory] : []);
+      const sameCategory =
+        existing.brand === product.brand &&
+        existing.category === product.category &&
+        existingPath.join("/") === subcategoryPath.join("/");
+      const sameSku = Boolean(product.code?.trim() && product.code.trim() === existing.code?.trim());
+      return sameCategory && (sameSku || existingName === importedName || existingName === importedBaseName);
     });
   };
 
@@ -1183,14 +1203,23 @@ function AdminProducts() {
 
     setIsSavingImports(true);
     try {
-      const productsToSave =
+      const preparedProducts =
         importSource === "text"
           ? importedProducts
           : importedProducts.map(prepareImportedProductForSave);
+      const productsToSave = buildImportedProductsWithVariants(
+        productsData as Product[],
+        preparedProducts,
+        importedVariantChoices,
+      );
       const saved = await saveProductBatch(productsToSave);
       if (!saved) throw new Error("La base de datos no aceptó los productos importados.");
 
-      const nextProducts = [...(productsData as Product[]), ...productsToSave];
+      const nextProductsById = new Map(
+        (productsData as Product[]).map((product) => [product.id, product]),
+      );
+      productsToSave.forEach((product) => nextProductsById.set(product.id, product));
+      const nextProducts = Array.from(nextProductsById.values());
       productsData.splice(0, productsData.length, ...nextProducts);
       setEditableProducts(nextProducts);
       queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
@@ -1201,6 +1230,7 @@ function AdminProducts() {
       setStoreImportPriceDetails({});
       setDuplicateCandidateIds([]);
       setKeepDuplicateIds([]);
+      setImportedVariantChoices({});
       toast.success(`Se agregaron ${importedProducts.length} productos`);
     } catch (error) {
       console.error("Error guardando productos importados:", error);
@@ -1298,7 +1328,10 @@ function AdminProducts() {
     const duplicateIdSet = new Set(duplicateCandidateIds);
     const keepIdSet = new Set(keepDuplicateIds);
     const acceptedProducts = pendingImportedProducts.filter(
-      (product) => !duplicateIdSet.has(product.id) || keepIdSet.has(product.id),
+      (product) =>
+        !duplicateIdSet.has(product.id) ||
+        keepIdSet.has(product.id) ||
+        Boolean(importedVariantChoices[product.id]),
     );
     void commitImportedProducts(acceptedProducts);
   };
@@ -5389,8 +5422,9 @@ function AdminProducts() {
           <DialogHeader>
             <DialogTitle>Posibles productos repetidos</DialogTitle>
             <DialogDescription>
-              Encontré {duplicateCandidateIds.length} productos que podrían existir en tu catálogo.
-              Marcá cuáles querés agregar igualmente; los demás se omitirán.
+              Encontré {duplicateCandidateIds.length} productos que podrían existir. Para cada uno,
+              podés agregarlo aparte, omitirlo o incorporarlo como una variante nueva sin reemplazar
+              los datos existentes.
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[55dvh] space-y-3 overflow-y-auto pr-1">
@@ -5399,33 +5433,141 @@ function AdminProducts() {
               .slice(importPreviewPage * 30, (importPreviewPage + 1) * 30)
               .map((product) => {
                 const matches = getDuplicateMatches(product);
+                const productPath =
+                  product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []);
+                const variantMatches = matches.filter((match) => {
+                  const matchPath =
+                    match.subcategoryPath ?? (match.subcategory ? [match.subcategory] : []);
+                  return (
+                    match.brand === product.brand &&
+                    match.category === product.category &&
+                    matchPath.join("/") === productPath.join("/")
+                  );
+                });
                 const isKept = keepDuplicateIds.includes(product.id);
+                const variantChoice = importedVariantChoices[product.id];
+                const selectedTarget = variantMatches.find(
+                  (match) => match.id === variantChoice?.targetProductId,
+                );
                 return (
-                  <label
+                  <div
                     key={product.id}
-                    className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-background/70 p-3"
+                    className="space-y-3 rounded-xl border border-border/60 bg-background/70 p-3"
                   >
-                    <Checkbox
-                      checked={isKept}
-                      onCheckedChange={(checked) =>
-                        setKeepDuplicateIds((current) =>
-                          checked === true
-                            ? [...new Set([...current, product.id])]
-                            : current.filter((id) => id !== product.id),
-                        )
-                      }
-                      aria-label={`Agregar igualmente ${product.name}`}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-medium">{product.name}</span>
-                      <span className="mt-1 block text-xs text-muted-foreground">
-                        Coincide con: {matches.map((match) => match.name).join(" · ")}
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={isKept}
+                        onCheckedChange={(checked) => {
+                          if (checked === true) {
+                            setImportedVariantChoices((current) => {
+                              const next = { ...current };
+                              delete next[product.id];
+                              return next;
+                            });
+                          }
+                          setKeepDuplicateIds((current) =>
+                            checked === true
+                              ? [...new Set([...current, product.id])]
+                              : current.filter((id) => id !== product.id),
+                          );
+                        }}
+                        aria-label={`Agregar igualmente ${product.name} como producto independiente`}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">{product.name}</span>
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          Coincide con: {matches.map((match) => match.name).join(" · ")}
+                        </span>
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          {variantChoice
+                            ? `Se agregará como variante de ${selectedTarget?.name ?? "un producto existente"}`
+                            : isKept
+                              ? "Se agregará como producto independiente"
+                              : "Se omitirá"}
+                        </span>
                       </span>
-                    </span>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {isKept ? "Se agregará" : "Se omitirá"}
-                    </span>
-                  </label>
+                    </div>
+                    <div className="rounded-lg border border-border/60 p-3">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`import-as-variant-${product.id}`}
+                          checked={Boolean(variantChoice)}
+                          disabled={variantMatches.length === 0}
+                          onCheckedChange={(checked) => {
+                            if (checked === true) {
+                              const firstMatch = variantMatches[0];
+                              if (!firstMatch) return;
+                              setKeepDuplicateIds((current) => current.filter((id) => id !== product.id));
+                              setImportedVariantChoices((current) => ({
+                                ...current,
+                                [product.id]: {
+                                  targetProductId: firstMatch.id,
+                                  variantName: "",
+                                },
+                              }));
+                              return;
+                            }
+                            setImportedVariantChoices((current) => {
+                              const next = { ...current };
+                              delete next[product.id];
+                              return next;
+                            });
+                          }}
+                        />
+                        <Label htmlFor={`import-as-variant-${product.id}`}>
+                          Agregar como variante de un producto existente
+                        </Label>
+                      </div>
+                      {variantChoice ? (
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`import-variant-target-${product.id}`}>
+                              Producto base
+                            </Label>
+                            <Select
+                              value={variantChoice.targetProductId}
+                              onValueChange={(targetProductId) =>
+                                setImportedVariantChoices((current) => ({
+                                  ...current,
+                                  [product.id]: { ...variantChoice, targetProductId },
+                                }))
+                              }
+                            >
+                              <SelectTrigger id={`import-variant-target-${product.id}`}>
+                                <SelectValue placeholder="Elegí producto base" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {variantMatches.map((match) => (
+                                  <SelectItem key={match.id} value={match.id}>
+                                    {match.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`import-variant-name-${product.id}`}>
+                              Nombre de variante
+                            </Label>
+                            <Input
+                              id={`import-variant-name-${product.id}`}
+                              value={variantChoice.variantName}
+                              placeholder="Ej.: Secundaria"
+                              onChange={(event) =>
+                                setImportedVariantChoices((current) => ({
+                                  ...current,
+                                  [product.id]: {
+                                    ...variantChoice,
+                                    variantName: event.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
                 );
               })}
           </div>
