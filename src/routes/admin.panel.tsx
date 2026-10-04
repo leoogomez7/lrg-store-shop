@@ -246,6 +246,22 @@ function AdminDashboard() {
 
   const stockItems: StockItem[] = filteredProducts
     .flatMap((product): StockItem[] => {
+      // catalogQueries.all() already expands variants into standalone products.
+      // Keep those entries atomic instead of expanding their inherited `variants` again.
+      if (product.variantId) {
+        return [
+          {
+            id: product.id,
+            name: product.name,
+            variantName: product.variantName,
+            category: product.category,
+            brand: product.brand,
+            stock: product.stock,
+            stockUnlimited: product.stockUnlimited ?? false,
+          },
+        ];
+      }
+
       if (product.variants?.length) {
         return product.variants.map((variant): StockItem => ({
           id: `${product.id}-${variant.id}`,
@@ -277,7 +293,7 @@ function AdminDashboard() {
   const normalizedStockSearch = stockSearch.trim().toLowerCase();
   const searchedStockItems = normalizedStockSearch
     ? stockItems.filter((product) =>
-        [product.name, product.category, product.brand].some((value) =>
+        [product.name, product.variantName ?? "", product.category, product.brand].some((value) =>
           value.toLowerCase().includes(normalizedStockSearch),
         ),
       )

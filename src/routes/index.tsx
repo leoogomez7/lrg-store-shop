@@ -329,12 +329,6 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
               </Link>
             </Button>
           </div>
-          {pendingCatalog ? (
-            <p role="status" aria-live="polite" className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <LoaderCircle className="size-4 animate-spin" /> Cargando productos...
-            </p>
-          ) : null}
-
           <div className="mt-6 flex w-full flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-foreground">Ordenar por</span>
             <Select
