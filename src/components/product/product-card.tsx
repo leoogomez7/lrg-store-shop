@@ -62,6 +62,7 @@ export function ProductCard({
         navigate({
           to: "/$brand/producto/$slug",
           params: { brand: product.brand, slug: product.slug },
+          search: product.variantId ? { variant: product.variantId } : {},
         })
       }
       onKeyDown={(event) => {
@@ -70,6 +71,7 @@ export function ProductCard({
           navigate({
             to: "/$brand/producto/$slug",
             params: { brand: product.brand, slug: product.slug },
+            search: product.variantId ? { variant: product.variantId } : {},
           });
         }
       }}
@@ -84,6 +86,7 @@ export function ProductCard({
         <Link
           to="/$brand/producto/$slug"
           params={{ brand: product.brand, slug: product.slug }}
+          search={product.variantId ? { variant: product.variantId } : {}}
           className="relative block cursor-pointer"
         >
           <ProductVisual
@@ -137,6 +140,7 @@ export function ProductCard({
               <Link
                 to="/$brand/producto/$slug"
                 params={{ brand: product.brand, slug: product.slug }}
+                search={product.variantId ? { variant: product.variantId } : {}}
                 className="cursor-pointer transition-colors hover:text-primary"
               >
                 {product.name}

@@ -38,7 +38,9 @@ export function expandCatalogProducts(productList: Product[]) {
         variantId: variant.id,
         variantName: variant.name,
         name: product.name,
-        price: variant.price,
+        price: Math.max(0, variant.price * (1 - (variant.discount ?? 0) / 100)),
+        compareAtPrice: variant.discount ? variant.price : product.compareAtPrice,
+        discount: variant.discount ?? 0,
         priceCurrency: variant.priceCurrency ?? product.priceCurrency ?? "ARS",
         comision: variant.comision ?? product.comision,
         comisionCurrency: variant.comisionCurrency ?? product.comisionCurrency ?? "ARS",
@@ -115,15 +117,16 @@ export const catalogService = {
     const allProducts = loaded ?? (await listAdminProducts({ data: {} }));
     const product = allProducts.find((item) => item.brand === brand && item.slug === slug);
     return product
-      ? allProducts
+      ? expandCatalogProducts(
+          allProducts
           .filter(
             (item) =>
               item.id !== product.id &&
               item.brand === product.brand &&
               item.category === product.category &&
               !item.hidden,
-          )
-          .slice(0, 4)
+          ),
+        ).slice(0, 4)
       : [];
   },
   listAll: async () => {

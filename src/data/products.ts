@@ -144,6 +144,7 @@ export type Product = {
   gastosCurrency?: CurrencyCode;
   usdRate?: number;
   compareAtPrice?: number;
+  discount?: number;
   stock: number;
   stockUnlimited?: boolean;
   rating: number;

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 import type { Product } from "@/data/products";
 import type { BrandSubcategory } from "@/config/brands";
 import { CroppedProductImage, ProductVisual } from "@/components/common/product-visual";
@@ -82,6 +83,7 @@ function calculateInstallmentPlans(priceWithSurcharge: number) {
 }
 
 export const Route = createFileRoute("/$brand/producto/$slug")({
+  validateSearch: z.object({ variant: z.string().optional() }),
   loader: async ({ params, context }) => {
     const brand = getBrand(params.brand);
     if (!brand) throw notFound();
@@ -136,6 +138,7 @@ export const Route = createFileRoute("/$brand/producto/$slug")({
 
 function ProductDetail() {
   const params = Route.useParams();
+  const search = Route.useSearch();
   const loaderData = Route.useLoaderData();
   const brand = getBrand(params.brand)!;
   const { data: product } = useSuspenseQuery(catalogQueries.detail(brand.slug, params.slug));
@@ -143,7 +146,7 @@ function ProductDetail() {
   const { addProduct } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
-    product?.variants?.[0]?.id,
+    search.variant ?? product?.variants?.[0]?.id,
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -175,13 +178,18 @@ function ProductDetail() {
   useEffect(() => {
     setSelectedImageIndex(0);
     setImageViewerOpen(false);
-  }, [product?.id]);
+    const requestedVariant = product?.variants?.find((variant) => variant.id === search.variant);
+    setSelectedVariantId(requestedVariant?.id ?? product?.variants?.[0]?.id);
+    setQuantity(1);
+  }, [product?.id, search.variant]);
 
   const selectedVariant =
     product?.variants?.find((variant) => variant.id === selectedVariantId) ??
     product?.variants?.[0];
-  const cardPriceWithSurcharge =
-    Math.round((selectedVariant?.price ?? product?.price ?? 0) * 1.15 * 100) / 100;
+  const selectedVariantPrice = selectedVariant
+    ? Math.max(0, selectedVariant.price * (1 - (selectedVariant.discount ?? 0) / 100))
+    : (product?.price ?? 0);
+  const cardPriceWithSurcharge = Math.round(selectedVariantPrice * 1.15 * 100) / 100;
   const installmentOptions = calculateInstallmentPlans(cardPriceWithSurcharge);
 
   if (!product) return null;
@@ -190,8 +198,12 @@ function ProductDetail() {
     ? {
         ...product,
         id: `${product.id}::${selectedVariant.id}`,
-        price: selectedVariant.price,
-        description: selectedVariant.description,
+        price: selectedVariantPrice,
+        compareAtPrice: selectedVariant.discount ? selectedVariant.price : product.compareAtPrice,
+        discount: selectedVariant.discount ?? 0,
+        description: selectedVariant.description?.trim()
+          ? selectedVariant.description
+          : product.description,
         stock: selectedVariant.stock,
         variantName: selectedVariant.name,
         image: product.images?.[0],
@@ -553,9 +565,9 @@ function ProductDetail() {
 
           <div className="mt-6 w-full max-w-md space-y-3">
             <div className="flex flex-wrap items-center gap-3">
-              {product.compareAtPrice && (
+              {activeProduct.compareAtPrice && (
                 <span className="block text-sm text-muted-foreground line-through">
-                  {formatPrice(product.compareAtPrice)}
+                  {formatPrice(activeProduct.compareAtPrice)}
                 </span>
               )}
               <span className="font-display block text-3xl font-semibold leading-none">
@@ -727,7 +739,7 @@ function ProductDetail() {
               )}
             </TabsContent>
             <TabsContent value="description" className="pt-4">
-              <p className="leading-relaxed text-muted-foreground">
+              <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
                 {activeProduct.description?.trim() || "No hay descripción para mostrar."}
               </p>
             </TabsContent>

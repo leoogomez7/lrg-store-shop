@@ -38,6 +38,38 @@ describe("catalog visibility", () => {
     expect(expandCatalogProducts([parent]).map((item) => item.variantId)).toEqual(["visible"]);
   });
 
+  it("uses the variant sale price and its own stock in public catalog entries", () => {
+    const parent = product({
+      variants: [
+        { id: "offer", name: "Oferta", price: 135_983, discount: 50, description: "", stock: 10 },
+      ],
+    });
+
+    expect(expandCatalogProducts([parent])[0]).toMatchObject({
+      price: 67_991.5,
+      compareAtPrice: 135_983,
+      stock: 10,
+      variantId: "offer",
+    });
+  });
+
+  it("returns related variants with their individual price and stock", async () => {
+    const current = product({ slug: "current" });
+    const related = product({
+      id: "related-product",
+      slug: "related-product",
+      variants: [
+        { id: "primary", name: "Primario", price: 14_000, description: "", stock: 10 },
+        { id: "secondary", name: "Secundario", price: 8_000, description: "", stock: 10 },
+      ],
+    });
+
+    await expect(catalogService.related("scents", current.slug, [current, related])).resolves.toMatchObject([
+      { id: "related-product::primary", price: 14_000, stock: 10 },
+      { id: "related-product::secondary", price: 8_000, stock: 10 },
+    ]);
+  });
+
   it("does not resolve hidden products through their public detail URL", async () => {
     const hidden = product({ hidden: true });
 
