@@ -22,6 +22,7 @@ import {
   filterCategoriesByProducts,
   formatDeliveryTime,
   getCategoryFilterValues,
+  matchesProductCategorySelection,
   matchesDeliveryOption,
   sortLabels,
 } from "@/components/product/product-filter-utils";
@@ -167,8 +168,7 @@ function CatalogPage() {
       if (query && !productMatchesSearch(product, query)) return false;
       if (
         filters.categories.length &&
-        !selectedCategoryValues.has(product.category) &&
-        !selectedCategoryValues.has(product.subcategory ?? "")
+        !matchesProductCategorySelection(product, selectedCategoryValues)
       )
         return false;
       if (

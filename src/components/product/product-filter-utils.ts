@@ -117,7 +117,9 @@ export function filterCategoriesByProducts(
   products: Product[],
 ): BrandCategory[] {
   const productValues = new Set(
-    products.flatMap((product) => [product.category, product.subcategory].filter(Boolean)),
+    products.flatMap((product) =>
+      [product.category, product.subcategory, ...(product.subcategoryPath ?? [])].filter(Boolean),
+    ),
   );
   const matches = (slug: string) =>
     productValues.has(slug) || productValues.has(slug.replace(/^root-/, ""));
@@ -135,6 +137,20 @@ export function filterCategoriesByProducts(
     return matches(category.slug) || subcategories.length
       ? [{ ...category, ...(subcategories.length ? { subcategories } : {}) }]
       : [];
+  });
+}
+
+export function matchesProductCategorySelection(product: Product, selectedValues: Set<string>) {
+  if (!selectedValues.size) return true;
+  const productValues = [
+    product.category,
+    product.subcategory,
+    ...(product.subcategoryPath ?? []),
+  ].filter((value): value is string => Boolean(value));
+
+  return productValues.some((value) => {
+    const normalized = value.replace(/^root-/, "");
+    return selectedValues.has(value) || selectedValues.has(normalized);
   });
 }
 

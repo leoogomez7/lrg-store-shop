@@ -46,3 +46,16 @@ export function parseDollarDelimitedProductLine(line: string): ImportedProductLi
 
   return { name, price };
 }
+
+export function replaceSubcategorySuffix(name: string, previous: string, next: string) {
+  const previousSuffix = previous ? ` - ${previous}` : "";
+  let baseName =
+    previousSuffix && name.endsWith(previousSuffix)
+      ? name.slice(0, -previousSuffix.length)
+      : name;
+  const nextSuffix = next ? ` - ${next}` : "";
+  if (nextSuffix && baseName.endsWith(nextSuffix)) {
+    baseName = baseName.slice(0, -nextSuffix.length);
+  }
+  return next ? `${baseName} - ${next}` : baseName;
+}

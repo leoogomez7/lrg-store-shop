@@ -17,6 +17,7 @@ import {
   filterCategoriesByProducts,
   formatDeliveryTime,
   getCategoryFilterValues,
+  matchesProductCategorySelection,
   matchesDeliveryOption,
   mergeBrandCategories,
   sortLabels,
@@ -177,8 +178,7 @@ function ProductosPage() {
       if (query && !productMatchesSearch(product, query)) return false;
       if (
         filters.categories.length &&
-        !selectedCategoryValues.has(product.category) &&
-        !selectedCategoryValues.has(product.subcategory ?? "")
+        !matchesProductCategorySelection(product, selectedCategoryValues)
       )
         return false;
       if ((filters.brands ?? []).length && !(filters.brands ?? []).includes(product.brand))

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { parseDollarDelimitedProductLine, parseLocalizedImportPrice } from "./product-import-utils";
+import {
+  parseDollarDelimitedProductLine,
+  parseLocalizedImportPrice,
+  replaceSubcategorySuffix,
+} from "./product-import-utils";
 
 describe("product text import parsing", () => {
   it("uses the text before the dollar sign as the name and the amount after it as price", () => {
@@ -22,5 +26,13 @@ describe("product text import parsing", () => {
       name: "FIFA 23",
       price: 39_999,
     });
+  });
+
+  it("appends and changes the subcategory suffix without duplicating it", () => {
+    expect(replaceSubcategorySuffix("FIFA 23", "", "PS5 - PS Plus")).toBe(
+      "FIFA 23 - PS5 - PS Plus",
+    );
+    expect(replaceSubcategorySuffix("FIFA 23 - PS5", "", "PS5")).toBe("FIFA 23 - PS5");
+    expect(replaceSubcategorySuffix("FIFA 23 - PS5", "PS5", "PS4")).toBe("FIFA 23 - PS4");
   });
 });

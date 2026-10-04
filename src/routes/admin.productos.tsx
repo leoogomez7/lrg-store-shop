@@ -86,6 +86,7 @@ import { importPlayStationStoreCategory } from "@/server/persistence";
 import {
   parseDollarDelimitedProductLine,
   parseLocalizedImportPrice,
+  replaceSubcategorySuffix,
 } from "@/lib/product-import-utils";
 
 type DeliveryUnit = "inmediata" | "horas" | "dias";
@@ -654,7 +655,13 @@ function AdminProducts() {
       return;
     }
 
-    const importedProducts = parsedProducts.map(({ name, price }, index) => {
+    const subcategoryName = getSubcategoryPathLabel(
+      importBrand,
+      importCategory,
+      importSubcategoryPath,
+    );
+    const importedProducts = parsedProducts.map(({ name: rawName, price }, index) => {
+      const name = replaceSubcategorySuffix(rawName, "", subcategoryName);
       const slugBase =
         name
           .toLowerCase()
@@ -734,9 +741,18 @@ function AdminProducts() {
       return;
     }
 
+    const subcategoryName = getSubcategoryPathLabel(
+      importBrand,
+      importCategory,
+      importSubcategoryPath,
+    );
     const importedProducts = imageFiles.map((file, index) => {
       const sequence = (append ? pendingImportedProducts.length : 0) + index + 1;
-      const productName = getImageImportProductName(file.name, sequence);
+      const productName = replaceSubcategorySuffix(
+        getImageImportProductName(file.name, sequence),
+        "",
+        subcategoryName,
+      );
       const slugBase =
         productName
           .toLowerCase()
@@ -962,9 +978,7 @@ function AdminProducts() {
         category: nextCategory,
         subcategory: nextSubcategoryPath[0] || undefined,
         subcategoryPath: nextSubcategoryPath.length ? [...nextSubcategoryPath] : undefined,
-        ...(importSource === "store"
-          ? { name: replaceSubcategorySuffix(product.name, previousLabel, nextLabel) }
-          : {}),
+        name: replaceSubcategorySuffix(product.name, previousLabel, nextLabel),
       })),
     );
     setApplyImportFieldsToAll(true);
@@ -986,15 +1000,6 @@ function AdminProducts() {
       nodes = node.children;
     }
     return labels.join(" - ");
-  };
-
-  const replaceSubcategorySuffix = (name: string, previous: string, next: string) => {
-    const previousSuffix = previous ? ` - ${previous}` : "";
-    const baseName =
-      previousSuffix && name.endsWith(previousSuffix)
-        ? name.slice(0, -previousSuffix.length)
-        : name;
-    return next ? `${baseName} - ${next}` : baseName;
   };
 
   const handleImportFromStore = async () => {
@@ -1052,7 +1057,7 @@ function AdminProducts() {
       );
       const timestamp = Date.now();
       const drafts = result.products.map((item, index) => {
-        const name = subcategoryName ? `${item.name} - ${subcategoryName}` : item.name;
+        const name = replaceSubcategorySuffix(item.name, "", subcategoryName);
         const slugBase =
           normalizeProductName(name).replace(/\s+/g, "-") || `store-product-${index}`;
         return {
