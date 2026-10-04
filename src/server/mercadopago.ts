@@ -1,5 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createPaymentIntent, loadPaymentIntent } from "@/server/persistence";
+import {
+  createPaymentIntent,
+  loadPaymentIntent,
+  releaseCartStockReservations,
+  startReservedPaymentHold,
+} from "@/server/persistence";
 
 export type PaymentIntentData = {
   brand: string;
@@ -28,7 +33,10 @@ export type PaymentIntentData = {
   }[];
   isGuest?: boolean;
   guestCustomerId?: string;
+  reservationOwnerId: string;
   items: {
+    productId?: string;
+    variantId?: string;
     name: string;
     quantity: number;
     price: number;
@@ -121,44 +129,68 @@ function getPreferenceUrls(returnUrl: string, intentId: string) {
 export const createMercadoPagoPreference = createServerFn({ method: "POST" })
   .validator((data: { intentId: string; payment: PaymentIntentData; returnUrl: string }) => data)
   .handler(async ({ data }) => {
-    const intentCreated = await createPaymentIntent({
-      data: { id: data.intentId, data: JSON.stringify(data.payment) },
-    });
-    if (!intentCreated) throw new Error("No se pudo guardar la intención de pago.");
-
-    const urls = getPreferenceUrls(data.returnUrl, data.intentId);
-    const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${getAccessToken()}`,
-        "Content-Type": "application/json",
+    const hold = await startReservedPaymentHold({
+      data: {
+        ownerId: data.payment.reservationOwnerId,
+        items: data.payment.items,
       },
-      body: JSON.stringify({
-        external_reference: data.intentId,
-        payer: { name: data.payment.customer, email: data.payment.email },
-        items: (data.payment.paymentItems ?? data.payment.items).map((item) => ({
-          title: item.name,
-          quantity: item.quantity,
-          unit_price: item.price,
-          currency_id: "ARS",
-        })),
-        total_amount: data.payment.paymentTotal ?? data.payment.total,
-        back_urls: {
-          success: urls.success,
-          failure: urls.failure,
-          pending: urls.pending,
-        },
-        auto_return: "approved",
-        notification_url: urls.webhook,
-      }),
     });
-
-    if (!response.ok) {
-      throw new Error(`Mercado Pago rechazó la preferencia (${response.status}).`);
+    if (!hold.ok) {
+      throw new Error(
+        hold.reason === "out_of_stock"
+          ? "El producto se quedó sin stock antes de iniciar el pago. Revisá el carrito."
+          : "Se venció tu prioridad de compra. Volvé al carrito para reservar el producto nuevamente.",
+      );
     }
-    const preference = (await response.json()) as { init_point?: string };
-    if (!preference.init_point) throw new Error("Mercado Pago no devolvió el link de pago.");
-    return { url: preference.init_point };
+
+    try {
+      const intentCreated = await createPaymentIntent({
+        data: { id: data.intentId, data: JSON.stringify(data.payment) },
+      });
+      if (!intentCreated) throw new Error("No se pudo guardar la intención de pago.");
+
+      const urls = getPreferenceUrls(data.returnUrl, data.intentId);
+      const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getAccessToken()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          external_reference: data.intentId,
+          payer: { name: data.payment.customer, email: data.payment.email },
+          items: (data.payment.paymentItems ?? data.payment.items).map((item) => ({
+            title: item.name,
+            quantity: item.quantity,
+            unit_price: item.price,
+            currency_id: "ARS",
+          })),
+          total_amount: data.payment.paymentTotal ?? data.payment.total,
+          expires: true,
+          expiration_date_from: new Date().toISOString(),
+          expiration_date_to: hold.expiresAt,
+          back_urls: {
+            success: urls.success,
+            failure: urls.failure,
+            pending: urls.pending,
+          },
+          auto_return: "approved",
+          notification_url: urls.webhook,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Mercado Pago rechazó la preferencia (${response.status}).`);
+      }
+      const preference = (await response.json()) as { init_point?: string };
+      if (!preference.init_point) throw new Error("Mercado Pago no devolvió el link de pago.");
+      return { url: preference.init_point };
+    } catch (error) {
+      await releaseCartStockReservations({
+        data: { ownerId: data.payment.reservationOwnerId },
+      });
+      throw error;
+    }
   });
 
 export const getMercadoPagoIntentStatus = createServerFn({ method: "POST" })

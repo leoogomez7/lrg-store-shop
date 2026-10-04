@@ -19,7 +19,6 @@ import {
 } from "@/components/product/product-filters";
 import {
   buildDeliveryOptions,
-  filterCategoriesByProducts,
   formatDeliveryTime,
   getCategoryFilterValues,
   matchesProductCategorySelection,
@@ -94,10 +93,7 @@ function CatalogPage() {
     return () => window.removeEventListener("lrg-brand-data-updated", handleBrandDataUpdated);
   }, [settings]);
 
-  const configuredCategories = useMemo(
-    () => filterCategoriesByProducts(brand.categories, products),
-    [brand.categories, products],
-  );
+  const configuredCategories = brand.categories;
   const deliveryOptions = buildDeliveryOptions(products);
   const shippingOptions = (brand.shipping?.methods ?? [])
     .filter((method) => method.enabled)

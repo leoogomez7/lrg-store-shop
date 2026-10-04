@@ -3,6 +3,14 @@ import type { BrandSlug } from "@/config/brands";
 import { adminClient, client } from "@/lib/db";
 import type { Order } from "@/data/orders";
 import type { Product } from "@/data/products";
+import {
+  assessStockReservation,
+  getInventoryKey,
+  splitInventoryKey,
+  STOCK_RESERVATION_TTL_MS,
+  type ReservationRecord,
+  type ReservationState,
+} from "@/lib/stock-reservations";
 
 export type CartItem = {
   id: string;
@@ -115,6 +123,26 @@ function ensureAdminTables() {
         variantData TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )`,
+        `CREATE TABLE IF NOT EXISTS stock_reservations (
+        inventoryKey TEXT NOT NULL,
+        ownerId TEXT NOT NULL,
+        visitId TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        expiresAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        PRIMARY KEY (inventoryKey, ownerId)
+      )`,
+        `CREATE INDEX IF NOT EXISTS stock_reservations_expiration_idx
+        ON stock_reservations (expiresAt)`,
+        `CREATE TABLE IF NOT EXISTS stock_reservation_queue (
+        inventoryKey TEXT NOT NULL,
+        ownerId TEXT NOT NULL,
+        visitId TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        requestedAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        PRIMARY KEY (inventoryKey, ownerId)
+      )`,
         `CREATE TABLE IF NOT EXISTS orders (
         id TEXT PRIMARY KEY,
         orderData TEXT NOT NULL,
@@ -176,6 +204,552 @@ function ensureAdminTables() {
 
   return adminTablesPromise;
 }
+
+export type CartReservationStatus = {
+  id: string;
+  inventoryKey: string;
+  state: ReservationState;
+  expiresAt?: string;
+  availableQuantity: number;
+  queuePosition?: number;
+};
+
+type CartReservationRequest = {
+  ownerId: string;
+  visitId: string;
+  items: Array<{ id: string; quantity: number }>;
+};
+
+function validateCartReservationRequest(data: CartReservationRequest) {
+  if (!data.ownerId.trim() || data.ownerId.length > 300) {
+    throw new Error("No se pudo identificar tu sesión para reservar el stock.");
+  }
+  if (!data.visitId.trim() || data.visitId.length > 100) {
+    throw new Error("La sesión de reserva no es válida. Recargá el carrito.");
+  }
+  if (!Array.isArray(data.items) || data.items.length > 100) {
+    throw new Error("La cantidad de productos para reservar no es válida.");
+  }
+  for (const item of data.items) {
+    if (
+      typeof item.id !== "string" ||
+      !item.id.trim() ||
+      item.id.length > 500 ||
+      !Number.isInteger(item.quantity) ||
+      item.quantity < 1 ||
+      item.quantity > 500
+    ) {
+      throw new Error("Hay un producto con una cantidad de reserva no válida.");
+    }
+  }
+  return data;
+}
+
+function readReservationProduct(productData: unknown, variantId?: string) {
+  if (typeof productData !== "string") return null;
+  try {
+    const product = JSON.parse(productData) as Product;
+    const variant = variantId ? product.variants?.find((item) => item.id === variantId) : undefined;
+    if (variantId && !variant) return null;
+    return {
+      product,
+      variant,
+      stock: Math.max(0, Number(variant?.stock ?? product.stock) || 0),
+      stockUnlimited: variant?.stockUnlimited ?? product.stockUnlimited ?? false,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readReservationRecords(rows: Array<Record<string, unknown>>): ReservationRecord[] {
+  return rows.flatMap((row) => {
+    const ownerId = row["ownerId"];
+    const visitId = row["visitId"];
+    const quantity = Number(row["quantity"]);
+    const expiresAt = row["expiresAt"];
+    return typeof ownerId === "string" &&
+      typeof visitId === "string" &&
+      Number.isInteger(quantity) &&
+      typeof expiresAt === "string"
+      ? [{ ownerId, visitId, quantity, expiresAt }]
+      : [];
+  });
+}
+
+const PAYMENT_HOLD_TTL_MS = 20 * 60 * 1000;
+
+export const reserveCartStock = createServerFn({ method: "POST" })
+  .validator(validateCartReservationRequest)
+  .handler(async ({ data }): Promise<CartReservationStatus[]> => {
+    const database = await ensureAdminTables();
+    if (!database) {
+      return data.items.map((item) => ({
+        id: item.id,
+        inventoryKey: item.id,
+        state: "unavailable",
+        availableQuantity: 0,
+      }));
+    }
+
+    const now = Date.now();
+    const nowIso = new Date(now).toISOString();
+    const staleQueueBefore = new Date(now - 30_000).toISOString();
+    const groupedItems = new Map<string, { id: string; quantity: number }>();
+    for (const item of data.items) {
+      const current = groupedItems.get(item.id);
+      groupedItems.set(item.id, {
+        id: item.id,
+        quantity: (current?.quantity ?? 0) + item.quantity,
+      });
+    }
+
+    const transaction = await database.transaction("write");
+    try {
+      const statuses: CartReservationStatus[] = [];
+      for (const item of groupedItems.values()) {
+        const inventoryKey = item.id;
+        const { productId, variantId } = splitInventoryKey(inventoryKey);
+        const productResult = await transaction.execute({
+          sql: "SELECT productData FROM products WHERE id = ?",
+          args: [productId],
+        });
+        const productRow = productResult.rows[0];
+        const inventory = readReservationProduct(productRow?.["productData"], variantId);
+        if (!inventory || inventory.product.hidden || inventory.variant?.hidden) {
+          statuses.push({ id: item.id, inventoryKey, state: "unavailable", availableQuantity: 0 });
+          continue;
+        }
+
+        const reservationResult = await transaction.execute({
+          sql: "SELECT ownerId, visitId, quantity, expiresAt FROM stock_reservations WHERE inventoryKey = ?",
+          args: [inventoryKey],
+        });
+        const records = readReservationRecords(reservationResult.rows);
+        const assessment = assessStockReservation({
+          stock: inventory.stock,
+          stockUnlimited: inventory.stockUnlimited,
+          ownerId: data.ownerId,
+          visitId: data.visitId,
+          requestedQuantity: item.quantity,
+          records,
+          now,
+        });
+
+        await transaction.execute({
+          sql: "DELETE FROM stock_reservation_queue WHERE inventoryKey = ? AND updatedAt <= ?",
+          args: [inventoryKey, staleQueueBefore],
+        });
+        const hasOwnActiveReservation = records.some(
+          (record) => record.ownerId === data.ownerId && new Date(record.expiresAt).getTime() > now,
+        );
+
+        if (assessment.state === "waiting" && !hasOwnActiveReservation) {
+          await transaction.execute({
+            sql: `INSERT INTO stock_reservation_queue
+                    (inventoryKey, ownerId, visitId, quantity, requestedAt, updatedAt)
+                  VALUES (?, ?, ?, ?, ?, ?)
+                  ON CONFLICT(inventoryKey, ownerId) DO UPDATE SET
+                    visitId = excluded.visitId,
+                    quantity = excluded.quantity,
+                    updatedAt = excluded.updatedAt`,
+            args: [inventoryKey, data.ownerId, data.visitId, item.quantity, nowIso, nowIso],
+          });
+        }
+
+        if (assessment.state === "available") {
+          const queueResult = await transaction.execute({
+            sql: `SELECT ownerId, requestedAt FROM stock_reservation_queue
+                  WHERE inventoryKey = ? AND updatedAt > ?
+                  ORDER BY requestedAt ASC, ownerId ASC`,
+            args: [inventoryKey, staleQueueBefore],
+          });
+          const queueRows = queueResult.rows.flatMap((row) =>
+            typeof row["ownerId"] === "string" && typeof row["requestedAt"] === "string"
+              ? [{ ownerId: row["ownerId"] as string, requestedAt: row["requestedAt"] as string }]
+              : [],
+          );
+          if (queueRows.length && queueRows[0]?.ownerId !== data.ownerId) {
+            await transaction.execute({
+              sql: `INSERT INTO stock_reservation_queue
+                      (inventoryKey, ownerId, visitId, quantity, requestedAt, updatedAt)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(inventoryKey, ownerId) DO UPDATE SET updatedAt = excluded.updatedAt`,
+              args: [inventoryKey, data.ownerId, data.visitId, item.quantity, nowIso, nowIso],
+            });
+            const position = queueRows.findIndex((row) => row.ownerId === data.ownerId);
+            statuses.push({
+              id: item.id,
+              inventoryKey,
+              state: "waiting",
+              availableQuantity: assessment.availableQuantity,
+              queuePosition: position >= 0 ? position + 1 : queueRows.length + 1,
+            });
+            continue;
+          }
+        }
+
+        if (assessment.state === "available") {
+          const expiresAt = new Date(now + STOCK_RESERVATION_TTL_MS).toISOString();
+          await transaction.execute({
+            sql: `INSERT INTO stock_reservations (inventoryKey, ownerId, visitId, quantity, expiresAt, updatedAt)
+                  VALUES (?, ?, ?, ?, ?, ?)
+                  ON CONFLICT(inventoryKey, ownerId) DO UPDATE SET
+                    visitId = excluded.visitId,
+                    quantity = excluded.quantity,
+                    expiresAt = excluded.expiresAt,
+                    updatedAt = excluded.updatedAt`,
+            args: [inventoryKey, data.ownerId, data.visitId, item.quantity, expiresAt, nowIso],
+          });
+          await transaction.execute({
+            sql: "DELETE FROM stock_reservation_queue WHERE inventoryKey = ? AND ownerId = ?",
+            args: [inventoryKey, data.ownerId],
+          });
+          statuses.push({
+            id: item.id,
+            inventoryKey,
+            state: "reserved",
+            expiresAt,
+            availableQuantity: assessment.availableQuantity,
+          });
+          continue;
+        }
+
+        if (assessment.state === "reserved") {
+          await transaction.execute({
+            sql: "DELETE FROM stock_reservation_queue WHERE inventoryKey = ? AND ownerId = ?",
+            args: [inventoryKey, data.ownerId],
+          });
+          const ownRecord = records.find(
+            (record) => record.ownerId === data.ownerId && record.expiresAt === assessment.expiresAt,
+          );
+          if (ownRecord && ownRecord.quantity !== item.quantity) {
+            await transaction.execute({
+              sql: `UPDATE stock_reservations SET quantity = ?, updatedAt = ?
+                    WHERE inventoryKey = ? AND ownerId = ? AND expiresAt = ?`,
+              args: [item.quantity, nowIso, inventoryKey, data.ownerId, ownRecord.expiresAt],
+            });
+          }
+        }
+        let queuePosition: number | undefined;
+        if (assessment.state === "waiting" && !hasOwnActiveReservation) {
+          const queueResult = await transaction.execute({
+            sql: `SELECT ownerId FROM stock_reservation_queue WHERE inventoryKey = ? AND updatedAt > ?
+                  ORDER BY requestedAt ASC, ownerId ASC`,
+            args: [inventoryKey, staleQueueBefore],
+          });
+          const position = queueResult.rows.findIndex((row) => row["ownerId"] === data.ownerId);
+          if (position >= 0) queuePosition = position + 1;
+        }
+        statuses.push({ id: item.id, inventoryKey, ...assessment, ...(queuePosition ? { queuePosition } : {}) });
+      }
+      await transaction.commit();
+      return statuses;
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    } finally {
+      transaction.close();
+    }
+  });
+
+export const getCartStockReservationStatus = createServerFn({ method: "POST" })
+  .validator(validateCartReservationRequest)
+  .handler(async ({ data }): Promise<CartReservationStatus[]> => {
+    const database = await ensureAdminTables();
+    if (!database) {
+      return data.items.map((item) => ({
+        id: item.id,
+        inventoryKey: item.id,
+        state: "unavailable",
+        availableQuantity: 0,
+      }));
+    }
+
+    const now = Date.now();
+    const nowIso = new Date(now).toISOString();
+    const staleQueueBefore = new Date(now - 30_000).toISOString();
+    const statuses: CartReservationStatus[] = [];
+    for (const item of data.items) {
+      const inventoryKey = item.id;
+      const { productId, variantId } = splitInventoryKey(inventoryKey);
+      await database.execute({
+        sql: "DELETE FROM stock_reservation_queue WHERE inventoryKey = ? AND updatedAt <= ?",
+        args: [inventoryKey, staleQueueBefore],
+      });
+      await database.execute({
+        sql: "UPDATE stock_reservation_queue SET updatedAt = ? WHERE inventoryKey = ? AND ownerId = ?",
+        args: [nowIso, inventoryKey, data.ownerId],
+      });
+      const productResult = await database.execute({
+        sql: "SELECT productData FROM products WHERE id = ?",
+        args: [productId],
+      });
+      const productRow = productResult.rows[0];
+      const inventory = readReservationProduct(productRow?.["productData"], variantId);
+      if (!inventory || inventory.product.hidden || inventory.variant?.hidden) {
+        statuses.push({ id: item.id, inventoryKey, state: "unavailable", availableQuantity: 0 });
+        continue;
+      }
+
+      const reservationResult = await database.execute({
+        sql: "SELECT ownerId, visitId, quantity, expiresAt FROM stock_reservations WHERE inventoryKey = ?",
+        args: [inventoryKey],
+      });
+      const assessment = assessStockReservation({
+        stock: inventory.stock,
+        stockUnlimited: inventory.stockUnlimited,
+        ownerId: data.ownerId,
+        visitId: data.visitId,
+        requestedQuantity: item.quantity,
+        records: readReservationRecords(reservationResult.rows),
+        now,
+      });
+      let queuePosition: number | undefined;
+      let state = assessment.state;
+      if (state === "available" || (state === "waiting" && !assessment.expiresAt)) {
+        const queueResult = await database.execute({
+          sql: `SELECT ownerId FROM stock_reservation_queue WHERE inventoryKey = ? AND updatedAt > ?
+                ORDER BY requestedAt ASC, ownerId ASC`,
+          args: [inventoryKey, staleQueueBefore],
+        });
+        const queueRows = queueResult.rows;
+        const firstOwner = queueRows[0]?.["ownerId"];
+        const position = queueRows.findIndex((row) => row["ownerId"] === data.ownerId);
+        if (firstOwner && firstOwner !== data.ownerId) {
+          state = "waiting";
+          queuePosition = position >= 0 ? position + 1 : queueRows.length + 1;
+        } else if (position >= 0) {
+          queuePosition = position + 1;
+        }
+      } else if (state === "waiting") {
+        const queueResult = await database.execute({
+          sql: `SELECT ownerId FROM stock_reservation_queue WHERE inventoryKey = ? AND updatedAt > ?
+                ORDER BY requestedAt ASC, ownerId ASC`,
+          args: [inventoryKey, staleQueueBefore],
+        });
+        const position = queueResult.rows.findIndex((row) => row["ownerId"] === data.ownerId);
+        if (position >= 0) queuePosition = position + 1;
+      }
+      statuses.push({ id: item.id, inventoryKey, ...assessment, state, ...(queuePosition ? { queuePosition } : {}) });
+    }
+    return statuses;
+  });
+
+export const releaseCartStockReservations = createServerFn({ method: "POST" })
+  .validator((data: { ownerId: string; inventoryKeys?: string[] }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database || !data.ownerId.trim()) return false;
+    if (!data.inventoryKeys?.length) {
+      await database.batch(
+        [
+          { sql: "DELETE FROM stock_reservations WHERE ownerId = ?", args: [data.ownerId] },
+          { sql: "DELETE FROM stock_reservation_queue WHERE ownerId = ?", args: [data.ownerId] },
+        ],
+        "write",
+      );
+      return true;
+    }
+    await database.batch(
+      data.inventoryKeys.flatMap((inventoryKey) => [
+        {
+          sql: "DELETE FROM stock_reservations WHERE inventoryKey = ? AND ownerId = ?",
+          args: [inventoryKey, data.ownerId],
+        },
+        {
+          sql: "DELETE FROM stock_reservation_queue WHERE inventoryKey = ? AND ownerId = ?",
+          args: [inventoryKey, data.ownerId],
+        },
+      ]),
+      "write",
+    );
+    return true;
+  });
+
+export const startReservedPaymentHold = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      ownerId: string;
+      items: Array<{ productId?: string; variantId?: string; quantity: number }>;
+    }) => data,
+  )
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database || !data.ownerId.trim()) {
+      return { ok: false as const, reason: "reservation_lost" as const };
+    }
+
+    const now = Date.now();
+    const nowIso = new Date(now).toISOString();
+    const expiresAt = new Date(now + PAYMENT_HOLD_TTL_MS).toISOString();
+    const transaction = await database.transaction("write");
+    try {
+      const itemGroups = new Map<string, number>();
+      for (const item of data.items) {
+        if (!item.productId) {
+          await transaction.rollback();
+          return { ok: false as const, reason: "reservation_lost" as const };
+        }
+        const key = getInventoryKey(item.productId, item.variantId);
+        itemGroups.set(key, (itemGroups.get(key) ?? 0) + item.quantity);
+      }
+
+      for (const [inventoryKey, quantity] of itemGroups) {
+        const { productId, variantId } = splitInventoryKey(inventoryKey);
+        const productResult = await transaction.execute({
+          sql: "SELECT productData FROM products WHERE id = ?",
+          args: [productId],
+        });
+        const inventory = readReservationProduct(productResult.rows[0]?.["productData"], variantId);
+        if (!inventory || inventory.stock < quantity) {
+          await transaction.rollback();
+          return { ok: false as const, reason: "out_of_stock" as const };
+        }
+        if (inventory.stockUnlimited) continue;
+
+        const reservationResult = await transaction.execute({
+          sql: `SELECT quantity FROM stock_reservations
+                WHERE inventoryKey = ? AND ownerId = ? AND expiresAt > ?`,
+          args: [inventoryKey, data.ownerId, nowIso],
+        });
+        if (Number(reservationResult.rows[0]?.["quantity"] ?? 0) < quantity) {
+          await transaction.rollback();
+          return { ok: false as const, reason: "reservation_lost" as const };
+        }
+      }
+
+      for (const [inventoryKey] of itemGroups) {
+        await transaction.execute({
+          sql: `UPDATE stock_reservations SET expiresAt = ?, updatedAt = ?
+                WHERE inventoryKey = ? AND ownerId = ? AND expiresAt > ?`,
+          args: [expiresAt, nowIso, inventoryKey, data.ownerId, nowIso],
+        });
+        await transaction.execute({
+          sql: "DELETE FROM stock_reservation_queue WHERE inventoryKey = ? AND ownerId = ?",
+          args: [inventoryKey, data.ownerId],
+        });
+      }
+      await transaction.commit();
+      return { ok: true as const, expiresAt };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    } finally {
+      transaction.close();
+    }
+  });
+
+export const completeReservedStockOrder = createServerFn({ method: "POST" })
+  .validator((data: { ownerId: string; order: Order }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database || !data.ownerId.trim()) {
+      return { ok: false as const, reason: "reservation_lost" as const };
+    }
+
+    const now = Date.now();
+    const nowIso = new Date(now).toISOString();
+    const transaction = await database.transaction("write");
+    try {
+      const duplicateOrder = await transaction.execute({
+        sql: "SELECT id FROM orders WHERE id = ?",
+        args: [data.order.id],
+      });
+      if (duplicateOrder.rows.length) {
+        await transaction.commit();
+        return { ok: true as const, duplicate: true as const };
+      }
+
+      const itemGroups = new Map<string, number>();
+      for (const item of data.order.items) {
+        if (!item.productId || !Number.isInteger(item.quantity) || item.quantity < 1) {
+          await transaction.rollback();
+          return { ok: false as const, reason: "reservation_lost" as const };
+        }
+        const inventoryKey = getInventoryKey(item.productId, item.variantId);
+        itemGroups.set(inventoryKey, (itemGroups.get(inventoryKey) ?? 0) + item.quantity);
+      }
+
+      const updatedProducts = new Map<string, Product>();
+      for (const [inventoryKey, quantity] of itemGroups) {
+        const { productId, variantId } = splitInventoryKey(inventoryKey);
+        let product = updatedProducts.get(productId);
+        if (!product) {
+          const result = await transaction.execute({
+            sql: "SELECT productData FROM products WHERE id = ?",
+            args: [productId],
+          });
+          const parsed = readReservationProduct(result.rows[0]?.["productData"], variantId);
+          if (!parsed) {
+            await transaction.rollback();
+            return { ok: false as const, reason: "out_of_stock" as const };
+          }
+          product = structuredClone(parsed.product);
+          updatedProducts.set(productId, product);
+        }
+
+        const variant = variantId ? product.variants?.find((entry) => entry.id === variantId) : undefined;
+        if (variantId && !variant) {
+          await transaction.rollback();
+          return { ok: false as const, reason: "out_of_stock" as const };
+        }
+        const stockUnlimited = variant?.stockUnlimited ?? product.stockUnlimited ?? false;
+        const currentStock = variant?.stock ?? product.stock;
+        if (!stockUnlimited && currentStock < quantity) {
+          await transaction.rollback();
+          return { ok: false as const, reason: "out_of_stock" as const };
+        }
+        if (stockUnlimited) continue;
+
+        const reservationResult = await transaction.execute({
+          sql: `SELECT quantity FROM stock_reservations
+                WHERE inventoryKey = ? AND ownerId = ? AND expiresAt > ?`,
+          args: [inventoryKey, data.ownerId, nowIso],
+        });
+        if (Number(reservationResult.rows[0]?.["quantity"] ?? 0) < quantity) {
+          await transaction.rollback();
+          return { ok: false as const, reason: "reservation_lost" as const };
+        }
+        if (variant) variant.stock = Math.max(0, variant.stock - quantity);
+        else product.stock = Math.max(0, product.stock - quantity);
+      }
+
+      for (const [productId, product] of updatedProducts) {
+        await transaction.execute({
+          sql: "UPDATE products SET productData = ?, updatedAt = ? WHERE id = ?",
+          args: [JSON.stringify(product), nowIso, productId],
+        });
+      }
+      await transaction.execute({
+        sql: `INSERT INTO orders (id, orderData, updatedAt) VALUES (?, ?, ?)
+              ON CONFLICT(id) DO UPDATE SET orderData = excluded.orderData, updatedAt = excluded.updatedAt`,
+        args: [data.order.id, JSON.stringify(data.order), nowIso],
+      });
+      for (const inventoryKey of itemGroups.keys()) {
+        await transaction.execute({
+          sql: "DELETE FROM stock_reservations WHERE inventoryKey = ? AND ownerId = ?",
+          args: [inventoryKey, data.ownerId],
+        });
+        await transaction.execute({
+          sql: "DELETE FROM stock_reservation_queue WHERE inventoryKey = ? AND ownerId = ?",
+          args: [inventoryKey, data.ownerId],
+        });
+      }
+      await transaction.commit();
+      try {
+        await createDatabaseBackup(`order-purchase:${data.order.id}`);
+      } catch (error) {
+        console.error("No se pudo crear el backup automático del pedido:", error);
+      }
+      return { ok: true as const, duplicate: false as const };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    } finally {
+      transaction.close();
+    }
+  });
 
 async function createDatabaseBackup(reason: string) {
   const adminDatabase = await ensureAdminTables();
@@ -1074,6 +1648,52 @@ export const completePaymentIntent = createServerFn({ method: "POST" })
       sql: "UPDATE payment_intents SET status = ?, orderId = ?, updatedAt = ? WHERE id = ?",
       args: ["approved", data.orderId, new Date().toISOString(), data.id],
     });
+    return true;
+  });
+
+export const cancelPaymentReservation = createServerFn({ method: "POST" })
+  .validator((data: { intentId: string }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return false;
+    const intentResult = await database.execute({
+      sql: "SELECT intentData, status FROM payment_intents WHERE id = ?",
+      args: [data.intentId],
+    });
+    const row = intentResult.rows[0];
+    if (row?.["status"] === "approved" || typeof row?.["intentData"] !== "string") return false;
+
+    let intentData: { reservationOwnerId?: string; items?: Order["items"] };
+    try {
+      intentData = JSON.parse(row["intentData"]);
+    } catch {
+      return false;
+    }
+    const ownerId = intentData.reservationOwnerId;
+    if (!ownerId) return false;
+
+    const inventoryKeys = Array.from(
+      new Set(
+        (intentData.items ?? [])
+          .filter((item) => Boolean(item.productId))
+          .map((item) => getInventoryKey(item.productId!, item.variantId)),
+      ),
+    );
+    const statements = inventoryKeys.flatMap((inventoryKey) => [
+      {
+        sql: "DELETE FROM stock_reservations WHERE inventoryKey = ? AND ownerId = ?",
+        args: [inventoryKey, ownerId],
+      },
+      {
+        sql: "DELETE FROM stock_reservation_queue WHERE inventoryKey = ? AND ownerId = ?",
+        args: [inventoryKey, ownerId],
+      },
+    ]);
+    statements.push({
+      sql: "UPDATE payment_intents SET status = ?, updatedAt = ? WHERE id = ? AND status != ?",
+      args: ["cancelled", new Date().toISOString(), data.intentId, "approved"],
+    });
+    await database.batch(statements, "write");
     return true;
   });
 

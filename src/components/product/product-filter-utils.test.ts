@@ -47,6 +47,20 @@ describe("nested product categories", () => {
     expect(matchesProductCategorySelection(product(), values)).toBe(true);
   });
 
+  it("matches legacy product category values stored as display names", () => {
+    const values = getCategoryFilterValues(categories, ["ps-plus"]);
+    expect(
+      matchesProductCategorySelection(
+        product({
+          category: "Juegos Digitales",
+          subcategory: "PlayStation 5",
+          subcategoryPath: ["PS5", "PS Plus"],
+        }),
+        values,
+      ),
+    ).toBe(true);
+  });
+
   it("does not include a product when a different nested leaf is selected", () => {
     const values = getCategoryFilterValues(categories, ["other-leaf"]);
     expect(matchesProductCategorySelection(product(), values)).toBe(false);

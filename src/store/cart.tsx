@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { toast } from "sonner";
 import type { BrandSlug } from "@/config/brands";
 import type { Product } from "@/data/products";
@@ -8,6 +8,7 @@ import {
   loadUserCart,
   saveGuestCart,
   saveUserCart,
+  releaseCartStockReservations,
   type CartItem as PersistedCartItem,
 } from "@/server/persistence";
 
@@ -103,10 +104,17 @@ export function CartProvider({
     hydrated: false,
     remoteHydrated: false,
   });
+  const [guestSessionId, setGuestSessionId] = useState<string | null>(null);
+  const reservationOwnerId = isAuthenticated && user?.id
+    ? `user:${user.id}`
+    : guestSessionId
+      ? `guest:${guestSessionId}`
+      : null;
 
   useEffect(() => {
     if (isLoading) return;
     const sessionId = !isAuthenticated ? getGuestSessionId() : null;
+    setGuestSessionId(sessionId);
     const request =
       isAuthenticated && user?.id
         ? loadUserCart({
@@ -226,8 +234,13 @@ export function CartProvider({
 
   const removeItem = useCallback((id: string) => {
     dispatch({ type: "remove", id });
+    if (reservationOwnerId) {
+      void releaseCartStockReservations({
+        data: { ownerId: reservationOwnerId, inventoryKeys: [id] },
+      });
+    }
     toast.success("Producto eliminado del carrito");
-  }, []);
+  }, [reservationOwnerId]);
 
   const setQuantity = useCallback((id: string, quantity: number) => {
     dispatch({ type: "quantity", id, quantity });
@@ -235,11 +248,22 @@ export function CartProvider({
 
   const clear = useCallback(() => {
     dispatch({ type: "clear" });
-  }, []);
+    if (reservationOwnerId) {
+      void releaseCartStockReservations({ data: { ownerId: reservationOwnerId } });
+    }
+  }, [reservationOwnerId]);
 
   const clearBrand = useCallback((brand: BrandSlug) => {
     dispatch({ type: "clearBrand", brand });
-  }, []);
+    if (reservationOwnerId) {
+      void releaseCartStockReservations({
+        data: {
+          ownerId: reservationOwnerId,
+          inventoryKeys: state.items.filter((item) => item.brand === brand).map((item) => item.id),
+        },
+      });
+    }
+  }, [reservationOwnerId, state.items]);
 
   const value = useMemo<CartContextValue>(() => {
     const count = state.items.reduce((total, item) => total + item.quantity, 0);
@@ -247,6 +271,7 @@ export function CartProvider({
     return {
       items: state.items,
       hydrated: state.hydrated,
+      reservationOwnerId,
       count,
       subtotal,
       addProduct,
@@ -260,7 +285,7 @@ export function CartProvider({
           .filter((item) => item.brand === brand)
           .reduce((total, item) => total + item.price * item.quantity, 0),
     };
-  }, [state.items, state.hydrated, addProduct, removeItem, setQuantity, clear, clearBrand]);
+  }, [state.items, state.hydrated, reservationOwnerId, addProduct, removeItem, setQuantity, clear, clearBrand]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

@@ -118,26 +118,36 @@ export function filterCategoriesByProducts(
 ): BrandCategory[] {
   const productValues = new Set(
     products.flatMap((product) =>
-      [product.category, product.subcategory, ...(product.subcategoryPath ?? [])].filter(Boolean),
+      [product.category, product.subcategory, ...(product.subcategoryPath ?? [])]
+        .filter(Boolean)
+        .map(normalizeCategoryValue),
     ),
   );
-  const matches = (slug: string) =>
-    productValues.has(slug) || productValues.has(slug.replace(/^root-/, ""));
+  const matches = (...values: string[]) => values.some((value) => productValues.has(normalizeCategoryValue(value)));
 
   const filterSubcategories = (items: BrandSubcategory[]): BrandSubcategory[] =>
     items.flatMap((item) => {
       const children = filterSubcategories(item.children ?? []);
-      return matches(item.slug) || children.length
+      return matches(item.slug, item.name) || children.length
         ? [{ ...item, ...(children.length ? { children } : {}) }]
         : [];
     });
 
   return categories.flatMap((category) => {
     const subcategories = filterSubcategories(category.subcategories ?? []);
-    return matches(category.slug) || subcategories.length
+    return matches(category.slug, category.name) || subcategories.length
       ? [{ ...category, ...(subcategories.length ? { subcategories } : {}) }]
       : [];
   });
+}
+
+function normalizeCategoryValue(value: string) {
+  return value
+    .replace(/^root-/, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
 export function matchesProductCategorySelection(product: Product, selectedValues: Set<string>) {
@@ -149,9 +159,12 @@ export function matchesProductCategorySelection(product: Product, selectedValues
   ].filter((value): value is string => Boolean(value));
 
   return productValues.some((value) => {
-    const normalized = value.replace(/^root-/, "");
-    return selectedValues.has(value) || selectedValues.has(normalized);
+    return categoryAliases(value).some((alias) => selectedValues.has(alias));
   });
+}
+
+function categoryAliases(value: string) {
+  return [value, value.replace(/^root-/, ""), normalizeCategoryValue(value)];
 }
 
 export function getCategoryFilterValues(
@@ -159,12 +172,12 @@ export function getCategoryFilterValues(
   selectedSlugs: string[],
 ): Set<string> {
   const descendants = new Map<string, string[]>();
-  const aliases = (slug: string) => [slug, slug.replace(/^root-/, "")];
+  const aliases = (...values: string[]) => Array.from(new Set(values.flatMap(categoryAliases)));
 
-  const collect = (slug: string, children: BrandSubcategory[] = []): string[] => {
+  const collect = (slug: string, name: string, children: BrandSubcategory[] = []): string[] => {
     const values = children.flatMap((child) => [
-      child.slug,
-      ...collect(child.slug, child.children ?? []),
+      ...aliases(child.slug, child.name),
+      ...collect(child.slug, child.name, child.children ?? []),
     ]);
     descendants.set(
       slug,
@@ -173,9 +186,12 @@ export function getCategoryFilterValues(
     return values;
   };
 
-  categories.forEach((category) => collect(category.slug, category.subcategories));
+  categories.forEach((category) => collect(category.slug, category.name, category.subcategories));
 
   return new Set(
-    selectedSlugs.flatMap((slug) => [...aliases(slug), ...(descendants.get(slug) ?? [])]),
+    selectedSlugs.flatMap((slug) => [
+      ...aliases(slug),
+      ...(descendants.get(slug) ?? []),
+    ]),
   );
 }

@@ -9,8 +9,8 @@ import {
   listAdminProducts,
   listAdminProductsByBrand,
   loadAdminSettings,
-  saveAdminProducts,
   upsertAdminOrder,
+  completeReservedStockOrder,
 } from "@/server/persistence";
 
 /**
@@ -60,45 +60,6 @@ export function expandCatalogProducts(productList: Product[]) {
   }
 
   return expanded;
-}
-
-export async function adjustProductStockForOrder(order: Order, direction: 1 | -1) {
-  if (!order.items.length) return;
-
-  const productsData = await listAdminProducts({ data: {} });
-  const nextProducts = productsData.map((product) => {
-    for (const item of order.items) {
-      const itemProductId = item.productId ?? undefined;
-      const matchesBaseProduct = itemProductId ? itemProductId === product.id : false;
-
-      if (item.variantId) {
-        const variant = product.variants?.find((entry) => entry.id === item.variantId);
-        if (matchesBaseProduct && variant && !variant.stockUnlimited) {
-          variant.stock = Math.max(0, variant.stock + direction * item.quantity);
-        }
-        continue;
-      }
-
-      if (matchesBaseProduct && !product.stockUnlimited) {
-        product.stock = Math.max(0, product.stock + direction * item.quantity);
-      }
-    }
-
-    if (!product.variants?.length) return product;
-
-    for (const item of order.items) {
-      if (!item.variantId) continue;
-      const productMatchesVariantParent = item.productId === product.id;
-      if (!productMatchesVariantParent) continue;
-      const variant = product.variants.find((entry) => entry.id === item.variantId);
-      if (!variant || variant.stockUnlimited) continue;
-      variant.stock = Math.max(0, variant.stock + direction * item.quantity);
-    }
-
-    return product;
-  });
-
-  await saveAdminProducts({ data: { products: nextProducts } });
 }
 
 export const catalogService = {
@@ -165,7 +126,7 @@ export const orderService = {
     }
     return Array.from(totals.values());
   },
-  create: async (order: Order) => {
+  create: async (order: Order, reservationOwnerId: string) => {
     const productsData = await listAdminProducts({ data: {} });
     const orderWithSupplierSnapshots: Order = {
       ...order,
@@ -190,8 +151,16 @@ export const orderService = {
           : item;
       }),
     };
-    await adjustProductStockForOrder(orderWithSupplierSnapshots, -1);
-    await upsertAdminOrder({ data: { order: orderWithSupplierSnapshots } });
+    const result = await completeReservedStockOrder({
+      data: { ownerId: reservationOwnerId, order: orderWithSupplierSnapshots },
+    });
+    if (!result.ok) {
+      throw new Error(
+        result.reason === "out_of_stock"
+          ? "El producto se quedó sin stock mientras completabas la compra. Revisá el carrito."
+          : "Se venció la prioridad de compra de uno de los productos. Volvé al carrito para reservarlo nuevamente.",
+      );
+    }
     return orderWithSupplierSnapshots;
   },
   update: async (order: Order) => {

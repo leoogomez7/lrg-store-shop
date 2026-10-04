@@ -11,6 +11,7 @@ import {
   Truck,
 } from "lucide-react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
+import { toast } from "sonner";
 import { useCart } from "@/store/cart-context";
 import { BrandHeader } from "@/components/layout/brand-header";
 import { BrandFooter } from "@/components/layout/brand-footer";
@@ -27,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { orderQueries, orderService } from "@/services/catalog.service";
-import { loadAdminSettings } from "@/server/persistence";
+import { cancelPaymentReservation, loadAdminSettings } from "@/server/persistence";
 import {
   createMercadoPagoPreference,
   getMercadoPagoIntentStatus,
@@ -36,6 +37,7 @@ import {
 import { formatPrice } from "@/lib/format";
 import { extractStreetNumberFromResult, splitStreetAndNumber } from "@/lib/address";
 import { getUserProfile, getUserAddresses, updateUserProfile } from "@/lib/user";
+import { useStockReservations } from "@/hooks/use-stock-reservations";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -54,7 +56,24 @@ export const Route = createFileRoute("/checkout")({
 });
 
 function CheckoutPage() {
-  const { items, subtotal, clear } = useCart();
+  const { items, subtotal, clear, hydrated, reservationOwnerId } = useCart();
+  const paymentReturn =
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("payment");
+  const paymentIntentId =
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("intent");
+  const stockReservations = useStockReservations({
+    items,
+    hydrated,
+    ownerId: reservationOwnerId,
+    enabled: paymentReturn !== "success" && paymentReturn !== "failure",
+  });
+  const blockedReservation =
+    hydrated && reservationOwnerId && paymentReturn !== "success"
+      ? items.find((item) => {
+          const state = stockReservations.statuses[item.id]?.state;
+          return state !== "reserved" && state !== "unlimited";
+        })
+      : undefined;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: kindeLoading } = useKindeAuth();
@@ -62,6 +81,26 @@ function CheckoutPage() {
   const [orderId, setOrderId] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
   const [paymentApproved, setPaymentApproved] = useState(false);
+
+  useEffect(() => {
+    if (paymentReturn !== "failure" || !paymentIntentId || !reservationOwnerId) return;
+    let active = true;
+    void cancelPaymentReservation({ data: { intentId: paymentIntentId } })
+      .then(() => {
+        if (!active) return;
+        toast.info("Pago cancelado", {
+          description: "Se liberó tu prioridad de compra. Revisá el carrito para reservar de nuevo.",
+        });
+        navigate({ to: "/carrito", replace: true });
+      })
+      .catch((error: unknown) => {
+        console.error("No se pudo liberar la reserva del pago cancelado:", error);
+        if (active) navigate({ to: "/carrito", replace: true });
+      });
+    return () => {
+      active = false;
+    };
+  }, [navigate, paymentIntentId, paymentReturn, reservationOwnerId]);
 
   // Choose brand from first item in cart if available, otherwise default to web-design
   const firstBrandSlug = items[0]?.brand ?? "web-design";
@@ -351,6 +390,12 @@ function CheckoutPage() {
   }, [validationMessage]);
 
   useEffect(() => {
+    if (paymentApproved) {
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+    }
+  }, [paymentApproved, queryClient]);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const intentId = params.get("intent");
     if (!shouldAutoMarkPaymentAsPaid || params.get("payment") !== "success" || !intentId) return;
@@ -463,6 +508,16 @@ function CheckoutPage() {
       setStep("done");
       return;
     }
+    if (!stockReservations.canProceed) {
+      setValidationMessage(
+        "No podés continuar: algún producto no está reservado a tu nombre o se quedó sin stock. Volvé al carrito para revisar el tiempo y la disponibilidad.",
+      );
+      return;
+    }
+    if (!reservationOwnerId) {
+      setValidationMessage("No se pudo validar tu sesión. Recargá el carrito antes de pagar.");
+      return;
+    }
     setIsConfirming(true);
     if (isAuthenticated && user?.id) {
       void updateUserProfile({
@@ -562,8 +617,11 @@ function CheckoutPage() {
           paymentItems: mercadoPagoItems,
           shippingMethod: combinedShippingMethod,
           isGuest: !isAuthenticated,
+          reservationOwnerId,
           ...(!isAuthenticated ? { guestCustomerId: id } : {}),
           items: order.items.map((item) => ({
+            ...(item.productId ? { productId: item.productId } : {}),
+            ...(item.variantId ? { variantId: item.variantId } : {}),
             name: item.name,
             quantity: item.quantity,
             price: item.price,
@@ -585,12 +643,20 @@ function CheckoutPage() {
       return;
     }
 
-    await orderService.create(order);
-    const orderQueryKey = ["orders"] as const;
-    queryClient.invalidateQueries({ queryKey: orderQueryKey });
-    setOrderId(id);
-    clear();
-    setStep("done");
+    try {
+      await orderService.create(order, reservationOwnerId);
+      const orderQueryKey = ["orders"] as const;
+      queryClient.invalidateQueries({ queryKey: orderQueryKey });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+      setOrderId(id);
+      clear();
+      setStep("done");
+    } catch (error) {
+      setIsConfirming(false);
+      setValidationMessage(
+        error instanceof Error ? error.message : "No se pudo confirmar el stock de la compra.",
+      );
+    }
   }
 
   if (step === "done") {
@@ -654,7 +720,7 @@ function CheckoutPage() {
           ref={checkoutFormRef}
           onSubmit={submit}
           noValidate
-          aria-busy={!brandSettingsReady}
+          aria-busy={!brandSettingsReady || stockReservations.isLoading}
           className="mt-4 grid gap-8 lg:grid-cols-[1fr_360px]"
         >
           {validationMessage && (
@@ -668,6 +734,23 @@ function CheckoutPage() {
               ⚠️ {validationMessage}
             </div>
           )}
+          {!paymentApproved && blockedReservation ? (
+            <div
+              className="lg:col-span-2 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
+              role="status"
+              aria-live="polite"
+            >
+              {stockReservations.isLoading
+                ? "Verificando la prioridad de compra de tu carrito…"
+                : stockReservations.statuses[blockedReservation.id]?.state === "waiting"
+                  ? `Otro comprador tiene prioridad sobre «${blockedReservation.name}». ${stockReservations.statuses[blockedReservation.id]?.queuePosition ? `Estás en el lugar ${stockReservations.statuses[blockedReservation.id]?.queuePosition} de espera. ` : "Esperá a que se libere el producto. "}Volvé al carrito para seguir el tiempo.`
+                  : stockReservations.statuses[blockedReservation.id]?.state === "sold"
+                    ? `«${blockedReservation.name}» ya no tiene stock porque otro cliente lo compró.`
+                    : stockReservations.statuses[blockedReservation.id]?.state === "expired"
+                      ? `Venció la prioridad para «${blockedReservation.name}». Volvé al carrito para revisar si sigue disponible.`
+                      : `No se pudo confirmar la reserva de «${blockedReservation.name}». Volvé al carrito para actualizar el stock.`}
+            </div>
+          ) : null}
           <div className="space-y-6">
             <section className="glass-panel rounded-2xl p-6">
               <h2 className="font-display flex items-center gap-2 font-semibold">
@@ -1056,7 +1139,11 @@ function CheckoutPage() {
               <Button
                 type="submit"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                disabled={isConfirming || !brandSettingsReady}
+                disabled={
+                  isConfirming ||
+                  !brandSettingsReady ||
+                  (!paymentApproved && !stockReservations.canProceed)
+                }
               >
                 {isConfirming ? (
                   <>

@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { Order } from "@/data/orders";
-import { adjustProductStockForOrder } from "@/services/catalog.service";
-import { completePaymentIntent, loadPaymentIntent, upsertAdminOrder } from "@/server/persistence";
+import {
+  completePaymentIntent,
+  completeReservedStockOrder,
+  loadPaymentIntent,
+} from "@/server/persistence";
 
 export const Route = createFileRoute("/api/mercadopago/webhook")({
   server: {
@@ -45,8 +48,9 @@ export const Route = createFileRoute("/api/mercadopago/webhook")({
           orderId?: string;
         };
         const id = payload.orderId ?? `LRG-${Math.floor(10000 + Math.random() * 89999)}`;
+        const { reservationOwnerId, ...paymentOrder } = payload;
         const order: Order = {
-          ...payload,
+          ...paymentOrder,
           id,
           date: new Date().toISOString().slice(0, 10),
           extraInfo: payload.notes,
@@ -54,8 +58,15 @@ export const Route = createFileRoute("/api/mercadopago/webhook")({
           deliveryStatus: "Pendiente",
           paymentStatus: "Pagado",
         };
-        await adjustProductStockForOrder(order, -1);
-        await upsertAdminOrder({ data: { order } });
+        const completedOrder = await completeReservedStockOrder({
+          data: { ownerId: reservationOwnerId, order },
+        });
+        if (!completedOrder.ok) {
+          console.error("Pago aprobado sin reserva de stock válida:", id, completedOrder.reason);
+          return new Response("Stock reservation expired before payment confirmation", {
+            status: 409,
+          });
+        }
         await completePaymentIntent({
           data: { id: payment.external_reference, orderId: id },
         });
@@ -91,5 +102,6 @@ type PaymentIntentData = {
   }[];
   isGuest?: boolean;
   guestCustomerId?: string;
+  reservationOwnerId: string;
   items: Order["items"];
 };

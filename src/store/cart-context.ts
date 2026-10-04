@@ -5,6 +5,7 @@ import type { CartItem } from "@/server/persistence";
 export type CartContextValue = {
   items: CartItem[];
   hydrated: boolean;
+  reservationOwnerId: string | null;
   count: number;
   subtotal: number;
   addProduct: (product: import("@/data/products").Product, quantity?: number) => void;

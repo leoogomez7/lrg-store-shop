@@ -31,6 +31,8 @@ import { formatPrice } from "@/lib/format";
 import { useCart } from "@/store/cart-context";
 import { toast } from "sonner";
 import { loadAdminSettings } from "@/server/persistence";
+import { useStockReservations } from "@/hooks/use-stock-reservations";
+import { formatReservationCountdown } from "@/lib/stock-reservations";
 
 export const Route = createFileRoute("/carrito")({
   head: () => ({
@@ -50,7 +52,12 @@ export const Route = createFileRoute("/carrito")({
 
 function CartPage() {
   const navigate = useNavigate();
-  const { items, hydrated, subtotal, setQuantity, removeItem, clear } = useCart();
+  const { items, hydrated, subtotal, setQuantity, removeItem, clear, reservationOwnerId } = useCart();
+  const stockReservations = useStockReservations({
+    items,
+    hydrated,
+    ownerId: reservationOwnerId,
+  });
   const [brandSettingsReady, setBrandSettingsReady] = useState(false);
   const [couponCode, setCouponCode] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -223,6 +230,12 @@ function CartPage() {
             <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
               <section className="space-y-4">
                 {items.map((item) => (
+                  (() => {
+                    const reservation = stockReservations.statuses[item.id];
+                    const countdown = reservation?.expiresAt
+                      ? formatReservationCountdown(reservation.expiresAt, stockReservations.now)
+                      : null;
+                    return (
                   <article
                     key={item.id}
                     className="glass-panel relative flex flex-wrap gap-4 rounded-2xl p-4"
@@ -262,8 +275,41 @@ function CartPage() {
                       )}
                       <p className="mt-1 pl-2 text-sm text-muted-foreground">
                         {formatPrice(item.price)} ·{" "}
-                        {item.stockUnlimited ? "∞ Stock ilimitado" : `${item.stock} disponibles`}
+                        {reservation?.state === "sold"
+                          ? "Sin stock"
+                          : item.stockUnlimited
+                            ? "∞ Stock ilimitado"
+                            : `${item.stock} disponibles`}
                       </p>
+                      {reservation?.state === "reserved" && countdown ? (
+                        <p className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                          Tenés prioridad para comprar este producto durante {countdown}.
+                        </p>
+                      ) : null}
+                      {reservation?.state === "waiting" ? (
+                        <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                          {countdown
+                            ? `Otro comprador tiene prioridad. Se libera en ${countdown}.`
+                            : reservation.queuePosition
+                              ? `Estás en espera, lugar ${reservation.queuePosition}. Te reservaremos el producto cuando quede disponible.`
+                              : "Otro carrito está antes que el tuyo; te avisaremos cuando se libere el producto."}
+                        </p>
+                      ) : null}
+                      {reservation?.state === "expired" ? (
+                        <p className="mt-2 rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground">
+                          Se venció tu prioridad de compra. Otro comprador puede reservarlo.
+                        </p>
+                      ) : null}
+                      {reservation?.state === "sold" ? (
+                        <p className="mt-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                          Otro cliente compró la última unidad. No se puede finalizar este producto.
+                        </p>
+                      ) : null}
+                      {reservation?.state === "unavailable" ? (
+                        <p className="mt-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                          No se pudo comprobar el stock. Volvé a intentarlo antes de pagar.
+                        </p>
+                      ) : null}
                     </div>
                     <div className="order-3 flex w-full shrink-0 items-center justify-between gap-3 pt-0 sm:order-0 sm:ml-auto sm:w-36 sm:flex-col sm:items-center sm:gap-2 sm:pt-8">
                       <p className="font-display text-center text-lg font-semibold">
@@ -333,6 +379,8 @@ function CartPage() {
                       <X className="size-4" />
                     </Button>
                   </article>
+                    );
+                  })()
                 ))}
 
                 <Button
@@ -466,12 +514,20 @@ function CartPage() {
                       <dd>{formatPrice(discountedSubtotal)}</dd>
                     </div>
                     <div className="pt-2">
+                      {stockReservations.canProceed ? (
                       <Link to="/checkout">
                         <Button className="h-10 w-full bg-primary text-primary-foreground hover:bg-primary/90">
                           <CreditCard className="size-4" />
                           Ir a checkout
                         </Button>
                       </Link>
+                      ) : (
+                        <Button className="h-10 w-full" disabled>
+                          {stockReservations.isLoading
+                            ? "Verificando prioridad…"
+                            : "Esperando disponibilidad de stock"}
+                        </Button>
+                      )}
                     </div>
                   </dl>
                 </section>
