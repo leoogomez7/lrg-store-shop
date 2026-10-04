@@ -167,6 +167,24 @@ export function productMatchesSearch(product: Product, query: string) {
   return normalizeSearchText(toSearchableText(product)).includes(normalizedQuery);
 }
 
+function productNameMatchesSearch(product: Product, query: string) {
+  const queryTerms = normalizeSearchText(query).trim().split(/\s+/).filter(Boolean);
+  if (!queryTerms.length) return true;
+
+  const nameWords = normalizeSearchText(product.name)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+  return queryTerms.every((term) => nameWords.some((word) => word.startsWith(term)));
+}
+
+/** Search only the product's current visible name, never stale variant metadata. */
+export function filterAdminProductsBySearch(products: Product[], query: string) {
+  const queryTerms = normalizeSearchText(query).trim().split(/\s+/).filter(Boolean);
+  if (!queryTerms.length) return products;
+
+  return products.filter((product) => productNameMatchesSearch(product, query));
+}
+
 export function productSearchText(product: Product) {
   return toSearchableText(product);
 }

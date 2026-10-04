@@ -21,12 +21,16 @@ export function expandCatalogProducts(productList: Product[]) {
   const expanded: Product[] = [];
 
   for (const product of productList) {
+    if (product.hidden) continue;
+
     if (!product.variants?.length) {
       expanded.push(product);
       continue;
     }
 
     for (const variant of product.variants) {
+      if (variant.hidden) continue;
+
       expanded.push({
         ...product,
         id: `${product.id}::${variant.id}`,
@@ -105,7 +109,7 @@ export const catalogService = {
   },
   detail: async (brand: BrandSlug, slug: string, loaded?: Product[]) =>
     (loaded ?? (await listAdminProducts({ data: {} }))).find(
-      (product) => product.brand === brand && product.slug === slug,
+      (product) => product.brand === brand && product.slug === slug && !product.hidden,
     ) ?? null,
   related: async (brand: BrandSlug, slug: string, loaded?: Product[]) => {
     const allProducts = loaded ?? (await listAdminProducts({ data: {} }));
@@ -116,7 +120,8 @@ export const catalogService = {
             (item) =>
               item.id !== product.id &&
               item.brand === product.brand &&
-              item.category === product.category,
+              item.category === product.category &&
+              !item.hidden,
           )
           .slice(0, 4)
       : [];

@@ -70,6 +70,7 @@ import { brandList, brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
 import { catalogQueries, orderQueries, type Product } from "@/services/catalog.service";
 import { cn } from "@/lib/utils";
+import { scrollToTopOnFirstSelection } from "@/lib/admin-selection";
 import { saveOrders, type Order, type OrderAttachment, type OrderStatus } from "@/data/orders";
 import { normalizeSearchText, productSearchText, toSearchableText } from "@/data/products";
 import { moveToTrash } from "@/data/trash";
@@ -1307,10 +1308,6 @@ function AdminOrders() {
 
   useEffect(() => {
     setPage(0);
-  }, [results]);
-
-  useEffect(() => {
-    setPage(0);
   }, [pageSize]);
 
   const visibleResults = useMemo(() => {
@@ -1358,6 +1355,9 @@ function AdminOrders() {
   }, [search.pedido, visibleResults]);
   const totalPages =
     pageSize && pageSize > 0 ? Math.max(1, Math.ceil(results.length / pageSize)) : 1;
+  useEffect(() => {
+    if (page >= totalPages) setPage(Math.max(0, totalPages - 1));
+  }, [page, totalPages]);
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
   const goToOrderPage = (nextPage: number) => {
@@ -2631,6 +2631,7 @@ function AdminOrders() {
                         }
                         onCheckedChange={(checked) => {
                           const shouldSelect = checked === true || checked === "indeterminate";
+                          scrollToTopOnFirstSelection(selectedOrderIds.length, shouldSelect);
                           setSelectedOrderIds((current) => {
                             const next = shouldSelect
                               ? [...new Set([...current, ...visibleOrderIds])]
@@ -2715,6 +2716,7 @@ function AdminOrders() {
                               onClick={(event) => event.stopPropagation()}
                               onCheckedChange={(checked) => {
                                 const isChecked = checked === true;
+                                scrollToTopOnFirstSelection(selectedOrderIds.length, isChecked);
                                 setSelectedOrderIds((current) => {
                                   const next = isChecked
                                     ? current.includes(order.id)

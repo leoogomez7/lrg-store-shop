@@ -198,6 +198,9 @@ function AdminClients() {
   }, [filteredCustomers, page, pageSize]);
   const totalPages =
     pageSize && pageSize > 0 ? Math.max(1, Math.ceil(filteredCustomers.length / pageSize)) : 1;
+  useEffect(() => {
+    if (page >= totalPages) setPage(Math.max(0, totalPages - 1));
+  }, [page, totalPages]);
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
   const goToCustomerPage = (nextPage: number) => {

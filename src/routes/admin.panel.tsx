@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
@@ -316,6 +316,12 @@ function AdminDashboard() {
   const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("16");
 
   const ordersPages = Math.max(1, Math.ceil(recentOrders.length / ordersPageSize));
+  useEffect(() => {
+    if (stockPage >= stockPages) setStockPage(Math.max(0, stockPages - 1));
+  }, [stockPage, stockPages]);
+  useEffect(() => {
+    if (ordersPage >= ordersPages) setOrdersPage(Math.max(0, ordersPages - 1));
+  }, [ordersPage, ordersPages]);
   const currentOrders = recentOrders.slice(
     ordersPage * ordersPageSize,
     ordersPage * ordersPageSize + ordersPageSize,

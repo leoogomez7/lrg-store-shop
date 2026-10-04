@@ -61,6 +61,7 @@ import {
 import { saveOrders } from "@/data/orders";
 import { moveToTrash } from "@/data/trash";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { scrollToTopOnFirstSelection } from "@/lib/admin-selection";
 
 export const Route = createFileRoute("/admin/proveedores")({
   loader: async ({ context }) => {
@@ -1127,6 +1128,9 @@ function AdminSuppliers() {
       : []),
   ];
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  React.useEffect(() => {
+    if (page >= totalPages) setPage(Math.max(0, totalPages - 1));
+  }, [page, totalPages]);
   const visibleRows = filteredRows.slice(page * pageSize, page * pageSize + pageSize);
   const expandedSupplier = rows.find((row) => row.key === expandedSupplierKey) ?? null;
   const expandedSupplierProducts = expandedSupplier
@@ -1147,10 +1151,6 @@ function AdminSuppliers() {
     setPage(nextPage);
     requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
   };
-
-  React.useEffect(() => {
-    setPage(0);
-  }, [query, sortOrder, storeFilter, currencyFilter, salesMin, salesMax, quantityMin, quantityMax]);
 
   const exportRows = filteredRows.map((row) => [
     row.name,
@@ -1785,6 +1785,7 @@ function AdminSuppliers() {
                           }
                           onCheckedChange={(checked) => {
                             const shouldSelect = checked === true || checked === "indeterminate";
+                            scrollToTopOnFirstSelection(selectedSupplierKeys.length, shouldSelect);
                             setSelectedSupplierKeys((current) => {
                               const next = shouldSelect
                                 ? [...new Set([...current, ...visibleSupplierKeys])]
@@ -1847,6 +1848,7 @@ function AdminSuppliers() {
                                 checked={selectedSupplierKeys.includes(row.key)}
                                 onCheckedChange={(checked) => {
                                   const isChecked = checked === true;
+                                  scrollToTopOnFirstSelection(selectedSupplierKeys.length, isChecked);
                                   setSelectedSupplierKeys((current) => {
                                     const next = isChecked
                                       ? [...new Set([...current, row.key])]

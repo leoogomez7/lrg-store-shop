@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
+import { scrollToTopOnFirstSelection } from "@/lib/admin-selection";
 import {
   Table,
   TableBody,
@@ -117,6 +118,7 @@ function AdminTrash() {
       clearSelection();
       return;
     }
+    scrollToTopOnFirstSelection(selectedDeleteKeys.length, true);
     setSelectionMode("delete");
     setSelectedDeleteKeys(checked ? allKeys : []);
     setSelectedRestoreKeys(checked ? allKeys : []);
@@ -525,6 +527,10 @@ function AdminTrash() {
                           }
                           onCheckedChange={(checked) => {
                             const entryKey = getEntryKey(entry);
+                            scrollToTopOnFirstSelection(
+                              selectedDeleteKeys.length || selectedRestoreKeys.length,
+                              checked === true,
+                            );
                             setSelectionMode("delete");
                             const updateSelection = (current: string[]) =>
                               checked === true

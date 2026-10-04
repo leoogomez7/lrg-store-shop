@@ -378,10 +378,26 @@ function AdminConfiguration() {
     }
   };
 
+  const hasFreeShippingThresholdChanges = () => {
+    const trimmed = pendingFreeShippingThreshold.trim();
+    const parsed = Number(trimmed);
+    if (!trimmed || Number.isNaN(parsed) || parsed < 0) return false;
+
+    if (applyFreeShippingToAll) {
+      return brandList.some(
+        (brand) => (brand.shipping?.freeShippingThreshold ?? 0) !== parsed,
+      );
+    }
+
+    return parsed !== freeShippingThreshold;
+  };
+
   const confirmFreeShippingThreshold = () => {
     const trimmed = pendingFreeShippingThreshold.trim();
     const parsed = Number(trimmed);
-    if (!trimmed || Number.isNaN(parsed) || parsed < 0) return;
+    if (!trimmed || Number.isNaN(parsed) || parsed < 0 || !hasFreeShippingThresholdChanges()) {
+      return;
+    }
 
     if (applyFreeShippingToAll) {
       brandList.forEach((brand) => {
@@ -955,10 +971,7 @@ function AdminConfiguration() {
                 <Button
                   size="sm"
                   onClick={confirmFreeShippingThreshold}
-                  disabled={
-                    pendingFreeShippingThreshold.trim().length === 0 ||
-                    Number.isNaN(Number(pendingFreeShippingThreshold))
-                  }
+                  disabled={!hasFreeShippingThresholdChanges()}
                   className="h-8 shrink-0 gap-1 px-2 text-xs sm:gap-2 sm:text-sm"
                 >
                   <Check className="size-3.5 sm:size-4" />

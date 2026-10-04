@@ -34,7 +34,7 @@ import {
   saveProduct,
   saveProductBatch,
   saveProducts,
-  productMatchesSearch,
+  filterAdminProductsBySearch,
   type ProductSupplier,
   type ProductVariant,
 } from "@/data/products";
@@ -78,6 +78,7 @@ import {
 import { brandList, brands, type BrandSlug } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { scrollToTopOnFirstSelection } from "@/lib/admin-selection";
 import { catalogQueries, type Product } from "@/services/catalog.service";
 import { moveToTrash } from "@/data/trash";
 import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
@@ -227,6 +228,9 @@ const getBrandShortName = (brand: Product["brand"] | string | undefined) => {
   if (brandKey) return brandKey;
   return "Sin marca";
 };
+
+const isProductRowHidden = (product: Product, variant?: ProductVariant) =>
+  variant?.hidden ?? product.hidden ?? false;
 
 export const Route = createFileRoute("/admin/productos")({
   loader: async ({ context }) => {
@@ -665,7 +669,7 @@ function AdminProducts() {
         priceCurrency: "ARS",
         gastos: 0,
         gastosCurrency: "ARS",
-        comision: 0,
+        comision: price,
         comisionCurrency: "ARS",
         stock: 1,
         stockUnlimited: false,
@@ -1488,7 +1492,15 @@ function AdminProducts() {
 
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
-    void saveProducts(nextProducts);
+    void saveProducts(nextProducts)
+      .then(() => {
+        queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
+        return queryClient.invalidateQueries({ queryKey: ["products"] });
+      })
+      .catch((error) => {
+        console.error("Error actualizando la visibilidad del producto:", error);
+        toast.error("No se pudo actualizar la visibilidad del producto.");
+      });
   };
 
   const getProductSelectionKey = (product: Product, variant?: ProductVariant) =>
@@ -2562,7 +2574,6 @@ function AdminProducts() {
         return false;
       if (currencyFilter.length && !currencyFilter.includes(product.priceCurrency ?? "ARS"))
         return false;
-      if (query && !productMatchesSearch(product, query)) return false;
       if (discountOnly && (discounts[product.id] ?? 0) <= 0) return false;
       if (stockOnly && product.stock <= 0) return false;
       const storePrice = product.price * (1 - (discounts[product.id] ?? 0) / 100);
@@ -2571,8 +2582,9 @@ function AdminProducts() {
 
       return true;
     });
+    const searchedProducts = filterAdminProductsBySearch(filtered, query);
 
-    return [...filtered].sort((a, b) => {
+    return [...searchedProducts].sort((a, b) => {
       const aDiscount = discounts[a.id] ?? 0;
       const bDiscount = discounts[b.id] ?? 0;
       const aDiscountedPrice = a.price * (1 - aDiscount / 100);
@@ -2625,10 +2637,6 @@ function AdminProducts() {
 
   useEffect(() => {
     setPage(0);
-  }, [results]);
-
-  useEffect(() => {
-    setPage(0);
   }, [pageSize]);
 
   type DisplayRow = { product: Product; variant: ProductVariant | undefined };
@@ -2639,8 +2647,8 @@ function AdminProducts() {
         return product.variants.map((variant) => ({ product, variant }));
       }
       return [{ product, variant: undefined }];
-    }).filter(({ product, variant }) => {
-      const isHidden = variant?.hidden ?? product.hidden ?? false;
+    }).filter((row) => {
+      const isHidden = isProductRowHidden(row.product, row.variant);
       if (availableOnly && isHidden) return false;
       if (hiddenOnly && !isHidden) return false;
       return true;
@@ -2720,6 +2728,9 @@ function AdminProducts() {
     selectedVisibleProductKeys.length > 0 && !allVisibleProductsSelected;
   const totalPages =
     pageSize && pageSize > 0 ? Math.max(1, Math.ceil(allDisplayRows.length / pageSize)) : 1;
+  useEffect(() => {
+    if (page >= totalPages) setPage(Math.max(0, totalPages - 1));
+  }, [page, totalPages]);
   const hasNextPage = page + 1 < totalPages;
   const hasPreviousPage = page > 0;
   const goToProductPage = (nextPage: number) => {
@@ -3615,6 +3626,7 @@ function AdminProducts() {
                         }
                         onCheckedChange={(checked) => {
                           const shouldSelect = checked === true || checked === "indeterminate";
+                          scrollToTopOnFirstSelection(selectedProductIds.length, shouldSelect);
                           setSelectedProductIds((current) => {
                             const next = shouldSelect
                               ? Array.from(new Set([...current, ...visibleProductSelectionKeys]))
@@ -3723,6 +3735,7 @@ function AdminProducts() {
                             onCheckedChange={(checked) => {
                               const isChecked = checked === true;
                               const selectionKey = getProductSelectionKey(product, variant);
+                              scrollToTopOnFirstSelection(selectedProductIds.length, isChecked);
                               setSelectedProductIds((current) => {
                                 const next = isChecked
                                   ? [...new Set([...current, selectionKey])]
@@ -3969,8 +3982,8 @@ function AdminProducts() {
                       ) : (
                         <>
                           <TableCell className="min-w-64 text-center">
-                            <div className="flex min-w-0 flex-wrap items-center justify-center gap-2 text-left">
-                              <span className="min-w-0 wrap-break-word font-medium">
+                            <div className="flex min-w-0 flex-wrap items-center justify-center gap-2 text-center">
+                              <span className="min-w-0 w-full wrap-break-word font-medium text-center">
                                 {product.name}
                               </span>
                               {variant ? (
@@ -3980,7 +3993,7 @@ function AdminProducts() {
                                   </span>
                                 </span>
                               ) : null}
-                              {(variant ? Boolean(variant.hidden) : Boolean(product.hidden)) ? (
+                              {isProductRowHidden(product, variant) ? (
                                 <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
                                   Oculto
                                 </span>

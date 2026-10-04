@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { normalizeSearchText } from "@/data/products";
 import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
+import { scrollToTopOnFirstSelection } from "@/lib/admin-selection";
 import {
   Table,
   TableBody,
@@ -186,12 +187,14 @@ function AdminBackups() {
   const clearBackupSelection = () => setSelectedBackupIds([]);
 
   const toggleBackupSelection = (backupId: string, checked: boolean) => {
+    scrollToTopOnFirstSelection(selectedBackupIds.length, checked);
     setSelectedBackupIds((current) =>
       checked ? [...new Set([...current, backupId])] : current.filter((id) => id !== backupId),
     );
   };
 
   const toggleAllBackups = (checked: boolean) => {
+    scrollToTopOnFirstSelection(selectedBackupIds.length, checked);
     setSelectedBackupIds(checked ? visibleBackups.map((backup) => backup.id) : []);
   };
 
