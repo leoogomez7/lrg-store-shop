@@ -83,6 +83,10 @@ import { catalogQueries, type Product } from "@/services/catalog.service";
 import { moveToTrash } from "@/data/trash";
 import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
 import { importPlayStationStoreCategory } from "@/server/persistence";
+import {
+  parseDollarDelimitedProductLine,
+  parseLocalizedImportPrice,
+} from "@/lib/product-import-utils";
 
 type DeliveryUnit = "inmediata" | "horas" | "dias";
 type CurrencyCode = "ARS" | "USD";
@@ -496,7 +500,7 @@ function AdminProducts() {
     const parseEntriesFromText = (rawText: string) => {
       const normalized = rawText
         .replace(/\r\n?/g, "\n")
-        .replace(/[–—-]+/g, " ")
+        .replace(/[–—]/g, "-")
         .split("\n")
         .map((line) => line.replace(/\t/g, " ").replace(/\s+/g, " ").trim())
         .filter(Boolean)
@@ -515,17 +519,20 @@ function AdminProducts() {
         const lineValue = line.trim();
         if (!lineValue || lineValue.length < 3) continue;
 
-        const priceMatch = [...lineValue.matchAll(/(\d{1,3}(?:[.,]\d{1,2})?)/g)]
+        if (lineValue.includes("$")) {
+          const dollarEntry = parseDollarDelimitedProductLine(lineValue);
+          if (dollarEntry) entries.push(dollarEntry);
+          continue;
+        }
+
+        const priceMatch = [...lineValue.matchAll(/(\d[\d.,]*)/g)]
           .map((match) => match[1] ?? "")
-          .find((value) => {
-            const normalizedValue = value.trim();
-            return normalizedValue.length > 0 && Number(normalizedValue.replace(",", ".")) > 0;
-          });
+          .find((value) => parseLocalizedImportPrice(value) !== null);
 
         if (!priceMatch) continue;
 
-        const priceValue = Number(priceMatch.replace(",", "."));
-        if (!Number.isFinite(priceValue) || priceValue <= 0) continue;
+        const priceValue = parseLocalizedImportPrice(priceMatch);
+        if (priceValue === null) continue;
 
         const beforePrice = lineValue.slice(0, lineValue.indexOf(priceMatch)).trim();
         const afterPrice = lineValue
@@ -869,32 +876,48 @@ function AdminProducts() {
     setApplyingImportFieldsFromProductId(productId);
     await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
 
-    const nextProducts = pendingImportedProducts.map((product) =>
-      product.id === productId
-        ? product
-        : {
-            ...product,
-            comision: source.comision,
-            comisionCurrency: source.comisionCurrency,
-            supplier: source.supplier ? { ...source.supplier } : undefined,
-            stock: source.stock,
-            stockUnlimited: source.stockUnlimited,
-            deliveryUnit: source.deliveryUnit,
-            deliveryAmount: source.deliveryAmount,
-            short: source.short,
-            description: source.description,
-            price: getImportedSalePrice(
-              {
-                ...product,
-                comision: source.comision,
-                comisionCurrency: source.comisionCurrency,
-              },
-              effectiveUsdRate,
-            ),
-            priceCurrency: "ARS" as const,
-            usdRate: effectiveUsdRate || product.usdRate,
-          },
-    );
+    const nextProducts = pendingImportedProducts.map((product) => {
+      if (product.id === productId) return product;
+
+      if (importSource === "store") {
+        return {
+          ...product,
+          comision: source.comision,
+          comisionCurrency: source.comisionCurrency,
+          supplier: source.supplier ? { ...source.supplier } : undefined,
+          stock: source.stock,
+          stockUnlimited: source.stockUnlimited,
+          deliveryUnit: source.deliveryUnit,
+          deliveryAmount: source.deliveryAmount,
+          short: source.short,
+          description: source.description,
+          price: getImportedSalePrice(
+            {
+              ...product,
+              comision: source.comision,
+              comisionCurrency: source.comisionCurrency,
+            },
+            effectiveUsdRate,
+          ),
+          priceCurrency: "ARS" as const,
+          usdRate: effectiveUsdRate || product.usdRate,
+        };
+      }
+
+      return {
+        ...source,
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        image: product.image,
+        images: product.images,
+        createdAt: product.createdAt,
+        supplier: source.supplier ? { ...source.supplier } : undefined,
+        price: getImportedSalePrice(source, effectiveUsdRate),
+        priceCurrency: "ARS" as const,
+        usdRate: effectiveUsdRate || source.usdRate,
+      };
+    });
     setPendingImportedProducts(nextProducts);
     setLastAppliedImportSignature(getPendingImportSignature(nextProducts));
 
