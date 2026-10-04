@@ -278,12 +278,19 @@ function AdminSuppliers() {
   const [quickEditFromDetails, setQuickEditFromDetails] = React.useState(false);
   const [quickEditSupplierQueue, setQuickEditSupplierQueue] = React.useState<string[]>([]);
   const [editingSupplierKey, setEditingSupplierKey] = React.useState<string | null>(null);
+  const [editingSupplierSnapshot, setEditingSupplierSnapshot] = React.useState<string | null>(null);
   const [supplierDeleteConfirmOpen, setSupplierDeleteConfirmOpen] = React.useState(false);
   const [pendingSupplierDelete, setPendingSupplierDelete] = React.useState<(() => void) | null>(
     null,
   );
-  const supplierFormKey = `${newSupplier.name.trim()}|${newSupplier.phone.trim()}|${newSupplier.social.trim()}`;
-  const supplierFormHasChanges = !editingSupplierKey || supplierFormKey !== editingSupplierKey;
+  const supplierFormSnapshot = JSON.stringify({
+    name: newSupplier.name.trim(),
+    phone: newSupplier.phone.trim(),
+    social: newSupplier.social.trim(),
+    references: newSupplier.references?.trim() ?? "",
+  });
+  const supplierFormHasChanges =
+    !editingSupplierKey || supplierFormSnapshot !== editingSupplierSnapshot;
 
   const saveDeletedSupplierKeys = (nextKeys: string[]) => {
     const uniqueKeys = Array.from(new Set(nextKeys));
@@ -531,6 +538,7 @@ function AdminSuppliers() {
   const closeSupplierEditor = () => {
     setNewSupplierOpen(false);
     setEditingSupplierKey(null);
+    setEditingSupplierSnapshot(null);
     setBulkSupplierEditQueue([]);
     setBulkSupplierEditPosition(0);
     setIsBulkSupplierEditSession(false);
@@ -599,13 +607,22 @@ function AdminSuppliers() {
 
   const openSupplierEditor = (row: SupplierRow) => {
     setEditingSupplierKey(row.key);
-    setNewSupplier({
+    const supplierForm = {
       id: row.id ?? row.key,
       name: row.name,
       phone: row.phone,
       social: row.social,
       references: row.references,
-    });
+    };
+    setNewSupplier(supplierForm);
+    setEditingSupplierSnapshot(
+      JSON.stringify({
+        name: supplierForm.name.trim(),
+        phone: supplierForm.phone.trim(),
+        social: supplierForm.social.trim(),
+        references: supplierForm.references?.trim() ?? "",
+      }),
+    );
     setNewSupplierOpen(true);
   };
 

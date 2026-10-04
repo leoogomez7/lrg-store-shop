@@ -5743,6 +5743,7 @@ function ProductEditDialog({
     name: "",
     phone: "",
     social: "",
+    references: "",
     purchaseDate: "",
   });
 
@@ -5796,7 +5797,13 @@ function ProductEditDialog({
   const selectSupplier = (value: string) => {
     if (!productForm) return;
     if (value === "add") {
-      setNewSupplier({ name: "", phone: "", social: "", purchaseDate: "" });
+      setNewSupplier({
+        name: "",
+        phone: "",
+        social: "",
+        references: "",
+        purchaseDate: "",
+      });
       setNewSupplierOpen(true);
       return;
     }
@@ -5840,6 +5847,7 @@ function ProductEditDialog({
       name: newSupplier.name.trim(),
       phone: newSupplier.phone.trim(),
       social: newSupplier.social.trim(),
+      references: newSupplier.references?.trim() ?? "",
       purchaseDate: "",
     };
     if (!supplier.name || !supplier.phone || !supplier.social) return;
@@ -7264,6 +7272,19 @@ function ProductEditDialog({
                     value={newSupplier.social}
                     onChange={(event) =>
                       setNewSupplier((current) => ({ ...current, social: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-supplier-references">Referencias</Label>
+                  <Input
+                    id="product-supplier-references"
+                    value={newSupplier.references ?? ""}
+                    onChange={(event) =>
+                      setNewSupplier((current) => ({
+                        ...current,
+                        references: event.target.value,
+                      }))
                     }
                   />
                 </div>
