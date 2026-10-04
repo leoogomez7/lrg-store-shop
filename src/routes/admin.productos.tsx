@@ -3568,7 +3568,7 @@ function AdminProducts() {
                     variant="outline"
                     onClick={() => handleBulkToggleProducts(true)}
                   >
-                    <EyeOff className="size-4" /> No disponible
+                    <EyeOff className="size-4" /> Ocultos
                   </Button>
                   <Button size="sm" variant="outline" onClick={handleBulkDuplicateProducts}>
                     <Copy className="size-4" /> Duplicar
