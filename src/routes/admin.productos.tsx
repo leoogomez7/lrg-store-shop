@@ -88,6 +88,7 @@ import { moveToTrash } from "@/data/trash";
 import {
   loadAdminAsset,
   loadAdminSettings,
+  loadPlayStationProductImageDataUrl,
   saveAdminAsset,
   saveAdminSetting,
 } from "@/server/persistence";
@@ -936,6 +937,20 @@ function AdminProducts() {
         try {
           return await composeHeaderAboveImageDataUrl(importHeaderImage, image);
         } catch (error) {
+          try {
+            const hostname = new URL(image).hostname;
+            const isPlayStationImage =
+              hostname === "playstation.com" ||
+              hostname.endsWith(".playstation.com") ||
+              hostname === "playstation.net" ||
+              hostname.endsWith(".playstation.net");
+            if (isPlayStationImage) {
+              const localImage = await loadPlayStationProductImageDataUrl({ data: { url: image } });
+              return await composeHeaderAboveImageDataUrl(importHeaderImage, localImage);
+            }
+          } catch {
+            // Si el recurso remoto tampoco se puede convertir, conservamos la foto original.
+          }
           skippedCount += 1;
           console.warn("No se pudo agregar el encabezado a una imagen importada:", error);
           return image;

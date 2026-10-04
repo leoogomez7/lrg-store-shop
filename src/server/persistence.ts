@@ -1670,6 +1670,38 @@ export const deleteAdminOrder = createServerFn({ method: "POST" })
     return true;
   });
 
+export const loadPlayStationProductImageDataUrl = createServerFn({ method: "POST" })
+  .validator((data: { url: string }) => {
+    let imageUrl: URL;
+    try {
+      imageUrl = new URL(data.url);
+    } catch {
+      throw new Error("El link de imagen no es válido.");
+    }
+    const isPlayStationHost =
+      imageUrl.protocol === "https:" &&
+      (imageUrl.hostname === "playstation.com" ||
+        imageUrl.hostname.endsWith(".playstation.com") ||
+        imageUrl.hostname === "playstation.net" ||
+        imageUrl.hostname.endsWith(".playstation.net"));
+    if (!isPlayStationHost) throw new Error("Solo se pueden cargar imágenes de PlayStation Store.");
+    return { url: imageUrl.toString() };
+  })
+  .handler(async ({ data }) => {
+    const response = await fetch(data.url, {
+      redirect: "error",
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) throw new Error("PlayStation Store no pudo devolver la imagen.");
+    const contentType = response.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
+    if (!contentType.startsWith("image/")) throw new Error("El recurso remoto no es una imagen.");
+    const contentLength = Number(response.headers.get("content-length") ?? 0);
+    if (contentLength > 5_000_000) throw new Error("La imagen remota supera el tamaño permitido.");
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.byteLength > 5_000_000) throw new Error("La imagen remota supera el tamaño permitido.");
+    return `data:${contentType};base64,${bytes.toString("base64")}`;
+  });
+
 export const createPaymentIntent = createServerFn({ method: "POST" })
   .validator((data: { id: string; data: string }) => data)
   .handler(async ({ data }) => {
