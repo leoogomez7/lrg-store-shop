@@ -92,8 +92,10 @@ import {
   saveAdminAsset,
   saveAdminSetting,
 } from "@/server/persistence";
-import { importPlayStationStoreCategory } from "@/server/persistence";
-import { importFragranticaPerfumeDescription } from "@/server/persistence";
+import {
+  importFragranticaPerfumeDescription,
+  importPlayStationStoreCategory,
+} from "@/server/persistence";
 import {
   buildImportedProductsWithVariants,
   normalizeImportedVariantName,

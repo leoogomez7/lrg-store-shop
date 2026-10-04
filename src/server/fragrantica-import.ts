@@ -12,7 +12,6 @@ const BRAND_WORDS = new Set([
   "eau",
   "de",
   "toilette",
-  " parfum",
   "edp",
   "edt",
   "extrait",
@@ -37,12 +36,19 @@ function getTokens(value: string): Set<string> {
   );
 }
 
+export function getPerfumeNameMatchScore(candidateName: string, productName: string): number {
+  const targetTokens = getTokens(productName);
+  if (!targetTokens.size) return 0;
+  const candidateTokens = getTokens(candidateName);
+  const intersection = [...targetTokens].filter((token) => candidateTokens.has(token)).length;
+  return intersection / targetTokens.size;
+}
+
 export function rankPerfumeLinkMatches(
   html: string,
   productName: string,
 ): FragranticaPerfumeLink[] {
-  const targetTokens = getTokens(productName);
-  if (!targetTokens.size) return [];
+  if (!getTokens(productName).size) return [];
 
   const candidates = new Map<string, FragranticaPerfumeLink>();
   const anchorPattern = /<a\b[^>]*>[\s\S]*?<\/a\s*>/gi;
@@ -51,9 +57,10 @@ export function rankPerfumeLinkMatches(
     if (!href || !/\/perfume\//i.test(href)) continue;
     const title = stripHtml(anchor.replace(/^<a\b[^>]*>/i, "").replace(/<\/a\s*>$/i, ""));
     const url = decodeHtmlEntities(href);
-    const candidateTokens = getTokens(`${title} ${url.split("/").pop()?.replace(/\.html.*/i, "") ?? ""}`);
-    const intersection = [...targetTokens].filter((token) => candidateTokens.has(token)).length;
-    const score = intersection / targetTokens.size;
+    const score = getPerfumeNameMatchScore(
+      `${title} ${url.split("/").pop()?.replace(/\.html.*/i, "") ?? ""}`,
+      productName,
+    );
     if (score < 0.6) continue;
     const key = url.toLowerCase();
     const previous = candidates.get(key);

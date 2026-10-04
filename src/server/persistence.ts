@@ -13,6 +13,7 @@ import {
 } from "@/lib/stock-reservations";
 import {
   extractPerfumeDescription,
+  getPerfumeNameMatchScore,
   rankPerfumeLinkMatches,
 } from "@/server/fragrantica-import";
 
@@ -1261,6 +1262,8 @@ const validateFragranticaUrl = (value: string): URL => {
   }
   if (
     url.protocol !== "https:" ||
+    url.username !== "" ||
+    url.password !== "" ||
     !["fragrantica.es", "www.fragrantica.es"].includes(url.hostname.toLowerCase()) ||
     !/^\/(?:disenador|perfume)\/[^/]+\.html$/i.test(url.pathname)
   ) {
@@ -1270,21 +1273,30 @@ const validateFragranticaUrl = (value: string): URL => {
 };
 
 const fetchFragranticaPage = async (url: URL): Promise<string> => {
-  const response = await fetch(url, {
-    headers: {
-      "Accept-Language": "es-ES,es;q=0.9,en;q=0.7",
-      "User-Agent": "Mozilla/5.0 (compatible; LRGStoreProductImporter/1.0)",
-    },
-    redirect: "manual",
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (response.status >= 300 && response.status < 400) {
-    throw new Error("Fragrantica redirigió la solicitud; abrí el link en el navegador e intentá de nuevo.");
+  let currentUrl = url;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const response = await fetch(currentUrl, {
+      headers: {
+        "Accept-Language": "es-ES,es;q=0.9,en;q=0.7",
+        "User-Agent": "Mozilla/5.0 (compatible; LRGStoreProductImporter/1.0)",
+      },
+      redirect: "manual",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) throw new Error("Fragrantica devolvió una redirección sin destino.");
+      currentUrl = validateFragranticaUrl(new URL(location, currentUrl).toString());
+      continue;
+    }
+    if (!response.ok) throw new Error(`Fragrantica respondió con el estado ${response.status}.`);
+    const html = await response.text();
+    if (html.length > 8_000_000) {
+      throw new Error("La página de Fragrantica es demasiado grande para procesar.");
+    }
+    return html;
   }
-  if (!response.ok) throw new Error(`Fragrantica respondió con el estado ${response.status}.`);
-  const html = await response.text();
-  if (html.length > 8_000_000) throw new Error("La página de Fragrantica es demasiado grande para procesar.");
-  return html;
+  throw new Error("Fragrantica realizó demasiadas redirecciones.");
 };
 
 export const importFragranticaPerfumeDescription = createServerFn({ method: "POST" })
@@ -1315,14 +1327,15 @@ export const importFragranticaPerfumeDescription = createServerFn({ method: "POS
         }
         const perfumeHtml = await fetchFragranticaPage(perfumeUrl);
         const extracted = extractPerfumeDescription(perfumeHtml);
-        return extracted
-          ? {
-              title: extracted.title,
-              url: perfumeUrl.toString(),
-              description: extracted.description,
-              score: candidate.score,
-            }
-          : null;
+        if (!extracted) return null;
+        const score = getPerfumeNameMatchScore(extracted.title, productName);
+        if (score < 0.6) return null;
+        return {
+          title: extracted.title,
+          url: perfumeUrl.toString(),
+          description: extracted.description,
+          score: Math.min(candidate.score, score),
+        };
       }),
     );
     const perfumes = results.filter((result): result is NonNullable<typeof result> => result !== null);
