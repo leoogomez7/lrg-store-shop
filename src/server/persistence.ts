@@ -1317,7 +1317,7 @@ export const importFragranticaPerfumeDescription = createServerFn({ method: "POS
     }
 
     const results = await Promise.all(
-      candidateLinks.slice(0, 3).map(async (candidate) => {
+      candidateLinks.slice(0, 5).map(async (candidate) => {
         const perfumeUrl = new URL(candidate.url, sourceUrl);
         if (
           !["fragrantica.es", "www.fragrantica.es"].includes(perfumeUrl.hostname.toLowerCase()) ||
