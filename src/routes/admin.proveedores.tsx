@@ -267,6 +267,7 @@ function AdminSuppliers() {
   }, [page, pageSize]);
 
   const [selectedSupplierKeys, setSelectedSupplierKeys] = React.useState<string[]>([]);
+  const hasScrolledOnSupplierSelectionRef = React.useRef(false);
   const [bulkSupplierEditQueue, setBulkSupplierEditQueue] = React.useState<string[]>([]);
   const [bulkSupplierEditPosition, setBulkSupplierEditPosition] = React.useState(0);
   const [isBulkSupplierEditSession, setIsBulkSupplierEditSession] = React.useState(false);
@@ -545,6 +546,7 @@ function AdminSuppliers() {
     setIsBulkSupplierEditSession(false);
     setBulkSupplierEditCompletedKeys([]);
     setSelectedSupplierKeys([]);
+    hasScrolledOnSupplierSelectionRef.current = false;
     setSelectionMode(false);
   };
 
@@ -678,6 +680,7 @@ function AdminSuppliers() {
     setExpandedSupplierKey(null);
     setSelectionMode(false);
     setSelectedSupplierKeys([]);
+    hasScrolledOnSupplierSelectionRef.current = false;
   };
 
   const saveSupplierChanges = (
@@ -804,7 +807,11 @@ function AdminSuppliers() {
     const nextOrders = orders;
 
     setStandaloneSuppliers(nextStandaloneSuppliers);
-    setSelectedSupplierKeys((current) => current.filter((key) => key !== supplierKey));
+    setSelectedSupplierKeys((current) => {
+      const next = current.filter((key) => key !== supplierKey);
+      if (next.length === 0) hasScrolledOnSupplierSelectionRef.current = false;
+      return next;
+    });
     saveDeletedSupplierKeys([...deletedSupplierKeys, supplierKey]);
     void saveAdminSetting({
       data: {
@@ -906,6 +913,7 @@ function AdminSuppliers() {
       selectedKeysSnapshot.includes(row.key),
     );
     setSelectedSupplierKeys([]);
+    hasScrolledOnSupplierSelectionRef.current = false;
     setSelectionMode(false);
 
     const selectedKeys = new Set(selectedSupplierKeys);
@@ -1751,6 +1759,7 @@ function AdminSuppliers() {
                       onClick={() => {
                         setSelectionMode(false);
                         setSelectedSupplierKeys([]);
+                        hasScrolledOnSupplierSelectionRef.current = false;
                       }}
                     >
                       <X className="size-4" /> Cancelar
@@ -1785,11 +1794,16 @@ function AdminSuppliers() {
                           }
                           onCheckedChange={(checked) => {
                             const shouldSelect = checked === true || checked === "indeterminate";
-                            scrollToTopOnFirstSelection(selectedSupplierKeys.length, shouldSelect);
+                            scrollToTopOnFirstSelection(
+                              selectedSupplierKeys.length,
+                              shouldSelect,
+                              hasScrolledOnSupplierSelectionRef,
+                            );
                             setSelectedSupplierKeys((current) => {
                               const next = shouldSelect
                                 ? [...new Set([...current, ...visibleSupplierKeys])]
                                 : current.filter((key) => !visibleSupplierKeys.includes(key));
+                              if (next.length === 0) hasScrolledOnSupplierSelectionRef.current = false;
                               setSelectionMode(next.length > 0);
                               return next;
                             });
@@ -1848,11 +1862,16 @@ function AdminSuppliers() {
                                 checked={selectedSupplierKeys.includes(row.key)}
                                 onCheckedChange={(checked) => {
                                   const isChecked = checked === true;
-                                  scrollToTopOnFirstSelection(selectedSupplierKeys.length, isChecked);
+                                  scrollToTopOnFirstSelection(
+                                    selectedSupplierKeys.length,
+                                    isChecked,
+                                    hasScrolledOnSupplierSelectionRef,
+                                  );
                                   setSelectedSupplierKeys((current) => {
                                     const next = isChecked
                                       ? [...new Set([...current, row.key])]
                                       : current.filter((key) => key !== row.key);
+                                    if (next.length === 0) hasScrolledOnSupplierSelectionRef.current = false;
                                     setSelectionMode(next.length > 0);
                                     return next;
                                   });

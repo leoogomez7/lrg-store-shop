@@ -96,4 +96,63 @@ describe("import products as variants", () => {
       }),
     ).toThrow("ya tiene una variante llamada");
   });
+
+  it("replaces only imported fields on a matching variant and preserves its identity", () => {
+    const existing = product({
+      variants: [
+        {
+          id: "existing-secondary",
+          name: "Secundaria",
+          hidden: true,
+          price: 14_000,
+          description: "Descripción anterior",
+          stock: 10,
+        },
+      ],
+    });
+    const imported = product({ id: "imported", price: 8_000, stock: 3, description: "Nueva" });
+
+    const result = buildImportedProductsWithVariants([existing], [imported], {
+      [imported.id]: {
+        targetProductId: existing.id,
+        variantName: "secundaria",
+        existingVariantAction: "replace",
+      },
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: existing.id,
+      price: existing.price,
+      description: existing.description,
+      variants: [
+        {
+          id: "existing-secondary",
+          name: "Secundaria",
+          hidden: true,
+          price: 8_000,
+          stock: 3,
+          description: "Nueva",
+        },
+      ],
+    });
+  });
+
+  it("skips an existing variant when replacement is declined", () => {
+    const existing = product({
+      variants: [{ id: "primary", name: "Primaria", price: 14_000, description: "Keep", stock: 10 }],
+    });
+    const imported = product({ id: "imported", price: 8_000 });
+
+    const result = buildImportedProductsWithVariants([existing], [imported], {
+      [imported.id]: {
+        targetProductId: existing.id,
+        variantName: "Primaria",
+        existingVariantAction: "skip",
+      },
+    });
+
+    expect(result).toEqual([]);
+    expect(existing.variants?.[0]).toMatchObject({ price: 14_000, description: "Keep" });
+  });
 });

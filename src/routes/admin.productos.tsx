@@ -93,8 +93,10 @@ import {
   saveAdminSetting,
 } from "@/server/persistence";
 import { importPlayStationStoreCategory } from "@/server/persistence";
+import { importFragranticaPerfumeDescription } from "@/server/persistence";
 import {
   buildImportedProductsWithVariants,
+  normalizeImportedVariantName,
   type ImportedVariantChoice,
 } from "@/lib/product-import-variants";
 import {
@@ -105,6 +107,21 @@ import {
 
 type DeliveryUnit = "inmediata" | "horas" | "dias";
 type CurrencyCode = "ARS" | "USD";
+type FragranticaDescriptionResult = {
+  title: string;
+  url: string;
+  description: string;
+  score: number;
+};
+const fragranticaDesignerSources = [
+  { label: "Perfumes Afnan", url: "https://www.fragrantica.es/disenador/Afnan.html" },
+  {
+    label: "Perfumes Lattafa",
+    url: "https://www.fragrantica.es/disenador/Lattafa-Perfumes.html",
+  },
+  { label: "Perfumes Armaf", url: "https://www.fragrantica.es/disenador/Armaf.html" },
+  { label: "Perfumes Rasasi", url: "https://www.fragrantica.es/disenador/Rasasi.html" },
+];
 type CategoryLabelNode = {
   slug: string;
   name: string;
@@ -316,6 +333,7 @@ function AdminProducts() {
   const [createChoiceOpen, setCreateChoiceOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const hasScrolledOnProductSelectionRef = useRef(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [bulkEditQueue, setBulkEditQueue] = useState<string[]>([]);
   const [bulkQuickEditQueue, setBulkQuickEditQueue] = useState<string[]>([]);
@@ -355,6 +373,8 @@ function AdminProducts() {
   const [importSubcategory, setImportSubcategory] = useState("");
   const [importSubcategoryPath, setImportSubcategoryPath] = useState<string[]>([]);
   const [importCode, setImportCode] = useState("");
+  const [importAsVariant, setImportAsVariant] = useState(false);
+  const [importVariantName, setImportVariantName] = useState("");
   const [applyImportFieldsToAll, setApplyImportFieldsToAll] = useState(true);
   const [importSetupOpen, setImportSetupOpen] = useState(false);
   const [importSetupSource, setImportSetupSource] = useState<"images" | "text" | "store" | null>(
@@ -922,7 +942,6 @@ function AdminProducts() {
     price: getImportedSalePrice(product, effectiveUsdRate),
     priceCurrency: "ARS",
     usdRate: effectiveUsdRate || product.usdRate,
-    stockUnlimited: importSource === "store" ? true : product.stockUnlimited,
   });
 
   const updateImportedProduct = (productId: string, updates: Partial<Product>) => {
@@ -1289,6 +1308,18 @@ function AdminProducts() {
     });
   };
 
+  const getVariantMatches = (product: Product) => {
+    const productPath = product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []);
+    return getDuplicateMatches(product).filter((existing) => {
+      const existingPath = existing.subcategoryPath ?? (existing.subcategory ? [existing.subcategory] : []);
+      return (
+        existing.brand === product.brand &&
+        existing.category === product.category &&
+        existingPath.join("/") === productPath.join("/")
+      );
+    });
+  };
+
   const getPotentialProductMatches = (product: Product) =>
     products
       .filter(
@@ -1357,7 +1388,7 @@ function AdminProducts() {
       setDuplicateCandidateIds([]);
       setKeepDuplicateIds([]);
       setImportedVariantChoices({});
-      toast.success(`Se agregaron ${importedProducts.length} productos`);
+      toast.success(`Se procesaron ${importedProducts.length} productos y variantes`);
     } catch (error) {
       console.error("Error guardando productos importados:", error);
       toast.error(error instanceof Error ? error.message : "No se pudieron guardar los productos.");
@@ -1368,6 +1399,10 @@ function AdminProducts() {
 
   const handleConfirmMultipleImport = () => {
     if (!pendingImportedProducts.length) return;
+    if (importAsVariant && !importVariantName.trim()) {
+      toast.error("Ingresá el nombre de la variante antes de continuar.");
+      return;
+    }
 
     const requiresUsdRate = pendingImportedProducts.some(
       (product) =>
@@ -1418,7 +1453,6 @@ function AdminProducts() {
         price,
         priceCurrency: "ARS",
         usdRate: effectiveUsdRate || product.usdRate,
-        stockUnlimited: importSource === "store" ? true : product.stockUnlimited,
         deliveryUnit: product.deliveryUnit ?? "inmediata",
         brand,
         code,
@@ -1438,6 +1472,19 @@ function AdminProducts() {
     const duplicateIds = importedProducts
       .filter((product) => getDuplicateMatches(product).length > 0)
       .map((product) => product.id);
+    const initialVariantChoices: Record<string, ImportedVariantChoice> = {};
+    if (importAsVariant) {
+      importedProducts.forEach((product) => {
+        const target = getVariantMatches(product)[0];
+        if (target) {
+          initialVariantChoices[product.id] = {
+            targetProductId: target.id,
+            variantName: importVariantName.trim(),
+          };
+        }
+      });
+    }
+    setImportedVariantChoices(initialVariantChoices);
     if (duplicateIds.length > 0) {
       setImportPreviewPage(0);
       setDuplicateCandidateIds(duplicateIds);
@@ -1451,16 +1498,42 @@ function AdminProducts() {
   };
 
   const handleResolveDuplicates = () => {
+    for (const product of pendingImportedProducts) {
+      if (!duplicateCandidateIds.includes(product.id)) continue;
+      const choice = importedVariantChoices[product.id];
+      if (!choice) continue;
+      const target = products.find((candidate) => candidate.id === choice.targetProductId);
+      const conflictingVariant = target?.variants?.find(
+        (variant) =>
+          normalizeImportedVariantName(variant.name) ===
+          normalizeImportedVariantName(choice.variantName),
+      );
+      if (conflictingVariant && !choice.existingVariantAction) {
+        toast.error(`Elegí si querés reemplazar «${conflictingVariant.name}» o conservarla.`);
+        return;
+      }
+    }
+
     const duplicateIdSet = new Set(duplicateCandidateIds);
     const keepIdSet = new Set(keepDuplicateIds);
     const acceptedProducts = pendingImportedProducts.filter(
-      (product) =>
-        !duplicateIdSet.has(product.id) ||
-        keepIdSet.has(product.id) ||
-        Boolean(importedVariantChoices[product.id]),
+      (product) => {
+        if (!duplicateIdSet.has(product.id) || keepIdSet.has(product.id)) return true;
+        const choice = importedVariantChoices[product.id];
+        return Boolean(choice && choice.existingVariantAction !== "skip");
+      },
     );
     void commitImportedProducts(acceptedProducts);
   };
+
+  const getImportResolutionCount = () =>
+    pendingImportedProducts.filter((product) => {
+      if (!duplicateCandidateIds.includes(product.id) || keepDuplicateIds.includes(product.id)) {
+        return true;
+      }
+      const choice = importedVariantChoices[product.id];
+      return Boolean(choice && choice.existingVariantAction !== "skip");
+    }).length;
 
   const handleReplaceComparedProduct = async () => {
     if (!productComparison || isSavingImports) return;
@@ -1731,6 +1804,7 @@ function AdminProducts() {
   const clearBulkProductSelection = () => {
     setSelectionMode(false);
     setSelectedProductIds([]);
+    hasScrolledOnProductSelectionRef.current = false;
     setBulkEditQueue([]);
     setBulkQuickEditQueue([]);
     setBulkEditPosition(0);
@@ -1964,6 +2038,7 @@ function AdminProducts() {
   const clearBulkSelection = () => {
     setSelectionMode(false);
     setSelectedProductIds([]);
+    hasScrolledOnProductSelectionRef.current = false;
     setBulkEditQueue([]);
     setBulkEditPosition(0);
     bulkEditQueueRef.current = [];
@@ -3822,11 +3897,16 @@ function AdminProducts() {
                         }
                         onCheckedChange={(checked) => {
                           const shouldSelect = checked === true || checked === "indeterminate";
-                          scrollToTopOnFirstSelection(selectedProductIds.length, shouldSelect);
+                          scrollToTopOnFirstSelection(
+                            selectedProductIds.length,
+                            shouldSelect,
+                            hasScrolledOnProductSelectionRef,
+                          );
                           setSelectedProductIds((current) => {
                             const next = shouldSelect
                               ? Array.from(new Set([...current, ...visibleProductSelectionKeys]))
                               : current.filter((key) => !visibleProductSelectionKeys.includes(key));
+                            if (next.length === 0) hasScrolledOnProductSelectionRef.current = false;
                             setSelectionMode(next.length > 0);
                             return next;
                           });
@@ -3931,11 +4011,16 @@ function AdminProducts() {
                             onCheckedChange={(checked) => {
                               const isChecked = checked === true;
                               const selectionKey = getProductSelectionKey(product, variant);
-                              scrollToTopOnFirstSelection(selectedProductIds.length, isChecked);
+                              scrollToTopOnFirstSelection(
+                                selectedProductIds.length,
+                                isChecked,
+                                hasScrolledOnProductSelectionRef,
+                              );
                               setSelectedProductIds((current) => {
                                 const next = isChecked
                                   ? [...new Set([...current, selectionKey])]
                                   : current.filter((key) => key !== selectionKey);
+                                if (next.length === 0) hasScrolledOnProductSelectionRef.current = false;
                                 setSelectionMode(next.length > 0);
                                 return next;
                               });
@@ -4423,6 +4508,8 @@ function AdminProducts() {
                 setImportSubcategory("");
                 setImportSubcategoryPath([]);
                 setImportCode("");
+                setImportAsVariant(false);
+                setImportVariantName("");
                 setApplyImportFieldsToAll(true);
                 setImportSetupOpen(true);
               }}
@@ -4445,6 +4532,8 @@ function AdminProducts() {
                 setImportSubcategory("");
                 setImportSubcategoryPath([]);
                 setImportCode("");
+                setImportAsVariant(false);
+                setImportVariantName("");
                 setApplyImportFieldsToAll(true);
                 setImportSetupOpen(true);
               }}
@@ -4467,6 +4556,8 @@ function AdminProducts() {
                 setImportSubcategory("");
                 setImportSubcategoryPath([]);
                 setImportCode("");
+                setImportAsVariant(false);
+                setImportVariantName("");
                 setImportSetupSource("store");
                 setApplyImportFieldsToAll(true);
                 setImportSetupOpen(true);
@@ -4549,6 +4640,31 @@ function AdminProducts() {
             {!isImportHeaderLoaded ? (
               <p className="text-xs text-muted-foreground">Cargando cabecera guardada…</p>
             ) : null}
+          </section>
+          <section className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-3">
+            <div className="flex items-center gap-3">
+              <Switch
+                id="import-as-variant-mode"
+                checked={importAsVariant}
+                onCheckedChange={setImportAsVariant}
+              />
+              <Label htmlFor="import-as-variant-mode">Agregar como variante</Label>
+            </div>
+            {importAsVariant ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="import-variant-name-global">Nombre de la variante</Label>
+                <Input
+                  id="import-variant-name-global"
+                  value={importVariantName}
+                  onChange={(event) => setImportVariantName(event.target.value)}
+                  placeholder="Ej.: Cuenta secundaria"
+                />
+              </div>
+            ) : null}
+            <p className="text-xs text-muted-foreground">
+              El nombre se usará en los productos que coincidan con uno existente. Los que no
+              coincidan se importarán como productos nuevos.
+            </p>
           </section>
           <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
@@ -4660,7 +4776,9 @@ function AdminProducts() {
             <Button
               type="button"
               className="w-full sm:col-span-2 lg:col-span-1"
-              disabled={!isImportHeaderLoaded || isSavingImportHeader}
+              disabled={
+                !isImportHeaderLoaded || isSavingImportHeader || (importAsVariant && !importVariantName.trim())
+              }
               onClick={() => {
                 setCreateChoiceOpen(false);
                 setImportSetupOpen(false);
@@ -5474,12 +5592,7 @@ function AdminProducts() {
                           <div className="order-5 min-w-0 space-y-1.5 lg:col-start-2 lg:row-start-2">
                             <Label htmlFor={`import-stock-mode-${product.id}`}>Stock</Label>
                             <Select
-                              value={
-                                importSource === "store" || product.stockUnlimited
-                                  ? "unlimited"
-                                  : "limited"
-                              }
-                              disabled={importSource === "store"}
+                              value={product.stockUnlimited ? "unlimited" : "limited"}
                               onValueChange={(value) =>
                                 updateImportedProduct(product.id, {
                                   stockUnlimited: value === "unlimited",
@@ -5494,7 +5607,7 @@ function AdminProducts() {
                                 <SelectItem value="unlimited">Ilimitado</SelectItem>
                               </SelectContent>
                             </Select>
-                            {!product.stockUnlimited && importSource !== "store" ? (
+                            {!product.stockUnlimited ? (
                               <Input
                                 type="number"
                                 min={0}
@@ -5703,8 +5816,8 @@ function AdminProducts() {
             <DialogTitle>Posibles productos repetidos</DialogTitle>
             <DialogDescription>
               Encontré {duplicateCandidateIds.length} productos que podrían existir. Para cada uno,
-              podés agregarlo aparte, omitirlo o incorporarlo como una variante nueva sin reemplazar
-              los datos existentes.
+              podés agregarlo aparte, omitirlo o incorporarlo como variante; si ya existe una con ese
+              nombre, elegís si reemplazarla o conservarla.
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[55dvh] space-y-3 overflow-y-auto pr-1">
@@ -5713,22 +5826,19 @@ function AdminProducts() {
               .slice(importPreviewPage * 30, (importPreviewPage + 1) * 30)
               .map((product) => {
                 const matches = getDuplicateMatches(product);
-                const productPath =
-                  product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []);
-                const variantMatches = matches.filter((match) => {
-                  const matchPath =
-                    match.subcategoryPath ?? (match.subcategory ? [match.subcategory] : []);
-                  return (
-                    match.brand === product.brand &&
-                    match.category === product.category &&
-                    matchPath.join("/") === productPath.join("/")
-                  );
-                });
+                const variantMatches = getVariantMatches(product);
                 const isKept = keepDuplicateIds.includes(product.id);
                 const variantChoice = importedVariantChoices[product.id];
                 const selectedTarget = variantMatches.find(
                   (match) => match.id === variantChoice?.targetProductId,
                 );
+                const existingVariantConflict = variantChoice?.variantName.trim()
+                  ? selectedTarget?.variants?.find(
+                      (variant) =>
+                        normalizeImportedVariantName(variant.name) ===
+                        normalizeImportedVariantName(variantChoice.variantName),
+                    )
+                  : undefined;
                 return (
                   <div
                     key={product.id}
@@ -5760,7 +5870,13 @@ function AdminProducts() {
                         </span>
                         <span className="mt-1 block text-xs text-muted-foreground">
                           {variantChoice
-                            ? `Se agregará como variante de ${selectedTarget?.name ?? "un producto existente"}`
+                            ? existingVariantConflict
+                              ? variantChoice.existingVariantAction === "replace"
+                                ? `Se reemplazarán los datos de la variante «${existingVariantConflict.name}»`
+                                : variantChoice.existingVariantAction === "skip"
+                                  ? `Se conservará «${existingVariantConflict.name}» y se omitirá esta importación`
+                                  : `Ya existe la variante «${existingVariantConflict.name}»; elegí qué hacer`
+                              : `Se agregará como variante de ${selectedTarget?.name ?? "un producto existente"}`
                             : isKept
                               ? "Se agregará como producto independiente"
                               : "Se omitirá"}
@@ -5782,7 +5898,7 @@ function AdminProducts() {
                                 ...current,
                                 [product.id]: {
                                   targetProductId: firstMatch.id,
-                                  variantName: "",
+                                  variantName: importAsVariant ? importVariantName.trim() : "",
                                 },
                               }));
                               return;
@@ -5809,7 +5925,11 @@ function AdminProducts() {
                               onValueChange={(targetProductId) =>
                                 setImportedVariantChoices((current) => ({
                                   ...current,
-                                  [product.id]: { ...variantChoice, targetProductId },
+                                  [product.id]: {
+                                    ...variantChoice,
+                                    targetProductId,
+                                    existingVariantAction: undefined,
+                                  },
                                 }))
                               }
                             >
@@ -5833,17 +5953,47 @@ function AdminProducts() {
                               id={`import-variant-name-${product.id}`}
                               value={variantChoice.variantName}
                               placeholder="Ej.: Secundaria"
+                              disabled={importAsVariant}
                               onChange={(event) =>
                                 setImportedVariantChoices((current) => ({
                                   ...current,
                                   [product.id]: {
                                     ...variantChoice,
                                     variantName: event.target.value,
+                                    existingVariantAction: undefined,
                                   },
                                 }))
                               }
                             />
                           </div>
+                          {existingVariantConflict ? (
+                            <div className="space-y-2 sm:col-span-2">
+                              <p className="text-sm text-amber-500">
+                                Este producto ya tiene una variante con ese nombre. ¿Querés reemplazar
+                                sus datos? El producto base y el identificador de la variante se conservan.
+                              </p>
+                              <Select
+                                value={variantChoice.existingVariantAction ?? ""}
+                                onValueChange={(value) =>
+                                  setImportedVariantChoices((current) => ({
+                                    ...current,
+                                    [product.id]: {
+                                      ...variantChoice,
+                                      existingVariantAction: value as "replace" | "skip",
+                                    },
+                                  }))
+                                }
+                              >
+                                <SelectTrigger aria-label={`Decidir sobre la variante ${existingVariantConflict.name}`}>
+                                  <SelectValue placeholder="Elegí qué hacer" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="replace">Sí, reemplazar los datos</SelectItem>
+                                  <SelectItem value="skip">No, conservarla y omitir</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : null}
                         </div>
                       ) : null}
                     </div>
@@ -5900,7 +6050,7 @@ function AdminProducts() {
               )}
               {isSavingImports
                 ? "Guardando…"
-                : `Agregar ${pendingImportedProducts.length - duplicateCandidateIds.length + keepDuplicateIds.length} productos`}
+                : `Agregar ${getImportResolutionCount()} productos o variantes`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -6209,6 +6359,11 @@ function ProductEditDialog({
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(null);
   const [inlineVariantName, setInlineVariantName] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [fragranticaDialogOpen, setFragranticaDialogOpen] = useState(false);
+  const [fragranticaSourceUrl, setFragranticaSourceUrl] = useState(fragranticaDesignerSources[0]!.url);
+  const [fragranticaResults, setFragranticaResults] = useState<FragranticaDescriptionResult[]>([]);
+  const [fragranticaError, setFragranticaError] = useState("");
+  const [isSearchingFragrantica, setIsSearchingFragrantica] = useState(false);
   const descriptionAppliedRef = useRef("");
   const featuresAppliedRef = useRef("");
   const includesAppliedRef = useRef("");
@@ -6761,6 +6916,36 @@ function ProductEditDialog({
     });
     descriptionAppliedRef.current = descriptionDraft;
     toast.success("Descripción aplicada a todas las variantes");
+  };
+
+  const searchFragranticaDescription = async () => {
+    if (!productForm?.name.trim()) {
+      setFragranticaError("Completá el nombre del producto antes de buscar.");
+      return;
+    }
+    setIsSearchingFragrantica(true);
+    setFragranticaError("");
+    setFragranticaResults([]);
+    try {
+      const results = await importFragranticaPerfumeDescription({
+        data: { url: fragranticaSourceUrl, productName: productForm.name },
+      });
+      setFragranticaResults(results);
+      if (!results.length) setFragranticaError("No se encontraron notas para ese producto.");
+    } catch (error) {
+      setFragranticaError(
+        error instanceof Error ? error.message : "No se pudo importar la descripción.",
+      );
+    } finally {
+      setIsSearchingFragrantica(false);
+    }
+  };
+
+  const applyFragranticaDescription = (description: string) => {
+    setDescriptionDraft(description);
+    updateActiveVariant({ description });
+    setFragranticaDialogOpen(false);
+    toast.success("Notas importadas a la descripción");
   };
 
   if (!productForm) return null;
@@ -7941,8 +8126,134 @@ function ProductEditDialog({
                         aria-label="Aplicar descripción a todas las variantes"
                       />
                     </label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-center"
+                      onClick={() => {
+                        setFragranticaResults([]);
+                        setFragranticaError("");
+                        setFragranticaDialogOpen(true);
+                      }}
+                    >
+                      <FileText className="size-4" /> Importar descripción
+                    </Button>
                   </div>
                 </div>
+                <Dialog open={fragranticaDialogOpen} onOpenChange={setFragranticaDialogOpen}>
+                  <DialogContent className="max-h-[85dvh] max-w-xl overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Importar notas del perfume</DialogTitle>
+                      <DialogDescription>
+                        Buscaremos “{productForm.name || "producto"}” en la fuente elegida. Se
+                        importan las notas de salida, corazón y fondo; revisá el resultado antes de
+                        aplicarlo.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="fragrantica-source">Fuente</Label>
+                        <Select
+                          value={
+                            fragranticaDesignerSources.find(
+                              (source) => source.url === fragranticaSourceUrl,
+                            )?.url ?? "custom"
+                          }
+                          onValueChange={(value) => {
+                            if (value === "custom") {
+                              if (fragranticaDesignerSources.some((item) => item.url === fragranticaSourceUrl)) {
+                                setFragranticaSourceUrl("");
+                              }
+                            } else {
+                              setFragranticaSourceUrl(value);
+                            }
+                          }}
+                        >
+                          <SelectTrigger id="fragrantica-source">
+                            <SelectValue placeholder="Seleccionar diseñador" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {fragranticaDesignerSources.map((source) => (
+                              <SelectItem key={source.url} value={source.url}>
+                                {source.label}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="custom">Otro link de Fragrantica</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="fragrantica-custom-url">Link del diseñador o perfume</Label>
+                        <Input
+                          id="fragrantica-custom-url"
+                          type="url"
+                          value={fragranticaSourceUrl}
+                          onChange={(event) => setFragranticaSourceUrl(event.target.value)}
+                          placeholder="https://www.fragrantica.es/disenador/...html"
+                          autoComplete="url"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Podés elegir uno de los diseñadores o pegar otro link válido de fragrantica.es.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => void searchFragranticaDescription()}
+                        disabled={isSearchingFragrantica || !fragranticaSourceUrl.trim()}
+                      >
+                        {isSearchingFragrantica ? (
+                          <LoaderCircle className="size-4 animate-spin" />
+                        ) : (
+                          <Search className="size-4" />
+                        )}
+                        {isSearchingFragrantica ? "Buscando perfume…" : "Buscar por nombre"}
+                      </Button>
+                      {fragranticaError ? (
+                        <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                          {fragranticaError}
+                        </p>
+                      ) : null}
+                      {fragranticaResults.length ? (
+                        <div className="space-y-3">
+                          {fragranticaResults.map((result) => (
+                            <article
+                              key={result.url}
+                              className="space-y-3 rounded-2xl border border-border/60 bg-surface/40 p-4"
+                            >
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div>
+                                  <h3 className="font-medium">{result.title}</h3>
+                                  <a
+                                    href={result.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-xs text-primary underline-offset-4 hover:underline"
+                                  >
+                                    Ver en Fragrantica
+                                  </a>
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  Coincidencia {Math.round(result.score * 100)}%
+                                </span>
+                              </div>
+                              <p className="whitespace-pre-line text-sm text-muted-foreground">
+                                {result.description}
+                              </p>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => applyFragranticaDescription(result.description)}
+                              >
+                                Usar esta descripción
+                              </Button>
+                            </article>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
               <div className="mt-5 border-t border-border/50 pt-4">
                 <div className="mb-3 flex items-center justify-between gap-3">

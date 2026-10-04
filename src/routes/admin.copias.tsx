@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import {
@@ -183,19 +183,28 @@ function AdminBackups() {
   }, [page, pageSize]);
 
   const [selectedBackupIds, setSelectedBackupIds] = useState<string[]>([]);
+  const hasScrolledOnBackupSelectionRef = useRef(false);
 
-  const clearBackupSelection = () => setSelectedBackupIds([]);
+  const clearBackupSelection = () => {
+    setSelectedBackupIds([]);
+    hasScrolledOnBackupSelectionRef.current = false;
+  };
 
   const toggleBackupSelection = (backupId: string, checked: boolean) => {
-    scrollToTopOnFirstSelection(selectedBackupIds.length, checked);
-    setSelectedBackupIds((current) =>
-      checked ? [...new Set([...current, backupId])] : current.filter((id) => id !== backupId),
-    );
+    scrollToTopOnFirstSelection(selectedBackupIds.length, checked, hasScrolledOnBackupSelectionRef);
+    setSelectedBackupIds((current) => {
+      const next = checked
+        ? [...new Set([...current, backupId])]
+        : current.filter((id) => id !== backupId);
+      if (next.length === 0) hasScrolledOnBackupSelectionRef.current = false;
+      return next;
+    });
   };
 
   const toggleAllBackups = (checked: boolean) => {
-    scrollToTopOnFirstSelection(selectedBackupIds.length, checked);
+    scrollToTopOnFirstSelection(selectedBackupIds.length, checked, hasScrolledOnBackupSelectionRef);
     setSelectedBackupIds(checked ? visibleBackups.map((backup) => backup.id) : []);
+    if (!checked) hasScrolledOnBackupSelectionRef.current = false;
   };
 
   const deleteSelectedBackups = async () => {

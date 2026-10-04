@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -73,6 +73,7 @@ function AdminTrash() {
   const [selectionMode, setSelectionMode] = useState<"delete" | "restore" | null>(null);
   const [selectedDeleteKeys, setSelectedDeleteKeys] = useState<string[]>([]);
   const [selectedRestoreKeys, setSelectedRestoreKeys] = useState<string[]>([]);
+  const hasScrolledOnTrashSelectionRef = useRef(false);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(16);
   const [pageSizeInput, setPageSizeInput] = useState("16");
@@ -99,6 +100,7 @@ function AdminTrash() {
     setSelectionMode(null);
     setSelectedDeleteKeys([]);
     setSelectedRestoreKeys([]);
+    hasScrolledOnTrashSelectionRef.current = false;
   };
 
   const enterSelectionMode = (mode: "delete" | "restore") => {
@@ -118,7 +120,11 @@ function AdminTrash() {
       clearSelection();
       return;
     }
-    scrollToTopOnFirstSelection(selectedDeleteKeys.length, true);
+    scrollToTopOnFirstSelection(
+      selectedDeleteKeys.length || selectedRestoreKeys.length,
+      true,
+      hasScrolledOnTrashSelectionRef,
+    );
     setSelectionMode("delete");
     setSelectedDeleteKeys(checked ? allKeys : []);
     setSelectedRestoreKeys(checked ? allKeys : []);
@@ -530,12 +536,16 @@ function AdminTrash() {
                             scrollToTopOnFirstSelection(
                               selectedDeleteKeys.length || selectedRestoreKeys.length,
                               checked === true,
+                              hasScrolledOnTrashSelectionRef,
                             );
                             setSelectionMode("delete");
-                            const updateSelection = (current: string[]) =>
-                              checked === true
+                            const updateSelection = (current: string[]) => {
+                              const next = checked === true
                                 ? [...new Set([...current, entryKey])]
                                 : current.filter((key) => key !== entryKey);
+                              if (next.length === 0) hasScrolledOnTrashSelectionRef.current = false;
+                              return next;
+                            };
                             setSelectedDeleteKeys(updateSelection);
                             setSelectedRestoreKeys(updateSelection);
                           }}
