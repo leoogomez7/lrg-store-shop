@@ -31,7 +31,7 @@ const remoteAdminSettings: Record<string, unknown> = {};
 
 function persistAdminSetting(settingKey: string, value: unknown) {
   remoteAdminSettings[settingKey] = value;
-  void saveAdminSetting({ data: { settingKey, settingValue: JSON.stringify(value) } });
+  return saveAdminSetting({ data: { settingKey, settingValue: JSON.stringify(value) } });
 }
 
 export function applyAdminSettings(settings: Array<{ settingKey: string; settingValue: string }>) {
@@ -556,7 +556,7 @@ export function getStoreShopCategories() {
   );
 }
 
-export function setBrandCategories(slug: BrandSlug, categories: BrandCategory[]) {
+export async function setBrandCategories(slug: BrandSlug, categories: BrandCategory[]) {
   const next = {
     arcade: readStoredCategories().arcade,
     scents: readStoredCategories().scents,
@@ -565,7 +565,8 @@ export function setBrandCategories(slug: BrandSlug, categories: BrandCategory[])
 
   next[slug] = categories;
 
-  persistAdminSetting(CATEGORY_STORAGE_KEY, next);
+  const saved = await persistAdminSetting(CATEGORY_STORAGE_KEY, next);
+  if (!saved) throw new Error("No se pudieron guardar las categorías en la base de datos.");
 
   const fresh = refreshBrandData();
   if (typeof window !== "undefined") {

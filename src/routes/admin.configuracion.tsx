@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import {
@@ -69,6 +70,7 @@ export const Route = createFileRoute("/admin/configuracion")({
 });
 
 function AdminConfiguration() {
+  const queryClient = useQueryClient();
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(300);
   const [pendingFreeShippingThreshold, setPendingFreeShippingThreshold] = useState("");
   const [freeShippingConfirmationStatus, setFreeShippingConfirmationStatus] = useState<
@@ -242,8 +244,15 @@ function AdminConfiguration() {
       subcategories: category.subcategories ?? [],
     }));
 
-    setBrandCategories(selectedBrandConfig.slug, updatedCategories);
     setCategories(nextCategories);
+    void setBrandCategories(selectedBrandConfig.slug, updatedCategories)
+      .then(async () => {
+        const settings = await loadAdminSettings({ data: {} });
+        queryClient.setQueryData(["admin-settings"], settings);
+      })
+      .catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : "No se pudieron guardar las categorías.");
+      });
   };
 
   const persistDiscounts = (nextDiscounts: BrandDiscount[]) => {

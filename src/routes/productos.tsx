@@ -78,7 +78,7 @@ function ProductosPage() {
   const { settings } = Route.useLoaderData();
   const { data: products } = useSuspenseQuery(catalogQueries.all());
   const [priceCurrencies, setPriceCurrencies] = useState<("ARS" | "USD")[]>(["ARS", "USD"]);
-  const [, setBrandDataVersion] = useState(0);
+  const [brandDataVersion, setBrandDataVersion] = useState(0);
 
   useEffect(() => {
     applyAdminSettings(settings);
@@ -94,7 +94,7 @@ function ProductosPage() {
         mergeBrandCategories(brandList.flatMap((brand) => brand.categories)),
         products,
       ),
-    [products],
+    [products, brandDataVersion],
   );
   const deliveryOptions = buildDeliveryOptions(products);
   const shippingOptions = Array.from(

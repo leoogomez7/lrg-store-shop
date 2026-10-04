@@ -335,7 +335,9 @@ function AdminProducts() {
   const importHeaderInputRef = useRef<HTMLInputElement | null>(null);
   const appendImportedProductsRef = useRef(false);
   const additionalImagesInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const productHeaderInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [importHeaderImage, setImportHeaderImage] = useState("");
+  const [importProductHeaders, setImportProductHeaders] = useState<Record<string, string>>({});
   const [isImportHeaderLoaded, setIsImportHeaderLoaded] = useState(false);
   const [isSavingImportHeader, setIsSavingImportHeader] = useState(false);
   const [importImageViewer, setImportImageViewer] = useState<{
@@ -929,13 +931,13 @@ function AdminProducts() {
     );
   };
 
-  const composeImportedImages = async (images: string[]) => {
-    if (!importHeaderImage) return images;
+  const composeImportedImages = async (images: string[], headerImage = importHeaderImage) => {
+    if (!headerImage) return images;
     let skippedCount = 0;
     const composed = await Promise.all(
       images.map(async (image) => {
         try {
-          return await composeHeaderAboveImageDataUrl(importHeaderImage, image);
+          return await composeHeaderAboveImageDataUrl(headerImage, image);
         } catch (error) {
           try {
             const hostname = new URL(image).hostname;
@@ -946,7 +948,7 @@ function AdminProducts() {
               hostname.endsWith(".playstation.net");
             if (isPlayStationImage) {
               const localImage = await loadPlayStationProductImageDataUrl({ data: { url: image } });
-              return await composeHeaderAboveImageDataUrl(importHeaderImage, localImage);
+              return await composeHeaderAboveImageDataUrl(headerImage, localImage);
             }
           } catch {
             // Si el recurso remoto tampoco se puede convertir, conservamos la foto original.
@@ -959,10 +961,32 @@ function AdminProducts() {
     );
     if (skippedCount) {
       toast.warning(`No se pudo agregar el encabezado a ${skippedCount} imagen(es).`, {
-        description: "Revisá que las imágenes remotas permitan la composición o cambiá esa imagen por una local.",
+        description:
+          "Revisá que las imágenes remotas permitan la composición o cambiá esa imagen por una local.",
       });
     }
     return composed;
+  };
+
+  const addHeaderToImportedProduct = async (product: Product, file: File) => {
+    try {
+      const header = await optimizeImageDataUrl(await fileToDataUrl(file), 1200);
+      const originalImage = storeImportPriceDetails[product.id]?.image ?? product.images?.[0];
+      if (!originalImage) {
+        throw new Error("Este producto no tiene una imagen importada desde el link.");
+      }
+      const [composedImage] = await composeImportedImages([originalImage], header);
+      if (!composedImage || composedImage === originalImage) {
+        throw new Error("No se pudo agregar la cabecera a la imagen del producto.");
+      }
+      updateImportedProduct(product.id, {
+        images: [composedImage, ...(product.images ?? []).slice(1)],
+      });
+      setImportProductHeaders((current) => ({ ...current, [product.id]: header }));
+      toast.success("Cabecera agregada a la imagen");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo agregar la cabecera.");
+    }
   };
 
   const persistImportHeaderImage = async (image: string) => {
@@ -1006,6 +1030,9 @@ function AdminProducts() {
           deliveryAmount: source.deliveryAmount,
           short: source.short,
           description: source.description,
+          ...(importProductHeaders[source.id]
+            ? { image: source.image, images: [...(source.images ?? [])] }
+            : {}),
           price: getImportedSalePrice(
             {
               ...product,
@@ -1042,6 +1069,12 @@ function AdminProducts() {
       };
     });
     setPendingImportedProducts(nextProducts);
+    if (importSource === "store" && importProductHeaders[source.id]) {
+      const sourceHeader = importProductHeaders[source.id];
+      setImportProductHeaders((current) =>
+        Object.fromEntries(nextProducts.map((product) => [product.id, sourceHeader])),
+      );
+    }
     setLastAppliedImportSignature(getPendingImportSignature(nextProducts));
 
     setApplyingImportFieldsFromProductId(null);
@@ -1197,7 +1230,7 @@ function AdminProducts() {
               offer: item.discountedPrice,
               discount: item.discountText,
               platforms: item.platforms,
-              image: drafts[index]?.images?.[0] ?? item.image,
+              image: item.image,
             },
           ]),
         );
@@ -2349,6 +2382,7 @@ function AdminProducts() {
     }
 
     queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
+    void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
     toast.success("Producto guardado");
     const currentProductId = productForm.id;
     const queueBeforeSave = bulkEditQueueRef.current;
@@ -5096,7 +5130,12 @@ function AdminProducts() {
                                   await cropImageDataUrl(await fileToDataUrl(file)),
                                 );
                                 const replacementImage =
-                                  (await composeImportedImages([croppedReplacement]))[0] ??
+                                  (
+                                    await composeImportedImages(
+                                      [croppedReplacement],
+                                      importProductHeaders[product.id] ?? importHeaderImage,
+                                    )
+                                  )[0] ??
                                   croppedReplacement;
                                 setPendingImportedProducts((current) =>
                                   current.map((item) =>
@@ -5108,6 +5147,16 @@ function AdminProducts() {
                                       : item,
                                   ),
                                 );
+                                  if (importSource === "store") {
+                                    setStoreImportPriceDetails((current) => ({
+                                      ...current,
+                                      [product.id]: {
+                                        ...current[product.id],
+                                        platforms: current[product.id]?.platforms ?? [],
+                                        image: croppedReplacement,
+                                      },
+                                    }));
+                                  }
                                 toast.success("Imagen reemplazada");
                               } catch (error) {
                                 toast.error(
@@ -5118,6 +5167,23 @@ function AdminProducts() {
                               }
                             }}
                           />
+                          {importSource === "store" && pendingImportedProducts.length > 1 ? (
+                            <input
+                              ref={(node) => {
+                                productHeaderInputRefs.current[product.id] = node;
+                              }}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(event) => {
+                                const file = Array.from(event.target.files ?? []).find((selectedFile) =>
+                                  selectedFile.type.startsWith("image/"),
+                                );
+                                event.target.value = "";
+                                if (file) void addHeaderToImportedProduct(product, file);
+                              }}
+                            />
+                          ) : null}
                           <div className="flex w-full min-w-0 flex-col gap-2">
                             <Button
                               type="button"
@@ -5128,6 +5194,19 @@ function AdminProducts() {
                             >
                               <ImagePlus className="size-3.5 shrink-0" /> Cambiar imagen
                             </Button>
+                            {importSource === "store" && pendingImportedProducts.length > 1 ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-auto! min-h-10 w-full justify-center whitespace-normal px-2 py-1 text-center text-xs leading-tight"
+                                disabled={applyingImportFieldsFromProductId !== null || isSavingImports}
+                                onClick={() => productHeaderInputRefs.current[product.id]?.click()}
+                              >
+                                <ImagePlus className="size-3.5 shrink-0" />
+                                {importProductHeaders[product.id] ? "Cambiar cabecera" : "Agregar cabecera"}
+                              </Button>
+                            ) : null}
                             <Button
                               type="button"
                               size="sm"
