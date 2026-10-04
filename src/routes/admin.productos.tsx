@@ -1719,12 +1719,16 @@ function AdminProducts() {
   };
 
   const handleDuplicateProduct = async (product: Product) => {
-    const newId = `${product.id}-copy-${Date.now()}`;
-    const newSlug = `${product.slug}-copy-${Date.now()}`
+    const timestamp = Date.now();
+    const uniqueSuffix = `${timestamp}-${Math.random().toString(36).slice(2, 7)}`;
+    const newId = `${product.id}-copy-${uniqueSuffix}`;
+    const newSlug = `${product.slug}-copy-${uniqueSuffix}`
       .replace(/[^a-z0-9-]/g, "-")
       .replace(/--+/g, "-");
     const duplicated: Product = {
       ...product,
+      parentId: undefined,
+      variantId: undefined,
       id: newId,
       slug: newSlug,
       name: `${product.name} (Copia)`,
@@ -1984,12 +1988,14 @@ function AdminProducts() {
         const timestamp = Date.now();
         const random = Math.random().toString(36).slice(2, 7);
         const newId = `${product.id}-copy-${timestamp}-${random}`;
-        const newSlug = `${product.slug}-copy-${timestamp}`
+        const newSlug = `${product.slug}-copy-${timestamp}-${random}`
           .replace(/[^a-z0-9-]/g, "-")
           .replace(/--+/g, "-");
 
         duplicates.push({
           ...product,
+          parentId: undefined,
+          variantId: undefined,
           id: newId,
           slug: newSlug,
           name: `${product.name} (Copia)`,
@@ -2005,7 +2011,7 @@ function AdminProducts() {
       const timestamp = Date.now();
       const random = Math.random().toString(36).slice(2, 7);
       const newId = `${product.id}-copy-${timestamp}-${random}`;
-      const newSlug = `${product.slug}-copy-${timestamp}`
+      const newSlug = `${product.slug}-copy-${timestamp}-${random}`
         .replace(/[^a-z0-9-]/g, "-")
         .replace(/--+/g, "-");
       const duplicatedVariant = {
@@ -2016,6 +2022,8 @@ function AdminProducts() {
 
       duplicates.push({
         ...product,
+        parentId: undefined,
+        variantId: undefined,
         id: newId,
         slug: newSlug,
         name: `${product.name} (Copia)`,
@@ -2032,6 +2040,8 @@ function AdminProducts() {
     productsData.splice(0, productsData.length, ...nextProducts);
     setEditableProducts(nextProducts);
     await saveProducts(nextProducts);
+    queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
+    void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
     toast.success(
       `${duplicates.length} elemento${duplicates.length === 1 ? "" : "s"} duplicado${duplicates.length === 1 ? "" : "s"}`,
     );
