@@ -14,10 +14,6 @@ const Checkbox = React.forwardRef<
 
   const handleCheckedChange = (checked: CheckboxPrimitive.CheckedState) => {
     onCheckedChange?.(checked);
-
-    if (checked === true && checkboxRef.current?.closest("table")) {
-      window.scrollTo({ top: 0, behavior: "instant" });
-    }
   };
 
   return (
