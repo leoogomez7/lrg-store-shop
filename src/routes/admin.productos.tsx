@@ -904,6 +904,12 @@ function AdminProducts() {
         };
       }
 
+      const productWithCopiedCosts = {
+        ...source,
+        comision: product.comision,
+        comisionCurrency: product.comisionCurrency,
+      };
+
       return {
         ...source,
         id: product.id,
@@ -912,8 +918,10 @@ function AdminProducts() {
         image: product.image,
         images: product.images,
         createdAt: product.createdAt,
+        comision: product.comision,
+        comisionCurrency: product.comisionCurrency,
         supplier: source.supplier ? { ...source.supplier } : undefined,
-        price: getImportedSalePrice(source, effectiveUsdRate),
+        price: getImportedSalePrice(productWithCopiedCosts, effectiveUsdRate),
         priceCurrency: "ARS" as const,
         usdRate: effectiveUsdRate || source.usdRate,
       };
@@ -4912,7 +4920,11 @@ function AdminProducts() {
                               variant="outline"
                               className="h-auto! min-h-10 w-full justify-center whitespace-normal px-2 py-1 text-center text-xs leading-tight"
                               aria-label={`Aplicar los datos de ${product.name} a los demás productos`}
-                              title="Aplicar todos los datos editables, excepto el nombre y la imagen"
+                              title={
+                                importSource === "store"
+                                  ? "Aplicar los datos del producto a los demás"
+                                  : "Aplicar los datos, excepto nombre, imagen y Mi comisión"
+                              }
                               disabled={
                                 pendingImportedProducts.length < 2 ||
                                 applyingImportFieldsFromProductId !== null ||
