@@ -112,6 +112,11 @@ function ensureAdminTables() {
       settingValue TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     )`,
+        `CREATE TABLE IF NOT EXISTS admin_assets (
+      assetKey TEXT PRIMARY KEY,
+      dataUrl TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    )`,
         `CREATE TABLE IF NOT EXISTS products (
         id TEXT PRIMARY KEY,
         productData TEXT NOT NULL,
@@ -758,6 +763,7 @@ async function createDatabaseBackup(reason: string) {
   const adminTables = [
     "admins",
     "admin_settings",
+    "admin_assets",
     "products",
     "product_variants",
     "orders",
@@ -1001,6 +1007,64 @@ export const loadAdminSettings = createServerFn({ method: "POST" })
         ? [{ settingKey, settingValue } satisfies AdminSetting]
         : [];
     });
+  });
+
+export const loadAdminSettingByKey = createServerFn({ method: "POST" })
+  .validator((data: { settingKey: string }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return null;
+    const result = await database.execute({
+      sql: "SELECT settingValue FROM admin_settings WHERE settingKey = ?",
+      args: [data.settingKey],
+    });
+    const value = result.rows[0]?.["settingValue"];
+    return typeof value === "string" ? value : null;
+  });
+
+export const loadAdminAsset = createServerFn({ method: "POST" })
+  .validator((data: { assetKey: string }) => data)
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return null;
+    const result = await database.execute({
+      sql: "SELECT dataUrl FROM admin_assets WHERE assetKey = ?",
+      args: [data.assetKey],
+    });
+    const dataUrl = result.rows[0]?.["dataUrl"];
+    return typeof dataUrl === "string" ? dataUrl : null;
+  });
+
+export const saveAdminAsset = createServerFn({ method: "POST" })
+  .validator((data: { assetKey: string; dataUrl: string }) => {
+    if (data.assetKey !== "product-import-header") {
+      throw new Error("El recurso que intentás guardar no está permitido.");
+    }
+    if (data.dataUrl && !data.dataUrl.startsWith("data:image/")) {
+      throw new Error("El archivo de cabecera no es una imagen válida.");
+    }
+    if (new TextEncoder().encode(data.dataUrl).byteLength > 1_600_000) {
+      throw new Error("La cabecera es demasiado grande; reducí el tamaño de la imagen.");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return false;
+    if (!data.dataUrl) {
+      await database.execute({
+        sql: "DELETE FROM admin_assets WHERE assetKey = ?",
+        args: [data.assetKey],
+      });
+      return true;
+    }
+    await database.execute({
+      sql: `INSERT INTO admin_assets (assetKey, dataUrl, updatedAt)
+            VALUES (?, ?, ?)
+            ON CONFLICT(assetKey) DO UPDATE SET dataUrl = excluded.dataUrl, updatedAt = excluded.updatedAt`,
+      args: [data.assetKey, data.dataUrl, new Date().toISOString()],
+    });
+    return true;
   });
 
 export const loadAdminTrashSetting = createServerFn({ method: "POST" })

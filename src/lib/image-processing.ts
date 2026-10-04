@@ -190,3 +190,43 @@ export function optimizeImageDataUrl(image: string, maxDimension = 1400) {
     source.src = image;
   });
 }
+
+export async function composeHeaderAboveImageDataUrl(headerImage: string, productImage: string) {
+  const loadImage = (sourceUrl: string) =>
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      if (!sourceUrl.startsWith("data:")) image.crossOrigin = "anonymous";
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("No se pudo abrir una de las imágenes para componer."));
+      image.src = sourceUrl;
+    });
+
+  const [header, product] = await Promise.all([loadImage(headerImage), loadImage(productImage)]);
+  if (!header.naturalWidth || !header.naturalHeight || !product.naturalWidth || !product.naturalHeight) {
+    throw new Error("Una imagen no tiene dimensiones válidas para componer.");
+  }
+
+  const width = Math.min(product.naturalWidth, 1400);
+  const productScale = width / product.naturalWidth;
+  const headerScale = width / header.naturalWidth;
+  const headerHeight = Math.max(1, Math.round(header.naturalHeight * headerScale));
+  const productHeight = Math.max(1, Math.round(product.naturalHeight * productScale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = headerHeight + productHeight;
+
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("El navegador no pudo preparar el lienzo de composición.");
+  context.drawImage(header, 0, 0, width, headerHeight);
+  context.drawImage(product, 0, headerHeight, width, productHeight);
+
+  let composite: string;
+  try {
+    composite = canvas.toDataURL("image/webp", 0.84);
+  } catch {
+    throw new Error(
+      "El servidor de la imagen del producto no permite componerla con la cabecera. Probá con una imagen local.",
+    );
+  }
+  return optimizeImageDataUrl(composite, 1800);
+}

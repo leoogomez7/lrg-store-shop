@@ -41,7 +41,11 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ProductVisual } from "@/components/common/product-visual";
 import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
-import { cropImageDataUrl, optimizeImageDataUrl } from "@/lib/image-processing";
+import {
+  composeHeaderAboveImageDataUrl,
+  cropImageDataUrl,
+  optimizeImageDataUrl,
+} from "@/lib/image-processing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,7 +85,12 @@ import { cn } from "@/lib/utils";
 import { scrollToTopOnFirstSelection } from "@/lib/admin-selection";
 import { catalogQueries, type Product } from "@/services/catalog.service";
 import { moveToTrash } from "@/data/trash";
-import { loadAdminSettings, saveAdminSetting } from "@/server/persistence";
+import {
+  loadAdminAsset,
+  loadAdminSettings,
+  saveAdminAsset,
+  saveAdminSetting,
+} from "@/server/persistence";
 import { importPlayStationStoreCategory } from "@/server/persistence";
 import {
   buildImportedProductsWithVariants,
@@ -226,6 +235,7 @@ const fileToDataUrl = (file: File) =>
 const getSupplierKey = (supplier: ProductSupplier) =>
   [supplier.name, supplier.phone, supplier.social].map((value) => value.trim()).join("|");
 const DELETED_SUPPLIERS_STORAGE_KEY = "lrg:deletedSuppliers";
+const PRODUCT_IMPORT_HEADER_ASSET_KEY = "product-import-header";
 const UNASSIGNED_SUPPLIER_FILTER = "__unassigned__";
 const UNASSIGNED_SKU_FILTER = "__unassigned_sku__";
 
@@ -321,8 +331,16 @@ function AdminProducts() {
   const [usdRatePromptValue, setUsdRatePromptValue] = useState("");
   const multiProductInputRef = useRef<HTMLInputElement | null>(null);
   const textProductInputRef = useRef<HTMLInputElement | null>(null);
+  const importHeaderInputRef = useRef<HTMLInputElement | null>(null);
   const appendImportedProductsRef = useRef(false);
   const additionalImagesInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [importHeaderImage, setImportHeaderImage] = useState("");
+  const [isImportHeaderLoaded, setIsImportHeaderLoaded] = useState(false);
+  const [isSavingImportHeader, setIsSavingImportHeader] = useState(false);
+  const [importImageViewer, setImportImageViewer] = useState<{
+    image: string;
+    label: string;
+  } | null>(null);
   const [pendingImportedProducts, setPendingImportedProducts] = useState<Product[]>([]);
   const [applyingImportFieldsFromProductId, setApplyingImportFieldsFromProductId] =
     useState<string | null>(null);
@@ -426,6 +444,23 @@ function AdminProducts() {
     cancelLabel?: string;
     onConfirm: () => void;
   }>({ open: false, title: "", description: undefined, onConfirm: () => {} });
+
+  useEffect(() => {
+    let active = true;
+    void loadAdminAsset({ data: { assetKey: PRODUCT_IMPORT_HEADER_ASSET_KEY } })
+      .then((image) => {
+        if (active && image?.startsWith("data:image/")) setImportHeaderImage(image);
+      })
+      .catch((error: unknown) => {
+        console.error("No se pudo cargar la cabecera de importación:", error);
+      })
+      .finally(() => {
+        if (active) setIsImportHeaderLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     setEditableProducts(products);
@@ -741,6 +776,7 @@ function AdminProducts() {
           optimizeImageDataUrl(await cropImageDataUrl(await fileToDataUrl(file))),
         ),
       );
+      imageDataUrls = await composeImportedImages(imageDataUrls);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudieron procesar las imágenes.");
       setIsPreparingImport(false);
@@ -890,6 +926,47 @@ function AdminProducts() {
     setPendingImportedProducts((current) =>
       current.map((product) => (product.id === productId ? { ...product, ...updates } : product)),
     );
+  };
+
+  const composeImportedImages = async (images: string[]) => {
+    if (!importHeaderImage) return images;
+    let skippedCount = 0;
+    const composed = await Promise.all(
+      images.map(async (image) => {
+        try {
+          return await composeHeaderAboveImageDataUrl(importHeaderImage, image);
+        } catch (error) {
+          skippedCount += 1;
+          console.warn("No se pudo agregar el encabezado a una imagen importada:", error);
+          return image;
+        }
+      }),
+    );
+    if (skippedCount) {
+      toast.warning(`No se pudo agregar el encabezado a ${skippedCount} imagen(es).`, {
+        description: "Revisá que las imágenes remotas permitan la composición o cambiá esa imagen por una local.",
+      });
+    }
+    return composed;
+  };
+
+  const persistImportHeaderImage = async (image: string) => {
+    setIsSavingImportHeader(true);
+    try {
+      const saved = await saveAdminAsset({
+        data: {
+          assetKey: PRODUCT_IMPORT_HEADER_ASSET_KEY,
+          dataUrl: image,
+        },
+      });
+      if (!saved) throw new Error("No se pudo guardar la cabecera en la base de datos.");
+      setImportHeaderImage(image);
+      toast.success(image ? "Cabecera guardada para futuras importaciones" : "Cabecera eliminada");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar la cabecera.");
+    } finally {
+      setIsSavingImportHeader(false);
+    }
   };
 
   const applyImportedProductFieldsToAll = async (productId: string) => {
@@ -1063,8 +1140,9 @@ function AdminProducts() {
         importSubcategoryPath,
       );
       const timestamp = Date.now();
-      const drafts = result.products.map((item, index) => {
+      const drafts = await Promise.all(result.products.map(async (item, index) => {
         const name = replaceSubcategorySuffix(item.name, "", subcategoryName);
+        const productImage = item.image ? await composeImportedImages([item.image]).then((images) => images[0]) : undefined;
         const slugBase =
           normalizeProductName(name).replace(/\s+/g, "-") || `store-product-${index}`;
         return {
@@ -1091,10 +1169,10 @@ function AdminProducts() {
           short: "",
           description: "",
           features: [],
-          images: item.image ? [item.image] : [],
+          images: productImage ? [productImage] : [],
           createdAt: new Date().toISOString(),
         } satisfies Product;
-      });
+      }));
 
       const newPriceDetails = Object.fromEntries(
           result.products.map((item, index) => [
@@ -1104,7 +1182,7 @@ function AdminProducts() {
               offer: item.discountedPrice,
               discount: item.discountText,
               platforms: item.platforms,
-              image: item.image,
+              image: drafts[index]?.images?.[0] ?? item.image,
             },
           ]),
         );
@@ -4239,6 +4317,29 @@ function AdminProducts() {
         }}
       />
 
+      <input
+        ref={importHeaderInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={async (event) => {
+          const file = Array.from(event.target.files ?? []).find((selected) =>
+            selected.type.startsWith("image/"),
+          );
+          event.target.value = "";
+          if (!file) return;
+          try {
+            const header = await optimizeImageDataUrl(await fileToDataUrl(file), 1200);
+            if (header.length > 1_500_000) {
+              throw new Error("La cabecera sigue siendo demasiado pesada. Elegí una imagen más pequeña.");
+            }
+            await persistImportHeaderImage(header);
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : "No se pudo preparar la cabecera.");
+          }
+        }}
+      />
+
       <Dialog open={createChoiceOpen} onOpenChange={setCreateChoiceOpen}>
         <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
           <DialogHeader className="space-y-2">
@@ -4355,6 +4456,51 @@ function AdminProducts() {
               ) : null}
             </DialogDescription>
           </DialogHeader>
+          <section className="space-y-2 rounded-xl border border-border/60 bg-surface/40 p-3">
+            <Label>Cabecera de imagen para productos (opcional)</Label>
+            <div className="flex flex-wrap items-center gap-3">
+              {importHeaderImage ? (
+                <img
+                  src={importHeaderImage}
+                  alt="Vista previa de la cabecera que se agregará sobre cada producto"
+                  className="h-14 w-24 rounded-md border border-border/60 bg-background object-contain"
+                />
+              ) : (
+                <div className="grid h-14 w-24 place-items-center rounded-md border border-dashed border-border/70 text-xs text-muted-foreground">
+                  Sin cabecera
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSavingImportHeader}
+                onClick={() => importHeaderInputRef.current?.click()}
+              >
+                <ImagePlus className="size-4" />
+                {importHeaderImage ? "Cambiar cabecera" : "Subir cabecera"}
+              </Button>
+              {importHeaderImage ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={isSavingImportHeader}
+                  onClick={() => void persistImportHeaderImage("")}
+                >
+                  Quitar
+                </Button>
+              ) : null}
+              {isSavingImportHeader ? (
+                <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Se guarda para reutilizarla. Se agregará arriba, sin tapar la foto, en las imágenes
+              importadas desde link, archivo o selección de imágenes.
+            </p>
+            {!isImportHeaderLoaded ? (
+              <p className="text-xs text-muted-foreground">Cargando cabecera guardada…</p>
+            ) : null}
+          </section>
           <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="import-setup-brand">Tienda</Label>
@@ -4465,6 +4611,7 @@ function AdminProducts() {
             <Button
               type="button"
               className="w-full sm:col-span-2 lg:col-span-1"
+              disabled={!isImportHeaderLoaded || isSavingImportHeader}
               onClick={() => {
                 setCreateChoiceOpen(false);
                 setImportSetupOpen(false);
@@ -4869,6 +5016,8 @@ function AdminProducts() {
                 .map((product, visibleIndex) => {
                   const index = importPreviewPage * 30 + visibleIndex;
                   const potentialMatches = getPotentialProductMatches(product);
+                  const previewImage =
+                    product.images?.[0] ?? storeImportPriceDetails[product.id]?.image;
                   return (
                     <div
                       key={product.id}
@@ -4877,16 +5026,25 @@ function AdminProducts() {
                       <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[11rem_repeat(4,minmax(0,1fr))]">
                         <div className="order-first grid w-full min-w-0 justify-items-center gap-2 lg:col-start-1 lg:row-span-2 lg:row-start-1">
                           <div className="relative size-24 shrink-0">
-                            {(product.images?.[0] ?? storeImportPriceDetails[product.id]?.image) ? (
-                              <img
-                                src={
-                                  product.images?.[0] ??
-                                  storeImportPriceDetails[product.id]?.image ??
-                                  ""
+                            {previewImage ? (
+                              <button
+                                type="button"
+                                className="group relative size-24 overflow-hidden rounded-lg border border-border/60 bg-background"
+                                aria-label={`Ver imagen completa de ${product.name}`}
+                                title="Tocar para ver imagen completa"
+                                onClick={() =>
+                                  setImportImageViewer({ image: previewImage, label: product.name })
                                 }
-                                alt=""
-                                className="size-24 rounded-lg border border-border/60 object-cover"
-                              />
+                              >
+                                <img
+                                  src={previewImage}
+                                  alt={`Vista previa de ${product.name}`}
+                                  className="size-full object-contain"
+                                />
+                                <span className="absolute inset-x-0 bottom-0 bg-black/65 py-1 text-[9px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                                  Ver completa
+                                </span>
+                              </button>
                             ) : (
                               <div className="grid size-24 place-items-center rounded-lg border border-border/60 bg-surface/50 text-muted-foreground">
                                 <ImagePlus className="size-5" />
@@ -4919,9 +5077,12 @@ function AdminProducts() {
                               event.target.value = "";
                               if (!file) return;
                               try {
-                                const replacementImage = await optimizeImageDataUrl(
+                                const croppedReplacement = await optimizeImageDataUrl(
                                   await cropImageDataUrl(await fileToDataUrl(file)),
                                 );
+                                const replacementImage =
+                                  (await composeImportedImages([croppedReplacement]))[0] ??
+                                  croppedReplacement;
                                 setPendingImportedProducts((current) =>
                                   current.map((item) =>
                                     item.id === product.id
@@ -5408,6 +5569,31 @@ function AdminProducts() {
               <Check className="size-4" /> Confirmar productos
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(importImageViewer)}
+        onOpenChange={(open) => {
+          if (!open) setImportImageViewer(null);
+        }}
+      >
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Imagen completa: {importImageViewer?.label ?? "Producto"}</DialogTitle>
+            <DialogDescription>
+              Vista completa de la imagen que se guardará con este producto.
+            </DialogDescription>
+          </DialogHeader>
+          {importImageViewer ? (
+            <div className="grid max-h-[75dvh] min-h-48 place-items-center overflow-auto rounded-xl border border-border/60 bg-black/20 p-2">
+              <img
+                src={importImageViewer.image}
+                alt={`Imagen completa de ${importImageViewer.label}`}
+                className="max-h-[70dvh] max-w-full object-contain"
+              />
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
 
