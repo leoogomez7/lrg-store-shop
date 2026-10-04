@@ -1254,6 +1254,9 @@ function parseStorePrice(value: string | undefined): number | null {
 }
 
 const validateFragranticaUrl = (value: string): URL => {
+  if (typeof value !== "string" || value.length > 2_048) {
+    throw new Error("Ingresá un link válido de Fragrantica.");
+  }
   let url: URL;
   try {
     url = new URL(value);
@@ -1302,6 +1305,9 @@ const fetchFragranticaPage = async (url: URL): Promise<string> => {
 export const importFragranticaPerfumeDescription = createServerFn({ method: "POST" })
   .validator((data: { url: string; productName: string }) => data)
   .handler(async ({ data }) => {
+    if (typeof data.productName !== "string") {
+      throw new Error("Ingresá un nombre de producto válido para buscar.");
+    }
     const productName = data.productName.trim();
     if (!productName || productName.length > 160) {
       throw new Error("Ingresá un nombre de producto válido para buscar.");

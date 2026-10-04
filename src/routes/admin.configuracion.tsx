@@ -590,6 +590,18 @@ function AdminConfiguration() {
     children?: SubcategoryNode[];
   };
 
+  const collectSubcategorySlugs = (items: SubcategoryNode[] = []): Set<string> => {
+    const set = new Set<string>();
+    const walk = (current: SubcategoryNode[]) => {
+      current.forEach((item) => {
+        set.add(item.slug);
+        walk(item.children ?? []);
+      });
+    };
+    walk(items);
+    return set;
+  };
+
   const appendSubcategoryToTree = (
     items: SubcategoryNode[] = [],
     parentSlug: string | null,
@@ -598,11 +610,22 @@ function AdminConfiguration() {
     const cleanName = name.trim();
     if (!cleanName) return items;
 
+    const baseSlug = `${parentSlug ?? "root"}-${cleanName}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    const usedSlugs = collectSubcategorySlugs(items);
+    let slug = baseSlug;
+    let suffix = 2;
+    while (usedSlugs.has(slug)) {
+      slug = `${baseSlug}-${suffix}`;
+      suffix += 1;
+    }
+    usedSlugs.add(slug);
+
     const node: SubcategoryNode = {
-      slug: `${parentSlug ?? "root"}-${cleanName}`
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, ""),
+      slug,
       name: cleanName,
       children: [],
     };

@@ -75,8 +75,64 @@ export const sortLabels: Record<SortOption, string> = {
   "agregado-desc": "Producto agregado: Nuevo a antiguo",
 };
 
+function slugifyCategoryName(value: string): string {
+  return value
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    || "categoria";
+}
+
+function ensureUniqueCategoryKeys(categories: BrandCategory[]): BrandCategory[] {
+  const used = new Set<string>();
+
+  const assignUniqueSlug = (baseSlug: string, fallbackName: string): string => {
+    const base = (baseSlug || slugifyCategoryName(fallbackName)).trim();
+    if (!base) return "categoria";
+
+    let candidate = base;
+    let suffix = 2;
+    while (used.has(candidate)) {
+      candidate = `${base}-${suffix}`;
+      suffix += 1;
+    }
+    used.add(candidate);
+    return candidate;
+  };
+
+  const remapSubcategories = (items: BrandSubcategory[] = []): BrandSubcategory[] => {
+    const itemKeys = new Set<string>();
+    return items.map((item) => {
+      const base = item.slug || slugifyCategoryName(item.name);
+      let candidate = base;
+      let suffix = 2;
+      while (itemKeys.has(candidate)) {
+        candidate = `${base}-${suffix}`;
+        suffix += 1;
+      }
+      itemKeys.add(candidate);
+
+      return {
+        ...item,
+        slug: candidate,
+        children: remapSubcategories(item.children ?? []),
+      };
+    });
+  };
+
+  return categories.map((category) => ({
+    ...category,
+    slug: assignUniqueSlug(category.slug, category.name),
+    subcategories: remapSubcategories(category.subcategories ?? []),
+  }));
+}
+
 export function mergeBrandCategories(categories: BrandCategory[]): BrandCategory[] {
   const merged = new Map<string, BrandCategory>();
+  const normalized = ensureUniqueCategoryKeys(categories);
 
   const mergeSubcategories = (
     current: BrandSubcategory[] = [],
@@ -96,7 +152,7 @@ export function mergeBrandCategories(categories: BrandCategory[]): BrandCategory
     return Array.from(result.values());
   };
 
-  categories.forEach((category) => {
+  normalized.forEach((category) => {
     const previous = merged.get(category.slug);
     merged.set(category.slug, {
       ...(previous ?? category),

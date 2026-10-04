@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Product } from "@/data/products";
 import type { BrandCategory } from "@/config/brands/types";
-import { filterCategoriesByProducts, getCategoryFilterValues, matchesProductCategorySelection } from "./product-filter-utils";
+import {
+  filterCategoriesByProducts,
+  getCategoryFilterValues,
+  matchesProductCategorySelection,
+  mergeBrandCategories,
+} from "./product-filter-utils";
 
 const product = (overrides: Partial<Product> = {}): Product => ({
   id: "ps-plus-product",
@@ -59,6 +64,25 @@ describe("nested product categories", () => {
         values,
       ),
     ).toBe(true);
+  });
+
+  it("keeps distinct categories when their slugs collide after normalization", () => {
+    const duplicateCategories: BrandCategory[] = [
+      {
+        slug: "accesorios",
+        name: "Accesorios",
+        description: "",
+        subcategories: [{ slug: "consolas", name: "Consolas" }],
+      },
+      {
+        slug: "accesorios",
+        name: "Accesorios Premium",
+        description: "",
+        subcategories: [{ slug: "consolas", name: "Consolas Premium" }],
+      },
+    ];
+
+    expect(mergeBrandCategories(duplicateCategories)).toHaveLength(2);
   });
 
   it("does not include a product when a different nested leaf is selected", () => {
