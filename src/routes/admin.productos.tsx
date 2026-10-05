@@ -91,6 +91,7 @@ import {
   loadPlayStationProductImageDataUrl,
   saveAdminAsset,
   saveAdminSetting,
+  deleteAdminProduct,
 } from "@/server/persistence";
 import {
   importPerfumeNotesWithAI,
@@ -1526,63 +1527,60 @@ function AdminProducts() {
 
   const handleDeleteProduct = async (productId: string, variantId?: string) => {
     const product = (productsData as Product[]).find((item) => item.id === productId);
-    if (product && variantId) {
-      const remainingVariants = (product.variants ?? []).filter(
-        (variant) => variant.id !== variantId,
-      );
-      product.variants = remainingVariants;
-
-      if (remainingVariants.length === 0) {
-        if (product) moveToTrash({ type: "producto", id: product.id, item: product });
-        setEditableProducts((current) => current.filter((item) => item.id !== productId));
-        setDiscounts((current) => {
-          const next = { ...current };
-          delete next[productId];
-          return next;
-        });
-        setPendingDiscounts((current) => {
-          const next = { ...current };
-          delete next[productId];
-          return next;
-        });
-
-        const productIndex = (productsData as Product[]).findIndex((item) => item.id === productId);
-        if (productIndex !== -1) {
-          (productsData as Product[]).splice(productIndex, 1);
-          await saveProducts(productsData as Product[]);
-        }
-        return;
-      }
-
-      setEditableProducts((current) =>
-        current.map((currentProduct) =>
-          currentProduct.id === productId
-            ? { ...currentProduct, variants: remainingVariants }
-            : currentProduct,
-        ),
-      );
-      await saveProducts(productsData as Product[]);
+    if (!product) {
+      toast.error("No se encontró el producto para eliminar.");
       return;
     }
-    if (product) moveToTrash({ type: "producto", id: product.id, item: product });
-    setEditableProducts((current) => current.filter((product) => product.id !== productId));
-    setDiscounts((current) => {
-      const next = { ...current };
-      delete next[productId];
-      return next;
-    });
-    setPendingDiscounts((current) => {
-      const next = { ...current };
-      delete next[productId];
-      return next;
-    });
 
-    const productIndex = (productsData as Product[]).findIndex(
-      (product) => product.id === productId,
-    );
-    if (productIndex !== -1) {
-      (productsData as Product[]).splice(productIndex, 1);
-      await saveProducts(productsData as Product[]);
+    try {
+      if (variantId) {
+        const remainingVariants = (product.variants ?? []).filter(
+          (variant) => variant.id !== variantId,
+        );
+        if (remainingVariants.length === (product.variants ?? []).length) {
+          toast.error("No se encontró la variante para eliminar.");
+          return;
+        }
+
+        if (remainingVariants.length > 0) {
+          const updatedProduct = { ...product, variants: remainingVariants };
+          const saved = await saveProduct(updatedProduct);
+          if (!saved) throw new Error("La base de datos no aceptó el cambio.");
+          const nextProducts = (productsData as Product[]).map((item) =>
+            item.id === productId ? updatedProduct : item,
+          );
+          productsData.splice(0, productsData.length, ...nextProducts);
+          setEditableProducts(nextProducts);
+          queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
+          void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
+          toast.success("Variante eliminada");
+          return;
+        }
+      }
+
+      const deleted = await deleteAdminProduct({ data: { id: product.id } });
+      if (!deleted) throw new Error("La base de datos no aceptó la eliminación.");
+
+      moveToTrash({ type: "producto", id: product.id, item: product });
+      const nextProducts = (productsData as Product[]).filter((item) => item.id !== productId);
+      productsData.splice(0, productsData.length, ...nextProducts);
+      setEditableProducts(nextProducts);
+      setDiscounts((current) => {
+        const next = { ...current };
+        delete next[productId];
+        return next;
+      });
+      setPendingDiscounts((current) => {
+        const next = { ...current };
+        delete next[productId];
+        return next;
+      });
+      queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
+      void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
+      toast.success("Producto eliminado y enviado a la papelera");
+    } catch (error) {
+      console.error("Error eliminando producto:", error);
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar el producto.");
     }
   };
 
@@ -1735,8 +1733,6 @@ function AdminProducts() {
 
   const handleBulkDeleteProducts = async () => {
     const selectedEntriesSnapshot = getSelectedProductEntries(selectedProductIds);
-    clearBulkProductSelection();
-
     const selectedEntries = selectedEntriesSnapshot;
     const selectedProductIdsSet = new Set(
       selectedEntries.filter((entry) => !entry.variantId).map((entry) => entry.productId),
@@ -1749,13 +1745,15 @@ function AdminProducts() {
       selectedVariantIdsByProduct.set(entry.productId, current);
     }
 
+    const deletedProducts: Product[] = [];
+    const updatedProducts: Product[] = [];
     const nextProducts = (productsData as Product[])
       .map((product) => {
         const selectedVariantIds = selectedVariantIdsByProduct.get(product.id) ?? [];
         const hasWholeProductSelection = selectedProductIdsSet.has(product.id);
 
-        if (hasWholeProductSelection && !selectedVariantIds.length) {
-          moveToTrash({ type: "producto", id: product.id, item: product });
+        if (hasWholeProductSelection) {
+          deletedProducts.push(product);
           return null;
         }
 
@@ -1765,30 +1763,53 @@ function AdminProducts() {
           );
 
           if (remainingVariants.length === 0 && !hasWholeProductSelection) {
-            moveToTrash({ type: "producto", id: product.id, item: product });
+            deletedProducts.push(product);
             return null;
           }
 
-          return {
+          const updatedProduct = {
             ...product,
             variants: remainingVariants,
           };
+          updatedProducts.push(updatedProduct);
+          return updatedProduct;
         }
 
         return product;
       })
       .filter((product): product is Product => Boolean(product));
 
-    if (!nextProducts.length && !selectedProductIdsSet.size && !selectedVariantIdsByProduct.size) {
+    if (!selectedEntries.length) {
+      clearBulkProductSelection();
       return;
     }
 
-    productsData.splice(0, productsData.length, ...nextProducts);
-    setEditableProducts(nextProducts);
-    await saveProducts(nextProducts);
-    toast.success(
-      `${selectedEntries.length} elemento${selectedEntries.length === 1 ? "" : "s"} eliminado${selectedEntries.length === 1 ? "" : "s"}`,
-    );
+    try {
+      for (const product of deletedProducts) {
+        const deleted = await deleteAdminProduct({ data: { id: product.id } });
+        if (!deleted) throw new Error(`No se pudo eliminar «${product.name}».`);
+      }
+      for (const product of updatedProducts) {
+        const saved = await saveProduct(product);
+        if (!saved) throw new Error(`No se pudo actualizar «${product.name}».`);
+      }
+
+      deletedProducts.forEach((product) =>
+        moveToTrash({ type: "producto", id: product.id, item: product }),
+      );
+      productsData.splice(0, productsData.length, ...nextProducts);
+      setEditableProducts(nextProducts);
+      queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
+      void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
+      clearBulkProductSelection();
+      toast.success(
+        `${selectedEntries.length} elemento${selectedEntries.length === 1 ? "" : "s"} eliminado${selectedEntries.length === 1 ? "" : "s"}`,
+      );
+    } catch (error) {
+      console.error("Error eliminando productos seleccionados:", error);
+      clearBulkProductSelection();
+      toast.error(error instanceof Error ? error.message : "No se pudieron eliminar los productos.");
+    }
   };
 
   const handleBulkToggleProducts = async (hidden: boolean) => {
