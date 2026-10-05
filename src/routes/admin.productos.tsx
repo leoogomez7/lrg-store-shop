@@ -93,7 +93,7 @@ import {
   saveAdminSetting,
 } from "@/server/persistence";
 import {
-  importFragranticaPerfumeDescription,
+  importPerfumeNotesWithAI,
   importPlayStationStoreCategory,
 } from "@/server/persistence";
 import {
@@ -109,21 +109,13 @@ import {
 
 type DeliveryUnit = "inmediata" | "horas" | "dias";
 type CurrencyCode = "ARS" | "USD";
-type FragranticaDescriptionResult = {
+type PerfumeNotesResult = {
+  matched: boolean;
   title: string;
-  url: string;
   description: string;
-  score: number;
+  reason: string;
+  sources: { title: string; url: string }[];
 };
-const fragranticaDesignerSources = [
-  { label: "Perfumes Afnan", url: "https://www.fragrantica.es/disenador/Afnan.html" },
-  {
-    label: "Perfumes Lattafa",
-    url: "https://www.fragrantica.es/disenador/Lattafa-Perfumes.html",
-  },
-  { label: "Perfumes Armaf", url: "https://www.fragrantica.es/disenador/Armaf.html" },
-  { label: "Perfumes Rasasi", url: "https://www.fragrantica.es/disenador/Rasasi.html" },
-];
 type CategoryLabelNode = {
   slug: string;
   name: string;
@@ -6378,12 +6370,11 @@ function ProductEditDialog({
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(null);
   const [inlineVariantName, setInlineVariantName] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
-  const [fragranticaDialogOpen, setFragranticaDialogOpen] = useState(false);
-  const [fragranticaSourceUrl, setFragranticaSourceUrl] = useState(fragranticaDesignerSources[0]!.url);
-  const [fragranticaManualDescription, setFragranticaManualDescription] = useState("");
-  const [fragranticaResults, setFragranticaResults] = useState<FragranticaDescriptionResult[]>([]);
-  const [fragranticaError, setFragranticaError] = useState("");
-  const [isSearchingFragrantica, setIsSearchingFragrantica] = useState(false);
+  const [perfumeNotesDialogOpen, setPerfumeNotesDialogOpen] = useState(false);
+  const [manualPerfumeDescription, setManualPerfumeDescription] = useState("");
+  const [perfumeNotesResult, setPerfumeNotesResult] = useState<PerfumeNotesResult | null>(null);
+  const [perfumeNotesError, setPerfumeNotesError] = useState("");
+  const [isSearchingPerfumeNotes, setIsSearchingPerfumeNotes] = useState(false);
   const descriptionAppliedRef = useRef("");
   const featuresAppliedRef = useRef("");
   const includesAppliedRef = useRef("");
@@ -6938,36 +6929,34 @@ function ProductEditDialog({
     toast.success("Descripción aplicada a todas las variantes");
   };
 
-  const searchFragranticaDescription = async () => {
+  const searchPerfumeNotesWithAI = async () => {
     if (!productForm?.name.trim()) {
-      setFragranticaError("Completá el nombre del producto antes de buscar.");
+      setPerfumeNotesError("Completá el nombre del producto antes de buscar.");
       return;
     }
-    setIsSearchingFragrantica(true);
-    setFragranticaError("");
-    setFragranticaResults([]);
+    setIsSearchingPerfumeNotes(true);
+    setPerfumeNotesError("");
+    setPerfumeNotesResult(null);
     try {
-      const results = await importFragranticaPerfumeDescription({
-        data: { url: fragranticaSourceUrl, productName: productForm.name },
+      const result = await importPerfumeNotesWithAI({
+        data: { productName: productForm.name },
       });
-      setFragranticaResults(results);
-      if (!results.length) setFragranticaError("No se encontraron notas para ese producto.");
+      setPerfumeNotesResult(result);
+      if (!result.matched) {
+        setPerfumeNotesError(result.reason || "No se pudo confirmar que las notas correspondan a este perfume.");
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo importar la descripción.";
-      setFragranticaError(
-        /403/.test(message)
-          ? "Fragrantica bloqueó la solicitud automática (403). No se importaron notas; podés abrir la página en tu navegador, copiarlas y pegarlas abajo."
-          : message,
-      );
+      setPerfumeNotesError(message);
     } finally {
-      setIsSearchingFragrantica(false);
+      setIsSearchingPerfumeNotes(false);
     }
   };
 
-  const applyFragranticaDescription = (description: string) => {
+  const applyPerfumeDescription = (description: string) => {
     setDescriptionDraft(description);
     updateActiveVariant({ description });
-    setFragranticaDialogOpen(false);
+    setPerfumeNotesDialogOpen(false);
     toast.success("Notas importadas a la descripción");
   };
 
@@ -8155,97 +8144,89 @@ function ProductEditDialog({
                       size="sm"
                       className="w-full justify-center"
                       onClick={() => {
-                        setFragranticaResults([]);
-                        setFragranticaError("");
-                        setFragranticaManualDescription("");
-                        setFragranticaDialogOpen(true);
+                        setPerfumeNotesResult(null);
+                        setPerfumeNotesError("");
+                        setManualPerfumeDescription("");
+                        setPerfumeNotesDialogOpen(true);
                       }}
                     >
                       <FileText className="size-4" /> Importar descripción
                     </Button>
                   </div>
                 </div>
-                <Dialog open={fragranticaDialogOpen} onOpenChange={setFragranticaDialogOpen}>
+                <Dialog open={perfumeNotesDialogOpen} onOpenChange={setPerfumeNotesDialogOpen}>
                   <DialogContent className="max-h-[85dvh] max-w-xl overflow-y-auto rounded-3xl border border-border/60 bg-background p-5 shadow-2xl">
                     <DialogHeader>
                       <DialogTitle>Importar notas del perfume</DialogTitle>
                       <DialogDescription>
-                        Buscaremos “{productForm.name || "producto"}” en la fuente elegida. Se
-                        importan las notas de salida, corazón y fondo; revisá el resultado antes de
-                        aplicarlo.
+                        La IA buscará “{productForm.name || "producto"}” en la web, sin consultar
+                        Fragrantica. Revisá las notas y sus fuentes antes de aplicarlas.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="fragrantica-source">Fuente</Label>
-                        <Select
-                          value={
-                            fragranticaDesignerSources.find(
-                              (source) => source.url === fragranticaSourceUrl,
-                            )?.url ?? "custom"
-                          }
-                          onValueChange={(value) => {
-                            if (value === "custom") {
-                              if (fragranticaDesignerSources.some((item) => item.url === fragranticaSourceUrl)) {
-                                setFragranticaSourceUrl("");
-                              }
-                            } else {
-                              setFragranticaSourceUrl(value);
-                            }
-                          }}
-                        >
-                          <SelectTrigger id="fragrantica-source">
-                            <SelectValue placeholder="Seleccionar diseñador" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {fragranticaDesignerSources.map((source) => (
-                              <SelectItem key={source.url} value={source.url}>
-                                {source.label}
-                              </SelectItem>
-                            ))}
-                            <SelectItem value="custom">Otro link de Fragrantica</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="fragrantica-custom-url">Link del diseñador o perfume</Label>
-                        <Input
-                          id="fragrantica-custom-url"
-                          type="url"
-                          value={fragranticaSourceUrl}
-                          onChange={(event) => setFragranticaSourceUrl(event.target.value)}
-                          placeholder="https://www.fragrantica.es/disenador/...html"
-                          autoComplete="url"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Podés elegir uno de los diseñadores o pegar otro link válido de fragrantica.es.
-                        </p>
-                      </div>
                       <Button
                         type="button"
-                        onClick={() => void searchFragranticaDescription()}
-                        disabled={isSearchingFragrantica || !fragranticaSourceUrl.trim()}
+                        onClick={() => void searchPerfumeNotesWithAI()}
+                        disabled={isSearchingPerfumeNotes || !productForm.name.trim()}
                       >
-                        {isSearchingFragrantica ? (
+                        {isSearchingPerfumeNotes ? (
                           <LoaderCircle className="size-4 animate-spin" />
                         ) : (
                           <Search className="size-4" />
                         )}
-                        {isSearchingFragrantica ? "Buscando perfume…" : "Buscar por nombre"}
+                        {isSearchingPerfumeNotes ? "Buscando notas…" : "Buscar con IA"}
                       </Button>
-                      {fragranticaError ? (
+                      <p className="text-xs text-muted-foreground">
+                        Las notas generadas pueden contener errores. La búsqueda debe incluir
+                        fuentes verificables y no aplica cambios hasta que las confirmes.
+                      </p>
+                      {perfumeNotesError ? (
                         <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                          {fragranticaError}
+                          {perfumeNotesError}
                         </p>
                       ) : null}
+                      {perfumeNotesResult ? (
+                        <article className="space-y-3 rounded-2xl border border-border/60 bg-surface/40 p-4">
+                          <div>
+                            <h3 className="font-medium">{perfumeNotesResult.title}</h3>
+                            {perfumeNotesResult.matched ? (
+                              <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">
+                                {perfumeNotesResult.description}
+                              </p>
+                            ) : null}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium">Fuentes consultadas</p>
+                            {perfumeNotesResult.sources.map((source) => (
+                              <a
+                                key={source.url}
+                                href={source.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block break-all text-xs text-primary underline-offset-4 hover:underline"
+                              >
+                                {source.title}
+                              </a>
+                            ))}
+                          </div>
+                          {perfumeNotesResult.matched ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={!activeVariant}
+                              onClick={() => applyPerfumeDescription(perfumeNotesResult.description)}
+                            >
+                              Usar estas notas
+                            </Button>
+                          ) : null}
+                        </article>
+                      ) : null}
                       <div className="space-y-2 border-t border-border/60 pt-4">
-                        <Label htmlFor="fragrantica-manual-description">
-                          O pegá las notas manualmente
-                        </Label>
+                        <Label htmlFor="manual-perfume-description">O pegá las notas manualmente</Label>
                         <Textarea
-                          id="fragrantica-manual-description"
-                          value={fragranticaManualDescription}
-                          onChange={(event) => setFragranticaManualDescription(event.target.value)}
+                          id="manual-perfume-description"
+                          value={manualPerfumeDescription}
+                          onChange={(event) => setManualPerfumeDescription(event.target.value)}
                           placeholder={[
                             "Notas de salida: ...",
                             "Notas de corazón: ...",
@@ -8254,55 +8235,17 @@ function ProductEditDialog({
                           rows={5}
                         />
                         <p className="text-xs text-muted-foreground">
-                          Si el acceso automático falla, copiá las notas desde la página y revisá el
-                          texto antes de aplicarlo.
+                          Podés pegar información desde cualquier fuente y revisarla antes de aplicarla.
                         </p>
                         <Button
                           type="button"
                           variant="outline"
-                          disabled={!activeVariant || !fragranticaManualDescription.trim()}
-                          onClick={() => applyFragranticaDescription(fragranticaManualDescription.trim())}
+                          disabled={!activeVariant || !manualPerfumeDescription.trim()}
+                          onClick={() => applyPerfumeDescription(manualPerfumeDescription.trim())}
                         >
                           Usar notas pegadas
                         </Button>
                       </div>
-                      {fragranticaResults.length ? (
-                        <div className="space-y-3">
-                          {fragranticaResults.map((result) => (
-                            <article
-                              key={result.url}
-                              className="space-y-3 rounded-2xl border border-border/60 bg-surface/40 p-4"
-                            >
-                              <div className="flex flex-wrap items-start justify-between gap-2">
-                                <div>
-                                  <h3 className="font-medium">{result.title}</h3>
-                                  <a
-                                    href={result.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-xs text-primary underline-offset-4 hover:underline"
-                                  >
-                                    Ver en Fragrantica
-                                  </a>
-                                </div>
-                                <span className="text-xs text-muted-foreground">
-                                  Coincidencia {Math.round(result.score * 100)}%
-                                </span>
-                              </div>
-                              <p className="whitespace-pre-line text-sm text-muted-foreground">
-                                {result.description}
-                              </p>
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={() => applyFragranticaDescription(result.description)}
-                              >
-                                Usar esta descripción
-                              </Button>
-                            </article>
-                          ))}
-                        </div>
-                      ) : null}
                     </div>
                   </DialogContent>
                 </Dialog>

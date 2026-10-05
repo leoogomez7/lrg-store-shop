@@ -11,11 +11,7 @@ import {
   type ReservationRecord,
   type ReservationState,
 } from "@/lib/stock-reservations";
-import {
-  extractPerfumeDescription,
-  getPerfumeNameMatchScore,
-  rankPerfumeLinkMatches,
-} from "@/server/fragrantica-import";
+import { parsePerfumeNotesResponse } from "@/server/perfume-ai-import.server";
 
 export type CartItem = {
   id: string;
@@ -1253,57 +1249,8 @@ function parseStorePrice(value: string | undefined): number | null {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
-const validateFragranticaUrl = (value: string): URL => {
-  if (typeof value !== "string" || value.length > 2_048) {
-    throw new Error("Ingresá un link válido de Fragrantica.");
-  }
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    throw new Error("Ingresá un link válido de Fragrantica.");
-  }
-  if (
-    url.protocol !== "https:" ||
-    url.username !== "" ||
-    url.password !== "" ||
-    !["fragrantica.es", "www.fragrantica.es"].includes(url.hostname.toLowerCase()) ||
-    !/^\/(?:disenador|perfume)\/[^/]+\.html$/i.test(url.pathname)
-  ) {
-    throw new Error("El link debe ser una página de diseñador o perfume de fragrantica.es.");
-  }
-  return url;
-};
-
-const fetchFragranticaPage = async (url: URL): Promise<string> => {
-  let currentUrl = url;
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    const response = await fetch(currentUrl, {
-      headers: {
-        "Accept-Language": "es-ES,es;q=0.9,en;q=0.7",
-        "User-Agent": "Mozilla/5.0 (compatible; LRGStoreProductImporter/1.0)",
-      },
-      redirect: "manual",
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location");
-      if (!location) throw new Error("Fragrantica devolvió una redirección sin destino.");
-      currentUrl = validateFragranticaUrl(new URL(location, currentUrl).toString());
-      continue;
-    }
-    if (!response.ok) throw new Error(`Fragrantica respondió con el estado ${response.status}.`);
-    const html = await response.text();
-    if (html.length > 8_000_000) {
-      throw new Error("La página de Fragrantica es demasiado grande para procesar.");
-    }
-    return html;
-  }
-  throw new Error("Fragrantica realizó demasiadas redirecciones.");
-};
-
-export const importFragranticaPerfumeDescription = createServerFn({ method: "POST" })
-  .validator((data: { url: string; productName: string }) => data)
+export const importPerfumeNotesWithAI = createServerFn({ method: "POST" })
+  .validator((data: { productName: string }) => data)
   .handler(async ({ data }) => {
     if (typeof data.productName !== "string") {
       throw new Error("Ingresá un nombre de producto válido para buscar.");
@@ -1312,43 +1259,79 @@ export const importFragranticaPerfumeDescription = createServerFn({ method: "POS
     if (!productName || productName.length > 160) {
       throw new Error("Ingresá un nombre de producto válido para buscar.");
     }
-    const sourceUrl = validateFragranticaUrl(data.url);
-    const sourceHtml = await fetchFragranticaPage(sourceUrl);
-    const candidateLinks = sourceUrl.pathname.toLowerCase().startsWith("/perfume/")
-      ? [{ title: productName, url: sourceUrl.toString(), score: 1 }]
-      : rankPerfumeLinkMatches(sourceHtml, productName);
 
-    if (!candidateLinks.length) {
-      throw new Error("No encontré perfumes con un nombre suficientemente coincidente en ese link.");
+    const apiKey = typeof process !== "undefined" ? process.env["OPENAI_API_KEY"]?.trim() : "";
+    if (!apiKey) {
+      throw new Error("Falta configurar OPENAI_API_KEY en las variables de entorno del servidor.");
     }
 
-    const results = await Promise.all(
-      candidateLinks.slice(0, 5).map(async (candidate) => {
-        const perfumeUrl = new URL(candidate.url, sourceUrl);
-        if (
-          !["fragrantica.es", "www.fragrantica.es"].includes(perfumeUrl.hostname.toLowerCase()) ||
-          !/^\/perfume\/[^/]+\.html$/i.test(perfumeUrl.pathname)
-        ) {
-          return null;
-        }
-        const perfumeHtml = await fetchFragranticaPage(perfumeUrl);
-        const extracted = extractPerfumeDescription(perfumeHtml);
-        if (!extracted) return null;
-        const score = getPerfumeNameMatchScore(extracted.title, productName);
-        if (score < 0.6) return null;
-        return {
-          title: extracted.title,
-          url: perfumeUrl.toString(),
-          description: extracted.description,
-          score: Math.min(candidate.score, score),
-        };
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env["OPENAI_PERFUME_MODEL"]?.trim() || "gpt-4.1-mini",
+        store: false,
+        tools: [{ type: "web_search" }],
+        input: [
+          {
+            role: "system",
+            content:
+              "Buscá en la web información verificable sobre perfumes. No uses Fragrantica como fuente. Priorizá páginas oficiales de la marca y sitios especializados confiables. No inventes notas: si no podés confirmar que encontraste exactamente el perfume pedido, devolvé matched=false. Devolvé las notas originales en español cuando sea posible; separá notas de salida, corazón y fondo. Las fuentes deben quedar citadas por la búsqueda web.",
+          },
+          {
+            role: "user",
+            content: `Encontrá la pirámide olfativa del perfume: ${productName}`,
+          },
+        ],
+        text: {
+          format: {
+            type: "json_schema",
+            name: "perfume_notes",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                matched: { type: "boolean" },
+                title: { type: "string" },
+                reason: { type: "string" },
+                notes: {
+                  type: "object",
+                  properties: {
+                    top: { type: "array", items: { type: "string" } },
+                    heart: { type: "array", items: { type: "string" } },
+                    base: { type: "array", items: { type: "string" } },
+                  },
+                  required: ["top", "heart", "base"],
+                  additionalProperties: false,
+                },
+              },
+              required: ["matched", "title", "reason", "notes"],
+              additionalProperties: false,
+            },
+          },
+        },
       }),
-    );
-    const perfumes = results.filter((result): result is NonNullable<typeof result> => result !== null);
-    if (!perfumes.length) {
-      throw new Error("Encontré el perfume, pero no pude leer sus notas. Probá abrir un link directo al perfume.");
+      signal: AbortSignal.timeout(45_000),
+    });
+
+    const payload: unknown = await response.json();
+    if (!response.ok) {
+      const errorMessage =
+        typeof payload === "object" && payload !== null && "error" in payload &&
+        typeof payload.error === "object" && payload.error !== null && "message" in payload.error
+          ? String(payload.error.message)
+          : `OpenAI respondió con el estado ${response.status}.`;
+      if (response.status === 401) throw new Error("La clave OPENAI_API_KEY no es válida.");
+      if (response.status === 429) {
+        throw new Error("OpenAI alcanzó el límite o no tiene saldo disponible. Revisá tu cuenta.");
+      }
+      throw new Error(errorMessage);
     }
-    return perfumes;
+
+    return parsePerfumeNotesResponse(payload);
   });
 
 export const importPlayStationStoreCategory = createServerFn({ method: "POST" })
