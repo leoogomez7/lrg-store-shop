@@ -1090,6 +1090,7 @@ function AdminProducts() {
     nextCategory: string,
     nextSubcategoryPath: string[],
   ) => {
+    const nextImportCode = nextBrand === importBrand ? importCode.trim() || undefined : undefined;
     const previousLabel = getSubcategoryPathLabel(
       importBrand,
       importCategory,
@@ -1099,7 +1100,7 @@ function AdminProducts() {
     setPendingImportedProducts((current) =>
       current.map((product) => ({
         ...product,
-        code: importCode.trim() || undefined,
+        code: nextImportCode,
         brand: nextBrand,
         category: nextCategory,
         subcategory: nextSubcategoryPath[0] || undefined,
@@ -1109,6 +1110,7 @@ function AdminProducts() {
     );
     setApplyImportFieldsToAll(true);
     setImportBrand(nextBrand);
+    if (nextBrand !== importBrand) setImportCode("");
     setImportCategory(nextCategory);
     setImportSubcategoryPath(nextSubcategoryPath);
     setImportSubcategory(nextSubcategoryPath[0] ?? "");
@@ -1296,6 +1298,7 @@ function AdminProducts() {
         productsData as Product[],
         preparedProducts,
         importedVariantChoices,
+        importAsVariant ? importVariantName : "",
       );
       const saved = await saveProductBatch(productsToSave);
       if (!saved) throw new Error("La base de datos no aceptó los productos importados.");
@@ -1442,14 +1445,34 @@ function AdminProducts() {
     void commitImportedProducts(acceptedProducts);
   };
 
-  const getImportResolutionCount = () =>
-    pendingImportedProducts.filter((product) => {
-      if (!duplicateCandidateIds.includes(product.id) || keepDuplicateIds.includes(product.id)) {
-        return true;
-      }
-      const choice = importedVariantChoices[product.id];
-      return Boolean(choice && choice.existingVariantAction !== "skip");
-    }).length;
+  const handleIncorporateAllDuplicates = () => {
+    const variantName = importVariantName.trim();
+    if (!variantName) {
+      toast.error("Ingresá un nombre de variante en la configuración de importación.");
+      return;
+    }
+
+    const nextChoices = { ...importedVariantChoices };
+    for (const product of pendingImportedProducts) {
+      if (!duplicateCandidateIds.includes(product.id)) continue;
+      const matches = getVariantMatches(product);
+      const currentChoice = nextChoices[product.id];
+      const targetProductId = matches.some((match) => match.id === currentChoice?.targetProductId)
+        ? currentChoice?.targetProductId
+        : matches[0]?.id;
+      if (!targetProductId) continue;
+      nextChoices[product.id] = {
+        ...currentChoice,
+        targetProductId,
+        variantName,
+        existingVariantAction: undefined,
+      };
+    }
+    setImportedVariantChoices(nextChoices);
+    setKeepDuplicateIds((current) =>
+      current.filter((productId) => !duplicateCandidateIds.includes(productId)),
+    );
+  };
 
   const openEditProductDialog = useCallback(
     (product: Product, variant?: ProductVariant) => {
@@ -4517,8 +4540,8 @@ function AdminProducts() {
               </div>
             ) : null}
             <p className="text-xs text-muted-foreground">
-              El nombre se usará en los productos que coincidan con uno existente. Los que no
-              coincidan se importarán como productos nuevos.
+              El nombre se usará para las variantes de productos existentes y también se guardará
+              como nombre de variante en los productos nuevos que no tengan coincidencia.
             </p>
           </section>
           <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -5882,6 +5905,14 @@ function AdminProducts() {
             >
               Volver a revisar
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSavingImports}
+              onClick={handleIncorporateAllDuplicates}
+            >
+              <Plus className="mr-2 size-4" /> Incorporar todos
+            </Button>
             <Button type="button" onClick={handleResolveDuplicates} disabled={isSavingImports}>
               {isSavingImports ? (
                 <LoaderCircle className="mr-2 size-4 animate-spin" />
@@ -5890,7 +5921,7 @@ function AdminProducts() {
               )}
               {isSavingImports
                 ? "Guardando…"
-                : `Agregar ${getImportResolutionCount()} productos o variantes`}
+                : "Confirmar agregados"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -6682,7 +6713,8 @@ function ProductEditDialog({
     (category) => category.slug === productForm.category,
   );
   const productSkuOptions = brands[safeBrandForForm as BrandSlug].productSkus ?? [];
-  const currentSkuIsConfigured = productSkuOptions.some((sku) => sku.code === productForm.code);
+  const activeSkuCode = activeVariant?.code ?? productForm.code;
+  const currentSkuIsConfigured = productSkuOptions.some((sku) => sku.code === activeSkuCode);
   const getFormSubcategoryOptions = (level: number) =>
     getSubcategoryOptionsAtLevel(
       selectedCategory?.subcategories,
@@ -6935,21 +6967,25 @@ function ProductEditDialog({
 
               <div className="grid gap-4 sm:col-span-4 sm:grid-cols-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new-product-code">SKU</Label>
+                  <Label htmlFor="new-product-code">
+                    {activeVariant ? "SKU de variante" : "SKU"}
+                  </Label>
                   <Select
-                    value={productForm.code || "none"}
-                    onValueChange={(value) =>
-                      setProductForm({ ...productForm, code: value === "none" ? "" : value })
-                    }
+                    value={activeSkuCode || "none"}
+                    onValueChange={(value) => {
+                      const code = value === "none" ? undefined : value;
+                      if (activeVariant) updateActiveVariant({ code });
+                      else setProductForm({ ...productForm, code: code ?? "" });
+                    }}
                   >
                     <SelectTrigger id="new-product-code" className="w-full">
                       <SelectValue placeholder="Seleccionar SKU" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Sin SKU</SelectItem>
-                      {productForm.code && !currentSkuIsConfigured ? (
-                        <SelectItem value={productForm.code}>
-                          {productForm.code} (SKU actual)
+                      {activeSkuCode && !currentSkuIsConfigured ? (
+                        <SelectItem value={activeSkuCode}>
+                          {activeSkuCode} (SKU actual)
                         </SelectItem>
                       ) : null}
                       {productSkuOptions.map((sku) => (

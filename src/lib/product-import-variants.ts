@@ -14,6 +14,7 @@ export function buildImportedProductsWithVariants(
   existingProducts: Product[],
   importedProducts: Product[],
   choices: Record<string, ImportedVariantChoice>,
+  defaultVariantName = "",
 ) {
   const parents = new Map<string, Product>();
   const productsToInsert: Product[] = [];
@@ -21,7 +22,11 @@ export function buildImportedProductsWithVariants(
   for (const imported of importedProducts) {
     const choice = choices[imported.id];
     if (!choice) {
-      productsToInsert.push(imported);
+      productsToInsert.push(
+        defaultVariantName.trim()
+          ? { ...imported, variantName: defaultVariantName.trim() }
+          : imported,
+      );
       continue;
     }
 
@@ -45,6 +50,7 @@ export function buildImportedProductsWithVariants(
     }
 
     const variantData: Omit<ProductVariant, "id" | "name"> = {
+      code: imported.code,
       price: imported.price,
       priceCurrency: imported.priceCurrency ?? "ARS",
       comision: imported.comision,

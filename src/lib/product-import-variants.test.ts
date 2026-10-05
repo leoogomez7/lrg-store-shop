@@ -28,6 +28,7 @@ describe("import products as variants", () => {
     const imported = product({
       id: "fifa-23-secondary-import",
       slug: "fifa-23-secondary-import",
+      code: "ACC-SECONDARY",
       price: 8_000,
       comision: 8_000,
       stock: 4,
@@ -46,6 +47,7 @@ describe("import products as variants", () => {
       variants: [
         {
           name: "Secundaria",
+          code: "ACC-SECONDARY",
           price: 8_000,
           stock: 4,
           description: "Datos propios de la secundaria",
@@ -76,6 +78,19 @@ describe("import products as variants", () => {
       "Secundaria",
     ]);
     expect(result.find((item) => item.id === "independent")?.name).toBe("Otro producto");
+  });
+
+  it("applies the configured variant name to imported products without a matching parent", () => {
+    const imported = product({ id: "independent-import", name: "Juego nuevo" });
+
+    const result = buildImportedProductsWithVariants([], [imported], {}, "Cuenta secundaria");
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: "independent-import",
+      name: "Juego nuevo",
+      variantName: "Cuenta secundaria",
+    });
   });
 
   it("rejects an empty or duplicate variant name instead of overwriting", () => {

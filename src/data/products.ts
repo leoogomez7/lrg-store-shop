@@ -89,6 +89,7 @@ export type CurrencyCode = "ARS" | "USD";
 export type ProductVariant = {
   id: string;
   name: string;
+  code?: string;
   hidden?: boolean;
   price: number;
   priceCurrency?: CurrencyCode;
