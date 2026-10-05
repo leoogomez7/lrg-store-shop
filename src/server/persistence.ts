@@ -1121,7 +1121,7 @@ export const listAdminProducts = createServerFn({ method: "POST" })
     const database = await ensureAdminTables();
     if (!database) return [];
     const result = await database.execute(
-      "SELECT productData FROM products ORDER BY updatedAt DESC",
+      "SELECT productData FROM products ORDER BY COALESCE(json_extract(productData, '$.createdAt'), updatedAt) DESC, rowid DESC",
     );
     return result.rows.flatMap((row) => {
       const value = row["productData"];
@@ -1142,7 +1142,7 @@ export const listAdminProductsByBrand = createServerFn({ method: "POST" })
 
     try {
       const result = await database.execute({
-        sql: "SELECT productData FROM products WHERE json_extract(productData, '$.brand') = ? ORDER BY updatedAt DESC",
+        sql: "SELECT productData FROM products WHERE json_extract(productData, '$.brand') = ? ORDER BY COALESCE(json_extract(productData, '$.createdAt'), updatedAt) DESC, rowid DESC",
         args: [data.brand],
       });
       return result.rows.flatMap((row) => {
