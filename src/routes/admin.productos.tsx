@@ -83,6 +83,7 @@ import { brandList, brands, type BrandSlug } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { scrollToTopOnFirstSelection } from "@/lib/admin-selection";
+import { parseQuickEditCommission } from "@/lib/quick-edit-utils";
 import { catalogQueries, type Product } from "@/services/catalog.service";
 import { moveToTrash } from "@/data/trash";
 import {
@@ -385,6 +386,7 @@ function AdminProducts() {
   >({});
   const [quickEditProductId, setQuickEditProductId] = useState<string | null>(null);
   const [quickEditVariantId, setQuickEditVariantId] = useState<string | null>(null);
+  const [isSavingQuickEdit, setIsSavingQuickEdit] = useState(false);
   const [highlightedDeepLinkKey, setHighlightedDeepLinkKey] = useState<string | null>(null);
   const openedDeepLinkRef = useRef<string | null>(null);
   const highlightedDeepLinkRef = useRef<string | null>(null);
@@ -2128,7 +2130,7 @@ function AdminProducts() {
     });
   };
 
-  const saveQuickEdit = (product: Product, variant?: ProductVariant) => {
+  const saveQuickEdit = async (product: Product, variant?: ProductVariant) => {
     const key = getQuickEditKey(product, variant);
     const draft = quickEditForm[key];
     if (!draft) return;
@@ -2138,89 +2140,78 @@ function AdminProducts() {
     const nextVariantName = draft.variantName.trim() || variant?.name || "";
     const nextCategory = draft.category.trim() || product.category;
     const nextPrice = Number(draft.price) || product.price;
-    const nextComision = Number(draft.comision) || 0;
+    const nextComision = parseQuickEditCommission(draft.comision);
+    if (nextComision === null) {
+      toast.error("Ingresá un valor numérico válido para la comisión.");
+      return;
+    }
     const nextComisionCurrency = draft.comisionCurrency;
     const nextGastos = Math.max(0, Number(draft.gastos) || 0);
     const nextGastosCurrency = draft.gastosCurrency;
     const nextStock = Math.max(0, Number(draft.stock) || 0);
     const nextDiscount = Math.max(0, Math.min(100, Number(draft.discount) || 0));
 
-    setEditableProducts((current) =>
-      current.map((item) => {
-        if (item.id !== product.id) return item;
-        if (variant) {
-          return {
-            ...item,
-            name: nextName,
-            variants: item.variants?.map((itemVariant) =>
-              itemVariant.id === variant.id
-                ? {
-                    ...itemVariant,
-                    name: nextVariantName,
-                    price: nextPrice,
-                    comision: nextComision,
-                    comisionCurrency: nextComisionCurrency,
-                    gastos: nextGastos,
-                    gastosCurrency: nextGastosCurrency,
-                    stock: nextStock,
-                    stockUnlimited: draft.stockUnlimited,
-                    discount: nextDiscount,
-                  }
-                : itemVariant,
-            ),
-          };
-        }
+    const nextProducts = (productsData as Product[]).map((item) => {
+      if (item.id !== product.id) return item;
+      if (variant) {
         return {
           ...item,
-          brand: nextBrand,
           name: nextName,
-          category: nextCategory,
-          price: nextPrice,
-          comision: nextComision,
-          comisionCurrency: nextComisionCurrency,
-          gastos: nextGastos,
-          gastosCurrency: nextGastosCurrency,
-          stock: nextStock,
-          stockUnlimited: draft.stockUnlimited,
+          variants: item.variants?.map((itemVariant) =>
+            itemVariant.id === variant.id
+              ? {
+                  ...itemVariant,
+                  name: nextVariantName,
+                  price: nextPrice,
+                  comision: nextComision,
+                  comisionCurrency: nextComisionCurrency,
+                  gastos: nextGastos,
+                  gastosCurrency: nextGastosCurrency,
+                  stock: nextStock,
+                  stockUnlimited: draft.stockUnlimited,
+                  discount: nextDiscount,
+                }
+              : itemVariant,
+          ),
         };
-      }),
-    );
-
-    const productIndex = (productsData as Product[]).findIndex((item) => item.id === product.id);
-    if (productIndex !== -1) {
-      const existing = (productsData as Product[])[productIndex] as Product;
-      if (variant) {
-        existing.name = nextName;
-        existing.variants = existing.variants?.map((itemVariant) =>
-          itemVariant.id === variant.id
-            ? {
-                ...itemVariant,
-                name: nextVariantName,
-                price: nextPrice,
-                comision: nextComision,
-                comisionCurrency: nextComisionCurrency,
-                gastos: nextGastos,
-                gastosCurrency: nextGastosCurrency,
-                stock: nextStock,
-                stockUnlimited: draft.stockUnlimited,
-                discount: nextDiscount,
-              }
-            : itemVariant,
-        );
-      } else {
-        existing.brand = nextBrand;
-        existing.name = nextName;
-        existing.category = nextCategory;
-        existing.price = nextPrice;
-        existing.comision = nextComision;
-        existing.comisionCurrency = nextComisionCurrency;
-        existing.gastos = nextGastos;
-        existing.gastosCurrency = nextGastosCurrency;
-        existing.stock = nextStock;
-        existing.stockUnlimited = draft.stockUnlimited;
       }
-      saveProducts(productsData as Product[]);
+      return {
+        ...item,
+        brand: nextBrand,
+        name: nextName,
+        category: nextCategory,
+        price: nextPrice,
+        comision: nextComision,
+        comisionCurrency: nextComisionCurrency,
+        gastos: nextGastos,
+        gastosCurrency: nextGastosCurrency,
+        stock: nextStock,
+        stockUnlimited: draft.stockUnlimited,
+      };
+    });
+    const updatedProduct = nextProducts.find((item) => item.id === product.id);
+    if (!updatedProduct) {
+      toast.error("No se encontró el producto para guardar.");
+      return;
     }
+
+    setIsSavingQuickEdit(true);
+    try {
+      const saved = await saveProduct(updatedProduct);
+      if (!saved) throw new Error("La base de datos no aceptó los cambios.");
+      productsData.splice(0, productsData.length, ...nextProducts);
+      setEditableProducts(nextProducts);
+      queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
+      void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
+    } catch (error) {
+      setIsSavingQuickEdit(false);
+      console.error("Error guardando la edición rápida del producto:", error);
+      toast.error(
+        error instanceof Error ? error.message : "No se pudieron guardar los cambios del producto.",
+      );
+      return;
+    }
+    setIsSavingQuickEdit(false);
 
     setDiscounts((current) => ({
       ...current,
@@ -3689,6 +3680,7 @@ function AdminProducts() {
                   <Button
                     size="sm"
                     variant="default"
+                    disabled={isSavingQuickEdit}
                     onClick={() => {
                       const currentProduct = editableProducts.find(
                         (product) => product.id === quickEditProductId,
@@ -3699,11 +3691,15 @@ function AdminProducts() {
                           )
                         : undefined;
                       if (currentProduct) {
-                        saveQuickEdit(currentProduct, currentVariant);
+                        void saveQuickEdit(currentProduct, currentVariant);
                       }
                     }}
                   >
-                    <Check className="size-4" /> Guardar
+                    {isSavingQuickEdit ? (
+                      <LoaderCircle className="size-4 animate-spin" />
+                    ) : (
+                      <Check className="size-4" />
+                    )} Guardar
                   </Button>
                   <Button
                     size="sm"

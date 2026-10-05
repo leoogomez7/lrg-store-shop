@@ -12,7 +12,7 @@ function getBrandLogo(slug: string) {
     case "scents":
       return "/LRG Scents PNG.png";
     case "web-design":
-      return "/LRG Web Design PNG.png";
+      return "/LRG Web Developer PNG.png";
     default:
       return "/LRG Store Shop PNG.png";
   }

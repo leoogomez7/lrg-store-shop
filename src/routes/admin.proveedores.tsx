@@ -520,7 +520,7 @@ function AdminSuppliers() {
   const storeOptions = [
     ["arcade", "LRG Arcade"],
     ["scents", "LRG Scents"],
-    ["web-design", "LRG Web Design"],
+    ["web-design", "LRG Web Developer"],
   ] as const;
   const sortOptions = [
     ["name_asc", "Proveedor: A-Z"],

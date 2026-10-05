@@ -8,7 +8,7 @@ export const Route = createFileRoute("/sectores")({
       {
         name: "description",
         content:
-          "Arcade para gaming, Scents para perfumería árabe y Web Design para software. Cada sector con su propia identidad y catálogo.",
+          "Arcade para gaming, Scents para perfumería árabe y Web Developer para software. Cada sector con su propia identidad y catálogo.",
       },
       { property: "og:title", content: "Elegí tu sector — LRG Store Shop" },
       {

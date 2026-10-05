@@ -302,7 +302,7 @@ function WelcomePageContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
                 {pendingCatalog === "web-design" ? (
                   <><LoaderCircle className="size-4 animate-spin" /> Cargando...</>
                 ) : (
-                  <>LRG Web Design <ArrowRight className="size-4" /></>
+                  <>LRG Web Developer <ArrowRight className="size-4" /></>
                 )}
               </Link>
             </Button>

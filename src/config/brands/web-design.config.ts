@@ -3,8 +3,8 @@ import type { BrandConfig } from "./types";
 export const webDesignConfig: BrandConfig = {
   slug: "web-design",
   theme: "theme-webdesign",
-  name: "LRG Web Design",
-  shortName: "Web Design",
+  name: "LRG Web Developer",
+  shortName: "Web Developer",
   tagline: "",
   keywords: [],
   hero: {
@@ -16,5 +16,5 @@ export const webDesignConfig: BrandConfig = {
   social: [],
   contact: { email: "", phone: "", location: "" },
   payments: [],
-  favicon: "/LRG Web Design PNG.png",
+  favicon: "/LRG Web Developer PNG.png",
 };

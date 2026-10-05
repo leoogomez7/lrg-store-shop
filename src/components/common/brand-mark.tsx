@@ -5,7 +5,7 @@ function getBrandImage(brandSlug?: string) {
     if (brandSlug === "store" || brandSlug === "store-shop" || brandSlug === "lrg-store-shop")
       return "/LRG Store Shop PNG.png";
     if (brandSlug === "arcade") return "/LRG Arcade PNG.png";
-    if (brandSlug === "web-design") return "/LRG Web Design PNG.png";
+    if (brandSlug === "web-design") return "/LRG Web Developer PNG.png";
     if (brandSlug === "scents") return "/LRG Scents PNG.png";
   }
   return "/LRG Store Shop PNG.png";
