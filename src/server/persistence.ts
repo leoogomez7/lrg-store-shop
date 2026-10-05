@@ -1348,8 +1348,20 @@ export const importPerfumeNotesWithAI = createServerFn({ method: "POST" })
           "Ollama devolvió una respuesta vacía. Revisá que el modelo local esté instalado y funcionando.",
         );
       } catch (error) {
-        if (error instanceof Error && error.message) {
-          throw error;
+        if (error instanceof Error) {
+          const lowerMessage = error.message.toLowerCase();
+          if (
+            lowerMessage.includes("fetch failed") ||
+            lowerMessage.includes("network") ||
+            lowerMessage.includes("failed to fetch") ||
+            lowerMessage.includes("connect") ||
+            lowerMessage.includes("timed out")
+          ) {
+            throw new Error(
+              `Ollama no está corriendo en tu PC o no está configurado. Iniciá "ollama serve" y ejecutá "ollama pull llama3.1" antes de buscar notas.`,
+            );
+          }
+          throw new Error(error.message);
         }
         throw new Error(
           `Ollama no está corriendo en tu PC o no está configurado. Iniciá "ollama serve" y ejecutá "ollama pull llama3.1" antes de buscar notas.`,
