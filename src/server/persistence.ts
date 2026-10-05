@@ -1262,7 +1262,9 @@ export const importPerfumeNotesWithAI = createServerFn({ method: "POST" })
 
     const apiKey = typeof process !== "undefined" ? process.env["OPENAI_API_KEY"]?.trim() : "";
     if (!apiKey) {
-      throw new Error("Falta configurar OPENAI_API_KEY en las variables de entorno del servidor.");
+      throw new Error(
+        "La búsqueda con IA todavía no está configurada. Agregá OPENAI_API_KEY en las variables de entorno de Vercel y volvé a desplegar la aplicación.",
+      );
     }
 
     const response = await fetch("https://api.openai.com/v1/responses", {

@@ -15,9 +15,12 @@ npm run dev
 
 ## Importación de notas de perfumes
 
-La búsqueda con IA usa la API de OpenAI y búsqueda web. Configurá `OPENAI_API_KEY` como variable
-de entorno del servidor (por ejemplo, en `.env` para desarrollo local y en las variables de entorno
-de Vercel para producción). No la incluyas en variables `VITE_*` ni en el código del navegador.
+La búsqueda con IA usa la API de OpenAI y búsqueda web. Para desarrollo local, definí
+`OPENAI_API_KEY=tu_clave` en el archivo `.env` que está junto a la carpeta del proyecto (Vite ya
+lee ahí la configuración existente). Para producción, agregá
+`OPENAI_API_KEY` en **Vercel → Project Settings → Environment Variables** para los entornos que
+uses y volvé a desplegar. No la incluyas en variables `VITE_*`, no la guardes en el repositorio y
+no la pegues en el chat: la clave se debe leer solo en el servidor.
 
 Opcionalmente, `OPENAI_PERFUME_MODEL` permite elegir otro modelo compatible con la herramienta
 `web_search`; el valor predeterminado es `gpt-4.1-mini`. La cuenta de OpenAI debe tener API habilitada.

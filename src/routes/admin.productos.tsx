@@ -6371,7 +6371,6 @@ function ProductEditDialog({
   const [inlineVariantName, setInlineVariantName] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [perfumeNotesDialogOpen, setPerfumeNotesDialogOpen] = useState(false);
-  const [manualPerfumeDescription, setManualPerfumeDescription] = useState("");
   const [perfumeNotesResult, setPerfumeNotesResult] = useState<PerfumeNotesResult | null>(null);
   const [perfumeNotesError, setPerfumeNotesError] = useState("");
   const [isSearchingPerfumeNotes, setIsSearchingPerfumeNotes] = useState(false);
@@ -8146,7 +8145,6 @@ function ProductEditDialog({
                       onClick={() => {
                         setPerfumeNotesResult(null);
                         setPerfumeNotesError("");
-                        setManualPerfumeDescription("");
                         setPerfumeNotesDialogOpen(true);
                       }}
                     >
@@ -8221,31 +8219,6 @@ function ProductEditDialog({
                           ) : null}
                         </article>
                       ) : null}
-                      <div className="space-y-2 border-t border-border/60 pt-4">
-                        <Label htmlFor="manual-perfume-description">O pegá las notas manualmente</Label>
-                        <Textarea
-                          id="manual-perfume-description"
-                          value={manualPerfumeDescription}
-                          onChange={(event) => setManualPerfumeDescription(event.target.value)}
-                          placeholder={[
-                            "Notas de salida: ...",
-                            "Notas de corazón: ...",
-                            "Notas de fondo: ...",
-                          ].join("\n")}
-                          rows={5}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Podés pegar información desde cualquier fuente y revisarla antes de aplicarla.
-                        </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={!activeVariant || !manualPerfumeDescription.trim()}
-                          onClick={() => applyPerfumeDescription(manualPerfumeDescription.trim())}
-                        >
-                          Usar notas pegadas
-                        </Button>
-                      </div>
                     </div>
                   </DialogContent>
                 </Dialog>
