@@ -306,9 +306,19 @@ function AdminSuppliers() {
   };
 
   const toggleSupplierSelection = (key: string, checked: boolean) => {
-    setSelectedSupplierKeys((current) =>
-      checked ? [...new Set([...current, key])] : current.filter((item) => item !== key),
+    scrollToTopOnFirstSelection(
+      selectedSupplierKeys.length,
+      checked,
+      hasScrolledOnSupplierSelectionRef,
     );
+    setSelectedSupplierKeys((current) => {
+      const next = checked
+        ? [...new Set([...current, key])]
+        : current.filter((item) => item !== key);
+      if (next.length === 0) hasScrolledOnSupplierSelectionRef.current = false;
+      setSelectionMode(next.length > 0);
+      return next;
+    });
   };
 
   const rows = React.useMemo<SupplierRow[]>(() => {
@@ -1860,22 +1870,9 @@ function AdminSuppliers() {
                               <Checkbox
                                 className="h-4 w-4 rounded-full border-2 border-primary bg-transparent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                                 checked={selectedSupplierKeys.includes(row.key)}
-                                onCheckedChange={(checked) => {
-                                  const isChecked = checked === true;
-                                  scrollToTopOnFirstSelection(
-                                    selectedSupplierKeys.length,
-                                    isChecked,
-                                    hasScrolledOnSupplierSelectionRef,
-                                  );
-                                  setSelectedSupplierKeys((current) => {
-                                    const next = isChecked
-                                      ? [...new Set([...current, row.key])]
-                                      : current.filter((key) => key !== row.key);
-                                    if (next.length === 0) hasScrolledOnSupplierSelectionRef.current = false;
-                                    setSelectionMode(next.length > 0);
-                                    return next;
-                                  });
-                                }}
+                                onCheckedChange={(checked) =>
+                                  toggleSupplierSelection(row.key, checked === true)
+                                }
                                 aria-label={`Seleccionar proveedor ${row.name}`}
                               />
                             </div>
@@ -1894,7 +1891,20 @@ function AdminSuppliers() {
                                 className="h-9 w-full min-w-0"
                               />
                             ) : (
-                              row.name
+                              <button
+                                type="button"
+                                className="w-full cursor-pointer text-center"
+                                aria-label={`${selectedSupplierKeys.includes(row.key) ? "Deseleccionar" : "Seleccionar"} proveedor ${row.name}`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  toggleSupplierSelection(
+                                    row.key,
+                                    !selectedSupplierKeys.includes(row.key),
+                                  );
+                                }}
+                              >
+                                {row.name}
+                              </button>
                             )}
                           </TableCell>
                           <TableCell className="w-36 min-w-36 text-center text-sm text-foreground lg:w-[12%] lg:min-w-0">

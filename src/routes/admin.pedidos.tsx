@@ -2739,7 +2739,18 @@ function AdminOrders() {
                         </TableCell>
 
                         <TableCell className="w-24 min-w-24 max-w-24 text-center text-sm font-medium">
-                          <div className="flex min-w-0 items-center justify-center gap-1 text-center">
+                          <button
+                            type="button"
+                            className="flex w-full min-w-0 items-center justify-center gap-1 text-center"
+                            aria-label={`${selectedOrderIds.includes(order.id) ? "Deseleccionar" : "Seleccionar"} pedido ${order.id}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleOrderSelection(
+                                order.id,
+                                !selectedOrderIds.includes(order.id),
+                              );
+                            }}
+                          >
                             <div className="flex min-w-0 flex-col items-center gap-1">
                               <span className="min-w-0 break-all text-sm leading-tight">
                                 {order.id}
@@ -2753,7 +2764,7 @@ function AdminOrders() {
                                 </Badge>
                               )}
                             </div>
-                          </div>
+                          </button>
                         </TableCell>
                         <TableCell className="text-sm">{formatDate(order.date)}</TableCell>
                         <TableCell>

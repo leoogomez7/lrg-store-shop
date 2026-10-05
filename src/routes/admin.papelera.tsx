@@ -130,6 +130,24 @@ function AdminTrash() {
     setSelectedRestoreKeys(checked ? allKeys : []);
   };
 
+  const toggleTrashEntrySelection = (entryKey: string, checked: boolean) => {
+    scrollToTopOnFirstSelection(
+      selectedDeleteKeys.length || selectedRestoreKeys.length,
+      checked,
+      hasScrolledOnTrashSelectionRef,
+    );
+    setSelectionMode("delete");
+    const updateSelection = (current: string[]) => {
+      const next = checked
+        ? [...new Set([...current, entryKey])]
+        : current.filter((key) => key !== entryKey);
+      if (next.length === 0) hasScrolledOnTrashSelectionRef.current = false;
+      return next;
+    };
+    setSelectedDeleteKeys(updateSelection);
+    setSelectedRestoreKeys(updateSelection);
+  };
+
   useEffect(() => {
     let active = true;
     void Promise.all([loadAdminTrashSetting({ data: {} }), listAdminBackupTrash({ data: {} })])
@@ -533,21 +551,7 @@ function AdminTrash() {
                           }
                           onCheckedChange={(checked) => {
                             const entryKey = getEntryKey(entry);
-                            scrollToTopOnFirstSelection(
-                              selectedDeleteKeys.length || selectedRestoreKeys.length,
-                              checked === true,
-                              hasScrolledOnTrashSelectionRef,
-                            );
-                            setSelectionMode("delete");
-                            const updateSelection = (current: string[]) => {
-                              const next = checked === true
-                                ? [...new Set([...current, entryKey])]
-                                : current.filter((key) => key !== entryKey);
-                              if (next.length === 0) hasScrolledOnTrashSelectionRef.current = false;
-                              return next;
-                            };
-                            setSelectedDeleteKeys(updateSelection);
-                            setSelectedRestoreKeys(updateSelection);
+                            toggleTrashEntrySelection(entryKey, checked === true);
                           }}
                           aria-label={`Seleccionar ${name}`}
                         />
@@ -566,7 +570,23 @@ function AdminTrash() {
                         )}
                       </span>
                     </TableCell>
-                    <TableCell className="w-64 max-w-64 truncate font-medium">{name}</TableCell>
+                    <TableCell className="w-64 max-w-64 truncate font-medium">
+                      <button
+                        type="button"
+                        className="w-full truncate text-left"
+                        aria-label={`${selectedDeleteKeys.includes(getEntryKey(entry)) ? "Deseleccionar" : "Seleccionar"} ${name}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          const entryKey = getEntryKey(entry);
+                          toggleTrashEntrySelection(
+                            entryKey,
+                            !selectedDeleteKeys.includes(entryKey),
+                          );
+                        }}
+                      >
+                        {name}
+                      </button>
+                    </TableCell>
                     <TableCell className="w-24 min-w-24 max-w-24">
                       {isProduct
                         ? "Producto"

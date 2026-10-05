@@ -643,7 +643,19 @@ function AdminBackups() {
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    {formatDate(backup.createdAt)}
+                    <button
+                      type="button"
+                      className="w-full cursor-pointer text-left"
+                      aria-label={`${selectedBackupIds.includes(backup.id) ? "Deseleccionar" : "Seleccionar"} copia ${formatDate(backup.createdAt)}`}
+                      onClick={() =>
+                        toggleBackupSelection(
+                          backup.id,
+                          !selectedBackupIds.includes(backup.id),
+                        )
+                      }
+                    >
+                      {formatDate(backup.createdAt)}
+                    </button>
                   </TableCell>
                   <TableCell className="w-40 wrap-break-word">{getBackupType(backup)}</TableCell>
                   <TableCell className="w-64 break-all text-muted-foreground">

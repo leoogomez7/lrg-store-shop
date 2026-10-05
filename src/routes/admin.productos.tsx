@@ -1847,6 +1847,11 @@ function AdminProducts() {
   };
 
   const toggleProductSelection = (selectionKey: string, checked: boolean) => {
+    scrollToTopOnFirstSelection(
+      selectedProductIds.length,
+      checked,
+      hasScrolledOnProductSelectionRef,
+    );
     setSelectedProductIds((current) => {
       const next = checked
         ? current.includes(selectionKey)
@@ -1854,6 +1859,7 @@ function AdminProducts() {
           : [...current, selectionKey]
         : current.filter((key) => key !== selectionKey);
 
+      if (next.length === 0) hasScrolledOnProductSelectionRef.current = false;
       setSelectionMode(next.length > 0);
       return next;
     });
@@ -4020,23 +4026,12 @@ function AdminProducts() {
                             checked={selectedProductIds.includes(
                               getProductSelectionKey(product, variant),
                             )}
-                            onCheckedChange={(checked) => {
-                              const isChecked = checked === true;
-                              const selectionKey = getProductSelectionKey(product, variant);
-                              scrollToTopOnFirstSelection(
-                                selectedProductIds.length,
-                                isChecked,
-                                hasScrolledOnProductSelectionRef,
-                              );
-                              setSelectedProductIds((current) => {
-                                const next = isChecked
-                                  ? [...new Set([...current, selectionKey])]
-                                  : current.filter((key) => key !== selectionKey);
-                                if (next.length === 0) hasScrolledOnProductSelectionRef.current = false;
-                                setSelectionMode(next.length > 0);
-                                return next;
-                              });
-                            }}
+                            onCheckedChange={(checked) =>
+                              toggleProductSelection(
+                                getProductSelectionKey(product, variant),
+                                checked === true,
+                              )
+                            }
                             aria-label={`Seleccionar ${product.name}${variant ? ` ${variant.name}` : ""}`}
                           />
                         </div>
@@ -4275,7 +4270,19 @@ function AdminProducts() {
                       ) : (
                         <>
                           <TableCell className="min-w-64 text-center">
-                            <div className="flex min-w-0 flex-wrap items-center justify-center gap-2 text-center">
+                            <button
+                              type="button"
+                              className="flex w-full min-w-0 flex-wrap items-center justify-center gap-2 text-center"
+                              aria-label={`${selectedProductIds.includes(getProductSelectionKey(product, variant)) ? "Deseleccionar" : "Seleccionar"} ${product.name}${variant ? ` ${variant.name}` : ""}`}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                const selectionKey = getProductSelectionKey(product, variant);
+                                toggleProductSelection(
+                                  selectionKey,
+                                  !selectedProductIds.includes(selectionKey),
+                                );
+                              }}
+                            >
                               <span className="min-w-0 w-full wrap-break-word font-medium text-center">
                                 {product.name}
                               </span>
@@ -4291,7 +4298,7 @@ function AdminProducts() {
                                   Oculto
                                 </span>
                               ) : null}
-                            </div>
+                            </button>
                           </TableCell>
                           <TableCell className="text-center">
                             {getBrandShortName(product.brand)}
@@ -6373,6 +6380,7 @@ function ProductEditDialog({
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [fragranticaDialogOpen, setFragranticaDialogOpen] = useState(false);
   const [fragranticaSourceUrl, setFragranticaSourceUrl] = useState(fragranticaDesignerSources[0]!.url);
+  const [fragranticaManualDescription, setFragranticaManualDescription] = useState("");
   const [fragranticaResults, setFragranticaResults] = useState<FragranticaDescriptionResult[]>([]);
   const [fragranticaError, setFragranticaError] = useState("");
   const [isSearchingFragrantica, setIsSearchingFragrantica] = useState(false);
@@ -6945,8 +6953,11 @@ function ProductEditDialog({
       setFragranticaResults(results);
       if (!results.length) setFragranticaError("No se encontraron notas para ese producto.");
     } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo importar la descripción.";
       setFragranticaError(
-        error instanceof Error ? error.message : "No se pudo importar la descripción.",
+        /403/.test(message)
+          ? "Fragrantica bloqueó la solicitud automática (403). No se importaron notas; podés abrir la página en tu navegador, copiarlas y pegarlas abajo."
+          : message,
       );
     } finally {
       setIsSearchingFragrantica(false);
@@ -8146,6 +8157,7 @@ function ProductEditDialog({
                       onClick={() => {
                         setFragranticaResults([]);
                         setFragranticaError("");
+                        setFragranticaManualDescription("");
                         setFragranticaDialogOpen(true);
                       }}
                     >
@@ -8226,6 +8238,34 @@ function ProductEditDialog({
                           {fragranticaError}
                         </p>
                       ) : null}
+                      <div className="space-y-2 border-t border-border/60 pt-4">
+                        <Label htmlFor="fragrantica-manual-description">
+                          O pegá las notas manualmente
+                        </Label>
+                        <Textarea
+                          id="fragrantica-manual-description"
+                          value={fragranticaManualDescription}
+                          onChange={(event) => setFragranticaManualDescription(event.target.value)}
+                          placeholder={[
+                            "Notas de salida: ...",
+                            "Notas de corazón: ...",
+                            "Notas de fondo: ...",
+                          ].join("\n")}
+                          rows={5}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Si el acceso automático falla, copiá las notas desde la página y revisá el
+                          texto antes de aplicarlo.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={!activeVariant || !fragranticaManualDescription.trim()}
+                          onClick={() => applyFragranticaDescription(fragranticaManualDescription.trim())}
+                        >
+                          Usar notas pegadas
+                        </Button>
+                      </div>
                       {fragranticaResults.length ? (
                         <div className="space-y-3">
                           {fragranticaResults.map((result) => (
