@@ -106,6 +106,9 @@ import {
   parseLocalizedImportPrice,
   replaceSubcategorySuffix,
 } from "@/lib/product-import-utils";
+import {
+  removeSelectionFromQueue,
+} from "@/lib/product-selection";
 
 type DeliveryUnit = "inmediata" | "horas" | "dias";
 type CurrencyCode = "ARS" | "USD";
@@ -1256,6 +1259,24 @@ function AdminProducts() {
 
   const getVariantMatches = (product: Product) => getDuplicateMatches(product);
 
+  useEffect(() => {
+    if (!importAsVariant || !importVariantName.trim() || duplicateCandidateIds.length === 0) return;
+    setImportedVariantChoices((current) => {
+      let hasChanges = false;
+      const next = { ...current };
+      const nextVariantName = importVariantName.trim();
+      for (const productId of duplicateCandidateIds) {
+        const choice = next[productId];
+        if (!choice) continue;
+        if (choice.variantName !== nextVariantName) {
+          next[productId] = { ...choice, variantName: nextVariantName };
+          hasChanges = true;
+        }
+      }
+      return hasChanges ? next : current;
+    });
+  }, [duplicateCandidateIds, importAsVariant, importVariantName]);
+
   const commitImportedProducts = async (importedProducts: Product[]) => {
     if (!importedProducts.length) {
       toast.info("No seleccionaste productos para agregar.");
@@ -1955,7 +1976,7 @@ function AdminProducts() {
     const currentSelectionKey = initialVariantId
       ? `${currentProductId}:${initialVariantId}`
       : currentProductId;
-    const remainingQueue = queue.filter((selectionKey) => selectionKey !== currentSelectionKey);
+    const remainingQueue = removeSelectionFromQueue(queue, currentSelectionKey);
     const nextPosition = Math.min(currentPosition, remainingQueue.length - 1);
     const nextSelectionKey = remainingQueue[nextPosition];
     if (!nextSelectionKey) {
@@ -1964,7 +1985,7 @@ function AdminProducts() {
     }
 
     setSelectedProductIds((current) =>
-      current.filter((selectionKey) => selectionKey !== currentSelectionKey),
+      removeSelectionFromQueue(current, currentSelectionKey),
     );
     bulkEditQueueRef.current = remainingQueue;
     bulkEditPositionRef.current = nextPosition;
@@ -2015,9 +2036,12 @@ function AdminProducts() {
     const currentSelectionKey = quickEditProductId
       ? `${quickEditProductId}:${quickEditVariantId ?? "base"}`
       : null;
-    const remainingQueue = bulkQuickEditQueue.filter(
-      (selectionKey) => normalizeQuickEditSelectionKey(selectionKey) !== currentSelectionKey,
-    );
+    const remainingQueue = currentSelectionKey
+      ? removeSelectionFromQueue(
+          bulkQuickEditQueue,
+          normalizeQuickEditSelectionKey(currentSelectionKey),
+        )
+      : [...bulkQuickEditQueue];
     const nextQueuedSelectionKey = remainingQueue[0];
     const nextQuickEditEntry = nextQueuedSelectionKey
       ? resolveQuickEditSelection(nextQueuedSelectionKey)
@@ -2164,8 +2188,9 @@ function AdminProducts() {
     }));
 
     const currentSelectionKey = key;
-    const remainingQueue = bulkQuickEditQueue.filter(
-      (selectionKey) => normalizeQuickEditSelectionKey(selectionKey) !== currentSelectionKey,
+    const remainingQueue = removeSelectionFromQueue(
+      bulkQuickEditQueue,
+      normalizeQuickEditSelectionKey(currentSelectionKey),
     );
     const nextQueuedSelectionKey = remainingQueue[0];
     const nextQuickEditEntry = nextQueuedSelectionKey
@@ -2313,14 +2338,10 @@ function AdminProducts() {
     const currentSelectionKey = initialVariantId
       ? `${currentProductId}:${initialVariantId}`
       : currentProductId;
-    const remainingQueue = queueBeforeSave.filter(
-      (selectionKey) => selectionKey !== currentSelectionKey,
-    );
+    const remainingQueue = removeSelectionFromQueue(queueBeforeSave, currentSelectionKey);
     const nextBulkSelectionKey = remainingQueue[0];
 
-    setSelectedProductIds((current) =>
-      current.filter((selectionKey) => selectionKey !== currentSelectionKey),
-    );
+    setSelectedProductIds((current) => removeSelectionFromQueue(current, currentSelectionKey));
 
     bulkEditQueueRef.current = remainingQueue;
     bulkEditPositionRef.current = 0;
@@ -2393,6 +2414,7 @@ function AdminProducts() {
       ]),
     ).sort((first, second) => first.localeCompare(second, "es", { sensitivity: "base" }));
   }, [adminSettings, editableProducts]);
+
   const availableSkus = useMemo(() => {
     const skuOptions = new Map<
       string,
@@ -4610,21 +4632,28 @@ function AdminProducts() {
               type="button"
               className="w-full sm:col-span-2 lg:col-span-1"
               disabled={
-                !isImportHeaderLoaded || isSavingImportHeader || (importAsVariant && !importVariantName.trim())
+                isPreparingImport ||
+                !isImportHeaderLoaded ||
+                isSavingImportHeader ||
+                (importAsVariant && !importVariantName.trim())
               }
               onClick={() => {
-                setCreateChoiceOpen(false);
-                setImportSetupOpen(false);
-                setApplyImportFieldsToAll(true);
-                appendImportedProductsRef.current = false;
-                if (importSetupSource === "images") multiProductInputRef.current?.click();
-                if (importSetupSource === "text") textProductInputRef.current?.click();
-                if (importSetupSource === "store") setStoreImportLinkOpen(true);
+                setIsPreparingImport(true);
+                window.setTimeout(() => {
+                  setCreateChoiceOpen(false);
+                  setImportSetupOpen(false);
+                  setApplyImportFieldsToAll(true);
+                  appendImportedProductsRef.current = false;
+                  if (importSetupSource === "images") multiProductInputRef.current?.click();
+                  if (importSetupSource === "text") textProductInputRef.current?.click();
+                  if (importSetupSource === "store") setStoreImportLinkOpen(true);
+                  window.setTimeout(() => setIsPreparingImport(false), 250);
+                }, 180);
               }}
             >
               <span className="inline-flex items-center gap-2 text-current">
-                <span>Continuar</span>
-                <ArrowRight className="size-4 text-current" />
+                <span>{isPreparingImport ? "Cargando..." : "Continuar"}</span>
+                {!isPreparingImport ? <ArrowRight className="size-4 text-current" /> : null}
               </span>
             </Button>
           </div>
@@ -5762,7 +5791,7 @@ function AdminProducts() {
                             </Label>
                             <Input
                               id={`import-variant-name-${product.id}`}
-                              value={variantChoice.variantName}
+                              value={importAsVariant ? importVariantName.trim() : variantChoice.variantName}
                               placeholder="Ej.: Secundaria"
                               disabled={importAsVariant}
                               onChange={(event) =>
