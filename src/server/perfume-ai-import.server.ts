@@ -48,6 +48,9 @@ function collectCitedSources(value: unknown): PerfumeSource[] {
     }
     if (!isRecord(current)) return;
     if (current.type === "url_citation") addSource(current);
+    if (isRecord(current.web)) {
+      addSource({ title: current.web.title, url: current.web.uri });
+    }
     for (const [key, child] of Object.entries(current)) visit(child, key);
   };
 
@@ -57,6 +60,20 @@ function collectCitedSources(value: unknown): PerfumeSource[] {
 
 function getOutputText(payload: RecordValue): string {
   if (typeof payload.output_text === "string") return payload.output_text;
+  if (typeof payload.response === "string") return payload.response.trim();
+  if (isRecord(payload.message) && typeof payload.message.content === "string") {
+    return payload.message.content.trim();
+  }
+  if (Array.isArray(payload.candidates)) {
+    const candidate = payload.candidates.find(isRecord);
+    if (candidate && isRecord(candidate.content) && Array.isArray(candidate.content.parts)) {
+      return candidate.content.parts
+        .filter((part): part is RecordValue => isRecord(part) && typeof part.text === "string")
+        .map((part) => part.text as string)
+        .join("\n")
+        .trim();
+    }
+  }
   if (!Array.isArray(payload.output)) return "";
 
   return payload.output
@@ -102,9 +119,24 @@ export function parsePerfumeNotesResponse(payload: unknown): PerfumeNotesImport 
   ]
     .filter(Boolean)
     .join("\n");
-  const sources = collectCitedSources(payload);
 
-  if (!sources.length) throw new Error("La búsqueda no devolvió fuentes verificables. No se importaron notas.");
+  const parsedSources = Array.isArray(parsed.sources)
+    ? parsed.sources
+        .filter(isRecord)
+        .filter((source) => typeof source.title === "string" && typeof source.url === "string")
+        .map((source) => ({
+          title: source.title as string,
+          url: source.url as string,
+        }))
+    : [];
+  const sources = parsedSources.length ? parsedSources : collectCitedSources(payload);
+  const isLocalOllamaResponse =
+    typeof payload.response === "string" ||
+    (isRecord(payload.message) && typeof payload.message.content === "string");
+
+  if (!isLocalOllamaResponse && !sources.length && parsed.matched) {
+    throw new Error("La búsqueda no devolvió fuentes verificables. No se importaron notas.");
+  }
   if (parsed.matched && !description) {
     throw new Error("Encontré el perfume, pero no pude confirmar sus notas.");
   }

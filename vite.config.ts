@@ -11,14 +11,14 @@ export default defineConfig(({ mode }) => {
   // The provided environment file lives next to the project directory.
   const envDir = path.resolve(__dirname, "..");
   const serverEnv = loadEnv(mode, envDir, "");
-  for (const name of ["OPENAI_API_KEY", "OPENAI_PERFUME_MODEL"]) {
+  for (const name of ["GEMINI_API_KEY", "GEMINI_PERFUME_MODEL"]) {
     if (!process.env[name] && serverEnv[name]) process.env[name] = serverEnv[name];
   }
 
   return {
     envDir,
     // Kinde identifiers are public client configuration; database tokens are not.
-    // Keep OpenAI credentials out of import.meta.env and client bundles.
+    // Keep Gemini credentials out of import.meta.env and client bundles.
     envPrefix: ["VITE_", "AUTH_", "DOMAIN_"],
     plugins: [tanstackStart(), tailwindcss(), react()],
     resolve: {

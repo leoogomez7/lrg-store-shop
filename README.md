@@ -15,12 +15,15 @@ npm run dev
 
 ## Importación de notas de perfumes
 
-La búsqueda con IA usa la API de OpenAI y búsqueda web. Para desarrollo local, definí
-`OPENAI_API_KEY=tu_clave` en el archivo `.env` que está junto a la carpeta del proyecto (Vite ya
-lee ahí la configuración existente). Para producción, agregá
-`OPENAI_API_KEY` en **Vercel → Project Settings → Environment Variables** para los entornos que
-uses y volvé a desplegar. No la incluyas en variables `VITE_*`, no la guardes en el repositorio y
-no la pegues en el chat: la clave se debe leer solo en el servidor.
+La búsqueda con IA usa Gemini 2.5 Flash con Google Search Grounding. Google ofrece una cuota
+gratuita para este modelo y su búsqueda web (actualmente hasta 500 solicitudes de búsqueda por día,
+sujeto a límites de frecuencia y disponibilidad). Revisá los [precios y cuotas oficiales](https://ai.google.dev/gemini-api/docs/pricing).
 
-Opcionalmente, `OPENAI_PERFUME_MODEL` permite elegir otro modelo compatible con la herramienta
-`web_search`; el valor predeterminado es `gpt-4.1-mini`. La cuenta de OpenAI debe tener API habilitada.
+Creá una clave en [Google AI Studio](https://aistudio.google.com/apikey). Para desarrollo local,
+definí `GEMINI_API_KEY=tu_clave` en el archivo `.env` que está junto a la carpeta del proyecto.
+Para producción, agregá `GEMINI_API_KEY` en **Vercel → Project Settings → Environment Variables**
+y volvé a desplegar. No la incluyas en variables `VITE_*`, no la guardes en el repositorio y no la
+compartas: la clave se debe leer solo en el servidor.
+
+Opcionalmente, `GEMINI_PERFUME_MODEL` permite cambiar el modelo; por defecto se usa
+`gemini-2.5-flash`.

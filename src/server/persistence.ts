@@ -1260,64 +1260,131 @@ export const importPerfumeNotesWithAI = createServerFn({ method: "POST" })
       throw new Error("Ingresá un nombre de producto válido para buscar.");
     }
 
-    const apiKey = typeof process !== "undefined" ? process.env["OPENAI_API_KEY"]?.trim() : "";
-    if (!apiKey) {
-      throw new Error(
-        "La búsqueda con IA todavía no está configurada. Agregá OPENAI_API_KEY en las variables de entorno de Vercel y volvé a desplegar la aplicación.",
-      );
+      const geminiApiKey = typeof process !== "undefined" ? process.env["GEMINI_API_KEY"]?.trim() : "";
+    const ollamaBaseUrl = typeof process !== "undefined"
+      ? (process.env["OLLAMA_BASE_URL"]?.trim() || "http://localhost:11434")
+      : "http://localhost:11434";
+    const ollamaModel = typeof process !== "undefined"
+      ? (process.env["OLLAMA_MODEL"]?.trim() || "llama3.1")
+      : "llama3.1";
+
+    if (!geminiApiKey) {
+      try {
+        const ollamaTagsUrl = `${ollamaBaseUrl.replace(/\/$/, "")}/api/tags`;
+        const ollamaTagsResponse = await fetch(ollamaTagsUrl, {
+          method: "GET",
+          signal: AbortSignal.timeout(10_000),
+        });
+
+        if (ollamaTagsResponse.ok) {
+          const tagsPayload: unknown = await ollamaTagsResponse.json();
+          const installedModels =
+            typeof tagsPayload === "object" && tagsPayload !== null && "models" in tagsPayload && Array.isArray((tagsPayload as { models?: unknown[] }).models)
+              ? (tagsPayload as { models: Array<{ name?: string }> }).models
+                  .map((model) => model.name)
+                  .filter((name): name is string => typeof name === "string")
+              : [];
+
+          if (installedModels.length > 0 && !installedModels.some((name) => name === ollamaModel || name.startsWith(`${ollamaModel}:`))) {
+            throw new Error(
+              `El modelo local "${ollamaModel}" no está instalado. Ejecutá "ollama pull ${ollamaModel}" en tu PC y volvé a intentar.`,
+            );
+          }
+        }
+
+        const ollamaUrl = `${ollamaBaseUrl.replace(/\/$/, "")}/api/generate`;
+        const ollamaResponse = await fetch(ollamaUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: ollamaModel,
+            prompt: `Respondé solo JSON válido con las propiedades matched (boolean), title (string), reason (string), notes (objeto con top, heart y base como listas de strings), y opcionalmente sources (lista de { title, url }). No uses Fragrantica como fuente. Busca información verificable sobre el perfume: ${productName}`,
+            stream: false,
+            options: {
+              temperature: 0.2,
+            },
+          }),
+          signal: AbortSignal.timeout(60_000),
+        });
+
+        if (!ollamaResponse.ok) {
+          let message = "";
+          try {
+            const errorPayload: unknown = await ollamaResponse.json();
+            if (
+              typeof errorPayload === "object" &&
+              errorPayload !== null &&
+              "error" in errorPayload &&
+              typeof (errorPayload as { error?: unknown }).error === "string"
+            ) {
+              message = (errorPayload as { error: string }).error;
+            }
+          } catch {
+            // Ignore malformed JSON from Ollama errors.
+          }
+
+          if (message.toLowerCase().includes("not found") || message.toLowerCase().includes("model")) {
+            throw new Error(
+              `El modelo local "${ollamaModel}" no está instalado. Ejecutá "ollama pull ${ollamaModel}" y probá de nuevo.`,
+            );
+          }
+
+          throw new Error(
+            `Ollama no está corriendo en tu PC o no está configurado. Iniciá "ollama serve" y asegurate de tener el modelo descargado antes de volver a buscar.`,
+          );
+        }
+
+        const ollamaPayload: unknown = await ollamaResponse.json();
+        const text =
+          typeof ollamaPayload === "object" && ollamaPayload !== null && "response" in ollamaPayload &&
+          typeof (ollamaPayload as { response?: unknown }).response === "string"
+            ? (ollamaPayload as { response: string }).response
+            : "";
+        if (text) {
+          return parsePerfumeNotesResponse({ response: text, model: ollamaModel });
+        }
+
+        throw new Error(
+          "Ollama devolvió una respuesta vacía. Revisá que el modelo local esté instalado y funcionando.",
+        );
+      } catch (error) {
+        if (error instanceof Error && error.message) {
+          throw error;
+        }
+        throw new Error(
+          `Ollama no está corriendo en tu PC o no está configurado. Iniciá "ollama serve" y ejecutá "ollama pull llama3.1" antes de buscar notas.`,
+        );
+      }
     }
 
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const model = process.env["GEMINI_PERFUME_MODEL"]?.trim() || "gemini-2.5-flash";
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        "x-goog-api-key": geminiApiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env["OPENAI_PERFUME_MODEL"]?.trim() || "gpt-4.1-mini",
-        store: false,
-        tools: [{ type: "web_search" }],
-        input: [
-          {
-            role: "system",
-            content:
-              "Buscá en la web información verificable sobre perfumes. No uses Fragrantica como fuente. Priorizá páginas oficiales de la marca y sitios especializados confiables. No inventes notas: si no podés confirmar que encontraste exactamente el perfume pedido, devolvé matched=false. Devolvé las notas originales en español cuando sea posible; separá notas de salida, corazón y fondo. Las fuentes deben quedar citadas por la búsqueda web.",
-          },
+        systemInstruction: {
+          parts: [
+            {
+              text: "Buscá información web verificable sobre perfumes. No uses Fragrantica como fuente. Priorizá páginas oficiales de la marca y sitios especializados confiables. No inventes notas: si no podés confirmar exactamente el perfume, devolvé matched=false. Respondé únicamente JSON válido con las propiedades matched (boolean), title (string), reason (string) y notes (objeto con top, heart y base como listas de strings). Usá español cuando sea posible.",
+            },
+          ],
+        },
+        contents: [
           {
             role: "user",
-            content: `Encontrá la pirámide olfativa del perfume: ${productName}`,
+            parts: [{ text: `Encontrá la pirámide olfativa del perfume: ${productName}` }],
           },
         ],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "perfume_notes",
-            strict: true,
-            schema: {
-              type: "object",
-              properties: {
-                matched: { type: "boolean" },
-                title: { type: "string" },
-                reason: { type: "string" },
-                notes: {
-                  type: "object",
-                  properties: {
-                    top: { type: "array", items: { type: "string" } },
-                    heart: { type: "array", items: { type: "string" } },
-                    base: { type: "array", items: { type: "string" } },
-                  },
-                  required: ["top", "heart", "base"],
-                  additionalProperties: false,
-                },
-              },
-              required: ["matched", "title", "reason", "notes"],
-              additionalProperties: false,
-            },
-          },
-        },
+        tools: [{ google_search: {} }],
       }),
       signal: AbortSignal.timeout(45_000),
-    });
+      },
+    );
 
     const payload: unknown = await response.json();
     if (!response.ok) {
@@ -1325,10 +1392,12 @@ export const importPerfumeNotesWithAI = createServerFn({ method: "POST" })
         typeof payload === "object" && payload !== null && "error" in payload &&
         typeof payload.error === "object" && payload.error !== null && "message" in payload.error
           ? String(payload.error.message)
-          : `OpenAI respondió con el estado ${response.status}.`;
-      if (response.status === 401) throw new Error("La clave OPENAI_API_KEY no es válida.");
+          : `Gemini respondió con el estado ${response.status}.`;
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("La clave GEMINI_API_KEY no es válida o no tiene acceso a Gemini API.");
+      }
       if (response.status === 429) {
-        throw new Error("OpenAI alcanzó el límite o no tiene saldo disponible. Revisá tu cuenta.");
+        throw new Error("Gemini alcanzó el límite gratuito. Esperá a que se renueve la cuota y probá de nuevo.");
       }
       throw new Error(errorMessage);
     }

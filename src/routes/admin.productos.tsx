@@ -204,23 +204,6 @@ const normalizeProductName = (name: string) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
-const getNameSimilarity = (firstName: string, secondName: string) => {
-  const first = normalizeProductName(firstName);
-  const second = normalizeProductName(secondName);
-  if (!first || !second) return 0;
-  if (first === second) return 1;
-  if (first.includes(second) || second.includes(first)) {
-    return Math.min(first.length, second.length) / Math.max(first.length, second.length);
-  }
-
-  const firstTokens = new Set(first.split(/\s+/).filter(Boolean));
-  const secondTokens = new Set(second.split(/\s+/).filter(Boolean));
-  const overlap = [...firstTokens].filter((token) => secondTokens.has(token)).length;
-  return (2 * overlap) / (firstTokens.size + secondTokens.size);
-};
-
-const getProductImageReference = (product: Product) => product.images?.[0] ?? product.image ?? "";
-
 const getImageImportProductName = (fileName: string, sequence: number) => {
   const baseName = fileName
     .replace(/\.[^.]+$/, "")
@@ -396,11 +379,6 @@ function AdminProducts() {
   const [importedVariantChoices, setImportedVariantChoices] = useState<
     Record<string, ImportedVariantChoice>
   >({});
-  const [productComparison, setProductComparison] = useState<{
-    importedProductId: string;
-    existingProductId: string;
-    selectedProductId: string | null;
-  } | null>(null);
   const [quickEditProductId, setQuickEditProductId] = useState<string | null>(null);
   const [quickEditVariantId, setQuickEditVariantId] = useState<string | null>(null);
   const [highlightedDeepLinkKey, setHighlightedDeepLinkKey] = useState<string | null>(null);
@@ -1271,77 +1249,12 @@ function AdminProducts() {
   };
 
   const getDuplicateMatches = (product: Product) => {
-    const importedName = normalizeProductName(product.name);
-    const subcategoryPath =
-      product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []);
-    const subcategoryName = getSubcategoryPathLabel(
-      product.brand,
-      product.category,
-      subcategoryPath,
-    );
-    const importedBaseName = subcategoryName
-      ? normalizeProductName(replaceSubcategorySuffix(product.name, subcategoryName, ""))
-      : importedName;
-    if (importSource === "store") {
-      return products.filter((existing) => {
-        const existingName = normalizeProductName(existing.name);
-        return existingName === importedName || existingName === importedBaseName;
-      });
-    }
-
-    return products.filter((existing) => {
-      const existingName = normalizeProductName(existing.name);
-      const existingPath =
-        existing.subcategoryPath ?? (existing.subcategory ? [existing.subcategory] : []);
-      const sameCategory =
-        existing.brand === product.brand &&
-        existing.category === product.category &&
-        existingPath.join("/") === subcategoryPath.join("/");
-      const sameSku = Boolean(product.code?.trim() && product.code.trim() === existing.code?.trim());
-      return sameCategory && (sameSku || existingName === importedName || existingName === importedBaseName);
-    });
+    const importedName = product.name.trim();
+    if (!importedName) return [];
+    return products.filter((existing) => existing.name.trim() === importedName);
   };
 
-  const getVariantMatches = (product: Product) => {
-    const productPath = product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []);
-    return getDuplicateMatches(product).filter((existing) => {
-      const existingPath = existing.subcategoryPath ?? (existing.subcategory ? [existing.subcategory] : []);
-      return (
-        existing.brand === product.brand &&
-        existing.category === product.category &&
-        existingPath.join("/") === productPath.join("/")
-      );
-    });
-  };
-
-  const getPotentialProductMatches = (product: Product) =>
-    products
-      .filter(
-        (existing) =>
-          existing.id !== product.id &&
-          existing.brand === (applyImportFieldsToAll ? importBrand : product.brand),
-      )
-      .map((existing) => {
-        const nameSimilarity = getNameSimilarity(product.name, existing.name);
-        const importedImage = getProductImageReference(product);
-        const existingImage = getProductImageReference(existing);
-        const sameImage = Boolean(importedImage && existingImage && importedImage === existingImage);
-        return { product: existing, nameSimilarity, sameImage };
-      })
-      .filter((match) => match.sameImage || match.nameSimilarity >= 0.45)
-      .sort(
-        (first, second) =>
-          Number(second.sameImage) - Number(first.sameImage) ||
-          second.nameSimilarity - first.nameSimilarity,
-      );
-
-  const openProductComparison = (importedProduct: Product, existingProduct: Product) => {
-    setProductComparison({
-      importedProductId: importedProduct.id,
-      existingProductId: existingProduct.id,
-      selectedProductId: null,
-    });
-  };
+  const getVariantMatches = (product: Product) => getDuplicateMatches(product);
 
   const commitImportedProducts = async (importedProducts: Product[]) => {
     if (!importedProducts.length) {
@@ -1466,19 +1379,7 @@ function AdminProducts() {
     const duplicateIds = importedProducts
       .filter((product) => getDuplicateMatches(product).length > 0)
       .map((product) => product.id);
-    const initialVariantChoices: Record<string, ImportedVariantChoice> = {};
-    if (importAsVariant) {
-      importedProducts.forEach((product) => {
-        const target = getVariantMatches(product)[0];
-        if (target) {
-          initialVariantChoices[product.id] = {
-            targetProductId: target.id,
-            variantName: importVariantName.trim(),
-          };
-        }
-      });
-    }
-    setImportedVariantChoices(initialVariantChoices);
+    setImportedVariantChoices({});
     if (duplicateIds.length > 0) {
       setImportPreviewPage(0);
       setDuplicateCandidateIds(duplicateIds);
@@ -1528,75 +1429,6 @@ function AdminProducts() {
       const choice = importedVariantChoices[product.id];
       return Boolean(choice && choice.existingVariantAction !== "skip");
     }).length;
-
-  const handleReplaceComparedProduct = async () => {
-    if (!productComparison || isSavingImports) return;
-    const importedProduct = pendingImportedProducts.find(
-      (product) => product.id === productComparison.importedProductId,
-    );
-    const existingProduct = products.find(
-      (product) => product.id === productComparison.existingProductId,
-    );
-    if (!importedProduct || !existingProduct) {
-      toast.error("No se encontró uno de los productos para reemplazar.");
-      setProductComparison(null);
-      return;
-    }
-
-    if (!productComparison.selectedProductId) {
-      toast.error("Seleccioná cuál producto querés conservar.");
-      return;
-    }
-
-    if (productComparison.selectedProductId === existingProduct.id) {
-      setPendingImportedProducts((current) =>
-        current.filter((product) => product.id !== importedProduct.id),
-      );
-      setStoreImportPriceDetails((current) => {
-        const next = { ...current };
-        delete next[importedProduct.id];
-        return next;
-      });
-      setProductComparison(null);
-      if (pendingImportedProducts.length <= 1) setImportCategoryOpen(false);
-      toast.success(`Se conservó «${existingProduct.name}» y se descartó el producto importado`);
-      return;
-    }
-
-    const replacement: Product = {
-      ...prepareImportedProductForSave(importedProduct),
-      id: existingProduct.id,
-    };
-    setIsSavingImports(true);
-    try {
-      const saved = await saveProductBatch([replacement]);
-      if (!saved) throw new Error("La base de datos no aceptó el reemplazo.");
-
-      const nextProducts = products.map((product) =>
-        product.id === existingProduct.id ? replacement : product,
-      );
-      productsData.splice(0, productsData.length, ...nextProducts);
-      setEditableProducts(nextProducts);
-      queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
-      void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
-      setPendingImportedProducts((current) =>
-        current.filter((product) => product.id !== importedProduct.id),
-      );
-      setStoreImportPriceDetails((current) => {
-        const next = { ...current };
-        delete next[importedProduct.id];
-        return next;
-      });
-      setProductComparison(null);
-      if (pendingImportedProducts.length <= 1) setImportCategoryOpen(false);
-      toast.success(`Se reemplazaron los datos de «${existingProduct.name}»`);
-    } catch (error) {
-      console.error("Error reemplazando producto existente:", error);
-      toast.error(error instanceof Error ? error.message : "No se pudo reemplazar el producto.");
-    } finally {
-      setIsSavingImports(false);
-    }
-  };
 
   const openEditProductDialog = useCallback(
     (product: Product, variant?: ProductVariant) => {
@@ -3151,16 +2983,6 @@ function AdminProducts() {
       </div>
     );
   };
-
-  const comparedImportedProduct = pendingImportedProducts.find(
-    (product) => product.id === productComparison?.importedProductId,
-  );
-  const comparisonCandidates = comparedImportedProduct
-    ? getPotentialProductMatches(comparedImportedProduct)
-    : [];
-  const comparedExistingProduct = products.find(
-    (product) => product.id === productComparison?.existingProductId,
-  );
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
@@ -5193,7 +5015,6 @@ function AdminProducts() {
                 .slice(importPreviewPage * 30, (importPreviewPage + 1) * 30)
                 .map((product, visibleIndex) => {
                   const index = importPreviewPage * 30 + visibleIndex;
-                  const potentialMatches = getPotentialProductMatches(product);
                   const previewImage =
                     product.images?.[0] ?? storeImportPriceDetails[product.id]?.image;
                   return (
@@ -5684,27 +5505,6 @@ function AdminProducts() {
                               placeholder="Escribí una descripción para este producto"
                             />
                           </div>
-                          {potentialMatches.length > 0 ? (
-                            <div className="order-8 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 sm:col-span-2 lg:col-span-4 lg:col-start-2 lg:row-start-3">
-                              <span className="min-w-0 flex-1 text-xs text-amber-200">
-                                Posible producto existente: {potentialMatches[0]?.product.name}
-                                {potentialMatches.length > 1
-                                  ? ` (+${potentialMatches.length - 1} más)`
-                                  : ""}
-                              </span>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  const match = potentialMatches[0];
-                                  if (match) openProductComparison(product, match.product);
-                                }}
-                              >
-                                Comparar posible producto existente
-                              </Button>
-                            </div>
-                          ) : null}
                         </div>
                       </div>
 
@@ -5824,11 +5624,11 @@ function AdminProducts() {
       >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Posibles productos repetidos</DialogTitle>
+            <DialogTitle>Productos con el mismo nombre</DialogTitle>
             <DialogDescription>
-              Encontré {duplicateCandidateIds.length} productos que podrían existir. Para cada uno,
-              podés agregarlo aparte, omitirlo o incorporarlo como variante; si ya existe una con ese
-              nombre, elegís si reemplazarla o conservarla.
+              Encontré {duplicateCandidateIds.length} productos cuyo nombre coincide exactamente
+              con uno del catálogo. Elegí si querés agregarlo aparte, omitirlo o incorporarlo como
+              una variante del producto que ya existe.
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[55dvh] space-y-3 overflow-y-auto pr-1">
@@ -5877,7 +5677,7 @@ function AdminProducts() {
                       <span className="min-w-0 flex-1">
                         <span className="block font-medium">{product.name}</span>
                         <span className="mt-1 block text-xs text-muted-foreground">
-                          Coincide con: {matches.map((match) => match.name).join(" · ")}
+                          Producto existente: {matches.map((match) => match.name).join(" · ")}
                         </span>
                         <span className="mt-1 block text-xs text-muted-foreground">
                           {variantChoice
@@ -5922,7 +5722,7 @@ function AdminProducts() {
                           }}
                         />
                         <Label htmlFor={`import-as-variant-${product.id}`}>
-                          Agregar como variante de un producto existente
+                          Incorporar como variante de un producto existente
                         </Label>
                       </div>
                       {variantChoice ? (
@@ -6064,148 +5864,6 @@ function AdminProducts() {
                 : `Agregar ${getImportResolutionCount()} productos o variantes`}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={Boolean(productComparison)}
-        onOpenChange={(open) => {
-          if (!open && !isSavingImports) setProductComparison(null);
-        }}
-      >
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Comparar posible producto existente</DialogTitle>
-            <DialogDescription>
-              Revisá el nombre y la imagen antes de reemplazar. Los campos que no estén en el
-              producto nuevo se quitarán del registro existente.
-            </DialogDescription>
-          </DialogHeader>
-          {comparedImportedProduct && comparedExistingProduct ? (
-            <>
-              {comparisonCandidates.length > 1 ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="comparison-existing-product">
-                    Producto existente para comparar
-                  </Label>
-                  <Select
-                    value={comparedExistingProduct.id}
-                    onValueChange={(existingProductId) =>
-                      setProductComparison((current) =>
-                        current
-                          ? { ...current, existingProductId, selectedProductId: null }
-                          : current,
-                      )
-                    }
-                  >
-                    <SelectTrigger id="comparison-existing-product">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {comparisonCandidates.map((match) => (
-                        <SelectItem key={match.product.id} value={match.product.id}>
-                          {match.product.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : null}
-              <div className="grid gap-4 sm:grid-cols-2">
-                {[
-                  { label: "Producto nuevo", product: comparedImportedProduct },
-                  { label: "Producto existente", product: comparedExistingProduct },
-                ].map(({ label, product }) => {
-                  const image = getProductImageReference(product);
-                  const isSelectedToKeep = productComparison?.selectedProductId === product.id;
-                  return (
-                    <section
-                      key={label}
-                      role="button"
-                      tabIndex={0}
-                      aria-pressed={isSelectedToKeep}
-                      onClick={() =>
-                        setProductComparison((current) =>
-                          current ? { ...current, selectedProductId: product.id } : current,
-                        )
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key !== "Enter" && event.key !== " ") return;
-                        event.preventDefault();
-                        setProductComparison((current) =>
-                          current ? { ...current, selectedProductId: product.id } : current,
-                        );
-                      }}
-                      className={cn(
-                        "min-w-0 cursor-pointer space-y-3 rounded-xl border p-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                        isSelectedToKeep
-                          ? "border-primary bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.35)]"
-                          : "border-border/60 bg-surface/30 hover:border-primary/50",
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-sm font-semibold">{label}</h3>
-                        {isSelectedToKeep ? (
-                          <Badge className="shrink-0">Se selecciona este producto</Badge>
-                        ) : null}
-                      </div>
-                      {image ? (
-                        <img
-                          src={image}
-                          alt={`Imagen de ${product.name}`}
-                          className="mx-auto aspect-square max-h-56 w-full rounded-lg border border-border/60 bg-background object-contain"
-                        />
-                      ) : (
-                        <ProductVisual
-                          seed={product.id}
-                          label={product.name}
-                          className="mx-auto aspect-square max-h-56 rounded-lg"
-                        />
-                      )}
-                      <p className="wrap-break-word text-center font-semibold">{product.name}</p>
-                      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
-                        <dt className="text-muted-foreground">Tienda</dt>
-                        <dd>{getBrandShortName(product.brand)}</dd>
-                        <dt className="text-muted-foreground">Categoría</dt>
-                        <dd className="wrap-break-word">{formatCategoryLabel(product.category)}</dd>
-                        <dt className="text-muted-foreground">Precio</dt>
-                        <dd>{formatPrice(product.price, product.priceCurrency ?? "ARS")}</dd>
-                        <dt className="text-muted-foreground">Stock</dt>
-                        <dd>{product.stockUnlimited ? "Ilimitado" : product.stock}</dd>
-                      </dl>
-                    </section>
-                  );
-                })}
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isSavingImports}
-                  onClick={() => setProductComparison(null)}
-                >
-                  <X className="mr-2 size-4" />
-                  Cancelar reemplazo
-                </Button>
-                <Button
-                  type="button"
-                  disabled={isSavingImports || !productComparison?.selectedProductId}
-                  onClick={() => void handleReplaceComparedProduct()}
-                >
-                  {isSavingImports ? (
-                    <LoaderCircle className="mr-2 size-4 animate-spin" />
-                  ) : (
-                    <Check className="mr-2 size-4" />
-                  )}
-                  {isSavingImports ? "Reemplazando…" : "Reemplazar"}
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No se pudieron cargar los datos para comparar. Cerrá el diálogo e intentá de nuevo.
-            </p>
-          )}
         </DialogContent>
       </Dialog>
 
