@@ -85,6 +85,7 @@ import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { scrollToTopOnFirstSelection } from "@/lib/admin-selection";
 import { parseQuickEditCommission } from "@/lib/quick-edit-utils";
+import { getVisiblePaginationItems } from "@/lib/pagination";
 import { catalogQueries, type Product } from "@/services/catalog.service";
 import { moveToTrash } from "@/data/trash";
 import {
