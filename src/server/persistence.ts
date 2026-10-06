@@ -1487,16 +1487,16 @@ export const importPlayStationStoreCategory = createServerFn({ method: "POST" })
     const sortBy = sortName ? { name: sortName, isAscending: sortOrder !== "desc" } : null;
     const pageSize = data.page === undefined ? 1000 : 24;
     const startOffset = data.page === undefined ? 0 : (data.page - 1) * pageSize;
-    const endOffset =
-      data.pageTo === undefined ? startOffset : (data.pageTo - 1) * pageSize;
     const maxProducts = 30_000;
     const products: PlayStationStoreProduct[] = [];
     let totalCount = 0;
     let isLast = false;
+    const requestedPageCount =
+      data.pageTo !== undefined ? data.pageTo - (data.page ?? 1) + 1 : undefined;
 
     for (
       let offset = startOffset, pageIndex = 0;
-      data.pageTo !== undefined ? offset <= endOffset : !isLast;
+      requestedPageCount !== undefined ? pageIndex < requestedPageCount : !isLast;
       offset += pageSize, pageIndex += 1
     ) {
       if (pageIndex >= (data.pageTo === undefined ? 31 : 1250) || offset >= maxProducts) {

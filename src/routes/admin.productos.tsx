@@ -338,6 +338,8 @@ function AdminProducts() {
   const additionalImagesInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const productHeaderInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [importHeaderImage, setImportHeaderImage] = useState("");
+  const importHeaderImageRef = useRef("");
+  const importHeaderSaveVersionRef = useRef(0);
   const [importProductHeaders, setImportProductHeaders] = useState<Record<string, string>>({});
   const [isImportHeaderLoaded, setIsImportHeaderLoaded] = useState(false);
   const [isSavingImportHeader, setIsSavingImportHeader] = useState(false);
@@ -364,7 +366,6 @@ function AdminProducts() {
     null,
   );
   const [importSource, setImportSource] = useState<"images" | "text" | "store" | null>(null);
-  const [storeImportLinkOpen, setStoreImportLinkOpen] = useState(false);
   const [storeImportLink, setStoreImportLink] = useState("");
   const [storeImportPageMode, setStoreImportPageMode] = useState<"all" | "single" | "range">("all");
   const [storeImportPageNumber, setStoreImportPageNumber] = useState("1");
@@ -451,7 +452,14 @@ function AdminProducts() {
     let active = true;
     void loadAdminAsset({ data: { assetKey: PRODUCT_IMPORT_HEADER_ASSET_KEY } })
       .then((image) => {
-        if (active && image?.startsWith("data:image/")) setImportHeaderImage(image);
+        if (
+          active &&
+          importHeaderSaveVersionRef.current === 0 &&
+          image?.startsWith("data:image/")
+        ) {
+          importHeaderImageRef.current = image;
+          setImportHeaderImage(image);
+        }
       })
       .catch((error: unknown) => {
         console.error("No se pudo cargar la cabecera de importación:", error);
@@ -857,8 +865,8 @@ function AdminProducts() {
       textProductInputRef.current?.click();
     } else if (importSource === "store") {
       setImportCategoryOpen(false);
-      setStoreImportLink("");
-      setStoreImportLinkOpen(true);
+      setImportSetupSource("store");
+      setImportSetupOpen(true);
     }
   };
 
@@ -990,6 +998,7 @@ function AdminProducts() {
   };
 
   const persistImportHeaderImage = async (image: string) => {
+    importHeaderSaveVersionRef.current += 1;
     setIsSavingImportHeader(true);
     try {
       const saved = await saveAdminAsset({
@@ -999,6 +1008,7 @@ function AdminProducts() {
         },
       });
       if (!saved) throw new Error("No se pudo guardar la cabecera en la base de datos.");
+      importHeaderImageRef.current = image;
       setImportHeaderImage(image);
       toast.success(image ? "Cabecera guardada para futuras importaciones" : "Cabecera eliminada");
     } catch (error) {
@@ -1161,7 +1171,7 @@ function AdminProducts() {
     const append = appendImportedProductsRef.current;
     appendImportedProductsRef.current = false;
     setCreateChoiceOpen(false);
-    setStoreImportLinkOpen(false);
+    setImportSetupOpen(false);
     setImportSource("store");
     if (!append) {
       setPendingImportedProducts([]);
@@ -1171,6 +1181,7 @@ function AdminProducts() {
     }
     setIsImportingStore(true);
     setImportCategoryOpen(true);
+    const headerImageForImport = importHeaderImageRef.current;
 
     try {
       const result = await importPlayStationStoreCategory({
@@ -1192,7 +1203,9 @@ function AdminProducts() {
       const timestamp = Date.now();
       const drafts = await Promise.all(result.products.map(async (item, index) => {
         const name = replaceSubcategorySuffix(item.name, "", subcategoryName);
-        const productImage = item.image ? await composeImportedImages([item.image]).then((images) => images[0]) : undefined;
+        const productImage = item.image
+          ? await composeImportedImages([item.image], headerImageForImport).then((images) => images[0])
+          : undefined;
         const slugBase =
           normalizeProductName(name).replace(/\s+/g, "-") || `store-product-${index}`;
         return {
@@ -1536,7 +1549,7 @@ function AdminProducts() {
     const product = (productsData as Product[]).find((item) => item.id === productId);
     if (!product) {
       toast.error("No se encontró el producto para eliminar.");
-      return;
+      return false;
     }
 
     try {
@@ -1546,7 +1559,7 @@ function AdminProducts() {
         );
         if (remainingVariants.length === (product.variants ?? []).length) {
           toast.error("No se encontró la variante para eliminar.");
-          return;
+          return false;
         }
 
         if (remainingVariants.length > 0) {
@@ -1561,7 +1574,7 @@ function AdminProducts() {
           queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
           void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
           toast.success("Variante eliminada");
-          return;
+          return true;
         }
       }
 
@@ -1585,9 +1598,11 @@ function AdminProducts() {
       queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
       void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
       toast.success("Producto eliminado y enviado a la papelera");
+      return true;
     } catch (error) {
       console.error("Error eliminando producto:", error);
       toast.error(error instanceof Error ? error.message : "No se pudo eliminar el producto.");
+      return false;
     }
   };
 
@@ -2051,6 +2066,45 @@ function AdminProducts() {
     openEditProductDialog(nextEntry.product, nextEntry.variant);
   };
 
+  const moveBulkEditToPrevious = (currentSelectionKey: string, removedKeys: string[]) => {
+    const queue = bulkEditQueueRef.current;
+    const currentPosition = Math.max(0, queue.indexOf(currentSelectionKey));
+    const removed = new Set(removedKeys);
+    const remainingQueue = queue.filter((selectionKey) => !removed.has(selectionKey));
+    setSelectedProductIds((current) =>
+      current.filter((selectionKey) => !removed.has(selectionKey)),
+    );
+
+    if (!remainingQueue.length) {
+      closeProductEditor();
+      return;
+    }
+
+    let previousSelectionKey: string | undefined;
+    for (let offset = 1; offset <= queue.length; offset += 1) {
+      const candidateIndex = (currentPosition - offset + queue.length) % queue.length;
+      const candidate = queue[candidateIndex];
+      if (candidate && remainingQueue.includes(candidate)) {
+        previousSelectionKey = candidate;
+        break;
+      }
+    }
+    previousSelectionKey ??= remainingQueue[remainingQueue.length - 1];
+
+    bulkEditQueueRef.current = remainingQueue;
+    const nextPosition = remainingQueue.indexOf(previousSelectionKey!);
+    bulkEditPositionRef.current = nextPosition;
+    setBulkEditQueue(remainingQueue);
+    setBulkEditPosition(nextPosition);
+
+    const previousEntry = resolveBulkEditSelection(previousSelectionKey!);
+    if (previousEntry) {
+      openEditProductDialog(previousEntry.product, previousEntry.variant);
+      return;
+    }
+    closeProductEditor();
+  };
+
   const getQuickEditKey = (product: Product, variant?: ProductVariant) =>
     `${product.id}:${variant?.id ?? "base"}`;
 
@@ -2378,24 +2432,11 @@ function AdminProducts() {
     const currentSelectionKey = initialVariantId
       ? `${currentProductId}:${initialVariantId}`
       : currentProductId;
-    const remainingQueue = removeSelectionFromQueue(queueBeforeSave, currentSelectionKey);
-    const nextBulkSelectionKey = remainingQueue[0];
-
-    setSelectedProductIds((current) => removeSelectionFromQueue(current, currentSelectionKey));
-
-    bulkEditQueueRef.current = remainingQueue;
-    bulkEditPositionRef.current = 0;
-    setBulkEditQueue(remainingQueue);
-    setBulkEditPosition(0);
-
-    if (nextBulkSelectionKey) {
-      const nextEntry = resolveBulkEditSelection(nextBulkSelectionKey);
-      if (nextEntry) {
-        openEditProductDialog(nextEntry.product, nextEntry.variant);
-        return;
-      }
+    if (!queueBeforeSave.includes(currentSelectionKey)) {
+      closeProductEditor();
+      return;
     }
-    closeProductEditor();
+    moveBulkEditToPrevious(currentSelectionKey, [currentSelectionKey]);
   };
 
   const handleSaveProduct = async () => {
@@ -4480,7 +4521,7 @@ function AdminProducts() {
           if (!open) setImportSetupSource(null);
         }}
       >
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Configurar importación</DialogTitle>
             <DialogDescription>
@@ -4566,6 +4607,84 @@ function AdminProducts() {
               como nombre de variante en los productos nuevos que no tengan coincidencia.
             </p>
           </section>
+          {importSetupSource === "store" ? (
+            <section className="space-y-3 rounded-xl border border-border/60 bg-surface/40 p-3">
+              <div className="space-y-2">
+                <Label htmlFor="store-import-link">Link de la categoría</Label>
+                <Input
+                  id="store-import-link"
+                  type="url"
+                  value={storeImportLink}
+                  onChange={(event) => setStoreImportLink(event.target.value)}
+                  placeholder="https://store.playstation.com/es-ar/category/..."
+                  autoComplete="url"
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="store-import-page-mode">Páginas a importar</Label>
+                  <Select
+                    value={storeImportPageMode}
+                    onValueChange={(value) =>
+                      setStoreImportPageMode(value as "all" | "single" | "range")
+                    }
+                  >
+                    <SelectTrigger id="store-import-page-mode">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las páginas</SelectItem>
+                      <SelectItem value="single">Una página específica</SelectItem>
+                      <SelectItem value="range">Desde una página hasta otra</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {storeImportPageMode !== "all" ? (
+                  storeImportPageMode === "single" ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="store-import-page-number">Número de página</Label>
+                      <Input
+                        id="store-import-page-number"
+                        type="number"
+                        min={1}
+                        max={1250}
+                        step={1}
+                        value={storeImportPageNumber}
+                        onChange={(event) => setStoreImportPageNumber(event.target.value)}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="store-import-page-number">Desde la página</Label>
+                        <Input
+                          id="store-import-page-number"
+                          type="number"
+                          min={1}
+                          max={1250}
+                          step={1}
+                          value={storeImportPageNumber}
+                          onChange={(event) => setStoreImportPageNumber(event.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="store-import-page-end-number">Hasta la página</Label>
+                        <Input
+                          id="store-import-page-end-number"
+                          type="number"
+                          min={Number(storeImportPageNumber) || 1}
+                          max={1250}
+                          step={1}
+                          value={storeImportPageEndNumber}
+                          onChange={(event) => setStoreImportPageEndNumber(event.target.value)}
+                        />
+                      </div>
+                    </>
+                  )
+                ) : null}
+              </div>
+            </section>
+          ) : null}
           <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="import-setup-brand">Tienda</Label>
@@ -4680,9 +4799,14 @@ function AdminProducts() {
                 isPreparingImport ||
                 !isImportHeaderLoaded ||
                 isSavingImportHeader ||
-                (importAsVariant && !importVariantName.trim())
+                (importAsVariant && !importVariantName.trim()) ||
+                (importSetupSource === "store" && !storeImportLink.trim())
               }
               onClick={() => {
+                if (importSetupSource === "store") {
+                  void handleImportFromStore();
+                  return;
+                }
                 setIsPreparingImport(true);
                 window.setTimeout(() => {
                   setCreateChoiceOpen(false);
@@ -4691,210 +4815,22 @@ function AdminProducts() {
                   appendImportedProductsRef.current = false;
                   if (importSetupSource === "images") multiProductInputRef.current?.click();
                   if (importSetupSource === "text") textProductInputRef.current?.click();
-                  if (importSetupSource === "store") setStoreImportLinkOpen(true);
                   window.setTimeout(() => setIsPreparingImport(false), 250);
                 }, 180);
               }}
             >
               <span className="inline-flex items-center gap-2 text-current">
-                <span>{isPreparingImport ? "Cargando..." : "Continuar"}</span>
+                <span>
+                  {isPreparingImport
+                    ? "Cargando..."
+                    : importSetupSource === "store"
+                      ? "Consultar Store"
+                      : "Continuar"}
+                </span>
                 {!isPreparingImport ? <ArrowRight className="size-4 text-current" /> : null}
               </span>
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={storeImportLinkOpen}
-        onOpenChange={(open) => {
-          if (open) setImportSetupOpen(false);
-          setStoreImportLinkOpen(open);
-        }}
-      >
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Importar desde PlayStation Store</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="store-import-link">Link de la categoría</Label>
-              <Input
-                id="store-import-link"
-                type="url"
-                value={storeImportLink}
-                onChange={(event) => setStoreImportLink(event.target.value)}
-                placeholder="https://store.playstation.com/es-ar/category/..."
-                autoComplete="url"
-              />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="store-import-page-mode">Páginas a importar</Label>
-                <Select
-                  value={storeImportPageMode}
-                  onValueChange={(value) =>
-                    setStoreImportPageMode(value as "all" | "single" | "range")
-                  }
-                >
-                  <SelectTrigger id="store-import-page-mode">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las páginas</SelectItem>
-                    <SelectItem value="single">Una página específica</SelectItem>
-                    <SelectItem value="range">Desde una página hasta otra</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {storeImportPageMode !== "all" ? (
-                <div className="space-y-2">
-                  {storeImportPageMode === "single" ? (
-                    <>
-                      <Label htmlFor="store-import-page-number">Número de página</Label>
-                      <Input
-                        id="store-import-page-number"
-                        type="number"
-                        min={1}
-                        max={1250}
-                        step={1}
-                        value={storeImportPageNumber}
-                        onChange={(event) => setStoreImportPageNumber(event.target.value)}
-                      />
-                    </>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="store-import-page-number">Desde la página</Label>
-                        <Input
-                          id="store-import-page-number"
-                          type="number"
-                          min={1}
-                          max={1250}
-                          step={1}
-                          value={storeImportPageNumber}
-                          onChange={(event) => setStoreImportPageNumber(event.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="store-import-page-end-number">Hasta la página</Label>
-                        <Input
-                          id="store-import-page-end-number"
-                          type="number"
-                          min={Number(storeImportPageNumber) || 1}
-                          max={1250}
-                          step={1}
-                          value={storeImportPageEndNumber}
-                          onChange={(event) => setStoreImportPageEndNumber(event.target.value)}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : null}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="store-import-brand">Tienda</Label>
-                <Select
-                  value={importBrand}
-                  onValueChange={(value) => {
-                    const nextBrand = value as BrandSlug;
-                    setImportBrand(nextBrand);
-                    setImportCategory(brands[nextBrand].categories[0]?.slug ?? "");
-                    setImportSubcategory("");
-                    setImportSubcategoryPath([]);
-                  }}
-                >
-                  <SelectTrigger id="store-import-brand">
-                    <SelectValue placeholder="Tienda" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brandList.map((brand) => (
-                      <SelectItem key={brand.slug} value={brand.slug}>
-                        {brand.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="store-import-category">Categoría</Label>
-                <Select
-                  value={importCategory}
-                  onValueChange={(value) => {
-                    setImportCategory(value);
-                    setImportSubcategory("");
-                    setImportSubcategoryPath([]);
-                  }}
-                >
-                  <SelectTrigger id="store-import-category">
-                    <SelectValue placeholder="Categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands[importBrand].categories.map((category) => (
-                      <SelectItem key={category.slug} value={category.slug}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {Array.from({ length: importSubcategoryPath.length + 1 }, (_, level) => {
-                const options = getSubcategoryOptionsAtLevel(
-                  selectedImportCategory?.subcategories,
-                  importSubcategoryPath,
-                  level,
-                );
-                if (!options.length) return null;
-                return (
-                  <div key={`store-import-subcategory-${level}`} className="space-y-2">
-                    <Label htmlFor={`store-import-subcategory-${level}`}>
-                      {level === 0 ? "Subcategoría" : `Subcategoría ${level + 1}`}
-                    </Label>
-                    <Select
-                      value={importSubcategoryPath[level] ?? "none"}
-                      onValueChange={(value) => {
-                        const nextPath = importSubcategoryPath.slice(0, level);
-                        if (value !== "none") nextPath.push(value);
-                        setImportSubcategoryPath(nextPath);
-                        setImportSubcategory(nextPath[0] ?? "");
-                      }}
-                    >
-                      <SelectTrigger id={`store-import-subcategory-${level}`}>
-                        <SelectValue placeholder="Subcategoría" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Sin subcategoría</SelectItem>
-                        {options.map((subcategory) => (
-                          <SelectItem key={subcategory.slug} value={subcategory.slug}>
-                            {subcategory.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              El producto se guardará como «juego - subcategoría». Los gastos usarán el menor entre el
-              precio normal y el de oferta, en USD; la comisión inicial será $5.000 ARS.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setStoreImportLinkOpen(false)}>
-              <X className="mr-2 size-4" />
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={() => void handleImportFromStore()}
-              disabled={isImportingStore}
-            >
-              <ArrowRight className="mr-2 size-4" /> Consultar Store
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -6026,7 +5962,29 @@ function AdminProducts() {
                     : "El producto se enviará a la papelera.",
                   confirmLabel: "Eliminar",
                   onConfirm: () => {
-                    void handleDeleteProduct(productId, variantId).then(() => closeProductEditor());
+                    void handleDeleteProduct(productId, variantId).then((deleted) => {
+                      if (!deleted) return;
+                      const queue = bulkEditQueueRef.current;
+                      const currentSelectionKey = variantId
+                        ? `${productId}:${variantId}`
+                        : productId;
+                      if (!queue.includes(currentSelectionKey)) {
+                        closeProductEditor();
+                        return;
+                      }
+
+                      const productStillExists = (productsData as Product[]).some(
+                        (product) => product.id === productId,
+                      );
+                      const removedKeys = productStillExists
+                        ? [currentSelectionKey]
+                        : queue.filter(
+                            (selectionKey) =>
+                              selectionKey === productId ||
+                              selectionKey.startsWith(`${productId}:`),
+                          );
+                      moveBulkEditToPrevious(currentSelectionKey, removedKeys);
+                    });
                   },
                 });
               }
