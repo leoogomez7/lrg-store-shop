@@ -166,6 +166,33 @@ function DelayedNavigationLoading() {
   );
 }
 
+function RouteNavigationNotice() {
+  const status = useRouterState({ select: (state) => state.status });
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (status !== "pending") {
+      setVisible(false);
+      return;
+    }
+    const timeout = window.setTimeout(() => setVisible(true), 350);
+    return () => window.clearTimeout(timeout);
+  }, [status]);
+
+  if (!visible || status !== "pending") return null;
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed inset-x-0 top-3 z-100 mx-auto flex w-fit items-center gap-2 rounded-full border border-border/70 bg-background/95 px-4 py-2 text-sm font-medium text-foreground shadow-xl backdrop-blur"
+    >
+      <LoaderCircle className="size-4 animate-spin text-primary" aria-hidden="true" />
+      Cargando página…
+    </div>
+  );
+}
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   // Don't block every document request on Turso being reachable. Settings are
   // initialized and loaded asynchronously in RootComponent after the page mounts.
@@ -396,7 +423,7 @@ function CustomerOrderStatusNotice() {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { settings } = Route.useLoaderData();
-  const locationHref = useRouterState({ select: (state) => state.location.href });
+  const locationPathname = useRouterState({ select: (state) => state.location.pathname });
   const settingsApplied = useRef(false);
   if (!settingsApplied.current) {
     applyAdminSettings(settings);
@@ -406,7 +433,7 @@ function RootComponent() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [locationHref]);
+  }, [locationPathname]);
 
   const { clientId, domain } = getKindeConfig();
   const redirectUri = getKindeRedirectUri("/login");
@@ -469,6 +496,7 @@ function RootComponent() {
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
         </Suspense>
+        <RouteNavigationNotice />
         <Toaster position="top-right" />
       </AuthenticatedCart>
     </QueryClientProvider>
@@ -482,6 +510,7 @@ function RootComponent() {
           <Suspense fallback={<DelayedNavigationLoading />}>
             <Outlet />
           </Suspense>
+          <RouteNavigationNotice />
           <Toaster position="top-right" />
         </CartProvider>
       </QueryClientProvider>

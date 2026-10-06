@@ -88,11 +88,11 @@ export const catalogService = {
     return flattened;
   },
   detail: async (brand: BrandSlug, slug: string, loaded?: Product[]) =>
-    (loaded ?? (await loadAllAdminProducts())).find(
+    (loaded ?? (await loadAllAdminProducts(brand))).find(
       (product) => product.brand === brand && product.slug === slug && !product.hidden,
     ) ?? null,
   related: async (brand: BrandSlug, slug: string, loaded?: Product[]) => {
-    const allProducts = loaded ?? (await loadAllAdminProducts());
+    const allProducts = loaded ?? (await loadAllAdminProducts(brand));
     const product = allProducts.find((item) => item.brand === brand && item.slug === slug);
     return product
       ? expandCatalogProducts(
@@ -204,28 +204,19 @@ export const catalogQueries = {
     queryOptions({
       queryKey: ["products", brand],
       staleTime: 5 * 60 * 1000,
-      queryFn: ({ client }) =>
-        client
-          .ensureQueryData(catalogQueries.allAdmin())
-          .then((loaded) => catalogService.listByBrand(brand, loaded)),
+      queryFn: () => catalogService.listByBrand(brand),
     }),
   detail: (brand: BrandSlug, slug: string) =>
     queryOptions({
       queryKey: ["product", brand, slug],
       staleTime: 5 * 60 * 1000,
-      queryFn: ({ client }) =>
-        client
-          .ensureQueryData(catalogQueries.allAdmin())
-          .then((loaded) => catalogService.detail(brand, slug, loaded)),
+      queryFn: () => catalogService.detail(brand, slug),
     }),
   related: (brand: BrandSlug, slug: string) =>
     queryOptions({
       queryKey: ["product", brand, slug, "related"],
       staleTime: 5 * 60 * 1000,
-      queryFn: ({ client }) =>
-        client
-          .ensureQueryData(catalogQueries.allAdmin())
-          .then((loaded) => catalogService.related(brand, slug, loaded)),
+      queryFn: () => catalogService.related(brand, slug),
     }),
   all: () =>
     queryOptions({

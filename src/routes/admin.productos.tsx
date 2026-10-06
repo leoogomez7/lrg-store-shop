@@ -1187,12 +1187,12 @@ function AdminProducts() {
       const result = await importPlayStationStoreCategory({
         data: {
           url: storeImportLink.trim(),
-          ...(storeImportPageMode !== "all"
-            ? {
-                page: pageNumber,
-                ...(storeImportPageMode === "range" ? { pageTo: pageEndNumber } : {}),
-              }
-            : {}),
+          pageSelection:
+            storeImportPageMode === "range"
+              ? { mode: "range", from: pageNumber, to: pageEndNumber }
+              : storeImportPageMode === "single"
+                ? { mode: "single", page: pageNumber }
+                : { mode: "all" },
         },
       });
       const subcategoryName = getSubcategoryPathLabel(
@@ -1545,7 +1545,18 @@ function AdminProducts() {
     });
   };
 
+  const restoreProductListPosition = (targetPage: number, scrollTop: number) => {
+    setPage(targetPage);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollTop, left: 0, behavior: "auto" });
+      });
+    });
+  };
+
   const handleDeleteProduct = async (productId: string, variantId?: string) => {
+    const pageBeforeDelete = page;
+    const scrollTopBeforeDelete = window.scrollY;
     const product = (productsData as Product[]).find((item) => item.id === productId);
     if (!product) {
       toast.error("No se encontró el producto para eliminar.");
@@ -1574,6 +1585,7 @@ function AdminProducts() {
           queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
           void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
           toast.success("Variante eliminada");
+          restoreProductListPosition(pageBeforeDelete, scrollTopBeforeDelete);
           return true;
         }
       }
@@ -1598,6 +1610,7 @@ function AdminProducts() {
       queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
       void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
       toast.success("Producto eliminado y enviado a la papelera");
+      restoreProductListPosition(pageBeforeDelete, scrollTopBeforeDelete);
       return true;
     } catch (error) {
       console.error("Error eliminando producto:", error);
@@ -1754,6 +1767,8 @@ function AdminProducts() {
   };
 
   const handleBulkDeleteProducts = async () => {
+    const pageBeforeDelete = page;
+    const scrollTopBeforeDelete = window.scrollY;
     const selectedEntriesSnapshot = getSelectedProductEntries(selectedProductIds);
     const selectedEntries = selectedEntriesSnapshot;
     const selectedProductIdsSet = new Set(
@@ -1824,6 +1839,7 @@ function AdminProducts() {
       queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
       void queryClient.invalidateQueries({ queryKey: ["products"], refetchType: "active" });
       clearBulkProductSelection();
+      restoreProductListPosition(pageBeforeDelete, scrollTopBeforeDelete);
       toast.success(
         `${selectedEntries.length} elemento${selectedEntries.length === 1 ? "" : "s"} eliminado${selectedEntries.length === 1 ? "" : "s"}`,
       );
