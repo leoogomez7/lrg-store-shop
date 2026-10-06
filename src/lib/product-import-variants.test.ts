@@ -80,8 +80,14 @@ describe("import products as variants", () => {
     expect(result.find((item) => item.id === "independent")?.name).toBe("Otro producto");
   });
 
-  it("applies the configured variant name to imported products without a matching parent", () => {
-    const imported = product({ id: "independent-import", name: "Juego nuevo" });
+  it("creates a real variant for a new imported product without a matching parent", () => {
+    const imported = product({
+      id: "independent-import",
+      name: "Juego nuevo",
+      code: "LIM",
+      price: 5_000,
+      comision: 5,
+    });
 
     const result = buildImportedProductsWithVariants([], [imported], {}, "Cuenta secundaria");
 
@@ -89,11 +95,19 @@ describe("import products as variants", () => {
     expect(result[0]).toMatchObject({
       id: "independent-import",
       name: "Juego nuevo",
-      variantName: "Cuenta secundaria",
+      variants: [
+        {
+          name: "Cuenta secundaria",
+          code: "LIM",
+          price: 5_000,
+          comision: 5,
+        },
+      ],
     });
+    expect(result[0]?.variantName).toBeUndefined();
   });
 
-  it("prefers the variant name explicitly edited in the import review", () => {
+  it("prefers the variant name explicitly set on the imported product", () => {
     const imported = product({
       id: "independent-import",
       name: "Juego nuevo",
@@ -102,7 +116,7 @@ describe("import products as variants", () => {
 
     const result = buildImportedProductsWithVariants([], [imported], {}, "Secundario");
 
-    expect(result[0]?.variantName).toBe("Especial");
+    expect(result[0]?.variants?.[0]?.name).toBe("Especial");
   });
 
   it("rejects an empty or duplicate variant name instead of overwriting", () => {

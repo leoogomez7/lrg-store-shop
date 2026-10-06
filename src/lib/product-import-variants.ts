@@ -23,7 +23,38 @@ export function buildImportedProductsWithVariants(
     const choice = choices[imported.id];
     if (!choice) {
       const variantName = imported.variantName?.trim() || defaultVariantName.trim();
-      productsToInsert.push(variantName ? { ...imported, variantName } : imported);
+      if (!variantName) {
+        productsToInsert.push(imported);
+        continue;
+      }
+
+      const importedVariant: ProductVariant = {
+        id: `variant-import-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        name: variantName,
+        code: imported.code,
+        hidden: imported.hidden,
+        price: imported.price,
+        priceCurrency: imported.priceCurrency ?? "ARS",
+        comision: imported.comision,
+        comisionCurrency: imported.comisionCurrency,
+        cardCommission: imported.cardCommission,
+        gastos: imported.gastos,
+        gastosCurrency: imported.gastosCurrency,
+        description: imported.description,
+        stock: imported.stock,
+        stockUnlimited: imported.stockUnlimited,
+        features: imported.features,
+        includes: imported.includes,
+        deliveryUnit: imported.deliveryUnit,
+        deliveryAmount: imported.deliveryAmount,
+        discount: imported.discount,
+        supplier: imported.supplier,
+      };
+      productsToInsert.push({
+        ...imported,
+        variantName: undefined,
+        variants: [...(imported.variants ?? []), importedVariant],
+      });
       continue;
     }
 
