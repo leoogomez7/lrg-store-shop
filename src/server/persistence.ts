@@ -1160,6 +1160,22 @@ export const listAdminProductsByBrand = createServerFn({ method: "POST" })
     }
   });
 
+export const getAdminProductRevision = createServerFn({ method: "POST" })
+  .validator(() => ({}))
+  .handler(async () => {
+    const database = await ensureAdminTables();
+    if (!database) return "unavailable";
+    const result = await database.execute(
+      "SELECT COUNT(*) AS productCount, COALESCE(MAX(updatedAt), '') AS latestUpdatedAt, COALESCE(SUM(length(productData)), 0) AS totalProductBytes FROM products",
+    );
+    const row = result.rows[0];
+    return [
+      String(row?.["productCount"] ?? 0),
+      String(row?.["latestUpdatedAt"] ?? ""),
+      String(row?.["totalProductBytes"] ?? 0),
+    ].join(":");
+  });
+
 export const saveAdminProducts = createServerFn({ method: "POST" })
   .validator((data: { products: Product[] }) => data)
   .handler(async ({ data }) => {

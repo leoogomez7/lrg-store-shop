@@ -287,7 +287,7 @@ function AdminProducts() {
   const { data: adminSettings } = useSuspenseQuery(catalogQueries.settings());
   const [editableProducts, setEditableProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
-    const [brandFilter, setBrandFilter] = useState<BrandSlug[]>([]);
+    const [brandFilter, setBrandFilter] = useState<BrandSlug[]>(["arcade"]);
   const [supplierFilter, setSupplierFilter] = useState<string[]>([]);
   const [skuFilter, setSkuFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
@@ -718,6 +718,7 @@ function AdminProducts() {
         slug: `${slugBase}-${index + 1}`,
         brand: importBrand,
         code: importCode.trim() || undefined,
+        variantName: importAsVariant ? importVariantName.trim() : undefined,
         name,
         category: importCategory,
         subcategory: importSubcategoryPath[0] || undefined,
@@ -809,6 +810,7 @@ function AdminProducts() {
         slug: `${slugBase}-${index + 1}`,
         brand: importBrand,
         code: importCode.trim() || undefined,
+        variantName: importAsVariant ? importVariantName.trim() : undefined,
         name: productName,
         category: importCategory,
         subcategory: importSubcategoryPath[0] || undefined,
@@ -1197,6 +1199,7 @@ function AdminProducts() {
           slug: `${slugBase}-${timestamp}-${index}`,
           brand: importBrand,
           code: importCode.trim() || undefined,
+          variantName: importAsVariant ? importVariantName.trim() : undefined,
           name,
           category: importCategory,
           subcategory: importSubcategoryPath[0] || undefined,
@@ -1383,6 +1386,9 @@ function AdminProducts() {
       result.push({
         ...product,
         name,
+        variantName: importAsVariant
+          ? product.variantName?.trim() || importVariantName.trim()
+          : product.variantName,
         slug: `${slugBase}-${product.id.replace(/[^a-zA-Z0-9-]/g, "-")}`,
         price,
         priceCurrency: "ARS",
@@ -1467,7 +1473,7 @@ function AdminProducts() {
       nextChoices[product.id] = {
         ...currentChoice,
         targetProductId,
-        variantName,
+        variantName: product.variantName?.trim() || variantName,
         existingVariantAction: undefined,
       };
     }
@@ -5279,6 +5285,23 @@ function AdminProducts() {
                               }
                               className="min-w-0"
                             />
+                            {importAsVariant ? (
+                              <div className="mt-2 space-y-1.5">
+                                <Label htmlFor={`import-variant-name-${product.id}`}>
+                                  Nombre de variante
+                                </Label>
+                                <Input
+                                  id={`import-variant-name-${product.id}`}
+                                  value={product.variantName ?? importVariantName}
+                                  onChange={(event) =>
+                                    updateImportedProduct(product.id, {
+                                      variantName: event.target.value,
+                                    })
+                                  }
+                                  placeholder="Ej.: Secundario"
+                                />
+                              </div>
+                            ) : null}
                           </div>
                           {importSource !== "store" ? (
                             <>
@@ -5778,7 +5801,9 @@ function AdminProducts() {
                                 ...current,
                                 [product.id]: {
                                   targetProductId: firstMatch.id,
-                                  variantName: importAsVariant ? importVariantName.trim() : "",
+                                  variantName: importAsVariant
+                                    ? product.variantName?.trim() || importVariantName.trim()
+                                    : product.variantName?.trim() || "",
                                 },
                               }));
                               return;
@@ -5831,9 +5856,8 @@ function AdminProducts() {
                             </Label>
                             <Input
                               id={`import-variant-name-${product.id}`}
-                              value={importAsVariant ? importVariantName.trim() : variantChoice.variantName}
+                              value={variantChoice.variantName}
                               placeholder="Ej.: Secundaria"
-                              disabled={importAsVariant}
                               onChange={(event) =>
                                 setImportedVariantChoices((current) => ({
                                   ...current,

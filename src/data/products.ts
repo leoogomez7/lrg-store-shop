@@ -65,15 +65,47 @@ const productSaveQueue = createProductSaveQueue(async (products: Product[]) => {
   return saveAdminProducts({ data: { products } });
 });
 
+export function splitProductsIntoPayloadBatches<T>(products: T[], maxBytes: number) {
+  if (!Number.isInteger(maxBytes) || maxBytes <= 0) {
+    throw new Error("El tamaño máximo del lote debe ser mayor a cero.");
+  }
+
+  const batches: T[][] = [];
+  let currentBatch: T[] = [];
+  let currentBytes = 2;
+
+  for (const product of products) {
+    const productBytes = new TextEncoder().encode(JSON.stringify(product)).byteLength;
+    const separatorBytes = currentBatch.length > 0 ? 1 : 0;
+    if (productBytes + 2 > maxBytes) {
+      throw new Error("Un producto individual supera el tamaño máximo permitido para importarlo.");
+    }
+    if (
+      currentBatch.length >= 500 ||
+      (currentBatch.length > 0 && currentBytes + separatorBytes + productBytes > maxBytes)
+    ) {
+      batches.push(currentBatch);
+      currentBatch = [];
+      currentBytes = 2;
+    }
+    currentBatch.push(product);
+    currentBytes += (currentBatch.length > 1 ? 1 : 0) + productBytes;
+  }
+
+  if (currentBatch.length > 0) batches.push(currentBatch);
+  return batches;
+}
+
 export async function saveProduct(product: Product) {
   return saveAdminProduct({ data: { product } });
 }
 
 export async function saveProductBatch(products: Product[]) {
-  const batchSize = 500;
-  for (let offset = 0; offset < products.length; offset += batchSize) {
+  const maxPayloadBytes = 3_000_000;
+  const batches = splitProductsIntoPayloadBatches(products, maxPayloadBytes);
+  for (const batch of batches) {
     const saved = await saveAdminProductBatch({
-      data: { products: products.slice(offset, offset + batchSize) },
+      data: { products: batch },
     });
     if (!saved) return false;
   }

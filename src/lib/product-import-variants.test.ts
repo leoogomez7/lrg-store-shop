@@ -93,6 +93,18 @@ describe("import products as variants", () => {
     });
   });
 
+  it("prefers the variant name explicitly edited in the import review", () => {
+    const imported = product({
+      id: "independent-import",
+      name: "Juego nuevo",
+      variantName: "Especial",
+    });
+
+    const result = buildImportedProductsWithVariants([], [imported], {}, "Secundario");
+
+    expect(result[0]?.variantName).toBe("Especial");
+  });
+
   it("rejects an empty or duplicate variant name instead of overwriting", () => {
     const existing = product({
       variants: [{ id: "primary", name: "Primaria", price: 14_000, description: "", stock: 10 }],

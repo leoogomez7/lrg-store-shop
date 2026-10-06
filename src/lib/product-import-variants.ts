@@ -22,11 +22,8 @@ export function buildImportedProductsWithVariants(
   for (const imported of importedProducts) {
     const choice = choices[imported.id];
     if (!choice) {
-      productsToInsert.push(
-        defaultVariantName.trim()
-          ? { ...imported, variantName: defaultVariantName.trim() }
-          : imported,
-      );
+      const variantName = imported.variantName?.trim() || defaultVariantName.trim();
+      productsToInsert.push(variantName ? { ...imported, variantName } : imported);
       continue;
     }
 

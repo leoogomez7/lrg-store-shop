@@ -251,6 +251,28 @@ function AppDataPrefetch({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+function CatalogDataSync() {
+  const queryClient = useQueryClient();
+  const { data: revision } = useQuery({
+    ...catalogQueries.productRevision(),
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+  });
+  const previousRevision = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!revision || revision === "unavailable") return;
+    if (previousRevision.current !== null && previousRevision.current !== revision) {
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["product"] });
+    }
+    previousRevision.current = revision;
+  }, [queryClient, revision]);
+
+  return null;
+}
+
 type CustomerOrderStatusChange = {
   id: string;
   date: string;
@@ -440,6 +462,7 @@ function RootComponent() {
 
   const appContent = (
     <QueryClientProvider client={queryClient}>
+      <CatalogDataSync />
       <AuthenticatedCart>
         <Suspense fallback={<DelayedNavigationLoading />}>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
@@ -453,6 +476,7 @@ function RootComponent() {
   if (!hasKindConfig) {
     return (
       <QueryClientProvider client={queryClient}>
+        <CatalogDataSync />
         <CartProvider>
           <Suspense fallback={<DelayedNavigationLoading />}>
             <Outlet />

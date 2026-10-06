@@ -8,6 +8,7 @@ import {
   listAdminOrders,
   listAdminProducts,
   listAdminProductsByBrand,
+  getAdminProductRevision,
   loadAdminSettings,
   upsertAdminOrder,
   completeReservedStockOrder,
@@ -170,6 +171,12 @@ export const orderService = {
 };
 
 export const catalogQueries = {
+  productRevision: () =>
+    queryOptions({
+      queryKey: ["catalog-revision"],
+      queryFn: () => getAdminProductRevision({ data: {} }),
+      staleTime: 0,
+    }),
   settings: () =>
     queryOptions({
       queryKey: ["admin-settings"],
