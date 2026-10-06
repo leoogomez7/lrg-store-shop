@@ -2,7 +2,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
 import {
   ArrowLeft,
   ArrowUpDown,
@@ -584,7 +583,8 @@ function AccountPageContent({
       : []),
   ];
 
-  const exportOrdersExcel = () => {
+  const exportOrdersExcel = async () => {
+    const XLSX = await import("xlsx");
     const rows: (string | number)[][] = [
       ["Pedido", "Tienda", "Fecha de compra", "Estado de envío", "Estado de pago", "Total"],
       ...visibleOrders.map((order) => [

@@ -27,8 +27,6 @@ import {
   Copy,
   ArrowUpDown,
 } from "lucide-react";
-import * as XLSX from "xlsx";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { toast } from "sonner";
 import {
   products as productsData,
@@ -187,6 +185,9 @@ type StoreImportProduct = {
   image?: string;
   lowestPrice: number;
 };
+
+const loadXlsx = async () => import("xlsx");
+const getPdfWorkerUrl = () => new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
 
 const getPendingImportSignature = (products: Product[]) =>
   JSON.stringify(
@@ -642,6 +643,7 @@ function AdminProducts() {
     }
 
     if (extension === "xlsx" || extension === "xls") {
+      const XLSX = await loadXlsx();
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
       const rowsFromExcel: string[] = [];
@@ -665,7 +667,7 @@ function AdminProducts() {
     if (["docx", "pdf", "rtf", "odt", "ods"].includes(extension)) {
       const { OfficeParser } = await import("officeparser");
       const document = await OfficeParser.parseOffice(file, {
-        pdfWorkerSrc: pdfWorkerUrl,
+        pdfWorkerSrc: getPdfWorkerUrl(),
         pdfParserConfig: { extractTextColor: false },
       });
       const { value } = await document.to("text", {
@@ -1093,13 +1095,16 @@ function AdminProducts() {
   };
 
   const removeImportedProduct = (productId: string) => {
-    setPendingImportedProducts((current) => current.filter((product) => product.id !== productId));
+    const nextProducts = pendingImportedProducts.filter((product) => product.id !== productId);
+    const maxPage = Math.max(0, Math.ceil(nextProducts.length / 30) - 1);
+
+    setPendingImportedProducts(nextProducts);
     setStoreImportPriceDetails((current) => {
       const next = { ...current };
       delete next[productId];
       return next;
     });
-    setImportPreviewPage(0);
+    setImportPreviewPage((currentPage) => Math.max(0, Math.min(currentPage, maxPage)));
   };
 
   const changeGlobalImportFields = (

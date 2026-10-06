@@ -22,7 +22,6 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1179,7 +1178,8 @@ function AdminSuppliers() {
     row.sales,
     row.soldQuantity,
   ]);
-  const exportExcel = () => {
+  const exportExcel = async () => {
+    const XLSX = await import("xlsx");
     const sheet = XLSX.utils.aoa_to_sheet([
       ["Nombre", "Celular", "Red social", "Producto", "Total vendido ($/USD)", "Cantidad vendida"],
       ...exportRows,

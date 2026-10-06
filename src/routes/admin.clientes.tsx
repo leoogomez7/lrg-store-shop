@@ -32,7 +32,6 @@ import {
   X,
   Filter,
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Dialog,
@@ -624,7 +623,8 @@ function AdminClients() {
           <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
             <Button
               className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
-              onClick={() => {
+              onClick={async () => {
+                const XLSX = await import("xlsx");
                 const rows: (string | number)[][] = [
                   ["Cliente", "Email", "Total de pedidos", "Total gastado"],
                 ];
