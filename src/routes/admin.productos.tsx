@@ -1386,9 +1386,7 @@ function AdminProducts() {
       result.push({
         ...product,
         name,
-        variantName: importAsVariant
-          ? product.variantName?.trim() || importVariantName.trim()
-          : product.variantName,
+        variantName: importAsVariant ? importVariantName.trim() : product.variantName,
         slug: `${slugBase}-${product.id.replace(/[^a-zA-Z0-9-]/g, "-")}`,
         price,
         priceCurrency: "ARS",
@@ -4956,7 +4954,7 @@ function AdminProducts() {
                 General
               </h3>
               <div className="space-y-3 rounded-xl border border-border/60 bg-background/40 p-3">
-                <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                   <div className="min-w-0 space-y-2">
                     <Label htmlFor="import-code-all">SKU</Label>
                     <Select
@@ -5076,6 +5074,31 @@ function AdminProducts() {
                       </div>
                     )}
                   </div>
+                  {importAsVariant ? (
+                    <div className="min-w-0 space-y-2">
+                      <Label htmlFor="import-variant-name-all">Nombre de variante para todos</Label>
+                      <Input
+                        id="import-variant-name-all"
+                        value={importVariantName}
+                        onChange={(event) => {
+                          const variantName = event.target.value;
+                          setImportVariantName(variantName);
+                          setPendingImportedProducts((current) =>
+                            current.map((product) => ({ ...product, variantName })),
+                          );
+                          setImportedVariantChoices((current) =>
+                            Object.fromEntries(
+                              Object.entries(current).map(([productId, choice]) => [
+                                productId,
+                                { ...choice, variantName, existingVariantAction: undefined },
+                              ]),
+                            ),
+                          );
+                        }}
+                        placeholder="Ej.: Secundario"
+                      />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </section>
@@ -5285,23 +5308,6 @@ function AdminProducts() {
                               }
                               className="min-w-0"
                             />
-                            {importAsVariant ? (
-                              <div className="mt-2 space-y-1.5">
-                                <Label htmlFor={`import-variant-name-${product.id}`}>
-                                  Nombre de variante
-                                </Label>
-                                <Input
-                                  id={`import-variant-name-${product.id}`}
-                                  value={product.variantName ?? importVariantName}
-                                  onChange={(event) =>
-                                    updateImportedProduct(product.id, {
-                                      variantName: event.target.value,
-                                    })
-                                  }
-                                  placeholder="Ej.: Secundario"
-                                />
-                              </div>
-                            ) : null}
                           </div>
                           {importSource !== "store" ? (
                             <>
