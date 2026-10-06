@@ -68,6 +68,7 @@ import {
 } from "@/components/ui/accordion";
 import { brandList, brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
+import { getVisiblePaginationItems } from "@/lib/pagination";
 import { catalogQueries, orderQueries, type Product } from "@/services/catalog.service";
 import { cn } from "@/lib/utils";
 import { scrollToTopOnFirstSelection } from "@/lib/admin-selection";
@@ -609,8 +610,8 @@ function AdminOrders() {
   const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number | null>(null);
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState<number>(10);
-  const [pageSizeInput, setPageSizeInput] = useState<string>("10");
+  const [pageSize, setPageSize] = useState<number>(16);
+  const [pageSizeInput, setPageSizeInput] = useState<string>("16");
 
   useEffect(() => {
     const mobileQuery = window.matchMedia("(max-width: 767px)");
@@ -3651,16 +3652,31 @@ function AdminOrders() {
             Principio
           </Button>
           <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-            {Array.from({ length: Math.max(totalPages, 1) }, (_, index) => (
-              <button
-                key={index}
-                type="button"
-                className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 outline-none transition-colors focus-visible:outline-none ${index === page ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                onClick={() => goToOrderPage(index)}
-              >
-                {index + 1}
-              </button>
-            ))}
+            {getVisiblePaginationItems(page, totalPages).map((item, index) => {
+              if (item === "ellipsis-left" || item === "ellipsis-right") {
+                return (
+                  <span
+                    key={`${item}-${index}`}
+                    className="px-2 text-muted-foreground"
+                    aria-hidden="true"
+                  >
+                    …
+                  </span>
+                );
+              }
+
+              const pageIndex = item - 1;
+              return (
+                <button
+                  key={`orders-page-${item}`}
+                  type="button"
+                  className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 outline-none transition-colors focus-visible:outline-none ${pageIndex === page ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                  onClick={() => goToOrderPage(pageIndex)}
+                >
+                  {item}
+                </button>
+              );
+            })}
           </div>
           <Button
             type="button"

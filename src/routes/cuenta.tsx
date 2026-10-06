@@ -70,6 +70,7 @@ import {
 } from "@/components/ui/table";
 import { brands } from "@/config/brands";
 import { formatDate, formatPrice } from "@/lib/format";
+import { getVisiblePaginationItems } from "@/lib/pagination";
 import { extractStreetNumberFromResult, splitStreetAndNumber } from "@/lib/address";
 import { logout } from "@/lib/auth";
 import { KINDE_LOGOUT_REDIRECT_URI, getKindeRedirectUri } from "@/lib/kinde";
@@ -1622,7 +1623,7 @@ function AccountPageContent({
             </Table>
           </div>
 
-          <div className="mt-4 hidden flex-col gap-3 pb-0 lg:flex">
+          <div className="mt-4 flex flex-col gap-3 pb-0">
             <div className="flex flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
@@ -1635,17 +1636,32 @@ function AccountPageContent({
                 Principio
               </Button>
               <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-                {Array.from({ length: totalOrdersPages }, (_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                    onClick={() => goToOrdersPage(index)}
-                    disabled={!canEditOrdersPageSize}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
+                {getVisiblePaginationItems(ordersPage, totalOrdersPages).map((item, index) => {
+                  if (item === "ellipsis-left" || item === "ellipsis-right") {
+                    return (
+                      <span
+                        key={`${item}-${index}`}
+                        className="px-2 text-muted-foreground"
+                        aria-hidden="true"
+                      >
+                        …
+                      </span>
+                    );
+                  }
+
+                  const pageIndex = item - 1;
+                  return (
+                    <button
+                      key={`orders-page-${item}`}
+                      type="button"
+                      className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${pageIndex === ordersPage ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                      onClick={() => goToOrdersPage(pageIndex)}
+                      disabled={!canEditOrdersPageSize}
+                    >
+                      {item}
+                    </button>
+                  );
+                })}
               </div>
               <Button
                 type="button"

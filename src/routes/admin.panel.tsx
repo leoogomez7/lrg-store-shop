@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { brandList, brands, type BrandSlug } from "@/config/brands";
 import { formatDate, formatNumber, formatPrice } from "@/lib/format";
+import { getVisiblePaginationItems } from "@/lib/pagination";
 import { catalogQueries, orderQueries } from "@/services/catalog.service";
 import { loadSiteStats } from "@/server/persistence";
 
@@ -675,20 +676,34 @@ function AdminDashboard() {
                 Principio
               </Button>
               <div className="flex min-w-0 max-w-full flex-wrap items-center justify-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-                {Array.from({ length: Math.max(ordersPages, 1) }, (_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === ordersPage ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                    onClick={() => {
-                      setOrdersPage(index);
-                      scrollToTableSection(ordersSectionRef.current);
-                    }}
-                    disabled={ordersPages === 0}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
+                {getVisiblePaginationItems(ordersPage, ordersPages).map((item, index) => {
+                  if (item === "ellipsis-left" || item === "ellipsis-right") {
+                    return (
+                      <span
+                        key={`${item}-${index}`}
+                        className="px-2 text-muted-foreground"
+                        aria-hidden="true"
+                      >
+                        …
+                      </span>
+                    );
+                  }
+
+                  const pageIndex = item - 1;
+                  return (
+                    <button
+                      key={`orders-page-${item}`}
+                      type="button"
+                      className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${pageIndex === ordersPage ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                      onClick={() => {
+                        setOrdersPage(pageIndex);
+                        scrollToTableSection(ordersSectionRef.current);
+                      }}
+                    >
+                      {item}
+                    </button>
+                  );
+                })}
               </div>
               <Button
                 type="button"
@@ -820,20 +835,34 @@ function AdminDashboard() {
                 Principio
               </Button>
               <div className="flex min-w-0 max-w-full flex-wrap items-center justify-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-                {Array.from({ length: Math.max(stockPages, 1) }, (_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${index === stockPage ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
-                    onClick={() => {
-                      setStockPage(index);
-                      scrollToTableSection(stockSectionRef.current);
-                    }}
-                    disabled={stockPages === 0}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
+                {getVisiblePaginationItems(stockPage, stockPages).map((item, index) => {
+                  if (item === "ellipsis-left" || item === "ellipsis-right") {
+                    return (
+                      <span
+                        key={`${item}-${index}`}
+                        className="px-2 text-muted-foreground"
+                        aria-hidden="true"
+                      >
+                        …
+                      </span>
+                    );
+                  }
+
+                  const pageIndex = item - 1;
+                  return (
+                    <button
+                      key={`stock-page-${item}`}
+                      type="button"
+                      className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${pageIndex === stockPage ? "bg-muted text-foreground" : "bg-transparent text-muted-foreground hover:bg-surface-2"}`}
+                      onClick={() => {
+                        setStockPage(pageIndex);
+                        scrollToTableSection(stockSectionRef.current);
+                      }}
+                    >
+                      {item}
+                    </button>
+                  );
+                })}
               </div>
               <Button
                 type="button"
