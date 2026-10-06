@@ -16,6 +16,7 @@ import {
   Filter,
   ImagePlus,
   LoaderCircle,
+  ListPlus,
   Pencil,
   Plus,
   Save,
@@ -5958,7 +5959,7 @@ function AdminProducts() {
               disabled={isSavingImports}
               onClick={handleIncorporateAllDuplicates}
             >
-              <Plus className="mr-2 size-4" /> Incorporar todos
+              <ListPlus className="mr-2 size-4" /> Incorporar todos
             </Button>
             <Button type="button" onClick={handleResolveDuplicates} disabled={isSavingImports}>
               {isSavingImports ? (
