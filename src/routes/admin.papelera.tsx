@@ -39,6 +39,7 @@ import {
   restoreAdminBackup,
   saveAdminSetting,
 } from "@/server/persistence";
+import { getVisiblePaginationItems } from "@/lib/pagination";
 
 const SUPPLIERS_STORAGE_KEY = "lrg:suppliers";
 
@@ -641,20 +642,35 @@ function AdminTrash() {
               Principio
             </Button>
             <div className="flex items-center gap-1 rounded-full bg-transparent px-3 py-1 text-sm text-foreground">
-              {Array.from({ length: totalPages }, (_, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${
-                    index === safePage
-                      ? "bg-muted text-foreground"
-                      : "bg-transparent text-muted-foreground hover:bg-surface-2"
-                  }`}
-                  onClick={() => goToTrashPage(index)}
-                >
-                  {index + 1}
-                </button>
-              ))}
+              {getVisiblePaginationItems(safePage, totalPages).map((item, index) => {
+                if (item === "ellipsis-left" || item === "ellipsis-right") {
+                  return (
+                    <span
+                      key={`${item}-${index}`}
+                      className="px-2 text-muted-foreground"
+                      aria-hidden="true"
+                    >
+                      …
+                    </span>
+                  );
+                }
+
+                const pageIndex = item - 1;
+                return (
+                  <button
+                    key={`page-${item}`}
+                    type="button"
+                    className={`h-9 min-w-9 rounded-xl border border-input px-3 py-1.5 text-sm outline-none transition-colors focus-visible:outline-none ${
+                      pageIndex === safePage
+                        ? "bg-muted text-foreground"
+                        : "bg-transparent text-muted-foreground hover:bg-surface-2"
+                    }`}
+                    onClick={() => goToTrashPage(pageIndex)}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
             </div>
             <Button
               type="button"
