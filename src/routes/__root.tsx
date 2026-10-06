@@ -167,9 +167,9 @@ function DelayedNavigationLoading() {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  loader: async ({ context }) => ({
-    settings: await context.queryClient.ensureQueryData(catalogQueries.settings()),
-  }),
+  // Don't block every document request on Turso being reachable. Settings are
+  // initialized and loaded asynchronously in RootComponent after the page mounts.
+  loader: () => ({ settings: [] }),
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -255,9 +255,10 @@ function CatalogDataSync() {
   const queryClient = useQueryClient();
   const { data: revision } = useQuery({
     ...catalogQueries.productRevision(),
-    refetchInterval: 15_000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
+    throwOnError: false,
   });
   const previousRevision = useRef<string | null>(null);
 

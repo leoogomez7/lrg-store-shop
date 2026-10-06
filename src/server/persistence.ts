@@ -123,6 +123,8 @@ function ensureAdminTables() {
         productData TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )`,
+        `CREATE INDEX IF NOT EXISTS products_updated_at_idx
+        ON products (updatedAt DESC)`,
         `CREATE TABLE IF NOT EXISTS product_variants (
         id TEXT PRIMARY KEY,
         productId TEXT NOT NULL,
@@ -1166,13 +1168,12 @@ export const getAdminProductRevision = createServerFn({ method: "POST" })
     const database = await ensureAdminTables();
     if (!database) return "unavailable";
     const result = await database.execute(
-      "SELECT COUNT(*) AS productCount, COALESCE(MAX(updatedAt), '') AS latestUpdatedAt, COALESCE(SUM(length(productData)), 0) AS totalProductBytes FROM products",
+      "SELECT COUNT(*) AS productCount, COALESCE(MAX(updatedAt), '') AS latestUpdatedAt FROM products",
     );
     const row = result.rows[0];
     return [
       String(row?.["productCount"] ?? 0),
       String(row?.["latestUpdatedAt"] ?? ""),
-      String(row?.["totalProductBytes"] ?? 0),
     ].join(":");
   });
 

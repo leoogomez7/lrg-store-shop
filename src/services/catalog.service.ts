@@ -176,6 +176,7 @@ export const catalogQueries = {
       queryKey: ["catalog-revision"],
       queryFn: () => getAdminProductRevision({ data: {} }),
       staleTime: 0,
+      retry: false,
     }),
   settings: () =>
     queryOptions({
