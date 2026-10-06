@@ -60,6 +60,14 @@ describe("stock reservation leases", () => {
     });
   });
 
+  it("does not renew an expired reservation after a reload or route visit changes", () => {
+    const expired = lease("user:first", -1, { visitId: "previous-browser-visit" });
+    expect(assess("user:first", [expired], 1, "new-browser-visit")).toMatchObject({
+      state: "expired",
+      expiresAt: expired.expiresAt,
+    });
+  });
+
   it("reports sold stock, but supports reserving multiple available units", () => {
     expect(assess("guest:second", [], 0).state).toBe("sold");
     expect(assess("guest:second", [lease("guest:first", 30_000)], 3)).toMatchObject({

@@ -11,6 +11,7 @@ import {
   releaseCartStockReservations,
   type CartItem as PersistedCartItem,
 } from "@/server/persistence";
+import { useStockReservations } from "@/hooks/use-stock-reservations";
 
 export type CartItem = PersistedCartItem & {
   id: string;
@@ -24,6 +25,7 @@ type CartAction =
   | { type: "hydrate"; items: CartItem[]; remote?: boolean }
   | { type: "add"; item: CartItem }
   | { type: "remove"; id: string }
+  | { type: "removeMany"; ids: string[] }
   | { type: "quantity"; id: string; quantity: number }
   | { type: "clear" }
   | { type: "clearBrand"; brand: BrandSlug };
@@ -65,6 +67,10 @@ function reducer(state: CartState, action: CartAction): CartState {
     }
     case "remove":
       return { ...state, items: state.items.filter((item) => item.id !== action.id) };
+    case "removeMany": {
+      const ids = new Set(action.ids);
+      return { ...state, items: state.items.filter((item) => !ids.has(item.id)) };
+    }
     case "quantity":
       return {
         ...state,
@@ -105,11 +111,35 @@ export function CartProvider({
     remoteHydrated: false,
   });
   const [guestSessionId, setGuestSessionId] = useState<string | null>(null);
-  const reservationOwnerId = isAuthenticated && user?.id
-    ? `user:${user.id}`
-    : guestSessionId
-      ? `guest:${guestSessionId}`
-      : null;
+  const reservationOwnerId =
+    isAuthenticated && user?.id
+      ? `user:${user.id}`
+      : guestSessionId
+        ? `guest:${guestSessionId}`
+        : null;
+
+  const removeExpiredReservationItems = useCallback(
+    (ids: string[]) => {
+      if (!ids.length) return;
+      dispatch({ type: "removeMany", ids });
+      if (reservationOwnerId) {
+        void releaseCartStockReservations({
+          data: { ownerId: reservationOwnerId, inventoryKeys: ids },
+        });
+      }
+      toast.info("Se venció la prioridad de compra", {
+        description: "Quitamos del carrito los productos cuya reserva llegó a cero.",
+      });
+    },
+    [reservationOwnerId],
+  );
+
+  const stockReservations = useStockReservations({
+    items: state.items,
+    hydrated: state.hydrated && state.remoteHydrated,
+    ownerId: reservationOwnerId,
+    onExpired: removeExpiredReservationItems,
+  });
 
   useEffect(() => {
     if (isLoading) return;
@@ -232,38 +262,52 @@ export function CartProvider({
     [state.items],
   );
 
-  const removeItem = useCallback((id: string) => {
-    dispatch({ type: "remove", id });
-    if (reservationOwnerId) {
-      void releaseCartStockReservations({
-        data: { ownerId: reservationOwnerId, inventoryKeys: [id] },
-      });
-    }
-    toast.success("Producto eliminado del carrito");
-  }, [reservationOwnerId]);
+  const removeItem = useCallback(
+    (id: string) => {
+      dispatch({ type: "remove", id });
+      if (reservationOwnerId) {
+        void releaseCartStockReservations({
+          data: { ownerId: reservationOwnerId, inventoryKeys: [id] },
+        });
+      }
+      toast.success("Producto eliminado del carrito");
+    },
+    [reservationOwnerId],
+  );
 
-  const setQuantity = useCallback((id: string, quantity: number) => {
-    dispatch({ type: "quantity", id, quantity });
-  }, []);
+  const setQuantity = useCallback(
+    (id: string, quantity: number) => {
+      dispatch({ type: "quantity", id, quantity });
+    },
+    [],
+  );
 
-  const clear = useCallback(() => {
-    dispatch({ type: "clear" });
-    if (reservationOwnerId) {
-      void releaseCartStockReservations({ data: { ownerId: reservationOwnerId } });
-    }
-  }, [reservationOwnerId]);
+  const clear = useCallback(
+    () => {
+      dispatch({ type: "clear" });
+      if (reservationOwnerId) {
+        void releaseCartStockReservations({ data: { ownerId: reservationOwnerId } });
+      }
+    },
+    [reservationOwnerId],
+  );
 
-  const clearBrand = useCallback((brand: BrandSlug) => {
-    dispatch({ type: "clearBrand", brand });
-    if (reservationOwnerId) {
-      void releaseCartStockReservations({
-        data: {
-          ownerId: reservationOwnerId,
-          inventoryKeys: state.items.filter((item) => item.brand === brand).map((item) => item.id),
-        },
-      });
-    }
-  }, [reservationOwnerId, state.items]);
+  const clearBrand = useCallback(
+    (brand: BrandSlug) => {
+      dispatch({ type: "clearBrand", brand });
+      if (reservationOwnerId) {
+        void releaseCartStockReservations({
+          data: {
+            ownerId: reservationOwnerId,
+            inventoryKeys: state.items
+              .filter((item) => item.brand === brand)
+              .map((item) => item.id),
+          },
+        });
+      }
+    },
+    [reservationOwnerId, state.items],
+  );
 
   const value = useMemo<CartContextValue>(() => {
     const count = state.items.reduce((total, item) => total + item.quantity, 0);
@@ -272,6 +316,10 @@ export function CartProvider({
       items: state.items,
       hydrated: state.hydrated,
       reservationOwnerId,
+      stockReservationStatuses: stockReservations.statuses,
+      stockReservationNow: stockReservations.now,
+      stockReservationsLoading: stockReservations.isLoading,
+      canProceedToCheckout: stockReservations.canProceed,
       count,
       subtotal,
       addProduct,
@@ -285,7 +333,17 @@ export function CartProvider({
           .filter((item) => item.brand === brand)
           .reduce((total, item) => total + item.price * item.quantity, 0),
     };
-  }, [state.items, state.hydrated, reservationOwnerId, addProduct, removeItem, setQuantity, clear, clearBrand]);
+  }, [
+    state.items,
+    state.hydrated,
+    reservationOwnerId,
+    stockReservations,
+    addProduct,
+    removeItem,
+    setQuantity,
+    clear,
+    clearBrand,
+  ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

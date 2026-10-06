@@ -1,11 +1,15 @@
 import { createContext, useContext } from "react";
 import type { BrandSlug } from "@/config/brands";
-import type { CartItem } from "@/server/persistence";
+import type { CartItem, CartReservationStatus } from "@/server/persistence";
 
 export type CartContextValue = {
   items: CartItem[];
   hydrated: boolean;
   reservationOwnerId: string | null;
+  stockReservationStatuses: Record<string, CartReservationStatus>;
+  stockReservationNow: number;
+  stockReservationsLoading: boolean;
+  canProceedToCheckout: boolean;
   count: number;
   subtotal: number;
   addProduct: (product: import("@/data/products").Product, quantity?: number) => void;

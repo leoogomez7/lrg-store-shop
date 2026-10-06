@@ -35,9 +35,9 @@ import {
   type PaymentIntentData,
 } from "@/server/mercadopago";
 import { formatPrice } from "@/lib/format";
+import { formatReservationCountdown } from "@/lib/stock-reservations";
 import { extractStreetNumberFromResult, splitStreetAndNumber } from "@/lib/address";
 import { getUserProfile, getUserAddresses, updateUserProfile } from "@/lib/user";
-import { useStockReservations } from "@/hooks/use-stock-reservations";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -56,21 +56,25 @@ export const Route = createFileRoute("/checkout")({
 });
 
 function CheckoutPage() {
-  const { items, subtotal, clear, hydrated, reservationOwnerId } = useCart();
+  const {
+    items,
+    subtotal,
+    clear,
+    hydrated,
+    reservationOwnerId,
+    stockReservationStatuses,
+    stockReservationNow,
+    stockReservationsLoading,
+    canProceedToCheckout,
+  } = useCart();
   const paymentReturn =
     typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("payment");
   const paymentIntentId =
     typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("intent");
-  const stockReservations = useStockReservations({
-    items,
-    hydrated,
-    ownerId: reservationOwnerId,
-    enabled: paymentReturn !== "success" && paymentReturn !== "failure",
-  });
   const blockedReservation =
     hydrated && reservationOwnerId && paymentReturn !== "success"
       ? items.find((item) => {
-          const state = stockReservations.statuses[item.id]?.state;
+          const state = stockReservationStatuses[item.id]?.state;
           return state !== "reserved" && state !== "unlimited";
         })
       : undefined;
@@ -81,6 +85,16 @@ function CheckoutPage() {
   const [orderId, setOrderId] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
   const [paymentApproved, setPaymentApproved] = useState(false);
+  const activeReservationCountdowns = items.flatMap((item) => {
+    const reservation = stockReservationStatuses[item.id];
+    if (reservation?.state !== "reserved" || !reservation.expiresAt) return [];
+    return [
+      {
+        name: item.name,
+        countdown: formatReservationCountdown(reservation.expiresAt, stockReservationNow),
+      },
+    ];
+  });
 
   useEffect(() => {
     if (paymentReturn !== "failure" || !paymentIntentId || !reservationOwnerId) return;
@@ -145,10 +159,6 @@ function CheckoutPage() {
   const isMercadoPagoPayment = isCardPayment;
   const hasCashOrTransferPayment =
     Object.values(paymentMethodsByBrand).some(isCashOrTransferMethod);
-  const shouldAutoMarkPaymentAsPaid = Object.values(paymentMethodsByBrand).some((method) =>
-    isCardMethod(method),
-  );
-
   useEffect(() => {
     setShippingMethodsByBrand((current) =>
       Object.fromEntries(brandSlugs.map((slug) => [slug, current[slug] ?? ""])),
@@ -383,6 +393,12 @@ function CheckoutPage() {
   }, [items.length, navigate, step]);
 
   useEffect(() => {
+    if (hydrated && items.length === 0 && paymentReturn !== "success" && step === "form") {
+      navigate({ to: "/carrito", replace: true });
+    }
+  }, [hydrated, items.length, navigate, paymentReturn, step]);
+
+  useEffect(() => {
     if (validationMessage && validationRef.current) {
       validationRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
       validationRef.current.focus();
@@ -398,38 +414,53 @@ function CheckoutPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const intentId = params.get("intent");
-    if (!shouldAutoMarkPaymentAsPaid || params.get("payment") !== "success" || !intentId) return;
+    if (params.get("payment") !== "success" || !intentId) return;
 
     let attempts = 0;
+    let active = true;
+    let timeout: number | undefined;
     const checkPayment = async () => {
-      const status = await getMercadoPagoIntentStatus({ data: { intentId } });
+      try {
+        const status = await getMercadoPagoIntentStatus({ data: { intentId } });
+        if (!active) return;
 
-      if (typeof status === "object" && status.status === "approved" && status.orderId) {
-        setOrderId(status.orderId);
-        setPaymentApproved(true);
+        if (typeof status === "object" && status.status === "approved" && status.orderId) {
+          setOrderId(status.orderId);
+          setPaymentApproved(true);
+          clear();
+          setStep("done");
 
-        try {
-          const orders = await orderService.list();
-          const matchedOrder = orders.find((order) => order.id === status.orderId);
-          if (matchedOrder) {
-            await orderService.update({
-              ...matchedOrder,
-              status: "pagado",
-              paymentStatus: "Pagado",
-            });
-            queryClient.invalidateQueries({ queryKey: ["orders"] });
+          try {
+            const orders = await orderService.list();
+            const matchedOrder = orders.find((order) => order.id === status.orderId);
+            if (matchedOrder) {
+              await orderService.update({
+                ...matchedOrder,
+                status: "pagado",
+                paymentStatus: "Pagado",
+              });
+              queryClient.invalidateQueries({ queryKey: ["orders"] });
+            }
+          } catch {
+            // Ignoramos errores de actualización para no romper la confirmación del pago.
           }
-        } catch {
-          // Ignoramos errores de actualización para no romper la confirmación del pago.
+          return;
         }
-        return;
-      }
 
-      attempts += 1;
-      if (attempts < 10) window.setTimeout(checkPayment, 1500);
+        attempts += 1;
+        if (attempts < 10) timeout = window.setTimeout(checkPayment, 1500);
+      } catch (error) {
+        console.error("No se pudo consultar el estado del pago:", error);
+        attempts += 1;
+        if (attempts < 10) timeout = window.setTimeout(checkPayment, 1500);
+      }
     };
     void checkPayment();
-  }, [queryClient, shouldAutoMarkPaymentAsPaid]);
+    return () => {
+      active = false;
+      if (timeout !== undefined) window.clearTimeout(timeout);
+    };
+  }, [clear, queryClient]);
 
   // Cargar datos del usuario si está logueado
   useEffect(() => {
@@ -508,7 +539,7 @@ function CheckoutPage() {
       setStep("done");
       return;
     }
-    if (!stockReservations.canProceed) {
+    if (!canProceedToCheckout) {
       setValidationMessage(
         "No podés continuar: algún producto no está reservado a tu nombre o se quedó sin stock. Volvé al carrito para revisar el tiempo y la disponibilidad.",
       );
@@ -716,11 +747,25 @@ function CheckoutPage() {
           </Link>
         </div>
 
+        {activeReservationCountdowns.length > 0 ? (
+          <div
+            className="mb-4 space-y-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300"
+            role="status"
+            aria-live="polite"
+          >
+            {activeReservationCountdowns.map(({ name, countdown }) => (
+              <p key={name}>
+                Tenés prioridad para comprar <strong>{name}</strong> durante {countdown}.
+              </p>
+            ))}
+          </div>
+        ) : null}
+
         <form
           ref={checkoutFormRef}
           onSubmit={submit}
           noValidate
-          aria-busy={!brandSettingsReady || stockReservations.isLoading}
+          aria-busy={!brandSettingsReady || stockReservationsLoading}
           className="mt-4 grid gap-8 lg:grid-cols-[1fr_360px]"
         >
           {validationMessage && (
@@ -740,13 +785,13 @@ function CheckoutPage() {
               role="status"
               aria-live="polite"
             >
-              {stockReservations.isLoading
+              {stockReservationsLoading
                 ? "Verificando la prioridad de compra de tu carrito…"
-                : stockReservations.statuses[blockedReservation.id]?.state === "waiting"
-                  ? `Otro comprador tiene prioridad sobre «${blockedReservation.name}». ${stockReservations.statuses[blockedReservation.id]?.queuePosition ? `Estás en el lugar ${stockReservations.statuses[blockedReservation.id]?.queuePosition} de espera. ` : "Esperá a que se libere el producto. "}Volvé al carrito para seguir el tiempo.`
-                  : stockReservations.statuses[blockedReservation.id]?.state === "sold"
+                : stockReservationStatuses[blockedReservation.id]?.state === "waiting"
+                  ? `Otro comprador tiene prioridad sobre «${blockedReservation.name}». ${stockReservationStatuses[blockedReservation.id]?.queuePosition ? `Estás en el lugar ${stockReservationStatuses[blockedReservation.id]?.queuePosition} de espera. ` : "Esperá a que se libere el producto. "}Volvé al carrito para seguir el tiempo.`
+                  : stockReservationStatuses[blockedReservation.id]?.state === "sold"
                     ? `«${blockedReservation.name}» ya no tiene stock porque otro cliente lo compró.`
-                    : stockReservations.statuses[blockedReservation.id]?.state === "expired"
+                    : stockReservationStatuses[blockedReservation.id]?.state === "expired"
                       ? `Venció la prioridad para «${blockedReservation.name}». Volvé al carrito para revisar si sigue disponible.`
                       : `No se pudo confirmar la reserva de «${blockedReservation.name}». Volvé al carrito para actualizar el stock.`}
             </div>
@@ -1142,7 +1187,7 @@ function CheckoutPage() {
                 disabled={
                   isConfirming ||
                   !brandSettingsReady ||
-                  (!paymentApproved && !stockReservations.canProceed)
+                  (!paymentApproved && !canProceedToCheckout)
                 }
               >
                 {isConfirming ? (

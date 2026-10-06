@@ -33,6 +33,7 @@ import { productMatchesSearch } from "@/data/products";
 import { getVisiblePaginationItems } from "@/lib/pagination";
 
 const searchSchema = z.object({
+  q: z.string().optional(),
   categoria: z.string().optional(),
   subcategoria: z.string().optional(),
 });
@@ -121,7 +122,7 @@ function CatalogPage() {
   );
 
   const [filters, setFilters] = useState<CatalogFilters>({
-    search: "",
+    search: search.q ?? "",
     categories: search.subcategoria
       ? [search.subcategoria]
       : search.categoria
@@ -141,6 +142,10 @@ function CatalogPage() {
       categories: searchCategory ? [searchCategory] : [],
     }));
   }, [searchCategory]);
+
+  useEffect(() => {
+    setFilters((current) => ({ ...current, search: search.q ?? "" }));
+  }, [search.q]);
 
   const [showFilters, setShowFilters] = useState(false);
   const [showSortOptions, setShowSortOptions] = useState(false);

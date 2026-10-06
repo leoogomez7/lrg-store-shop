@@ -37,6 +37,7 @@ import { applyAdminSettings, refreshBrandData } from "@/config/brands";
 import { productMatchesSearch } from "@/data/products";
 
 const searchSchema = z.object({
+  q: z.string().optional(),
   categoria: z.string().optional(),
   subcategoria: z.string().optional(),
 });
@@ -133,7 +134,7 @@ function ProductosPage() {
   const priceLimit = useMemo(() => Math.max(50, catalogMaxPrice || 0), [catalogMaxPrice]);
 
   const [filters, setFilters] = useState<CatalogFilters>({
-    search: "",
+    search: search.q ?? "",
     categories: search.subcategoria
       ? [search.subcategoria]
       : search.categoria
@@ -154,6 +155,10 @@ function ProductosPage() {
       categories: searchCategory ? [searchCategory] : [],
     }));
   }, [searchCategory]);
+
+  useEffect(() => {
+    setFilters((current) => ({ ...current, search: search.q ?? "" }));
+  }, [search.q]);
 
   const [showFilters, setShowFilters] = useState(false);
   const [showSortOptions, setShowSortOptions] = useState(false);

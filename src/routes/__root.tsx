@@ -6,7 +6,6 @@ import {
   createRootRouteWithContext,
   HeadContent,
   Scripts,
-  useRouterState,
 } from "@tanstack/react-router";
 import {
   Component,
@@ -162,33 +161,6 @@ function DelayedNavigationLoading() {
         <h1 className="mt-4 text-xl font-semibold tracking-tight text-foreground">Cargando...</h1>
         <p className="mt-2 text-sm text-muted-foreground">Estamos preparando la página para vos.</p>
       </div>
-    </div>
-  );
-}
-
-function RouteNavigationNotice() {
-  const status = useRouterState({ select: (state) => state.status });
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (status !== "pending") {
-      setVisible(false);
-      return;
-    }
-    const timeout = window.setTimeout(() => setVisible(true), 350);
-    return () => window.clearTimeout(timeout);
-  }, [status]);
-
-  if (!visible || status !== "pending") return null;
-
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed inset-x-0 top-3 z-100 mx-auto flex w-fit items-center gap-2 rounded-full border border-border/70 bg-background/95 px-4 py-2 text-sm font-medium text-foreground shadow-xl backdrop-blur"
-    >
-      <LoaderCircle className="size-4 animate-spin text-primary" aria-hidden="true" />
-      Cargando página…
     </div>
   );
 }
@@ -423,17 +395,12 @@ function CustomerOrderStatusNotice() {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { settings } = Route.useLoaderData();
-  const locationPathname = useRouterState({ select: (state) => state.location.pathname });
   const settingsApplied = useRef(false);
   if (!settingsApplied.current) {
     applyAdminSettings(settings);
     refreshBrandData();
     settingsApplied.current = true;
   }
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [locationPathname]);
 
   const { clientId, domain } = getKindeConfig();
   const redirectUri = getKindeRedirectUri("/login");
@@ -496,7 +463,6 @@ function RootComponent() {
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
         </Suspense>
-        <RouteNavigationNotice />
         <Toaster position="top-right" />
       </AuthenticatedCart>
     </QueryClientProvider>
@@ -510,7 +476,6 @@ function RootComponent() {
           <Suspense fallback={<DelayedNavigationLoading />}>
             <Outlet />
           </Suspense>
-          <RouteNavigationNotice />
           <Toaster position="top-right" />
         </CartProvider>
       </QueryClientProvider>

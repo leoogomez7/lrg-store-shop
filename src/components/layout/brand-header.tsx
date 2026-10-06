@@ -12,12 +12,13 @@ import {
   Store,
   ContactRound,
   Settings,
+  Search,
   User,
   UserPlus,
   Users,
   Trash2,
 } from "lucide-react";
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/common/brand-mark";
@@ -25,6 +26,8 @@ import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -92,6 +95,8 @@ function BrandHeaderContent({
   const [openBuyMenu, setOpenBuyMenu] = useState(false);
   const [openCart, setOpenCart] = useState(false);
   const [openUserMenu, setOpenUserMenu] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { count, items, subtotal, itemsByBrand, setQuantity, removeItem } = useCart();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
@@ -138,6 +143,13 @@ function BrandHeaderContent({
       }
       if (closeMenu) setOpenMenu(false);
     };
+
+  const submitProductSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    setSearchOpen(false);
+    void navigate({ to: "/productos", search: { q: query || undefined } });
+  };
 
   const defaultLinks: Array<{ label: string; to?: string; href?: string; exact?: boolean }> = [];
 
@@ -493,6 +505,18 @@ function BrandHeaderContent({
             </div>
 
             <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="-order-1 size-9 shrink-0 rounded-xl"
+              title="Buscar productos"
+              aria-label="Buscar productos"
+              onClick={() => setSearchOpen(true)}
+            >
+              <Search className="size-4" aria-hidden="true" />
+            </Button>
+
+            <Button
               asChild
               variant="ghost"
               size="sm"
@@ -570,6 +594,27 @@ function BrandHeaderContent({
           </div>
         </div>
       </header>
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Buscar productos</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitProductSearch} className="flex gap-2">
+            <Input
+              autoFocus
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="¿Qué estás buscando?"
+              aria-label="Buscar productos"
+            />
+            <Button type="submit" aria-label="Buscar">
+              <Search className="size-4" />
+              <span className="sr-only">Buscar</span>
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
       <ConfirmDialog
         open={logoutOpen}
         onOpenChange={setLogoutOpen}

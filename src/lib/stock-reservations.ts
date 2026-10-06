@@ -66,7 +66,7 @@ export function assessStockReservation({
   if (availableQuantity >= requestedQuantity) {
     if (ownActive) return { state: "reserved", expiresAt: ownActive.expiresAt, availableQuantity };
     const ownExpired = records.find((record) => record.ownerId === ownerId);
-    if (ownExpired && ownExpired.visitId === visitId) {
+    if (ownExpired) {
       return { state: "expired", expiresAt: ownExpired.expiresAt, availableQuantity };
     }
     return { state: "available", availableQuantity };
@@ -76,7 +76,7 @@ export function assessStockReservation({
   if (expiresAt) return { state: "waiting", expiresAt, availableQuantity };
 
   const ownExpired = records.find((record) => record.ownerId === ownerId);
-  if (ownExpired && ownExpired.visitId === visitId) {
+  if (ownExpired) {
     return { state: "expired", expiresAt: ownExpired.expiresAt, availableQuantity };
   }
   return { state: "available", availableQuantity };

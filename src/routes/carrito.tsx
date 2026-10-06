@@ -31,7 +31,6 @@ import { formatPrice } from "@/lib/format";
 import { useCart } from "@/store/cart-context";
 import { toast } from "sonner";
 import { loadAdminSettings } from "@/server/persistence";
-import { useStockReservations } from "@/hooks/use-stock-reservations";
 import { formatReservationCountdown } from "@/lib/stock-reservations";
 
 export const Route = createFileRoute("/carrito")({
@@ -52,12 +51,38 @@ export const Route = createFileRoute("/carrito")({
 
 function CartPage() {
   const navigate = useNavigate();
-  const { items, hydrated, subtotal, setQuantity, removeItem, clear, reservationOwnerId } = useCart();
-  const stockReservations = useStockReservations({
+  const {
     items,
     hydrated,
-    ownerId: reservationOwnerId,
-  });
+    subtotal,
+    setQuantity,
+    removeItem,
+    clear,
+    stockReservationStatuses,
+    stockReservationNow,
+    stockReservationsLoading,
+    canProceedToCheckout,
+  } = useCart();
+  const [checkoutRequested, setCheckoutRequested] = useState(false);
+  const reservationsPending =
+    stockReservationsLoading || items.some((item) => !stockReservationStatuses[item.id]);
+  const waitingForReservation = items.some(
+    (item) => stockReservationStatuses[item.id]?.state === "waiting",
+  );
+  const canRequestCheckout = reservationsPending || waitingForReservation;
+  const reservationBlocked = items.some((item) =>
+    ["expired", "sold", "unavailable"].includes(stockReservationStatuses[item.id]?.state ?? ""),
+  );
+
+  useEffect(() => {
+    if (!checkoutRequested) return;
+    if (canProceedToCheckout) {
+      setCheckoutRequested(false);
+      void navigate({ to: "/checkout" });
+    } else if (!canRequestCheckout && reservationBlocked) {
+      setCheckoutRequested(false);
+    }
+  }, [canProceedToCheckout, canRequestCheckout, checkoutRequested, navigate, reservationBlocked]);
   const [brandSettingsReady, setBrandSettingsReady] = useState(false);
   const [couponCode, setCouponCode] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -231,9 +256,9 @@ function CartPage() {
               <section className="space-y-4">
                 {items.map((item) => (
                   (() => {
-                    const reservation = stockReservations.statuses[item.id];
+                    const reservation = stockReservationStatuses[item.id];
                     const countdown = reservation?.expiresAt
-                      ? formatReservationCountdown(reservation.expiresAt, stockReservations.now)
+                      ? formatReservationCountdown(reservation.expiresAt, stockReservationNow)
                       : null;
                     return (
                   <article
@@ -514,20 +539,24 @@ function CartPage() {
                       <dd>{formatPrice(discountedSubtotal)}</dd>
                     </div>
                     <div className="pt-2">
-                      {stockReservations.canProceed ? (
-                      <Link to="/checkout">
-                        <Button className="h-10 w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                          <CreditCard className="size-4" />
-                          Ir a checkout
-                        </Button>
-                      </Link>
-                      ) : (
-                        <Button className="h-10 w-full" disabled>
-                          {stockReservations.isLoading
-                            ? "Verificando prioridad…"
+                      <Button
+                        className="h-10 w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                        disabled={!canProceedToCheckout && !canRequestCheckout}
+                        onClick={() => {
+                          if (canProceedToCheckout) {
+                            void navigate({ to: "/checkout" });
+                            return;
+                          }
+                          if (canRequestCheckout) setCheckoutRequested(true);
+                        }}
+                      >
+                        <CreditCard className="size-4" />
+                        {checkoutRequested
+                          ? "Verificando prioridad…"
+                          : canProceedToCheckout
+                            ? "Ir a checkout"
                             : "Esperando disponibilidad de stock"}
-                        </Button>
-                      )}
+                      </Button>
                     </div>
                   </dl>
                 </section>

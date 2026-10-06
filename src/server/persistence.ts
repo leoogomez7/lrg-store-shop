@@ -590,7 +590,7 @@ export const startReservedPaymentHold = createServerFn({ method: "POST" })
 
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
-    const expiresAt = new Date(now + PAYMENT_HOLD_TTL_MS).toISOString();
+    let paymentExpiresAt = new Date(now + PAYMENT_HOLD_TTL_MS).toISOString();
     const transaction = await database.transaction("write");
     try {
       const itemGroups = new Map<string, number>();
@@ -617,7 +617,7 @@ export const startReservedPaymentHold = createServerFn({ method: "POST" })
         if (inventory.stockUnlimited) continue;
 
         const reservationResult = await transaction.execute({
-          sql: `SELECT quantity FROM stock_reservations
+          sql: `SELECT quantity, expiresAt FROM stock_reservations
                 WHERE inventoryKey = ? AND ownerId = ? AND expiresAt > ?`,
           args: [inventoryKey, data.ownerId, nowIso],
         });
@@ -625,21 +625,23 @@ export const startReservedPaymentHold = createServerFn({ method: "POST" })
           await transaction.rollback();
           return { ok: false as const, reason: "reservation_lost" as const };
         }
+        const reservationExpiresAt = reservationResult.rows[0]?.["expiresAt"];
+        if (
+          typeof reservationExpiresAt === "string" &&
+          reservationExpiresAt < paymentExpiresAt
+        ) {
+          paymentExpiresAt = reservationExpiresAt;
+        }
       }
 
       for (const [inventoryKey] of itemGroups) {
-        await transaction.execute({
-          sql: `UPDATE stock_reservations SET expiresAt = ?, updatedAt = ?
-                WHERE inventoryKey = ? AND ownerId = ? AND expiresAt > ?`,
-          args: [expiresAt, nowIso, inventoryKey, data.ownerId, nowIso],
-        });
         await transaction.execute({
           sql: "DELETE FROM stock_reservation_queue WHERE inventoryKey = ? AND ownerId = ?",
           args: [inventoryKey, data.ownerId],
         });
       }
       await transaction.commit();
-      return { ok: true as const, expiresAt };
+      return { ok: true as const, expiresAt: paymentExpiresAt };
     } catch (error) {
       await transaction.rollback();
       throw error;
