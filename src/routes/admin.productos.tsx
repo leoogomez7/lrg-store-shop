@@ -4984,7 +4984,7 @@ function AdminProducts() {
                     </Select>
                   </div>
                   <div className="min-w-0 space-y-2">
-                    <Label htmlFor="import-brand">Tienda para todos</Label>
+                    <Label htmlFor="import-brand">Tienda</Label>
                     <Select
                       value={importBrand}
                       onValueChange={(value) => {
@@ -5009,7 +5009,7 @@ function AdminProducts() {
                     </Select>
                   </div>
                   <div className="min-w-0 space-y-2">
-                    <Label htmlFor="import-category">Categoría para todos</Label>
+                    <Label htmlFor="import-category">Categoría</Label>
                     <Select
                       value={importCategory || "none"}
                       onValueChange={(value) =>
@@ -5030,7 +5030,7 @@ function AdminProducts() {
                     </Select>
                   </div>
                   <div className="min-w-0 space-y-2">
-                    <Label htmlFor="import-subcategory-0">Subcategoría para todos</Label>
+                    <Label htmlFor="import-subcategory-0">Subcategoría</Label>
                     {importCategory ? (
                       <div className="flex min-w-0 gap-2">
                         {Array.from({ length: importSubcategoryPath.length + 1 }, (_, level) => {
@@ -5053,7 +5053,7 @@ function AdminProducts() {
                               <SelectTrigger
                                 id={`import-subcategory-${level}`}
                                 className="min-w-0 flex-1"
-                                aria-label={`Subcategoría ${level + 1} para todos`}
+                                aria-label={`Subcategoría ${level + 1}`}
                               >
                                 <SelectValue placeholder="Seleccioná" />
                               </SelectTrigger>
@@ -5077,7 +5077,7 @@ function AdminProducts() {
                   </div>
                   {importAsVariant ? (
                     <div className="min-w-0 space-y-2">
-                      <Label htmlFor="import-variant-name-all">Nombre de variante para todos</Label>
+                      <Label htmlFor="import-variant-name-all">Nombre de variante</Label>
                       <Input
                         id="import-variant-name-all"
                         value={importVariantName}
