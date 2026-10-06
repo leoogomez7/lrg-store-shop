@@ -1136,6 +1136,58 @@ export const listAdminProducts = createServerFn({ method: "POST" })
     });
   });
 
+export const listAdminProductsPage = createServerFn({ method: "POST" })
+  .validator((data: { offset: number; brand?: BrandSlug }) => {
+    if (!Number.isInteger(data.offset) || data.offset < 0) {
+      throw new Error("El desplazamiento de productos no es válido.");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return { products: [] as Product[], nextOffset: data.offset, done: true };
+
+    const result = await database.execute({
+      sql: data.brand
+        ? `SELECT productData FROM products
+           WHERE json_extract(productData, '$.brand') = ?
+           ORDER BY COALESCE(json_extract(productData, '$.createdAt'), updatedAt) DESC, rowid DESC
+           LIMIT 64 OFFSET ?`
+        : `SELECT productData FROM products
+           ORDER BY COALESCE(json_extract(productData, '$.createdAt'), updatedAt) DESC, rowid DESC
+           LIMIT 64 OFFSET ?`,
+      args: data.brand ? [data.brand, data.offset] : [data.offset],
+    });
+
+    const products: Product[] = [];
+    let responseBytes = 0;
+    let consumedRows = 0;
+    const maxResponseBytes = 16_000_000;
+    for (const row of result.rows) {
+      const value = row["productData"];
+      if (typeof value !== "string") {
+        consumedRows += 1;
+        continue;
+      }
+      try {
+        const product = JSON.parse(value) as Product;
+        const productBytes = new TextEncoder().encode(JSON.stringify(product)).byteLength;
+        if (products.length > 0 && responseBytes + productBytes > maxResponseBytes) break;
+        products.push(product);
+        responseBytes += productBytes;
+      } catch {
+        // Omitimos filas dañadas sin detener la carga paginada del catálogo.
+      }
+      consumedRows += 1;
+    }
+
+    return {
+      products,
+      nextOffset: data.offset + consumedRows,
+      done: consumedRows >= result.rows.length && result.rows.length < 64,
+    };
+  });
+
 export const listAdminProductsByBrand = createServerFn({ method: "POST" })
   .validator((data: { brand: BrandSlug }) => data)
   .handler(async ({ data }) => {

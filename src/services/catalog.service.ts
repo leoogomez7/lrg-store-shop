@@ -6,13 +6,29 @@ import { products } from "@/data/products";
 import { orders } from "@/data/orders";
 import {
   listAdminOrders,
-  listAdminProducts,
-  listAdminProductsByBrand,
+  listAdminProductsPage,
   getAdminProductRevision,
   loadAdminSettings,
   upsertAdminOrder,
   completeReservedStockOrder,
 } from "@/server/persistence";
+
+async function loadAllAdminProducts(brand?: BrandSlug): Promise<Product[]> {
+  const allProducts: Product[] = [];
+  let offset = 0;
+
+  while (true) {
+    const page = await listAdminProductsPage({
+      data: { offset, ...(brand ? { brand } : {}) },
+    });
+    allProducts.push(...page.products);
+    if (page.done) return allProducts;
+    if (page.nextOffset <= offset) {
+      throw new Error("No se pudo avanzar al cargar las páginas del catálogo.");
+    }
+    offset = page.nextOffset;
+  }
+}
 
 /**
  * Capa de servicios. Los componentes nunca acceden a los datos directamente:
@@ -65,18 +81,18 @@ export function expandCatalogProducts(productList: Product[]) {
 
 export const catalogService = {
   listByBrand: async (brand: BrandSlug, loaded?: Product[]) => {
-    const productsData = loaded ?? (await listAdminProductsByBrand({ data: { brand } }));
+    const productsData = loaded ?? (await loadAllAdminProducts(brand));
     const filtered = productsData.filter((product) => product.brand === brand);
     const flattened = expandCatalogProducts(filtered);
     products.splice(0, products.length, ...productsData);
     return flattened;
   },
   detail: async (brand: BrandSlug, slug: string, loaded?: Product[]) =>
-    (loaded ?? (await listAdminProducts({ data: {} }))).find(
+    (loaded ?? (await loadAllAdminProducts())).find(
       (product) => product.brand === brand && product.slug === slug && !product.hidden,
     ) ?? null,
   related: async (brand: BrandSlug, slug: string, loaded?: Product[]) => {
-    const allProducts = loaded ?? (await listAdminProducts({ data: {} }));
+    const allProducts = loaded ?? (await loadAllAdminProducts());
     const product = allProducts.find((item) => item.brand === brand && item.slug === slug);
     return product
       ? expandCatalogProducts(
@@ -92,12 +108,12 @@ export const catalogService = {
       : [];
   },
   listAll: async () => {
-    const loaded = await listAdminProducts({ data: {} });
+    const loaded = await loadAllAdminProducts();
     products.splice(0, products.length, ...loaded);
     return expandCatalogProducts(loaded);
   },
   listAllAdmin: async () => {
-    const loaded = await listAdminProducts({ data: {} });
+    const loaded = await loadAllAdminProducts();
     products.splice(0, products.length, ...loaded);
     return loaded;
   },
@@ -128,7 +144,7 @@ export const orderService = {
     return Array.from(totals.values());
   },
   create: async (order: Order, reservationOwnerId: string) => {
-    const productsData = await listAdminProducts({ data: {} });
+    const productsData = await loadAllAdminProducts();
     const orderWithSupplierSnapshots: Order = {
       ...order,
       items: order.items.map((item) => {
