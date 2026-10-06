@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { Heart, ShoppingCart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
@@ -26,6 +26,7 @@ export function ProductCard({
   const { addProduct } = useCart();
   const { user } = useKindeAuth();
   const navigate = useNavigate();
+  const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteOwner, setFavoriteOwner] = useState<string | null>(null);
   const outOfStock = !product.stockUnlimited && product.stock <= 0;
@@ -40,6 +41,13 @@ export function ProductCard({
     if (match) return `Entrega ${match[1]} días`;
     return undefined;
   })();
+  const preloadProductRoute = () => {
+    void router.preloadRoute({
+      to: "/$brand/producto/$slug",
+      params: { brand: product.brand, slug: product.slug },
+      search: product.variantId ? { variant: product.variantId } : {},
+    });
+  };
 
   useEffect(() => {
     const owner = user?.id ?? null;
@@ -58,6 +66,8 @@ export function ProductCard({
       role="link"
       tabIndex={0}
       aria-label={`Ver descripción de ${product.name}`}
+      onPointerEnter={preloadProductRoute}
+      onFocus={preloadProductRoute}
       onClick={() =>
         navigate({
           to: "/$brand/producto/$slug",

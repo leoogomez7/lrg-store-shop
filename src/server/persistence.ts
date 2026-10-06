@@ -1154,10 +1154,10 @@ export const listAdminProductsPage = createServerFn({ method: "POST" })
         ? `SELECT productData FROM products
            WHERE json_extract(productData, '$.brand') = ?
            ORDER BY COALESCE(json_extract(productData, '$.createdAt'), updatedAt) DESC, rowid DESC
-           LIMIT 64 OFFSET ?`
+            LIMIT 256 OFFSET ?`
         : `SELECT productData FROM products
            ORDER BY COALESCE(json_extract(productData, '$.createdAt'), updatedAt) DESC, rowid DESC
-           LIMIT 64 OFFSET ?`,
+            LIMIT 256 OFFSET ?`,
       args: data.brand ? [data.brand, data.offset] : [data.offset],
     });
 
@@ -1165,6 +1165,7 @@ export const listAdminProductsPage = createServerFn({ method: "POST" })
     let responseBytes = 0;
     let consumedRows = 0;
     const maxResponseBytes = 16_000_000;
+    const encoder = new TextEncoder();
     for (const row of result.rows) {
       const value = row["productData"];
       if (typeof value !== "string") {
@@ -1173,7 +1174,7 @@ export const listAdminProductsPage = createServerFn({ method: "POST" })
       }
       try {
         const product = JSON.parse(value) as Product;
-        const productBytes = new TextEncoder().encode(JSON.stringify(product)).byteLength;
+        const productBytes = encoder.encode(value).byteLength;
         if (products.length > 0 && responseBytes + productBytes > maxResponseBytes) break;
         products.push(product);
         responseBytes += productBytes;
@@ -1186,7 +1187,7 @@ export const listAdminProductsPage = createServerFn({ method: "POST" })
     return {
       products,
       nextOffset: data.offset + consumedRows,
-      done: consumedRows >= result.rows.length && result.rows.length < 64,
+      done: consumedRows >= result.rows.length && result.rows.length < 256,
     };
   });
 

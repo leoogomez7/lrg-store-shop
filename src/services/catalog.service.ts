@@ -200,23 +200,38 @@ export const catalogQueries = {
       staleTime: 5 * 60 * 1000,
       queryFn: () => loadAdminSettings({ data: {} }),
     }),
+  rawByBrand: (brand: BrandSlug) =>
+    queryOptions({
+      queryKey: ["products", brand, "raw"],
+      staleTime: 5 * 60 * 1000,
+      queryFn: () => loadAllAdminProducts(brand),
+    }),
   byBrand: (brand: BrandSlug) =>
     queryOptions({
       queryKey: ["products", brand],
       staleTime: 5 * 60 * 1000,
-      queryFn: () => catalogService.listByBrand(brand),
+      queryFn: ({ client }) =>
+        client
+          .ensureQueryData(catalogQueries.rawByBrand(brand))
+          .then((loaded) => catalogService.listByBrand(brand, loaded)),
     }),
   detail: (brand: BrandSlug, slug: string) =>
     queryOptions({
       queryKey: ["product", brand, slug],
       staleTime: 5 * 60 * 1000,
-      queryFn: () => catalogService.detail(brand, slug),
+      queryFn: ({ client }) =>
+        client
+          .ensureQueryData(catalogQueries.rawByBrand(brand))
+          .then((loaded) => catalogService.detail(brand, slug, loaded)),
     }),
   related: (brand: BrandSlug, slug: string) =>
     queryOptions({
       queryKey: ["product", brand, slug, "related"],
       staleTime: 5 * 60 * 1000,
-      queryFn: () => catalogService.related(brand, slug),
+      queryFn: ({ client }) =>
+        client
+          .ensureQueryData(catalogQueries.rawByBrand(brand))
+          .then((loaded) => catalogService.related(brand, slug, loaded)),
     }),
   all: () =>
     queryOptions({

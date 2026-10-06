@@ -88,7 +88,7 @@ export const Route = createFileRoute("/$brand/producto/$slug")({
     const brand = getBrand(params.brand);
     if (!brand) throw notFound();
     const [settings, product] = await Promise.all([
-      context.queryClient.fetchQuery({ ...catalogQueries.settings(), staleTime: 0 }),
+      context.queryClient.ensureQueryData(catalogQueries.settings()),
       context.queryClient.ensureQueryData(catalogQueries.detail(brand.slug, params.slug)),
     ]);
     applyAdminSettings(settings);

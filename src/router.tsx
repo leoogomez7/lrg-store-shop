@@ -10,7 +10,7 @@ export const getRouter = () => {
         gcTime: 24 * 60 * 60_000,
         refetchOnWindowFocus: true,
         refetchOnReconnect: true,
-        refetchOnMount: "always",
+        refetchOnMount: true,
       },
     },
   });
@@ -20,7 +20,7 @@ export const getRouter = () => {
     context: { queryClient },
     scrollRestoration: false,
     defaultPreload: "intent",
-    defaultPreloadStaleTime: 0,
+    defaultPreloadStaleTime: 30_000,
   });
 
   return router;

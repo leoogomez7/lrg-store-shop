@@ -86,7 +86,13 @@ export function ProductVisual({
       aria-hidden="true"
     >
       {image ? (
-        <CroppedProductImage image={image} label={label} />
+        <img
+          src={image}
+          alt={label}
+          loading="lazy"
+          decoding="async"
+          className="size-full object-contain"
+        />
       ) : (
         <>
           <div

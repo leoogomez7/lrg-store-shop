@@ -142,11 +142,7 @@ function toggleOrderFilterOption(
 }
 
 export const Route = createFileRoute("/cuenta")({
-  loader: ({ context }) =>
-    Promise.all([
-      context.queryClient.ensureQueryData(orderQueries.list()),
-      context.queryClient.ensureQueryData(catalogQueries.all()),
-    ]),
+  loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
   beforeLoad: ({ location }) => {
     if (location.pathname === "/cuenta") {
       throw redirect({ to: "/cuenta/panel" });
@@ -256,9 +252,11 @@ function AccountPageContent({
   auth: ReturnType<typeof useKindeAuth> | null;
   initialTab?: AccountTab;
 }) {
+  const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
   const { data: orders = [], isPending: ordersLoading } = useQuery(orderQueries.list());
   const { data: products = [], isPending: productsLoading } = useQuery({
     ...catalogQueries.all(),
+    enabled: activeTab === "favorites",
   });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -323,7 +321,6 @@ function AccountPageContent({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobileNavHidden, setIsMobileNavHidden] = useState(false);
-  const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
   const [ordersPage, setOrdersPage] = useState(0);
   const [ordersPageSize, setOrdersPageSize] = useState<number>(16);
   const [ordersPageSizeInput, setOrdersPageSizeInput] = useState<string>("16");
@@ -925,7 +922,7 @@ function AccountPageContent({
                   </span>
                 </div>
                 <div className="mt-2">
-                  <p className="text-2xl font-semibold">{favoriteProducts.length}</p>
+                  <p className="text-2xl font-semibold">{favoriteIds.length}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">Productos guardados</p>
                 </div>
               </a>
