@@ -12,6 +12,7 @@ import {
   listAdminOrders,
   listAdminProductsPage,
   listCatalogProductSummaries,
+  searchCatalogProductSuggestions,
   getCatalogProductBySlug,
   getRelatedCatalogProducts,
   getCatalogProductImages,
@@ -111,6 +112,10 @@ export const catalogService = {
       data: brand ? { brand } : {},
     });
     return expandCatalogProducts(summaryProducts);
+  },
+  searchSuggestions: async (query: string) => {
+    const summaryProducts = await searchCatalogProductSuggestions({ data: { query } });
+    return expandCatalogProducts(summaryProducts).slice(0, 6);
   },
   listByBrand: async (brand: BrandSlug, loaded?: Product[]) => {
     const productsData = loaded ?? (await loadAllAdminProducts(brand));
@@ -277,6 +282,14 @@ export const catalogQueries = {
       queryKey: ["products", "catalog", "summaries", brand],
       staleTime: 5 * 60 * 1000,
       queryFn: () => catalogService.listCatalogSummaries(brand),
+    }),
+  searchSuggestions: (query: string) =>
+    queryOptions({
+      queryKey: ["products", "search-suggestions", query.trim().toLocaleLowerCase()],
+      staleTime: 30 * 1000,
+      gcTime: 5 * 60 * 1000,
+      enabled: query.trim().length >= 2,
+      queryFn: () => catalogService.searchSuggestions(query.trim()),
     }),
   cardImages: (productIds: string[]) => {
     const normalizedIds = Array.from(new Set(productIds)).sort();

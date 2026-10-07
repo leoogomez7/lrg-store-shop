@@ -1345,6 +1345,78 @@ export const listCatalogProductSummaries = createServerFn({ method: "POST" })
     });
   });
 
+export const searchCatalogProductSuggestions = createServerFn({ method: "POST" })
+  .validator((data: { query: string }) => {
+    const query = data.query.trim().slice(0, 100);
+    if (query.length < 2) return { query: "" };
+    return { query };
+  })
+  .handler(async ({ data }): Promise<Product[]> => {
+    if (data.query.length < 2) return [];
+    const database = await ensureAdminTables();
+    if (!database) return [];
+    const pattern = `%${data.query.replace(/[\\%_]/g, "\\$&")}%`;
+    const result = await database.execute({
+      sql: `SELECT json_object(
+          'id', json_extract(p.productData, '$.id'),
+          'slug', json_extract(p.productData, '$.slug'),
+          'brand', json_extract(p.productData, '$.brand'),
+          'hidden', json_extract(p.productData, '$.hidden'),
+          'name', json_extract(p.productData, '$.name'),
+          'category', json_extract(p.productData, '$.category'),
+          'price', json_extract(p.productData, '$.price'),
+          'priceCurrency', json_extract(p.productData, '$.priceCurrency'),
+          'stock', json_extract(p.productData, '$.stock'),
+          'stockUnlimited', json_extract(p.productData, '$.stockUnlimited'),
+          'rating', 0,
+          'reviews', 0,
+          'short', '',
+          'description', '',
+          'features', json('[]'),
+          'createdAt', COALESCE(json_extract(p.productData, '$.createdAt'), p.updatedAt),
+          'variants', COALESCE((
+            SELECT json_group_array(json_object(
+              'id', json_extract(v.value, '$.id'),
+              'name', json_extract(v.value, '$.name'),
+              'hidden', json_extract(v.value, '$.hidden'),
+              'price', json_extract(v.value, '$.price'),
+              'priceCurrency', json_extract(v.value, '$.priceCurrency'),
+              'discount', json_extract(v.value, '$.discount'),
+              'stock', json_extract(v.value, '$.stock'),
+              'stockUnlimited', json_extract(v.value, '$.stockUnlimited')
+            )) FROM json_each(p.productData, '$.variants') AS v
+          ), json('[]'))
+        ) AS suggestion
+        FROM products AS p
+        WHERE COALESCE(json_extract(p.productData, '$.hidden'), 0) = 0
+          AND (
+            lower(COALESCE(json_extract(p.productData, '$.name'), '')) LIKE lower(?) ESCAPE '\\'
+            OR lower(COALESCE(json_extract(p.productData, '$.category'), '')) LIKE lower(?) ESCAPE '\\'
+            OR lower(COALESCE(json_extract(p.productData, '$.subcategory'), '')) LIKE lower(?) ESCAPE '\\'
+            OR EXISTS (
+              SELECT 1 FROM json_each(p.productData, '$.variants') AS v
+              WHERE COALESCE(json_extract(v.value, '$.hidden'), 0) = 0
+                AND (
+                  lower(COALESCE(json_extract(v.value, '$.name'), '')) LIKE lower(?) ESCAPE '\\'
+                  OR lower(COALESCE(json_extract(v.value, '$.code'), '')) LIKE lower(?) ESCAPE '\\'
+                )
+            )
+          )
+        ORDER BY COALESCE(json_extract(p.productData, '$.createdAt'), p.updatedAt) DESC
+        LIMIT 16`,
+      args: [pattern, pattern, pattern, pattern, pattern],
+    });
+    return result.rows.flatMap((row) => {
+      const value = row["suggestion"];
+      if (typeof value !== "string") return [];
+      try {
+        return [JSON.parse(value) as Product];
+      } catch {
+        return [];
+      }
+    });
+  });
+
 export const getCatalogProductBySlug = createServerFn({ method: "POST" })
   .validator((data: { brand: BrandSlug; slug: string }) => data)
   .handler(async ({ data }): Promise<Product | null> => {

@@ -1,4 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   House,
   Heart,
@@ -14,6 +15,7 @@ import {
   Settings,
   Search,
   X,
+  LoaderCircle,
   User,
   UserPlus,
   Users,
@@ -40,6 +42,7 @@ import { brandList, type BrandConfig } from "@/config/brands";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/store/cart-context";
 import { getAuthRole } from "@/lib/auth-role";
+import { catalogQueries } from "@/services/catalog.service";
 
 export function BrandHeader({
   brand,
@@ -97,7 +100,19 @@ function BrandHeaderContent({
   const [openUserMenu, setOpenUserMenu] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [suggestionQuery, setSuggestionQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const normalizedSearchQuery = searchQuery.trim();
+  const isWaitingForSuggestions =
+    normalizedSearchQuery.length >= 2 && normalizedSearchQuery !== suggestionQuery;
+  const {
+    data: searchSuggestions = [],
+    isFetching: isFetchingSuggestions,
+    isError: searchSuggestionsFailed,
+  } = useQuery({
+    ...catalogQueries.searchSuggestions(suggestionQuery),
+    enabled: searchOpen && suggestionQuery.length >= 2,
+  });
   const { count, items, subtotal, itemsByBrand, setQuantity, removeItem } = useCart();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
@@ -119,6 +134,15 @@ function BrandHeaderContent({
   useEffect(() => {
     if (searchOpen) searchInputRef.current?.focus();
   }, [searchOpen]);
+
+  useEffect(() => {
+    if (normalizedSearchQuery.length < 2) {
+      setSuggestionQuery("");
+      return;
+    }
+    const timeout = window.setTimeout(() => setSuggestionQuery(normalizedSearchQuery), 120);
+    return () => window.clearTimeout(timeout);
+  }, [normalizedSearchQuery]);
   const [panel, setPanel] = useState<string | null>(null);
 
   const [confirmState, setConfirmState] = useState<{
@@ -155,6 +179,15 @@ function BrandHeaderContent({
     const query = searchQuery.trim();
     setSearchOpen(false);
     void navigate({ to: "/productos", search: { q: query || undefined } });
+  };
+
+  const openSearchSuggestion = (product: (typeof searchSuggestions)[number]) => {
+    setSearchOpen(false);
+    void navigate({
+      to: "/$brand/producto/$slug",
+      params: { brand: product.brand, slug: product.slug },
+      search: product.variantId ? { variant: product.variantId } : {},
+    });
   };
 
   const defaultLinks: Array<{ label: string; to?: string; href?: string; exact?: boolean }> = [];
@@ -530,6 +563,56 @@ function BrandHeaderContent({
                     aria-label="Buscar productos"
                     className="h-9 w-[min(15rem,38vw)] pl-8"
                   />
+                  {normalizedSearchQuery.length > 0 && (
+                    <div className="absolute left-0 top-[calc(100%+0.5rem)] z-60 w-[min(24rem,85vw)] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl">
+                      {normalizedSearchQuery.length < 2 ? (
+                        <p className="px-4 py-3 text-sm text-muted-foreground">
+                          Escribí al menos 2 caracteres para buscar.
+                        </p>
+                      ) : isWaitingForSuggestions || isFetchingSuggestions ? (
+                        <p className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground" role="status">
+                          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                          Cargando búsqueda…
+                        </p>
+                      ) : searchSuggestionsFailed ? (
+                        <p className="px-4 py-3 text-sm text-muted-foreground" role="status">
+                          No se pudo cargar la búsqueda. Presioná Enter para ver resultados.
+                        </p>
+                      ) : searchSuggestions.length ? (
+                        <ul role="listbox" aria-label="Productos coincidentes" className="max-h-80 overflow-y-auto py-1">
+                          {searchSuggestions.map((product) => {
+                            const productBrand = brandList.find((entry) => entry.slug === product.brand);
+                            return (
+                              <li key={product.id} role="option" aria-selected={false}>
+                                <button
+                                  type="button"
+                                  className="flex w-full items-start justify-between gap-3 px-4 py-2.5 text-left transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+                                  onClick={() => openSearchSuggestion(product)}
+                                >
+                                  <span className="min-w-0">
+                                    <span className="block truncate text-sm font-medium">{product.name}</span>
+                                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                                      {[product.variantName, productBrand?.shortName ?? product.brand]
+                                        .filter(Boolean)
+                                        .join(" · ")}
+                                    </span>
+                                  </span>
+                                  <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">
+                                    {product.priceCurrency === "USD" ? "US$ " : "$ "}
+                                    {new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(product.price)}
+                                  </span>
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <p className="px-4 py-3 text-sm text-muted-foreground" role="status">
+                          No encontramos coincidencias. Presioná Enter para buscar en todo el catálogo.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <Button type="submit" size="icon" className="size-9 shrink-0" aria-label="Buscar">
                   <Search className="size-4" aria-hidden="true" />
