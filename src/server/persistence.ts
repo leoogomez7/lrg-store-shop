@@ -1471,7 +1471,9 @@ export const getCatalogProductCardImages = createServerFn({ method: "POST" })
               CASE
                 WHEN COALESCE(json_extract(productData, '$.image'), json_extract(productData, '$.images[0]')) NOT LIKE 'data:image/%'
                 THEN COALESCE(json_extract(productData, '$.image'), json_extract(productData, '$.images[0]'))
-              END
+              END,
+              json_extract(productData, '$.image'),
+              json_extract(productData, '$.images[0]')
             ) AS image
             FROM products
             WHERE id IN (${placeholders})`,
