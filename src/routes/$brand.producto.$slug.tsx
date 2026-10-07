@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dialog";
 import { applyAdminSettings, getBrand, refreshBrandData } from "@/config/brands";
 import { formatPrice } from "@/lib/format";
+import { getProductVariantIdentityFromPublicSlug } from "@/lib/product-slug";
 import { catalogQueries } from "@/services/catalog.service";
 import { useCart } from "@/store/cart-context";
 import { useNavigate } from "@tanstack/react-router";
@@ -94,7 +95,6 @@ export const Route = createFileRoute("/$brand/producto/$slug")({
     applyAdminSettings(settings);
     refreshBrandData();
     if (!product) throw notFound();
-    await context.queryClient.ensureQueryData(catalogQueries.related(brand.slug, params.slug));
     const refreshedBrand = getBrand(params.brand);
     if (!refreshedBrand) throw notFound();
     return {
@@ -141,19 +141,29 @@ function ProductDetail() {
   const search = Route.useSearch();
   const loaderData = Route.useLoaderData();
   const brand = getBrand(params.brand)!;
+  const slugVariantId = getProductVariantIdentityFromPublicSlug(params.slug);
   const { data: product } = useSuspenseQuery(catalogQueries.detail(brand.slug, params.slug));
-  const { data: related } = useSuspenseQuery(catalogQueries.related(brand.slug, params.slug));
+  const { data: loadedProductImages = [] } = useQuery(
+    catalogQueries.detailImages(brand.slug, params.slug),
+  );
+  const { data: related = [] } = useQuery(catalogQueries.related(brand.slug, params.slug));
+  const relatedImageProductIds = Array.from(
+    new Set(related.map((item) => item.parentId ?? item.id.split("::")[0]!)),
+  );
+  const { data: relatedImages = {} } = useQuery(catalogQueries.cardImages(relatedImageProductIds));
   const { addProduct } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
-    search.variant ?? product?.variants?.[0]?.id,
+    search.variant ??
+      product?.variants?.find((variant) => variant.id === slugVariantId)?.id ??
+      product?.variants?.[0]?.id,
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [installmentsDialogOpen, setInstallmentsDialogOpen] = useState(false);
   const navigate = useNavigate();
 
-  const productImages = product?.images ?? [];
+  const productImages = loadedProductImages;
   const selectedImage = productImages[selectedImageIndex] ?? productImages[0] ?? "";
   const hasMultipleImages = productImages.length > 1;
 
@@ -178,10 +188,12 @@ function ProductDetail() {
   useEffect(() => {
     setSelectedImageIndex(0);
     setImageViewerOpen(false);
-    const requestedVariant = product?.variants?.find((variant) => variant.id === search.variant);
+    const requestedVariant =
+      product?.variants?.find((variant) => variant.id === search.variant) ??
+      product?.variants?.find((variant) => variant.id === slugVariantId);
     setSelectedVariantId(requestedVariant?.id ?? product?.variants?.[0]?.id);
     setQuantity(1);
-  }, [product?.id, search.variant]);
+  }, [params.slug, product?.id, search.variant, slugVariantId]);
 
   const selectedVariant =
     product?.variants?.find((variant) => variant.id === selectedVariantId) ??
@@ -765,9 +777,12 @@ function ProductDetail() {
         <section className="mt-12">
           <SectionHeading eyebrow="También te puede gustar" title="Productos relacionados" />
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {related.map((item, index) => (
-              <ProductCard key={item.id} product={item} index={index} />
-            ))}
+            {related.map((item, index) => {
+              const parentId = item.parentId ?? item.id.split("::")[0]!;
+              const image = relatedImages[parentId];
+              const relatedProduct = image ? { ...item, image, images: [image] } : item;
+              return <ProductCard key={item.id} product={relatedProduct} index={index} />;
+            })}
           </div>
         </section>
       )}

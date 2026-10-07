@@ -50,8 +50,7 @@ const siteStatsQuery = {
 export const Route = createFileRoute("/admin/panel")({
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(orderQueries.list()),
-      context.queryClient.ensureQueryData(orderQueries.revenue()),
+      context.queryClient.ensureQueryData(orderQueries.dashboard()),
       context.queryClient.ensureQueryData(catalogQueries.all()),
       context.queryClient.ensureQueryData(siteStatsQuery),
     ]);
@@ -79,8 +78,7 @@ function AdminDashboard() {
   const stockSectionRef = useRef<HTMLDivElement | null>(null);
   const ordersTablePointerStart = useRef<{ x: number; y: number } | null>(null);
   const ordersTableDidSwipe = useRef(false);
-  const { data: orders } = useSuspenseQuery(orderQueries.list());
-  const { data: revenue } = useSuspenseQuery(orderQueries.revenue());
+  const { data: orders } = useSuspenseQuery(orderQueries.dashboard());
   const { data: products } = useSuspenseQuery(catalogQueries.all());
   const { data: siteStats } = useSuspenseQuery(siteStatsQuery);
   const [ecosystem, setEcosystem] = useState<"todos" | BrandSlug>("todos");

@@ -66,7 +66,7 @@ import { scrollToTopOnFirstSelection } from "@/lib/admin-selection";
 export const Route = createFileRoute("/admin/proveedores")({
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(catalogQueries.allAdmin()),
+      context.queryClient.ensureQueryData(catalogQueries.allAdminSummaries()),
       context.queryClient.ensureQueryData(catalogQueries.settings()),
     ]);
   },
@@ -178,9 +178,9 @@ const replaceSupplierRecord = (
 
 function AdminSuppliers() {
   const navigate = useNavigate({ from: "/admin/proveedores" });
-  const { data: products } = useSuspenseQuery(catalogQueries.allAdmin());
+  const { data: products } = useSuspenseQuery(catalogQueries.allAdminSummaries());
   const { data: settings } = useSuspenseQuery(catalogQueries.settings());
-  const { data: orders = [] } = useQuery(orderQueries.list());
+  const { data: orders = [] } = useQuery(orderQueries.listWithoutDocuments());
   const queryClient = useQueryClient();
   const [query, setQuery] = React.useState("");
   const [sortOrder, setSortOrder] = React.useState<
@@ -758,7 +758,7 @@ function AdminSuppliers() {
     queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
     void queryClient.invalidateQueries({ queryKey: ["products"] });
     void saveOrders(nextOrders);
-    queryClient.setQueryData(orderQueries.list().queryKey, nextOrders);
+    queryClient.setQueryData(orderQueries.listWithoutDocuments().queryKey, nextOrders);
     const currentKey = supplierKey;
     const remainingQueue = quickEditSupplierQueue.filter((key) => key !== currentKey);
     const nextQueuedKey = remainingQueue[0];
@@ -833,7 +833,7 @@ function AdminSuppliers() {
     queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
     void queryClient.invalidateQueries({ queryKey: ["products"] });
     void saveOrders(nextOrders);
-    queryClient.setQueryData(orderQueries.list().queryKey, nextOrders);
+    queryClient.setQueryData(orderQueries.listWithoutDocuments().queryKey, nextOrders);
   };
 
   const editSelectedSupplier = () => {
@@ -987,7 +987,7 @@ function AdminSuppliers() {
     queryClient.setQueryData(catalogQueries.allAdmin().queryKey, nextProducts);
     void queryClient.invalidateQueries({ queryKey: ["products"] });
     void saveOrders(nextOrders);
-    queryClient.setQueryData(orderQueries.list().queryKey, nextOrders);
+    queryClient.setQueryData(orderQueries.listWithoutDocuments().queryKey, nextOrders);
 
     if (linkedCount > 0) {
       toast.success(

@@ -4,6 +4,11 @@ import { adminClient, client } from "@/lib/db";
 import type { Order } from "@/data/orders";
 import type { Product } from "@/data/products";
 import {
+  getProductIdentityFromPublicSlug,
+  getProductRecordIdentityFromPublicSlug,
+  getProductVariantIdentityFromPublicSlug,
+} from "@/lib/product-slug";
+import {
   assessStockReservation,
   getInventoryKey,
   splitInventoryKey,
@@ -39,6 +44,21 @@ type AdminSetting = { settingKey: string; settingValue: string };
 
 function getDatabase() {
   return client;
+}
+
+function getPublicSlugIdentityLookup(slug: string) {
+  const identity = getProductIdentityFromPublicSlug(slug);
+  const productId = getProductRecordIdentityFromPublicSlug(slug);
+  const variantId = getProductVariantIdentityFromPublicSlug(slug);
+  if (!identity || !productId) return { condition: "", args: [] as string[] };
+  if (variantId) {
+    return {
+      condition:
+        "OR (id = ? AND EXISTS (SELECT 1 FROM json_each(productData, '$.variants') AS variant WHERE json_extract(variant.value, '$.id') = ?))",
+      args: [productId, variantId],
+    };
+  }
+  return { condition: "OR id = ?", args: [productId] };
 }
 
 async function ensureUserTables() {
@@ -1138,6 +1158,48 @@ export const listAdminProducts = createServerFn({ method: "POST" })
     });
   });
 
+export const getAdminProductById = createServerFn({ method: "POST" })
+  .validator((data: { id: string }) => {
+    if (!data.id.trim() || data.id.length > 500) throw new Error("El producto no es válido.");
+    return data;
+  })
+  .handler(async ({ data }): Promise<Product | null> => {
+    const database = await ensureAdminTables();
+    if (!database) return null;
+    const result = await database.execute({
+      sql: "SELECT productData FROM products WHERE id = ?",
+      args: [data.id],
+    });
+    const productData = result.rows[0]?.["productData"];
+    if (typeof productData !== "string") return null;
+    try {
+      return JSON.parse(productData) as Product;
+    } catch {
+      return null;
+    }
+  });
+
+export const listAdminProductsWithoutImages = createServerFn({ method: "POST" })
+  .validator(() => ({}))
+  .handler(async (): Promise<Product[]> => {
+    const database = await ensureAdminTables();
+    if (!database) return [];
+    const result = await database.execute(
+      `SELECT json_remove(productData, '$.image', '$.images') AS productData
+       FROM products
+       ORDER BY COALESCE(json_extract(productData, '$.createdAt'), updatedAt) DESC, rowid DESC`,
+    );
+    return result.rows.flatMap((row) => {
+      const value = row["productData"];
+      if (typeof value !== "string") return [];
+      try {
+        return [JSON.parse(value) as Product];
+      } catch {
+        return [];
+      }
+    });
+  });
+
 export const listAdminProductsPage = createServerFn({ method: "POST" })
   .validator((data: { offset: number; brand?: BrandSlug }) => {
     if (!Number.isInteger(data.offset) || data.offset < 0) {
@@ -1191,6 +1253,228 @@ export const listAdminProductsPage = createServerFn({ method: "POST" })
     };
   });
 
+export const listCatalogProductSummaries = createServerFn({ method: "POST" })
+  .validator((data: { brand?: BrandSlug }) => data)
+  .handler(async ({ data }): Promise<Product[]> => {
+    const database = await ensureAdminTables();
+    if (!database) return [];
+
+    const summarySql = `SELECT json_object(
+        'id', json_extract(p.productData, '$.id'),
+        'slug', json_extract(p.productData, '$.slug'),
+        'brand', json_extract(p.productData, '$.brand'),
+        'hidden', json_extract(p.productData, '$.hidden'),
+        'name', json_extract(p.productData, '$.name'),
+        'code', json_extract(p.productData, '$.code'),
+        'category', json_extract(p.productData, '$.category'),
+        'subcategory', json_extract(p.productData, '$.subcategory'),
+        'subcategoryPath', json(json_extract(p.productData, '$.subcategoryPath')),
+        'price', json_extract(p.productData, '$.price'),
+        'priceCurrency', json_extract(p.productData, '$.priceCurrency'),
+        'cardCommission', json_extract(p.productData, '$.cardCommission'),
+        'compareAtPrice', json_extract(p.productData, '$.compareAtPrice'),
+        'discount', json_extract(p.productData, '$.discount'),
+        'stock', json_extract(p.productData, '$.stock'),
+        'stockUnlimited', json_extract(p.productData, '$.stockUnlimited'),
+        'supplier', json(json_extract(p.productData, '$.supplier')),
+        'gastos', json_extract(p.productData, '$.gastos'),
+        'gastosCurrency', json_extract(p.productData, '$.gastosCurrency'),
+        'usdRate', json_extract(p.productData, '$.usdRate'),
+        'rating', json_extract(p.productData, '$.rating'),
+        'reviews', json_extract(p.productData, '$.reviews'),
+        'badge', json_extract(p.productData, '$.badge'),
+        'short', json_extract(p.productData, '$.short'),
+        'description', json_extract(p.productData, '$.description'),
+        'features', json(json_extract(p.productData, '$.features')),
+        'includes', json(json_extract(p.productData, '$.includes')),
+        'deliveryUnit', json_extract(p.productData, '$.deliveryUnit'),
+        'deliveryAmount', json_extract(p.productData, '$.deliveryAmount'),
+        'createdAt', json_extract(p.productData, '$.createdAt'),
+        'variants', COALESCE((
+          SELECT json_group_array(json_object(
+            'id', json_extract(v.value, '$.id'),
+            'name', json_extract(v.value, '$.name'),
+            'code', json_extract(v.value, '$.code'),
+            'hidden', json_extract(v.value, '$.hidden'),
+            'price', json_extract(v.value, '$.price'),
+            'priceCurrency', json_extract(v.value, '$.priceCurrency'),
+            'gastos', json_extract(v.value, '$.gastos'),
+            'gastosCurrency', json_extract(v.value, '$.gastosCurrency'),
+            'cardCommission', json_extract(v.value, '$.cardCommission'),
+            'description', json_extract(v.value, '$.description'),
+            'features', json(json_extract(v.value, '$.features')),
+            'includes', json(json_extract(v.value, '$.includes')),
+            'stock', json_extract(v.value, '$.stock'),
+            'stockUnlimited', json_extract(v.value, '$.stockUnlimited'),
+            'discount', json_extract(v.value, '$.discount'),
+            'deliveryUnit', json_extract(v.value, '$.deliveryUnit'),
+            'deliveryAmount', json_extract(v.value, '$.deliveryAmount')
+          ))
+          FROM json_each(p.productData, '$.variants') AS v
+        ), json('[]'))
+      ) AS summary
+      FROM products AS p
+      ${data.brand ? "WHERE json_extract(p.productData, '$.brand') = ?" : ""}
+      ORDER BY COALESCE(json_extract(p.productData, '$.createdAt'), p.updatedAt) DESC, p.rowid DESC`;
+    const result = await database.execute({
+      sql: summarySql,
+      args: data.brand ? [data.brand] : [],
+    });
+
+    return result.rows.flatMap((row) => {
+      const summary = row["summary"];
+      if (typeof summary !== "string") return [];
+      try {
+        return [JSON.parse(summary) as Product];
+      } catch {
+        return [];
+      }
+    });
+  });
+
+export const getCatalogProductBySlug = createServerFn({ method: "POST" })
+  .validator((data: { brand: BrandSlug; slug: string }) => data)
+  .handler(async ({ data }): Promise<Product | null> => {
+    const database = await ensureAdminTables();
+    if (!database) return null;
+    const identityLookup = getPublicSlugIdentityLookup(data.slug);
+    const result = await database.execute({
+      sql: `SELECT id FROM products
+            WHERE json_extract(productData, '$.brand') = ?
+              AND (
+                json_extract(productData, '$.slug') = ?
+                ${identityLookup.condition}
+              )
+            LIMIT 1`,
+      args: [data.brand, data.slug, ...identityLookup.args],
+    });
+    const productId = result.rows[0]?.["id"];
+    if (typeof productId !== "string") return null;
+    const productResult = await database.execute({
+      sql: "SELECT json_remove(productData, '$.image', '$.images') AS productData FROM products WHERE id = ?",
+      args: [productId],
+    });
+    const productData = productResult.rows[0]?.["productData"];
+    if (typeof productData !== "string") return null;
+    try {
+      return JSON.parse(productData) as Product;
+    } catch {
+      return null;
+    }
+  });
+
+export const getCatalogProductImages = createServerFn({ method: "POST" })
+  .validator((data: { brand: BrandSlug; slug: string }) => data)
+  .handler(async ({ data }): Promise<string[]> => {
+    const database = await ensureAdminTables();
+    if (!database) return [];
+    const identityLookup = getPublicSlugIdentityLookup(data.slug);
+    const result = await database.execute({
+      sql: `SELECT CASE
+              WHEN json_array_length(productData, '$.images') > 0
+                THEN json_extract(productData, '$.images')
+              ELSE json_array(json_extract(productData, '$.image'))
+            END AS images
+            FROM products WHERE id = (
+              SELECT id FROM products
+              WHERE json_extract(productData, '$.brand') = ?
+                AND (
+                  json_extract(productData, '$.slug') = ?
+                  ${identityLookup.condition}
+                )
+              LIMIT 1
+            )
+            LIMIT 1`,
+      args: [data.brand, data.slug, ...identityLookup.args],
+    });
+    const value = result.rows[0]?.["images"];
+    if (typeof value !== "string") return [];
+    try {
+      const images = JSON.parse(value) as unknown;
+      return Array.isArray(images)
+        ? images.filter((image): image is string => typeof image === "string" && Boolean(image))
+        : [];
+    } catch {
+      return [];
+    }
+  });
+
+export const getRelatedCatalogProducts = createServerFn({ method: "POST" })
+  .validator((data: { brand: BrandSlug; slug: string }) => data)
+  .handler(async ({ data }): Promise<Product[]> => {
+    const database = await ensureAdminTables();
+    if (!database) return [];
+    const identityLookup = getPublicSlugIdentityLookup(data.slug);
+    const targetResult = await database.execute({
+      sql: `SELECT id, json_extract(productData, '$.category') AS category FROM products
+            WHERE json_extract(productData, '$.brand') = ?
+              AND (
+                json_extract(productData, '$.slug') = ?
+                ${identityLookup.condition}
+              )
+            LIMIT 1`,
+      args: [data.brand, data.slug, ...identityLookup.args],
+    });
+    const target = targetResult.rows[0];
+    const productId = target?.["id"];
+    const category = target?.["category"];
+    if (typeof productId !== "string" || typeof category !== "string") return [];
+
+    const relatedResult = await database.execute({
+      sql: `SELECT json_remove(productData, '$.image', '$.images') AS productData
+            FROM products
+            WHERE json_extract(productData, '$.brand') = ?
+              AND id <> ?
+              AND json_extract(productData, '$.category') = ?
+              AND COALESCE(json_extract(productData, '$.hidden'), 0) = 0
+            ORDER BY COALESCE(json_extract(productData, '$.createdAt'), updatedAt) DESC, rowid DESC
+            LIMIT 12`,
+      args: [data.brand, productId, category],
+    });
+    return relatedResult.rows.flatMap((row) => {
+      const value = row["productData"];
+      if (typeof value !== "string") return [];
+      try {
+        return [JSON.parse(value) as Product];
+      } catch {
+        return [];
+      }
+    });
+  });
+
+export const getCatalogProductCardImages = createServerFn({ method: "POST" })
+  .validator((data: { productIds: string[] }) => {
+    if (!Array.isArray(data.productIds) || data.productIds.length > 40) {
+      throw new Error("La cantidad de imágenes solicitadas no es válida.");
+    }
+    if (data.productIds.some((id) => typeof id !== "string" || !id.trim() || id.length > 500)) {
+      throw new Error("Hay un producto con identificador de imagen no válido.");
+    }
+    return { productIds: Array.from(new Set(data.productIds)) };
+  })
+  .handler(async ({ data }): Promise<Array<{ id: string; image: string }>> => {
+    if (!data.productIds.length) return [];
+    const database = await ensureAdminTables();
+    if (!database) return [];
+    const placeholders = data.productIds.map(() => "?").join(", ");
+    const result = await database.execute({
+      sql: `SELECT id, COALESCE(
+              json_extract(productData, '$.image'),
+              json_extract(productData, '$.images[0]')
+            ) AS image
+            FROM products
+            WHERE id IN (${placeholders})`,
+      args: data.productIds,
+    });
+    return result.rows.flatMap((row) => {
+      const id = row["id"];
+      const image = row["image"];
+      return typeof id === "string" && typeof image === "string" && image
+        ? [{ id, image }]
+        : [];
+    });
+  });
+
 export const listAdminProductsByBrand = createServerFn({ method: "POST" })
   .validator((data: { brand: BrandSlug }) => data)
   .handler(async ({ data }) => {
@@ -1232,16 +1516,56 @@ export const getAdminProductRevision = createServerFn({ method: "POST" })
     ].join(":");
   });
 
+function restoreOmittedProductImages(
+  product: Product,
+  storedImage: unknown,
+  storedImages: unknown,
+): Product {
+  if (Object.hasOwn(product, "image") || Object.hasOwn(product, "images")) return product;
+  let images: string[] | undefined;
+  if (typeof storedImages === "string") {
+    try {
+      const parsed = JSON.parse(storedImages) as unknown;
+      if (Array.isArray(parsed)) {
+        images = parsed.filter((image): image is string => typeof image === "string");
+      }
+    } catch {
+      images = undefined;
+    }
+  }
+  return {
+    ...product,
+    ...(typeof storedImage === "string" ? { image: storedImage } : {}),
+    ...(images ? { images } : {}),
+  };
+}
+
 export const saveAdminProducts = createServerFn({ method: "POST" })
   .validator((data: { products: Product[] }) => data)
   .handler(async ({ data }) => {
     const database = await ensureAdminTables();
     if (!database) return false;
     const now = new Date().toISOString();
+    const currentImagesResult = await database.execute(
+      "SELECT id, json_extract(productData, '$.image') AS image, json_extract(productData, '$.images') AS images FROM products",
+    );
+    const imagesByProductId = new Map(
+      currentImagesResult.rows.flatMap((row) =>
+        typeof row["id"] === "string"
+          ? [[row["id"] as string, { image: row["image"], images: row["images"] }] as const]
+          : [],
+      ),
+    );
+    const productsWithImages = data.products.map((product) => {
+      const current = imagesByProductId.get(product.id);
+      return current
+        ? restoreOmittedProductImages(product, current.image, current.images)
+        : product;
+    });
     await database.batch(
       [
         { sql: "DELETE FROM products", args: [] },
-        ...data.products.map((product) => ({
+        ...productsWithImages.map((product) => ({
           sql: `INSERT INTO products (id, productData, updatedAt) VALUES (?, ?, ?)
               ON CONFLICT(id) DO UPDATE SET productData = excluded.productData, updatedAt = excluded.updatedAt`,
           args: [product.id, JSON.stringify(product), now],
@@ -1257,10 +1581,18 @@ export const saveAdminProduct = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const database = await ensureAdminTables();
     if (!database) return false;
+    const currentResult = await database.execute({
+      sql: "SELECT json_extract(productData, '$.image') AS image, json_extract(productData, '$.images') AS images FROM products WHERE id = ?",
+      args: [data.product.id],
+    });
+    const current = currentResult.rows[0];
+    const product = current
+      ? restoreOmittedProductImages(data.product, current["image"], current["images"])
+      : data.product;
     await database.execute({
       sql: `INSERT INTO products (id, productData, updatedAt) VALUES (?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET productData = excluded.productData, updatedAt = excluded.updatedAt`,
-      args: [data.product.id, JSON.stringify(data.product), new Date().toISOString()],
+      args: [product.id, JSON.stringify(product), new Date().toISOString()],
     });
     return true;
   });
@@ -1276,12 +1608,34 @@ export const saveAdminProductBatch = createServerFn({ method: "POST" })
     const database = await ensureAdminTables();
     if (!database) return false;
     const now = new Date().toISOString();
+    const productIds = Array.from(new Set(data.products.map((product) => product.id)));
+    const placeholders = productIds.map(() => "?").join(", ");
+    const currentImagesResult = productIds.length
+      ? await database.execute({
+          sql: `SELECT id, json_extract(productData, '$.image') AS image, json_extract(productData, '$.images') AS images
+                FROM products WHERE id IN (${placeholders})`,
+          args: productIds,
+        })
+      : { rows: [] };
+    const imagesByProductId = new Map(
+      currentImagesResult.rows.flatMap((row) =>
+        typeof row["id"] === "string"
+          ? [[row["id"] as string, { image: row["image"], images: row["images"] }] as const]
+          : [],
+      ),
+    );
     await database.batch(
-      data.products.map((product) => ({
+      data.products.map((candidate) => {
+        const current = imagesByProductId.get(candidate.id);
+        const product = current
+          ? restoreOmittedProductImages(candidate, current.image, current.images)
+          : candidate;
+        return {
         sql: `INSERT INTO products (id, productData, updatedAt) VALUES (?, ?, ?)
               ON CONFLICT(id) DO UPDATE SET productData = excluded.productData, updatedAt = excluded.updatedAt`,
         args: [product.id, JSON.stringify(product), now],
-      })),
+        };
+      }),
       "write",
     );
     return true;
@@ -1712,6 +2066,94 @@ export const listAdminOrders = createServerFn({ method: "POST" })
     });
   });
 
+export const listAdminOrdersWithoutDocuments = createServerFn({ method: "POST" })
+  .validator(() => ({}))
+  .handler(async (): Promise<Order[]> => {
+    const database = await ensureAdminTables();
+    if (!database) return [];
+    const result = await database.execute(
+      `SELECT json_remove(orderData, '$.attachments', '$.paymentReceipts') AS orderData
+       FROM orders ORDER BY updatedAt DESC`,
+    );
+    return result.rows.flatMap((row) => {
+      const value = row["orderData"];
+      if (typeof value !== "string") return [];
+      try {
+        return [JSON.parse(value) as Order];
+      } catch {
+        return [];
+      }
+    });
+  });
+
+export const getAdminOrderById = createServerFn({ method: "POST" })
+  .validator((data: { id: string }) => {
+    if (!data.id.trim() || data.id.length > 500) throw new Error("El pedido no es válido.");
+    return data;
+  })
+  .handler(async ({ data }): Promise<Order | null> => {
+    const database = await ensureAdminTables();
+    if (!database) return null;
+    const result = await database.execute({
+      sql: "SELECT orderData FROM orders WHERE id = ?",
+      args: [data.id],
+    });
+    const value = result.rows[0]?.["orderData"];
+    if (typeof value !== "string") return null;
+    try {
+      return JSON.parse(value) as Order;
+    } catch {
+      return null;
+    }
+  });
+
+export const listAdminOrderSummaries = createServerFn({ method: "POST" })
+  .validator(() => ({}))
+  .handler(async () => {
+    const database = await ensureAdminTables();
+    if (!database) return [];
+    const result = await database.execute({
+      sql: `SELECT json_object(
+              'id', json_extract(orderData, '$.id'),
+              'customer', json_extract(orderData, '$.customer'),
+              'email', json_extract(orderData, '$.email'),
+              'phone', json_extract(orderData, '$.phone'),
+              'date', json_extract(orderData, '$.date'),
+              'total', json_extract(orderData, '$.total'),
+              'brand', json_extract(orderData, '$.brand'),
+              'status', json_extract(orderData, '$.status'),
+              'expenses', json_extract(orderData, '$.expenses'),
+              'profit', json_extract(orderData, '$.profit'),
+              'items', COALESCE((
+                SELECT json_group_array(json_object('brand', json_extract(item.value, '$.brand')))
+                FROM json_each(orders.orderData, '$.items') AS item
+              ), json('[]'))
+            ) AS orderSummary
+            FROM orders ORDER BY updatedAt DESC`,
+    });
+    return result.rows.flatMap((row) => {
+      const summary = row["orderSummary"];
+      if (typeof summary !== "string") return [];
+      try {
+        return [JSON.parse(summary) as {
+          id: string;
+          customer: string;
+          email: string;
+          phone: string;
+          date: string;
+          total: number;
+          brand: BrandSlug;
+          status: Order["status"];
+          expenses: number;
+          profit: number;
+          items: Array<{ brand?: BrandSlug }>;
+        }];
+      } catch {
+        return [];
+      }
+    });
+  });
+
 export const upsertAdminOrder = createServerFn({ method: "POST" })
   .validator((data: { order: Order }) => data)
   .handler(async ({ data }) => {
@@ -1720,7 +2162,7 @@ export const upsertAdminOrder = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     await database.execute({
       sql: `INSERT INTO orders (id, orderData, updatedAt) VALUES (?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET orderData = excluded.orderData, updatedAt = excluded.updatedAt`,
+        ON CONFLICT(id) DO UPDATE SET orderData = json_patch(orders.orderData, excluded.orderData), updatedAt = excluded.updatedAt`,
       args: [data.order.id, JSON.stringify(data.order), now],
     });
 
@@ -1913,12 +2355,19 @@ export const saveAdminOrders = createServerFn({ method: "POST" })
     const database = await ensureAdminTables();
     if (!database) return false;
     const now = new Date().toISOString();
+    const existingResult = await database.execute("SELECT id FROM orders");
+    const incomingIds = new Set(data.orders.map((order) => order.id));
+    const staleIds = existingResult.rows.flatMap((row) =>
+      typeof row["id"] === "string" && !incomingIds.has(row["id"])
+        ? [row["id"] as string]
+        : [],
+    );
     await database.batch(
       [
-        { sql: "DELETE FROM orders", args: [] },
+        ...staleIds.map((id) => ({ sql: "DELETE FROM orders WHERE id = ?", args: [id] })),
         ...data.orders.map((order) => ({
           sql: `INSERT INTO orders (id, orderData, updatedAt) VALUES (?, ?, ?)
-              ON CONFLICT(id) DO UPDATE SET orderData = excluded.orderData, updatedAt = excluded.updatedAt`,
+              ON CONFLICT(id) DO UPDATE SET orderData = json_patch(orders.orderData, excluded.orderData), updatedAt = excluded.updatedAt`,
           args: [order.id, JSON.stringify(order), now],
         })),
       ],

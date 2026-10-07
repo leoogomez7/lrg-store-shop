@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import {
   AlertTriangle,
@@ -113,7 +113,6 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
   });
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const {
     isAuthenticated,
     isLoading,
@@ -171,16 +170,6 @@ function AdminLayoutContent({ auth }: { auth: ReturnType<typeof useKindeAuth> | 
     window.addEventListener("lrg-brand-data-updated", syncFooterContact);
     return () => window.removeEventListener("lrg-brand-data-updated", syncFooterContact);
   }, []);
-
-  useEffect(() => {
-    if (!hasVerifiedAdminAccess) return;
-    void Promise.all([
-      queryClient.prefetchQuery(catalogQueries.allAdmin()),
-      queryClient.prefetchQuery(orderQueries.list()),
-      queryClient.prefetchQuery(orderQueries.revenue()),
-      queryClient.prefetchQuery(catalogQueries.settings()),
-    ]);
-  }, [hasVerifiedAdminAccess, queryClient]);
 
   const AdminUserMenu = () => (
     <DropdownMenu open={adminUserMenuOpen} onOpenChange={setAdminUserMenuOpen}>
@@ -774,8 +763,8 @@ function readSeenAdminNoticeIds(key: string) {
   }
 }
 
-  const { data: products } = useSuspenseQuery(catalogQueries.allAdmin());
-  const { data: orders } = useSuspenseQuery(orderQueries.list());
+  const { data: products } = useSuspenseQuery(catalogQueries.allAdminSummaries());
+  const { data: orders } = useSuspenseQuery(orderQueries.dashboard());
   const [notice, setNotice] = useState<AdminEntryNoticeData | null>(null);
 
   const acknowledgeNotice = () => {

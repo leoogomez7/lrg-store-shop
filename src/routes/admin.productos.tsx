@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
+  buildProductPublicSlug,
   products as productsData,
   saveProduct,
   saveProductBatch,
@@ -90,6 +91,7 @@ import {
   loadAdminAsset,
   loadAdminSettings,
   loadPlayStationProductImageDataUrl,
+  getAdminProductById,
   saveAdminAsset,
   saveAdminSetting,
   deleteAdminProduct,
@@ -257,7 +259,7 @@ const isProductRowHidden = (product: Product, variant?: ProductVariant) =>
 export const Route = createFileRoute("/admin/productos")({
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(catalogQueries.allAdmin()),
+      context.queryClient.ensureQueryData(catalogQueries.allAdminSummaries()),
       context.queryClient.ensureQueryData(catalogQueries.settings()),
     ]);
   },
@@ -286,7 +288,7 @@ function AdminProducts() {
   const routeSearch = Route.useSearch();
   const navigate = useNavigate({ from: "/admin/productos" });
   const queryClient = useQueryClient();
-  const { data: products } = useSuspenseQuery(catalogQueries.allAdmin());
+  const { data: products } = useSuspenseQuery(catalogQueries.allAdminSummaries());
   const { data: adminSettings } = useSuspenseQuery(catalogQueries.settings());
   const [editableProducts, setEditableProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
@@ -1407,7 +1409,12 @@ function AdminProducts() {
         ...product,
         name,
         variantName: importAsVariant ? importVariantName.trim() : product.variantName,
-        slug: `${slugBase}-${product.id.replace(/[^a-zA-Z0-9-]/g, "-")}`,
+        slug: buildProductPublicSlug({
+          name: name,
+          variantName: importAsVariant ? importVariantName.trim() : product.variantName,
+          id: product.id,
+          fallbackSlug: slugBase,
+        }),
         price,
         priceCurrency: "ARS",
         usdRate: effectiveUsdRate || product.usdRate,
@@ -1502,40 +1509,50 @@ function AdminProducts() {
   };
 
   const openEditProductDialog = useCallback(
-    (product: Product, variant?: ProductVariant) => {
-      setEditingProduct(product);
+    async (product: Product, variant?: ProductVariant) => {
+      let fullProduct = product;
+      if (!Object.hasOwn(product, "images") && !Object.hasOwn(product, "image")) {
+        const loadedProduct = await getAdminProductById({ data: { id: product.id } });
+        if (!loadedProduct) {
+          toast.error("No se pudieron cargar las imágenes del producto. Intentá nuevamente.");
+          return;
+        }
+        fullProduct = loadedProduct;
+      }
+      setEditingProduct(fullProduct);
       setInitialVariantId(variant?.id ?? null);
       setProductForm({
-        id: product.id,
-        name: product.name,
-        code: product.code ?? "",
-        brand: product.brand,
-        category: product.category,
-        subcategory: product.subcategory ?? "",
+        id: fullProduct.id,
+        name: fullProduct.name,
+        code: fullProduct.code ?? "",
+        brand: fullProduct.brand,
+        category: fullProduct.category,
+        subcategory: fullProduct.subcategory ?? "",
         subcategoryPath:
-          product.subcategoryPath ?? (product.subcategory ? [product.subcategory] : []),
-        price: product.price,
-        priceCurrency: product.priceCurrency ?? "ARS",
-        comision: product.comision ?? 0,
-        comisionCurrency: product.comisionCurrency ?? "ARS",
-        stock: product.stock,
-        stockUnlimited: product.stockUnlimited ?? false,
-        description: product.description,
-        features: product.features ?? [],
-        includes: product.includes ?? [],
-        images: product.images ?? [],
-        gastos: product.gastos ?? 0,
-        gastosCurrency: product.gastosCurrency ?? "ARS",
-        usdRate: product.usdRate && product.usdRate > 0 ? product.usdRate : usdRate,
-        deliveryUnit: product.deliveryUnit ?? "inmediata",
-        deliveryAmount: product.deliveryAmount ?? 0,
-        discount: discounts[product.id] ?? 0,
-        variants: product.variants ?? [],
-        supplier: product.supplier ?? { name: "", phone: "", social: "", purchaseDate: "" },
+          fullProduct.subcategoryPath ??
+          (fullProduct.subcategory ? [fullProduct.subcategory] : []),
+        price: fullProduct.price,
+        priceCurrency: fullProduct.priceCurrency ?? "ARS",
+        comision: fullProduct.comision ?? 0,
+        comisionCurrency: fullProduct.comisionCurrency ?? "ARS",
+        stock: fullProduct.stock,
+        stockUnlimited: fullProduct.stockUnlimited ?? false,
+        description: fullProduct.description,
+        features: fullProduct.features ?? [],
+        includes: fullProduct.includes ?? [],
+        images: fullProduct.images ?? [],
+        gastos: fullProduct.gastos ?? 0,
+        gastosCurrency: fullProduct.gastosCurrency ?? "ARS",
+        usdRate: fullProduct.usdRate && fullProduct.usdRate > 0 ? fullProduct.usdRate : usdRate,
+        deliveryUnit: fullProduct.deliveryUnit ?? "inmediata",
+        deliveryAmount: fullProduct.deliveryAmount ?? 0,
+        discount: discounts[fullProduct.id] ?? 0,
+        variants: fullProduct.variants ?? [],
+        supplier: fullProduct.supplier ?? { name: "", phone: "", social: "", purchaseDate: "" },
       });
       setPendingDiscounts((current) => ({
         ...current,
-        [product.id]: String(discounts[product.id] ?? 0),
+        [fullProduct.id]: String(discounts[fullProduct.id] ?? 0),
       }));
       setEditDialogOpen(true);
     },
@@ -1563,13 +1580,15 @@ function AdminProducts() {
   const handleDeleteProduct = async (productId: string, variantId?: string) => {
     const pageBeforeDelete = page;
     const scrollTopBeforeDelete = window.scrollY;
-    const product = (productsData as Product[]).find((item) => item.id === productId);
-    if (!product) {
+    const listedProduct = (productsData as Product[]).find((item) => item.id === productId);
+    if (!listedProduct) {
       toast.error("No se encontró el producto para eliminar.");
       return false;
     }
 
     try {
+      const product = await getAdminProductById({ data: { id: productId } });
+      if (!product) throw new Error("No se pudo cargar el producto completo para enviarlo a la papelera.");
       if (variantId) {
         const remainingVariants = (product.variants ?? []).filter(
           (variant) => variant.id !== variantId,
@@ -1626,18 +1645,26 @@ function AdminProducts() {
   };
 
   const handleDuplicateProduct = async (product: Product) => {
+    const fullProduct = await getAdminProductById({ data: { id: product.id } });
+    if (!fullProduct) {
+      toast.error("No se pudo cargar el producto para duplicarlo.");
+      return;
+    }
+    product = fullProduct;
     const timestamp = Date.now();
     const uniqueSuffix = `${timestamp}-${Math.random().toString(36).slice(2, 7)}`;
     const newId = `${product.id}-copy-${uniqueSuffix}`;
-    const newSlug = `${product.slug}-copy-${uniqueSuffix}`
-      .replace(/[^a-z0-9-]/g, "-")
-      .replace(/--+/g, "-");
     const duplicated: Product = {
       ...product,
       parentId: undefined,
       variantId: undefined,
       id: newId,
-      slug: newSlug,
+      slug: buildProductPublicSlug({
+        name: `${product.name} copia`,
+        variantName: product.variantName,
+        id: newId,
+        fallbackSlug: product.slug,
+      }),
       name: `${product.name} (Copia)`,
       createdAt: new Date().toISOString(),
     };
@@ -1828,6 +1855,12 @@ function AdminProducts() {
     }
 
     try {
+      const fullDeletedProducts = await Promise.all(
+        deletedProducts.map((product) => getAdminProductById({ data: { id: product.id } })),
+      );
+      if (fullDeletedProducts.some((product) => !product)) {
+        throw new Error("No se pudieron cargar todos los productos antes de enviarlos a la papelera.");
+      }
       for (const product of deletedProducts) {
         const deleted = await deleteAdminProduct({ data: { id: product.id } });
         if (!deleted) throw new Error(`No se pudo eliminar «${product.name}».`);
@@ -1837,8 +1870,8 @@ function AdminProducts() {
         if (!saved) throw new Error(`No se pudo actualizar «${product.name}».`);
       }
 
-      deletedProducts.forEach((product) =>
-        moveToTrash({ type: "producto", id: product.id, item: product }),
+      fullDeletedProducts.forEach((product) =>
+        product && moveToTrash({ type: "producto", id: product.id, item: product }),
       );
       productsData.splice(0, productsData.length, ...nextProducts);
       setEditableProducts(nextProducts);
@@ -1927,16 +1960,18 @@ function AdminProducts() {
         const timestamp = Date.now();
         const random = Math.random().toString(36).slice(2, 7);
         const newId = `${product.id}-copy-${timestamp}-${random}`;
-        const newSlug = `${product.slug}-copy-${timestamp}-${random}`
-          .replace(/[^a-z0-9-]/g, "-")
-          .replace(/--+/g, "-");
 
         duplicates.push({
           ...product,
           parentId: undefined,
           variantId: undefined,
           id: newId,
-          slug: newSlug,
+          slug: buildProductPublicSlug({
+            name: `${product.name} copia`,
+            variantName: product.variantName,
+            id: newId,
+            fallbackSlug: product.slug,
+          }),
           name: `${product.name} (Copia)`,
           createdAt: new Date().toISOString(),
           hidden: Boolean(product.hidden),
@@ -1950,9 +1985,6 @@ function AdminProducts() {
       const timestamp = Date.now();
       const random = Math.random().toString(36).slice(2, 7);
       const newId = `${product.id}-copy-${timestamp}-${random}`;
-      const newSlug = `${product.slug}-copy-${timestamp}-${random}`
-        .replace(/[^a-z0-9-]/g, "-")
-        .replace(/--+/g, "-");
       const duplicatedVariant = {
         ...selectedVariant,
         id: `${selectedVariant.id}-copy-${timestamp}-${random}`,
@@ -1964,7 +1996,12 @@ function AdminProducts() {
         parentId: undefined,
         variantId: undefined,
         id: newId,
-        slug: newSlug,
+        slug: buildProductPublicSlug({
+          name: `${product.name} copia`,
+          variantName: selectedVariant.name,
+          id: newId,
+          fallbackSlug: product.slug,
+        }),
         name: `${product.name} (Copia)`,
         variantName: selectedVariant.name,
         variants: [duplicatedVariant],
@@ -2397,16 +2434,26 @@ function AdminProducts() {
       );
       const updated = nextProducts.find((product) => product.id === productForm.id);
       if (!updated) throw new Error("No se encontró el producto que se intentaba actualizar.");
-      productToSave = updated;
+      productToSave = {
+        ...updated,
+        slug: buildProductPublicSlug({
+          name: productForm.name,
+          variantName: productForm.variants?.[0]?.name,
+          id: updated.id,
+          fallbackSlug: updated.slug,
+        }),
+      };
     } else {
       savedProductId = `new-${Date.now()}`;
       productToSave = {
         ...updatedProduct,
         id: savedProductId,
-        slug: productForm.name
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)/g, ""),
+        slug: buildProductPublicSlug({
+          name: productForm.name,
+          variantName: productForm.variants?.[0]?.name,
+          id: savedProductId,
+          fallbackSlug: productForm.name,
+        }),
         rating: 0,
         reviews: 0,
         short: productForm.description,

@@ -1,6 +1,8 @@
 import type { BrandSlug } from "@/config/brands";
 import { saveAdminProduct, saveAdminProductBatch, saveAdminProducts } from "@/server/persistence";
 
+export { buildProductPublicSlug, normalizeProductSlugSegment } from "@/lib/product-slug";
+
 const NON_TEXT_CONTENT_KEYS = new Set(["dataurl", "snapshotdata", "image", "images"]);
 
 export function normalizeSearchText(value: unknown) {

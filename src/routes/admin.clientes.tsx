@@ -44,12 +44,13 @@ import {
 import { saveOrders, orders as ordersData, type OrderAttachment } from "@/data/orders";
 import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
 import { getVisiblePaginationItems } from "@/lib/pagination";
+import { getAdminOrderById } from "@/server/persistence";
 
 export const Route = createFileRoute("/admin/clientes")({
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(orderQueries.list()),
-      context.queryClient.ensureQueryData(catalogQueries.allAdmin()),
+      context.queryClient.ensureQueryData(orderQueries.listWithoutDocuments()),
+      context.queryClient.ensureQueryData(catalogQueries.allAdminSummaries()),
     ]);
   },
   head: () => ({ meta: [{ title: "Administrador" }] }),
@@ -57,8 +58,8 @@ export const Route = createFileRoute("/admin/clientes")({
 });
 
 function AdminClients() {
-  const { data: orders = [] } = useSuspenseQuery(orderQueries.list());
-  const { data: products = [] } = useSuspenseQuery(catalogQueries.allAdmin());
+  const { data: orders = [] } = useSuspenseQuery(orderQueries.listWithoutDocuments());
+  const { data: products = [] } = useSuspenseQuery(catalogQueries.allAdminSummaries());
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<number>(16);
   const [pageSizeInput, setPageSizeInput] = useState<string>("16");
@@ -916,6 +917,12 @@ function CustomerRow({
     setDocumentsOrder(updatedOrder);
   };
 
+  const openOrderDocuments = async (order: Order) => {
+    const fullOrder = await getAdminOrderById({ data: { id: order.id } });
+    if (!fullOrder) return;
+    setDocumentsOrder(fullOrder);
+  };
+
   return (
     <>
       <TableRow
@@ -1000,9 +1007,7 @@ function CustomerRow({
                       variant="outline"
                       size="sm"
                       className="h-7 px-2 py-1 text-xs"
-                      onClick={() => {
-                        setDocumentsOrder(o);
-                      }}
+                      onClick={() => void openOrderDocuments(o)}
                     >
                       <Paperclip className="size-3.5" /> Archivos adjuntos
                     </Button>
@@ -1048,9 +1053,7 @@ function CustomerRow({
                           variant="outline"
                           size="sm"
                           className="h-7 px-2 py-1 text-xs"
-                          onClick={() => {
-                            setDocumentsOrder(fifthOrder);
-                          }}
+                          onClick={() => void openOrderDocuments(fifthOrder)}
                         >
                           <Paperclip className="size-3.5" /> Archivos adjuntos
                         </Button>
@@ -1118,7 +1121,7 @@ function CustomerRow({
                         className="h-7 px-2 py-1 text-xs"
                         onClick={() => {
                           setAllPurchasesOpen(false);
-                          setDocumentsOrder(o);
+                          void openOrderDocuments(o);
                         }}
                       >
                         <Paperclip className="size-3.5" /> Archivos adjuntos

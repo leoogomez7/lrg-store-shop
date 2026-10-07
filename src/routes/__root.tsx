@@ -233,21 +233,10 @@ function AuthenticatedCart({ children }: { children: ReactNode }) {
       isAuthenticated={isAuthenticated}
       isLoading={isLoading}
     >
-      <AppDataPrefetch>{children}</AppDataPrefetch>
+      {children}
       <CustomerOrderStatusNotice />
     </CartProvider>
   );
-}
-
-function AppDataPrefetch({ children }: { children: ReactNode }) {
-  const queryClient = useQueryClient();
-  const { isAuthenticated } = useKindeAuth();
-
-  useEffect(() => {
-    if (isAuthenticated) void queryClient.prefetchQuery(orderQueries.list());
-  }, [isAuthenticated, queryClient]);
-
-  return <>{children}</>;
 }
 
 function CatalogDataSync() {
@@ -284,9 +273,16 @@ type CustomerOrderStatusChange = {
 
 function CustomerOrderStatusNotice() {
   const { user, isAuthenticated } = useKindeAuth();
+  const shouldCheckNotice =
+    typeof window !== "undefined" &&
+    Boolean(user?.email) &&
+    getAuthRole() !== "admin" &&
+    window.sessionStorage.getItem(
+      `lrg_customer_order_status_notice_shown:${user?.email?.trim().toLowerCase()}`,
+    ) !== "true";
   const { data: orders = [] } = useQuery({
-    ...orderQueries.list(),
-    enabled: Boolean(isAuthenticated && user?.email),
+    ...orderQueries.dashboard(),
+    enabled: Boolean(isAuthenticated && user?.email && shouldCheckNotice),
   });
   const [changes, setChanges] = useState<CustomerOrderStatusChange[]>([]);
 

@@ -1,13 +1,26 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { BrandSlug } from "@/config/brands";
-import type { Product } from "@/data/products";
+import { buildProductPublicSlug, type Product } from "@/data/products";
+import {
+  getProductRecordIdentityFromPublicSlug,
+  getProductVariantIdentityFromPublicSlug,
+} from "@/lib/product-slug";
 import type { Order } from "@/data/orders";
 import { products } from "@/data/products";
 import { orders } from "@/data/orders";
 import {
   listAdminOrders,
   listAdminProductsPage,
+  listCatalogProductSummaries,
+  getCatalogProductBySlug,
+  getRelatedCatalogProducts,
+  getCatalogProductImages,
+  getCatalogProductCardImages,
   getAdminProductRevision,
+  listAdminOrdersWithoutDocuments,
+  getAdminOrderById,
+  listAdminProductsWithoutImages,
+  listAdminOrderSummaries,
   loadAdminSettings,
   upsertAdminOrder,
   completeReservedStockOrder,
@@ -41,7 +54,14 @@ export function expandCatalogProducts(productList: Product[]) {
     if (product.hidden) continue;
 
     if (!product.variants?.length) {
-      expanded.push(product);
+      expanded.push({
+        ...product,
+        slug: buildProductPublicSlug({
+          name: product.name,
+          id: product.id,
+          fallbackSlug: product.slug,
+        }),
+      });
       continue;
     }
 
@@ -55,6 +75,12 @@ export function expandCatalogProducts(productList: Product[]) {
         variantId: variant.id,
         variantName: variant.name,
         name: product.name,
+        slug: buildProductPublicSlug({
+          name: product.name,
+          variantName: variant.name,
+          id: `${product.id}::${variant.id}`,
+          fallbackSlug: product.slug,
+        }),
         price: Math.max(0, variant.price * (1 - (variant.discount ?? 0) / 100)),
         compareAtPrice: variant.discount ? variant.price : product.compareAtPrice,
         discount: variant.discount ?? 0,
@@ -80,6 +106,12 @@ export function expandCatalogProducts(productList: Product[]) {
 }
 
 export const catalogService = {
+  listCatalogSummaries: async (brand?: BrandSlug) => {
+    const summaryProducts = await listCatalogProductSummaries({
+      data: brand ? { brand } : {},
+    });
+    return expandCatalogProducts(summaryProducts);
+  },
   listByBrand: async (brand: BrandSlug, loaded?: Product[]) => {
     const productsData = loaded ?? (await loadAllAdminProducts(brand));
     const filtered = productsData.filter((product) => product.brand === brand);
@@ -87,17 +119,34 @@ export const catalogService = {
     products.splice(0, products.length, ...productsData);
     return flattened;
   },
-  detail: async (brand: BrandSlug, slug: string, loaded?: Product[]) =>
-    (loaded ?? (await loadAllAdminProducts(brand))).find(
-      (product) => product.brand === brand && product.slug === slug && !product.hidden,
-    ) ?? null,
+  detail: async (brand: BrandSlug, slug: string, loaded?: Product[]) => {
+    if (!loaded) return getCatalogProductBySlug({ data: { brand, slug } });
+
+    const productIdentity = getProductRecordIdentityFromPublicSlug(slug);
+    const variantIdentity = getProductVariantIdentityFromPublicSlug(slug);
+    return (
+      loaded.find(
+        (product) =>
+          product.brand === brand &&
+          !product.hidden &&
+          (product.slug === slug ||
+            (product.id === productIdentity &&
+              (!variantIdentity ||
+                product.variants?.some((variant) => variant.id === variantIdentity)))),
+      ) ?? null
+    );
+  },
   related: async (brand: BrandSlug, slug: string, loaded?: Product[]) => {
-    const allProducts = loaded ?? (await loadAllAdminProducts(brand));
+    if (!loaded) {
+      const relatedProducts = await getRelatedCatalogProducts({ data: { brand, slug } });
+      return expandCatalogProducts(relatedProducts).slice(0, 4);
+    }
+
+    const allProducts = loaded;
     const product = allProducts.find((item) => item.brand === brand && item.slug === slug);
     return product
       ? expandCatalogProducts(
-          allProducts
-          .filter(
+          allProducts.filter(
             (item) =>
               item.id !== product.id &&
               item.brand === product.brand &&
@@ -117,6 +166,11 @@ export const catalogService = {
     products.splice(0, products.length, ...loaded);
     return loaded;
   },
+  listAllAdminWithoutImages: async () => {
+    const loaded = await listAdminProductsWithoutImages({ data: {} });
+    products.splice(0, products.length, ...loaded);
+    return loaded;
+  },
 };
 
 export const orderService = {
@@ -125,13 +179,19 @@ export const orderService = {
     orders.splice(0, orders.length, ...loaded);
     return loaded;
   },
-  revenue: async () => {
-    const orders = await listAdminOrders();
+  listWithoutDocuments: async () => {
+    const loaded = await listAdminOrdersWithoutDocuments({ data: {} });
+    orders.splice(0, orders.length, ...loaded);
+    return loaded;
+  },
+  detail: (id: string) => getAdminOrderById({ data: { id } }),
+  revenue: async (orders?: Awaited<ReturnType<typeof listAdminOrderSummaries>>) => {
+    const dashboardOrders = orders ?? (await listAdminOrderSummaries({ data: {} }));
     const totals = new Map<
       string,
       { month: string; arcade: number; scents: number; webDesign: number }
     >();
-    for (const order of orders) {
+    for (const order of dashboardOrders) {
       const date = new Date(order.date);
       const month = date.toLocaleDateString("es-AR", { month: "short" });
       const key = `${date.getFullYear()}-${date.getMonth()}`;
@@ -206,6 +266,32 @@ export const catalogQueries = {
       staleTime: 5 * 60 * 1000,
       queryFn: () => loadAllAdminProducts(brand),
     }),
+  catalogSummaries: () =>
+    queryOptions({
+      queryKey: ["products", "catalog", "summaries", "all"],
+      staleTime: 5 * 60 * 1000,
+      queryFn: () => catalogService.listCatalogSummaries(),
+    }),
+  catalogSummariesByBrand: (brand: BrandSlug) =>
+    queryOptions({
+      queryKey: ["products", "catalog", "summaries", brand],
+      staleTime: 5 * 60 * 1000,
+      queryFn: () => catalogService.listCatalogSummaries(brand),
+    }),
+  cardImages: (productIds: string[]) => {
+    const normalizedIds = Array.from(new Set(productIds)).sort();
+    return queryOptions({
+      queryKey: ["products", "card-images", ...normalizedIds],
+      staleTime: 5 * 60 * 1000,
+      enabled: normalizedIds.length > 0,
+      queryFn: async () => {
+        const imageRows = await getCatalogProductCardImages({
+          data: { productIds: normalizedIds },
+        });
+        return Object.fromEntries(imageRows.map(({ id, image }) => [id, image]));
+      },
+    });
+  },
   byBrand: (brand: BrandSlug) =>
     queryOptions({
       queryKey: ["products", brand],
@@ -219,26 +305,35 @@ export const catalogQueries = {
     queryOptions({
       queryKey: ["product", brand, slug],
       staleTime: 5 * 60 * 1000,
-      queryFn: ({ client }) =>
-        client
-          .ensureQueryData(catalogQueries.rawByBrand(brand))
-          .then((loaded) => catalogService.detail(brand, slug, loaded)),
+      queryFn: () => getCatalogProductBySlug({ data: { brand, slug } }),
+    }),
+  detailImages: (brand: BrandSlug, slug: string) =>
+    queryOptions({
+      queryKey: ["product", brand, slug, "images"],
+      staleTime: 5 * 60 * 1000,
+      queryFn: () => getCatalogProductImages({ data: { brand, slug } }),
     }),
   related: (brand: BrandSlug, slug: string) =>
     queryOptions({
       queryKey: ["product", brand, slug, "related"],
       staleTime: 5 * 60 * 1000,
-      queryFn: ({ client }) =>
-        client
-          .ensureQueryData(catalogQueries.rawByBrand(brand))
-          .then((loaded) => catalogService.related(brand, slug, loaded)),
+      queryFn: async () =>
+        expandCatalogProducts(await getRelatedCatalogProducts({ data: { brand, slug } })).slice(
+          0,
+          4,
+        ),
     }),
   all: () =>
     queryOptions({
       queryKey: ["products", "all"],
       staleTime: 5 * 60 * 1000,
-      queryFn: ({ client }) =>
-        client.ensureQueryData(catalogQueries.allAdmin()).then((loaded) => expandCatalogProducts(loaded)),
+      queryFn: () => catalogService.listCatalogSummaries(),
+    }),
+  allAdminSummaries: () =>
+    queryOptions({
+      queryKey: ["products", "all", "admin-summary"],
+      staleTime: 5 * 60 * 1000,
+      queryFn: () => catalogService.listAllAdminWithoutImages(),
     }),
   allAdmin: () =>
     queryOptions({
@@ -249,17 +344,32 @@ export const catalogQueries = {
 };
 
 export const orderQueries = {
+  dashboard: () =>
+    queryOptions({
+      queryKey: ["orders", "dashboard-summary"],
+      staleTime: 60 * 1000,
+      queryFn: () => listAdminOrderSummaries({ data: {} }),
+    }),
   list: () =>
     queryOptions({
       queryKey: ["orders"],
       staleTime: 5 * 60 * 1000,
       queryFn: () => orderService.list(),
     }),
+  listWithoutDocuments: () =>
+    queryOptions({
+      queryKey: ["orders", "without-documents"],
+      staleTime: 5 * 60 * 1000,
+      queryFn: () => orderService.listWithoutDocuments(),
+    }),
   revenue: () =>
     queryOptions({
       queryKey: ["orders", "revenue"],
       staleTime: 5 * 60 * 1000,
-      queryFn: () => orderService.revenue(),
+      queryFn: ({ client }) =>
+        client
+          .ensureQueryData(orderQueries.dashboard())
+          .then((orders) => orderService.revenue(orders)),
     }),
 };
 

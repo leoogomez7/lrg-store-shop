@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
@@ -45,7 +45,7 @@ export const Route = createFileRoute("/$brand/productos")({
     if (!brand) throw notFound();
     const [settings] = await Promise.all([
       context.queryClient.ensureQueryData(catalogQueries.settings()),
-      context.queryClient.ensureQueryData(catalogQueries.byBrand(brand.slug)),
+      context.queryClient.ensureQueryData(catalogQueries.catalogSummariesByBrand(brand.slug)),
     ]);
     applyAdminSettings(settings);
     refreshBrandData();
@@ -83,7 +83,7 @@ function CatalogPage() {
   const search = Route.useSearch();
   const { settings } = Route.useLoaderData();
   const brand = getBrand(params.brand)!;
-  const { data: products } = useSuspenseQuery(catalogQueries.byBrand(brand.slug));
+  const { data: products } = useSuspenseQuery(catalogQueries.catalogSummariesByBrand(brand.slug));
   const [priceCurrencies, setPriceCurrencies] = useState<("ARS" | "USD")[]>(["ARS", "USD"]);
   const [, setBrandDataVersion] = useState(0);
 
@@ -229,6 +229,15 @@ function CatalogPage() {
     requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
   };
   const paginatedResults = results.slice(page * pageSize, page * pageSize + pageSize);
+  const cardImageProductIds = Array.from(
+    new Set(paginatedResults.map((product) => product.parentId ?? product.id.split("::")[0]!)),
+  );
+  const { data: cardImages = {} } = useQuery(catalogQueries.cardImages(cardImageProductIds));
+  const paginatedResultsWithImages = paginatedResults.map((product) => {
+    const parentId = product.parentId ?? product.id.split("::")[0]!;
+    const image = cardImages[parentId];
+    return image ? { ...product, image, images: [image] } : product;
+  });
 
   useEffect(() => {
     setFilters((current) => ({ ...current, minPrice: 0, maxPrice: priceLimit }));
@@ -384,7 +393,7 @@ function CatalogPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            {paginatedResults.map((product, index) => (
+            {paginatedResultsWithImages.map((product, index) => (
               <ProductCard key={product.id} product={product} index={index} />
             ))}
           </div>

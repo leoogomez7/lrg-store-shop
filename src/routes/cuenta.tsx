@@ -142,7 +142,6 @@ function toggleOrderFilterOption(
 }
 
 export const Route = createFileRoute("/cuenta")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(orderQueries.list()),
   beforeLoad: ({ location }) => {
     if (location.pathname === "/cuenta") {
       throw redirect({ to: "/cuenta/panel" });
@@ -253,7 +252,10 @@ function AccountPageContent({
   initialTab?: AccountTab;
 }) {
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
-  const { data: orders = [], isPending: ordersLoading } = useQuery(orderQueries.list());
+  const { data: orders = [], isPending: ordersLoading } = useQuery({
+    ...orderQueries.list(),
+    enabled: activeTab === "orders",
+  });
   const { data: products = [], isPending: productsLoading } = useQuery({
     ...catalogQueries.all(),
     enabled: activeTab === "favorites",
@@ -291,6 +293,16 @@ function AccountPageContent({
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [favoritesLoading, setFavoritesLoading] = useState(true);
   const favoriteProducts = products.filter((product) => favoriteIds.includes(product.id));
+  const favoriteImageProductIds = Array.from(
+    new Set(
+      favoriteProducts
+        .slice(0, 40)
+        .map((product) => product.parentId ?? product.id.split("::")[0]!),
+    ),
+  );
+  const { data: favoriteImages = {} } = useQuery(
+    catalogQueries.cardImages(favoriteImageProductIds),
+  );
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const primaryAddress = addresses.find((address) => address.isPrimary) ?? addresses[0] ?? null;
@@ -2844,20 +2856,25 @@ function AccountPageContent({
             <LoadingState label="Cargando favoritos..." />
           ) : favoriteProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-              {favoriteProducts.map((product, index) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  index={index}
-                  onFavoriteChange={(isFavorite) => {
-                    if (!isFavorite) {
-                      setFavoriteIds((current) =>
-                        current.filter((productId) => productId !== product.id),
-                      );
-                    }
-                  }}
-                />
-              ))}
+              {favoriteProducts.map((product, index) => {
+                const parentId = product.parentId ?? product.id.split("::")[0]!;
+                const image = favoriteImages[parentId];
+                const favoriteProduct = image ? { ...product, image, images: [image] } : product;
+                return (
+                  <ProductCard
+                    key={product.id}
+                    product={favoriteProduct}
+                    index={index}
+                    onFavoriteChange={(isFavorite) => {
+                      if (!isFavorite) {
+                        setFavoriteIds((current) =>
+                          current.filter((productId) => productId !== product.id),
+                        );
+                      }
+                    }}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl p-12 text-center">
