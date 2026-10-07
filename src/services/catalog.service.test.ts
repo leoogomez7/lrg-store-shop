@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Product } from "@/data/products";
-import { buildProductPublicSlug } from "@/data/products";
+import { buildProductPublicSlug, productMatchesSearch } from "@/data/products";
 import { getProductIdentityFromPublicSlug } from "@/lib/product-slug";
 import { catalogService, expandCatalogProducts } from "./catalog.service";
 
@@ -22,6 +22,17 @@ const product = (overrides: Partial<Product> = {}): Product => ({
 });
 
 describe("catalog visibility", () => {
+  it("searches compact catalog metadata without requiring full product details", () => {
+    const summary = product({
+      description: "",
+      features: [],
+      searchText: "EA Sports FC 27 PS4 arcade",
+    });
+
+    expect(productMatchesSearch(summary, "fc 27")).toBe(true);
+    expect(productMatchesSearch(summary, "xbox")).toBe(false);
+  });
+
   it("excludes hidden products from public catalog results", () => {
     const visible = product();
     const hidden = product({ id: "hidden-product", slug: "hidden-product", hidden: true });

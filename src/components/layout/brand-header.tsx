@@ -13,12 +13,13 @@ import {
   ContactRound,
   Settings,
   Search,
+  X,
   User,
   UserPlus,
   Users,
   Trash2,
 } from "lucide-react";
-import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/common/brand-mark";
@@ -26,7 +27,6 @@ import { KindeAuthGate } from "@/components/common/kinde-auth-gate";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -97,6 +97,7 @@ function BrandHeaderContent({
   const [openUserMenu, setOpenUserMenu] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { count, items, subtotal, itemsByBrand, setQuantity, removeItem } = useCart();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
@@ -112,7 +113,12 @@ function BrandHeaderContent({
     setOpenMenu(false);
     setOpenCart(false);
     setOpenUserMenu(false);
+    setSearchOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
   const [panel, setPanel] = useState<string | null>(null);
 
   const [confirmState, setConfirmState] = useState<{
@@ -504,17 +510,55 @@ function BrandHeaderContent({
               ) : null}
             </div>
 
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="-order-1 size-9 shrink-0 rounded-xl"
-              title="Buscar productos"
-              aria-label="Buscar productos"
-              onClick={() => setSearchOpen(true)}
-            >
-              <Search className="size-4" aria-hidden="true" />
-            </Button>
+            {searchOpen ? (
+              <form
+                onSubmit={submitProductSearch}
+                className="-order-1 flex min-w-0 items-center gap-1"
+                role="search"
+              >
+                <div className="relative min-w-0">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    ref={searchInputRef}
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") setSearchOpen(false);
+                    }}
+                    placeholder="Buscar productos"
+                    aria-label="Buscar productos"
+                    className="h-9 w-[min(15rem,38vw)] pl-8"
+                  />
+                </div>
+                <Button type="submit" size="icon" className="size-9 shrink-0" aria-label="Buscar">
+                  <Search className="size-4" aria-hidden="true" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-9 shrink-0 rounded-xl"
+                  title="Cerrar búsqueda"
+                  aria-label="Cerrar búsqueda"
+                  onClick={() => setSearchOpen(false)}
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </Button>
+              </form>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="-order-1 size-9 shrink-0 rounded-xl"
+                title="Buscar productos"
+                aria-label="Buscar productos"
+                onClick={() => setSearchOpen(true)}
+              >
+                <Search className="size-4" aria-hidden="true" />
+              </Button>
+            )}
 
             <Button
               asChild
@@ -594,27 +638,6 @@ function BrandHeaderContent({
           </div>
         </div>
       </header>
-      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Buscar productos</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={submitProductSearch} className="flex gap-2">
-            <Input
-              autoFocus
-              type="search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="¿Qué estás buscando?"
-              aria-label="Buscar productos"
-            />
-            <Button type="submit" aria-label="Buscar">
-              <Search className="size-4" />
-              <span className="sr-only">Buscar</span>
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
       <ConfirmDialog
         open={logoutOpen}
         onOpenChange={setLogoutOpen}

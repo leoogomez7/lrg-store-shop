@@ -1269,6 +1269,28 @@ export const listCatalogProductSummaries = createServerFn({ method: "POST" })
         'category', json_extract(p.productData, '$.category'),
         'subcategory', json_extract(p.productData, '$.subcategory'),
         'subcategoryPath', json(json_extract(p.productData, '$.subcategoryPath')),
+        'searchText', TRIM(
+          COALESCE(json_extract(p.productData, '$.name'), '') || ' ' ||
+          COALESCE(json_extract(p.productData, '$.code'), '') || ' ' ||
+          COALESCE(json_extract(p.productData, '$.category'), '') || ' ' ||
+          COALESCE(json_extract(p.productData, '$.subcategory'), '') || ' ' ||
+          COALESCE(json_extract(p.productData, '$.short'), '') || ' ' ||
+          COALESCE(json_extract(p.productData, '$.description'), '') || ' ' ||
+          COALESCE(json_extract(p.productData, '$.features'), '') || ' ' ||
+          COALESCE(json_extract(p.productData, '$.includes'), '') || ' ' ||
+          COALESCE(json_extract(p.productData, '$.supplier.name'), '') || ' ' ||
+          COALESCE(json_extract(p.productData, '$.supplier.phone'), '') || ' ' ||
+          COALESCE(json_extract(p.productData, '$.supplier.social'), '') || ' ' ||
+          COALESCE((
+            SELECT group_concat(
+              COALESCE(json_extract(v.value, '$.name'), '') || ' ' ||
+              COALESCE(json_extract(v.value, '$.code'), '') || ' ' ||
+              COALESCE(json_extract(v.value, '$.description'), '') || ' ' ||
+              COALESCE(json_extract(v.value, '$.features'), '') || ' ' ||
+              COALESCE(json_extract(v.value, '$.includes'), ''), ' '
+            ) FROM json_each(p.productData, '$.variants') AS v
+          ), '')
+        ),
         'price', json_extract(p.productData, '$.price'),
         'priceCurrency', json_extract(p.productData, '$.priceCurrency'),
         'cardCommission', json_extract(p.productData, '$.cardCommission'),
@@ -1276,17 +1298,7 @@ export const listCatalogProductSummaries = createServerFn({ method: "POST" })
         'discount', json_extract(p.productData, '$.discount'),
         'stock', json_extract(p.productData, '$.stock'),
         'stockUnlimited', json_extract(p.productData, '$.stockUnlimited'),
-        'supplier', json(json_extract(p.productData, '$.supplier')),
-        'gastos', json_extract(p.productData, '$.gastos'),
-        'gastosCurrency', json_extract(p.productData, '$.gastosCurrency'),
-        'usdRate', json_extract(p.productData, '$.usdRate'),
-        'rating', json_extract(p.productData, '$.rating'),
-        'reviews', json_extract(p.productData, '$.reviews'),
         'badge', json_extract(p.productData, '$.badge'),
-        'short', json_extract(p.productData, '$.short'),
-        'description', json_extract(p.productData, '$.description'),
-        'features', json(json_extract(p.productData, '$.features')),
-        'includes', json(json_extract(p.productData, '$.includes')),
         'deliveryUnit', json_extract(p.productData, '$.deliveryUnit'),
         'deliveryAmount', json_extract(p.productData, '$.deliveryAmount'),
         'createdAt', json_extract(p.productData, '$.createdAt'),
@@ -1294,16 +1306,17 @@ export const listCatalogProductSummaries = createServerFn({ method: "POST" })
           SELECT json_group_array(json_object(
             'id', json_extract(v.value, '$.id'),
             'name', json_extract(v.value, '$.name'),
-            'code', json_extract(v.value, '$.code'),
             'hidden', json_extract(v.value, '$.hidden'),
             'price', json_extract(v.value, '$.price'),
             'priceCurrency', json_extract(v.value, '$.priceCurrency'),
+            'comision', json_extract(v.value, '$.comision'),
+            'comisionCurrency', json_extract(v.value, '$.comisionCurrency'),
             'gastos', json_extract(v.value, '$.gastos'),
             'gastosCurrency', json_extract(v.value, '$.gastosCurrency'),
             'cardCommission', json_extract(v.value, '$.cardCommission'),
-            'description', json_extract(v.value, '$.description'),
-            'features', json(json_extract(v.value, '$.features')),
-            'includes', json(json_extract(v.value, '$.includes')),
+            'description', '',
+            'features', json('[]'),
+            'includes', json('[]'),
             'stock', json_extract(v.value, '$.stock'),
             'stockUnlimited', json_extract(v.value, '$.stockUnlimited'),
             'discount', json_extract(v.value, '$.discount'),
@@ -1339,7 +1352,7 @@ export const getCatalogProductBySlug = createServerFn({ method: "POST" })
     if (!database) return null;
     const identityLookup = getPublicSlugIdentityLookup(data.slug);
     const result = await database.execute({
-      sql: `SELECT id FROM products
+      sql: `SELECT json_remove(productData, '$.image', '$.images') AS productData FROM products
             WHERE json_extract(productData, '$.brand') = ?
               AND (
                 json_extract(productData, '$.slug') = ?
@@ -1348,13 +1361,7 @@ export const getCatalogProductBySlug = createServerFn({ method: "POST" })
             LIMIT 1`,
       args: [data.brand, data.slug, ...identityLookup.args],
     });
-    const productId = result.rows[0]?.["id"];
-    if (typeof productId !== "string") return null;
-    const productResult = await database.execute({
-      sql: "SELECT json_remove(productData, '$.image', '$.images') AS productData FROM products WHERE id = ?",
-      args: [productId],
-    });
-    const productData = productResult.rows[0]?.["productData"];
+    const productData = result.rows[0]?.["productData"];
     if (typeof productData !== "string") return null;
     try {
       return JSON.parse(productData) as Product;
@@ -1461,8 +1468,10 @@ export const getCatalogProductCardImages = createServerFn({ method: "POST" })
       sql: `SELECT id, COALESCE(
               json_extract(productData, '$.imageThumbnail'),
               json_extract(productData, '$.imagesThumbnails[0]'),
-              json_extract(productData, '$.image'),
-              json_extract(productData, '$.images[0]')
+              CASE
+                WHEN COALESCE(json_extract(productData, '$.image'), json_extract(productData, '$.images[0]')) NOT LIKE 'data:image/%'
+                THEN COALESCE(json_extract(productData, '$.image'), json_extract(productData, '$.images[0]'))
+              END
             ) AS image
             FROM products
             WHERE id IN (${placeholders})`,

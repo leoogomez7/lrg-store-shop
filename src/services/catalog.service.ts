@@ -90,10 +90,10 @@ export function expandCatalogProducts(productList: Product[]) {
         gastos: variant.gastos ?? product.gastos,
         gastosCurrency: variant.gastosCurrency ?? product.gastosCurrency ?? "ARS",
         supplier: variant.supplier ?? product.supplier,
-        description: variant.description || product.description,
+        description: variant.description || product.description || "",
         stock: variant.stock,
         stockUnlimited: variant.stockUnlimited ?? product.stockUnlimited ?? false,
-        features: variant.features?.length ? variant.features : product.features,
+        features: variant.features?.length ? variant.features : (product.features ?? []),
         includes: variant.includes ?? product.includes ?? [],
         cardCommission: variant.cardCommission ?? product.cardCommission,
         image: product.images?.[0],
@@ -307,10 +307,11 @@ export const catalogQueries = {
       staleTime: 5 * 60 * 1000,
       queryFn: () => getCatalogProductBySlug({ data: { brand, slug } }),
     }),
-  detailImages: (brand: BrandSlug, slug: string) =>
+  detailImages: (brand: BrandSlug, slug: string, enabled = true) =>
     queryOptions({
       queryKey: ["product", brand, slug, "images"],
       staleTime: 5 * 60 * 1000,
+      enabled,
       queryFn: () => getCatalogProductImages({ data: { brand, slug } }),
     }),
   related: (brand: BrandSlug, slug: string) =>

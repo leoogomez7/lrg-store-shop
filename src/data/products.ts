@@ -192,6 +192,8 @@ export type Product = {
   image?: string;
   /** Small WebP used by catalog cards while the original is reserved for detail views. */
   imageThumbnail?: string;
+  /** Compact searchable metadata returned by the public catalog summary endpoint. */
+  searchText?: string;
   price: number;
   priceCurrency?: CurrencyCode;
   comision?: number;
@@ -225,6 +227,9 @@ export const products: Product[] = [];
 export function productMatchesSearch(product: Product, query: string) {
   const normalizedQuery = normalizeSearchText(query.trim());
   if (!normalizedQuery) return true;
+  if (product.searchText) {
+    return normalizeSearchText(product.searchText).includes(normalizedQuery);
+  }
   return normalizeSearchText(toSearchableText(product)).includes(normalizedQuery);
 }
 

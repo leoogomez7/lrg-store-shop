@@ -147,8 +147,10 @@ function ProductDetail() {
   const brand = getBrand(params.brand)!;
   const slugVariantId = getProductVariantIdentityFromPublicSlug(params.slug);
   const { data: product } = useSuspenseQuery(catalogQueries.detail(brand.slug, params.slug));
+  const [fullImagesReadyForSlug, setFullImagesReadyForSlug] = useState<string | null>(null);
+  const loadFullImages = fullImagesReadyForSlug === params.slug;
   const { data: loadedProductImages = [] } = useQuery(
-    catalogQueries.detailImages(brand.slug, params.slug),
+    catalogQueries.detailImages(brand.slug, params.slug, loadFullImages),
   );
   const productImageOwnerId = product?.parentId ?? product?.id.split("::")[0] ?? "";
   const { data: productCardImages = {} } = useQuery(
@@ -202,6 +204,11 @@ function ProductDetail() {
     setSelectedVariantId(requestedVariant?.id ?? product?.variants?.[0]?.id);
     setQuantity(1);
   }, [params.slug, product?.id, search.variant, slugVariantId]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setFullImagesReadyForSlug(params.slug));
+    return () => cancelAnimationFrame(frame);
+  }, [params.slug]);
 
   const selectedVariant =
     product?.variants?.find((variant) => variant.id === selectedVariantId) ??
