@@ -191,6 +191,43 @@ export function optimizeImageDataUrl(image: string, maxDimension = 1400) {
   });
 }
 
+export function createImageThumbnailDataUrl(image: string, maxDimension = 360) {
+  return new Promise<string | null>((resolve) => {
+    if (!image.startsWith("data:image/")) {
+      resolve(null);
+      return;
+    }
+
+    const source = new Image();
+    source.onload = () => {
+      if (!source.naturalWidth || !source.naturalHeight) {
+        resolve(null);
+        return;
+      }
+
+      const scale = Math.min(1, maxDimension / Math.max(source.naturalWidth, source.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(source.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(source.naturalHeight * scale));
+      const context = canvas.getContext("2d");
+      if (!context) {
+        resolve(null);
+        return;
+      }
+
+      context.drawImage(source, 0, 0, canvas.width, canvas.height);
+      try {
+        const thumbnail = canvas.toDataURL("image/webp", 0.58);
+        resolve(thumbnail.startsWith("data:image/webp") ? thumbnail : null);
+      } catch {
+        resolve(null);
+      }
+    };
+    source.onerror = () => resolve(null);
+    source.src = image;
+  });
+}
+
 export async function composeHeaderAboveImageDataUrl(headerImage: string, productImage: string) {
   const loadImage = (sourceUrl: string) =>
     new Promise<HTMLImageElement>((resolve, reject) => {

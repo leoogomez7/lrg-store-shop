@@ -1459,6 +1459,8 @@ export const getCatalogProductCardImages = createServerFn({ method: "POST" })
     const placeholders = data.productIds.map(() => "?").join(", ");
     const result = await database.execute({
       sql: `SELECT id, COALESCE(
+              json_extract(productData, '$.imageThumbnail'),
+              json_extract(productData, '$.imagesThumbnails[0]'),
               json_extract(productData, '$.image'),
               json_extract(productData, '$.images[0]')
             ) AS image
@@ -1473,6 +1475,131 @@ export const getCatalogProductCardImages = createServerFn({ method: "POST" })
         ? [{ id, image }]
         : [];
     });
+  });
+
+export const getAdminProductThumbnailMigrationPage = createServerFn({ method: "POST" })
+  .validator((data: { offset: number; limit?: number }) => {
+    const limit = data.limit ?? 3;
+    if (!Number.isInteger(data.offset) || data.offset < 0) {
+      throw new Error("El desplazamiento de productos no es válido.");
+    }
+    if (!Number.isInteger(limit) || limit < 1 || limit > 6) {
+      throw new Error("La cantidad de productos para optimizar no es válida.");
+    }
+    return { offset: data.offset, limit };
+  })
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return { products: [], nextOffset: data.offset, done: true, total: 0 };
+    const [pageResult, countResult] = await Promise.all([
+      database.execute({
+        sql: `SELECT id,
+                json_extract(productData, '$.image') AS image,
+                json_extract(productData, '$.images') AS images,
+                json_extract(productData, '$.imageThumbnail') AS imageThumbnail,
+                json_extract(productData, '$.imagesThumbnails') AS imagesThumbnails
+              FROM products ORDER BY rowid LIMIT ? OFFSET ?`,
+        args: [data.limit, data.offset],
+      }),
+      database.execute("SELECT COUNT(*) AS total FROM products"),
+    ]);
+
+    const products = pageResult.rows.flatMap((row) => {
+      const id = row["id"];
+      if (typeof id !== "string") return [];
+      let images: string[] = [];
+      if (typeof row["images"] === "string") {
+        try {
+          const parsed = JSON.parse(row["images"]) as unknown;
+          if (Array.isArray(parsed)) {
+            images = parsed.filter((image): image is string => typeof image === "string");
+          }
+        } catch {
+          images = [];
+        }
+      }
+      if (!images.length && typeof row["image"] === "string") images = [row["image"]];
+      if (!images.length) return [];
+
+      let thumbnails: Array<string | null> = [];
+      if (typeof row["imagesThumbnails"] === "string") {
+        try {
+          const parsed = JSON.parse(row["imagesThumbnails"]) as unknown;
+          if (Array.isArray(parsed)) {
+            thumbnails = parsed.map((thumbnail) =>
+              typeof thumbnail === "string" ? thumbnail : null,
+            );
+          }
+        } catch {
+          thumbnails = [];
+        }
+      }
+      const imageThumbnail =
+        typeof row["imageThumbnail"] === "string" ? row["imageThumbnail"] : null;
+      const missingThumbnail = images.some(
+        (image, index) =>
+          image.startsWith("data:image/") &&
+          !(index === 0 ? imageThumbnail : thumbnails[index]),
+      );
+      return missingThumbnail ? [{ id, images, imageThumbnail, imagesThumbnails: thumbnails }] : [];
+    });
+
+    const total = Number(countResult.rows[0]?.["total"] ?? 0);
+    const nextOffset = data.offset + pageResult.rows.length;
+    return { products, nextOffset, done: nextOffset >= total, total };
+  });
+
+export const saveAdminProductThumbnails = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      products: Array<{
+        id: string;
+        imageThumbnail?: string | null;
+        imagesThumbnails: Array<string | null>;
+      }>;
+    }) => {
+      if (!Array.isArray(data.products) || data.products.length > 6) {
+        throw new Error("La cantidad de miniaturas para guardar no es válida.");
+      }
+      for (const product of data.products) {
+        if (
+          !product.id.trim() ||
+          product.id.length > 500 ||
+          product.imagesThumbnails.length > 20 ||
+          [...product.imagesThumbnails, product.imageThumbnail ?? null].some(
+            (thumbnail) =>
+              thumbnail !== null &&
+              (typeof thumbnail !== "string" || thumbnail.length > 500_000),
+          )
+        ) {
+          throw new Error("Hay miniaturas que superan el tamaño permitido.");
+        }
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    const database = await ensureAdminTables();
+    if (!database) return false;
+    await database.batch(
+      data.products.map((product) => ({
+        sql: product.imageThumbnail
+          ? `UPDATE products SET productData = json_set(
+                productData,
+                '$.imageThumbnail', ?,
+                '$.imagesThumbnails', json(?)
+              ) WHERE id = ?`
+          : `UPDATE products SET productData = json_set(
+                productData,
+                '$.imagesThumbnails', json(?)
+              ) WHERE id = ?`,
+        args: product.imageThumbnail
+          ? [product.imageThumbnail, JSON.stringify(product.imagesThumbnails), product.id]
+          : [JSON.stringify(product.imagesThumbnails), product.id],
+      })),
+      "write",
+    );
+    return true;
   });
 
 export const listAdminProductsByBrand = createServerFn({ method: "POST" })
@@ -1518,26 +1645,52 @@ export const getAdminProductRevision = createServerFn({ method: "POST" })
 
 function restoreOmittedProductImages(
   product: Product,
-  storedImage: unknown,
-  storedImages: unknown,
+  stored: {
+    image?: unknown;
+    images?: unknown;
+    imageThumbnail?: unknown;
+    imagesThumbnails?: unknown;
+  },
 ): Product {
-  if (Object.hasOwn(product, "image") || Object.hasOwn(product, "images")) return product;
-  let images: string[] | undefined;
-  if (typeof storedImages === "string") {
+  const restored: Product = { ...product };
+  const stringArray = (value: unknown) => {
+    if (typeof value !== "string") return undefined;
     try {
-      const parsed = JSON.parse(storedImages) as unknown;
-      if (Array.isArray(parsed)) {
-        images = parsed.filter((image): image is string => typeof image === "string");
-      }
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed)
+        ? parsed.filter((item): item is string => typeof item === "string")
+        : undefined;
     } catch {
-      images = undefined;
+      return undefined;
     }
-  }
-  return {
-    ...product,
-    ...(typeof storedImage === "string" ? { image: storedImage } : {}),
-    ...(images ? { images } : {}),
   };
+  const nullableStringArray = (value: unknown) => {
+    if (typeof value !== "string") return undefined;
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed)
+        ? parsed.map((item) => (typeof item === "string" ? item : null))
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  if (!Object.hasOwn(product, "image") && typeof stored.image === "string") {
+    restored.image = stored.image;
+  }
+  if (!Object.hasOwn(product, "images")) {
+    const images = stringArray(stored.images);
+    if (images) restored.images = images;
+  }
+  if (!Object.hasOwn(product, "imageThumbnail") && typeof stored.imageThumbnail === "string") {
+    restored.imageThumbnail = stored.imageThumbnail;
+  }
+  if (!Object.hasOwn(product, "imagesThumbnails")) {
+    const thumbnails = nullableStringArray(stored.imagesThumbnails);
+    if (thumbnails) restored.imagesThumbnails = thumbnails;
+  }
+  return restored;
 }
 
 export const saveAdminProducts = createServerFn({ method: "POST" })
@@ -1547,20 +1700,33 @@ export const saveAdminProducts = createServerFn({ method: "POST" })
     if (!database) return false;
     const now = new Date().toISOString();
     const currentImagesResult = await database.execute(
-      "SELECT id, json_extract(productData, '$.image') AS image, json_extract(productData, '$.images') AS images FROM products",
+      `SELECT id,
+        json_extract(productData, '$.image') AS image,
+        json_extract(productData, '$.images') AS images,
+        json_extract(productData, '$.imageThumbnail') AS imageThumbnail,
+        json_extract(productData, '$.imagesThumbnails') AS imagesThumbnails
+       FROM products`,
     );
     const imagesByProductId = new Map(
       currentImagesResult.rows.flatMap((row) =>
         typeof row["id"] === "string"
-          ? [[row["id"] as string, { image: row["image"], images: row["images"] }] as const]
+          ? [
+              [
+                row["id"] as string,
+                {
+                  image: row["image"],
+                  images: row["images"],
+                  imageThumbnail: row["imageThumbnail"],
+                  imagesThumbnails: row["imagesThumbnails"],
+                },
+              ] as const,
+            ]
           : [],
       ),
     );
     const productsWithImages = data.products.map((product) => {
       const current = imagesByProductId.get(product.id);
-      return current
-        ? restoreOmittedProductImages(product, current.image, current.images)
-        : product;
+      return current ? restoreOmittedProductImages(product, current) : product;
     });
     await database.batch(
       [
@@ -1582,12 +1748,17 @@ export const saveAdminProduct = createServerFn({ method: "POST" })
     const database = await ensureAdminTables();
     if (!database) return false;
     const currentResult = await database.execute({
-      sql: "SELECT json_extract(productData, '$.image') AS image, json_extract(productData, '$.images') AS images FROM products WHERE id = ?",
+      sql: `SELECT
+        json_extract(productData, '$.image') AS image,
+        json_extract(productData, '$.images') AS images,
+        json_extract(productData, '$.imageThumbnail') AS imageThumbnail,
+        json_extract(productData, '$.imagesThumbnails') AS imagesThumbnails
+        FROM products WHERE id = ?`,
       args: [data.product.id],
     });
     const current = currentResult.rows[0];
     const product = current
-      ? restoreOmittedProductImages(data.product, current["image"], current["images"])
+      ? restoreOmittedProductImages(data.product, current)
       : data.product;
     await database.execute({
       sql: `INSERT INTO products (id, productData, updatedAt) VALUES (?, ?, ?)
@@ -1612,7 +1783,11 @@ export const saveAdminProductBatch = createServerFn({ method: "POST" })
     const placeholders = productIds.map(() => "?").join(", ");
     const currentImagesResult = productIds.length
       ? await database.execute({
-          sql: `SELECT id, json_extract(productData, '$.image') AS image, json_extract(productData, '$.images') AS images
+            sql: `SELECT id,
+              json_extract(productData, '$.image') AS image,
+              json_extract(productData, '$.images') AS images,
+              json_extract(productData, '$.imageThumbnail') AS imageThumbnail,
+              json_extract(productData, '$.imagesThumbnails') AS imagesThumbnails
                 FROM products WHERE id IN (${placeholders})`,
           args: productIds,
         })
@@ -1620,7 +1795,12 @@ export const saveAdminProductBatch = createServerFn({ method: "POST" })
     const imagesByProductId = new Map(
       currentImagesResult.rows.flatMap((row) =>
         typeof row["id"] === "string"
-          ? [[row["id"] as string, { image: row["image"], images: row["images"] }] as const]
+          ? [[row["id"] as string, {
+              image: row["image"],
+              images: row["images"],
+              imageThumbnail: row["imageThumbnail"],
+              imagesThumbnails: row["imagesThumbnails"],
+            }] as const]
           : [],
       ),
     );
@@ -1628,7 +1808,7 @@ export const saveAdminProductBatch = createServerFn({ method: "POST" })
       data.products.map((candidate) => {
         const current = imagesByProductId.get(candidate.id);
         const product = current
-          ? restoreOmittedProductImages(candidate, current.image, current.images)
+          ? restoreOmittedProductImages(candidate, current)
           : candidate;
         return {
         sql: `INSERT INTO products (id, productData, updatedAt) VALUES (?, ?, ?)

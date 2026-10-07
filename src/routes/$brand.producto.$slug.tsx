@@ -18,7 +18,11 @@ import { toast } from "sonner";
 import { z } from "zod";
 import type { Product } from "@/data/products";
 import type { BrandSubcategory } from "@/config/brands";
-import { CroppedProductImage, ProductVisual } from "@/components/common/product-visual";
+import {
+  CroppedProductImage,
+  ProductVisual,
+  ProgressiveProductImage,
+} from "@/components/common/product-visual";
 import { SectionHeading } from "@/components/common/section-heading";
 import { ProductCard } from "@/components/product/product-card";
 import { Badge } from "@/components/ui/badge";
@@ -145,6 +149,10 @@ function ProductDetail() {
   const { data: product } = useSuspenseQuery(catalogQueries.detail(brand.slug, params.slug));
   const { data: loadedProductImages = [] } = useQuery(
     catalogQueries.detailImages(brand.slug, params.slug),
+  );
+  const productImageOwnerId = product?.parentId ?? product?.id.split("::")[0] ?? "";
+  const { data: productCardImages = {} } = useQuery(
+    catalogQueries.cardImages(productImageOwnerId ? [productImageOwnerId] : []),
   );
   const { data: related = [] } = useQuery(catalogQueries.related(brand.slug, params.slug));
   const relatedImageProductIds = Array.from(
@@ -392,7 +400,8 @@ function ProductDetail() {
                 onClick={() => setImageViewerOpen(true)}
                 aria-label={`Abrir imagen ${selectedImageIndex + 1} de ${productImages.length}`}
               >
-                <CroppedProductImage
+                <ProgressiveProductImage
+                  thumbnail={productCardImages[productImageOwnerId]}
                   image={selectedImage}
                   label={`${product.name} imagen ${selectedImageIndex + 1}`}
                 />

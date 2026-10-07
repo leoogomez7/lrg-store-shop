@@ -43,6 +43,7 @@ import { ProductVisual } from "@/components/common/product-visual";
 import { FilterChipList, type FilterChipItem } from "@/components/product/product-filters";
 import {
   composeHeaderAboveImageDataUrl,
+  createImageThumbnailDataUrl,
   cropImageDataUrl,
   optimizeImageDataUrl,
 } from "@/lib/image-processing";
@@ -95,6 +96,8 @@ import {
   saveAdminAsset,
   saveAdminSetting,
   deleteAdminProduct,
+  getAdminProductThumbnailMigrationPage,
+  saveAdminProductThumbnails,
 } from "@/server/persistence";
 import {
   importPerfumeNotesWithAI,
@@ -292,7 +295,7 @@ function AdminProducts() {
   const { data: adminSettings } = useSuspenseQuery(catalogQueries.settings());
   const [editableProducts, setEditableProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
-    const [brandFilter, setBrandFilter] = useState<BrandSlug[]>(["arcade"]);
+  const [brandFilter, setBrandFilter] = useState<BrandSlug[]>([]);
   const [supplierFilter, setSupplierFilter] = useState<string[]>([]);
   const [skuFilter, setSkuFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
@@ -317,6 +320,10 @@ function AdminProducts() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [thumbnailMigration, setThumbnailMigration] = useState<{
+    scanned: number;
+    total: number;
+  } | null>(null);
   const [createChoiceOpen, setCreateChoiceOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
@@ -3156,6 +3163,63 @@ function AdminProducts() {
     );
   };
 
+  const migrateCatalogImageThumbnails = async () => {
+    if (thumbnailMigration) return;
+    let offset = 0;
+    let total = 0;
+    setThumbnailMigration({ scanned: 0, total: 0 });
+
+    try {
+      let done = false;
+      while (!done) {
+        const page = await getAdminProductThumbnailMigrationPage({
+          data: { offset, limit: 3 },
+        });
+        total = page.total;
+        const updates: Array<{
+          id: string;
+          imageThumbnail?: string | null;
+          imagesThumbnails: Array<string | null>;
+        }> = [];
+
+        for (const product of page.products) {
+          const thumbnails: Array<string | null> = [];
+          for (const [index, image] of product.images.entries()) {
+            const existing = index === 0
+              ? product.imageThumbnail
+              : product.imagesThumbnails[index];
+            thumbnails.push(
+              existing ?? (await createImageThumbnailDataUrl(image)),
+            );
+          }
+          if (thumbnails.some(Boolean)) {
+            updates.push({
+              id: product.id,
+              imageThumbnail: thumbnails[0],
+              imagesThumbnails: thumbnails,
+            });
+          }
+        }
+
+        if (updates.length) {
+          const saved = await saveAdminProductThumbnails({ data: { products: updates } });
+          if (!saved) throw new Error("No se pudieron guardar las miniaturas.");
+        }
+
+        offset = page.nextOffset;
+        done = page.done;
+        setThumbnailMigration({ scanned: offset, total });
+      }
+
+      toast.success("Miniaturas del catálogo optimizadas.");
+      await queryClient.invalidateQueries({ queryKey: ["products", "card-images"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudieron optimizar las imágenes.");
+    } finally {
+      setThumbnailMigration(null);
+    }
+  };
+
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 py-6 pb-0 sm:px-6">
       <div className="flex flex-wrap items-center gap-2">
@@ -3672,6 +3736,23 @@ function AdminProducts() {
           </div>
 
           <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:contents">
+            <Button
+              variant="outline"
+              className="inline-flex items-center gap-2"
+              disabled={Boolean(thumbnailMigration)}
+              onClick={() => void migrateCatalogImageThumbnails()}
+              title="Crea miniaturas ligeras para que el catálogo cargue las imágenes más rápido"
+            >
+              {thumbnailMigration ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <ImagePlus className="size-4" />
+              )}
+              {thumbnailMigration
+                ? `Optimizando ${thumbnailMigration.scanned}/${thumbnailMigration.total || "…"}`
+                : "Optimizar imágenes"}
+            </Button>
+
             <Button
               className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-emerald-700"
               onClick={() => {

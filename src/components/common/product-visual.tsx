@@ -62,6 +62,50 @@ export function CroppedProductImage({
   );
 }
 
+export function ProgressiveProductImage({
+  thumbnail,
+  image,
+  label,
+  className,
+}: {
+  thumbnail?: string;
+  image?: string;
+  label: string;
+  className?: string;
+}) {
+  const preview = thumbnail || image;
+  const [fullImageLoaded, setFullImageLoaded] = useState(false);
+
+  useEffect(() => {
+    setFullImageLoaded(false);
+  }, [image, preview]);
+
+  if (!preview) return null;
+
+  return (
+    <div className={cn("relative size-full overflow-hidden", className)}>
+      <img
+        src={preview}
+        alt={label}
+        decoding="async"
+        className="size-full object-contain"
+      />
+      {image && image !== preview && (
+        <img
+          src={image}
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+          onLoad={() => setFullImageLoaded(true)}
+          className={`absolute inset-0 size-full object-contain transition-opacity duration-200 ${
+            fullImageLoaded ? "opacity-100" : "opacity-0"
+          }`}
+        />
+      )}
+    </div>
+  );
+}
+
 /**
  * Visual de producto generado a partir del identificador.
  * Un único componente para todas las marcas: cambia con los tokens del tema.
@@ -71,11 +115,13 @@ export function ProductVisual({
   label,
   image,
   className,
+  priority = false,
 }: {
   seed: string;
   label: string;
   image?: string;
   className?: string;
+  priority?: boolean;
 }) {
   const value = hash(seed);
   const pattern = patterns[value % patterns.length];
@@ -89,7 +135,8 @@ export function ProductVisual({
         <img
           src={image}
           alt={label}
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
           decoding="async"
           className="size-full object-contain"
         />

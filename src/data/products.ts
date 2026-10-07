@@ -1,4 +1,5 @@
 import type { BrandSlug } from "@/config/brands";
+import { createImageThumbnailDataUrl } from "@/lib/image-processing";
 import { saveAdminProduct, saveAdminProductBatch, saveAdminProducts } from "@/server/persistence";
 
 export { buildProductPublicSlug, normalizeProductSlugSegment } from "@/lib/product-slug";
@@ -98,13 +99,34 @@ export function splitProductsIntoPayloadBatches<T>(products: T[], maxBytes: numb
   return batches;
 }
 
+async function prepareProductThumbnails(product: Product): Promise<Product> {
+  const images = product.images?.length ? product.images : product.image ? [product.image] : [];
+  if (!images.length || !images.some((image) => image.startsWith("data:image/"))) return product;
+
+  const thumbnails: Array<string | null> = [];
+  for (const image of images) {
+    thumbnails.push(await createImageThumbnailDataUrl(image));
+  }
+  const primaryThumbnail = thumbnails[0] ?? undefined;
+
+  return {
+    ...product,
+    imageThumbnail: primaryThumbnail,
+    imagesThumbnails: thumbnails.some(Boolean) ? thumbnails : undefined,
+  };
+}
+
 export async function saveProduct(product: Product) {
-  return saveAdminProduct({ data: { product } });
+  return saveAdminProduct({ data: { product: await prepareProductThumbnails(product) } });
 }
 
 export async function saveProductBatch(products: Product[]) {
   const maxPayloadBytes = 3_000_000;
-  const batches = splitProductsIntoPayloadBatches(products, maxPayloadBytes);
+  const preparedProducts: Product[] = [];
+  for (const product of products) {
+    preparedProducts.push(await prepareProductThumbnails(product));
+  }
+  const batches = splitProductsIntoPayloadBatches(preparedProducts, maxPayloadBytes);
   for (const batch of batches) {
     const saved = await saveAdminProductBatch({
       data: { products: batch },
@@ -168,6 +190,8 @@ export type Product = {
   subcategoryPath?: string[];
   variantName?: string;
   image?: string;
+  /** Small WebP used by catalog cards while the original is reserved for detail views. */
+  imageThumbnail?: string;
   price: number;
   priceCurrency?: CurrencyCode;
   comision?: number;
@@ -190,6 +214,7 @@ export type Product = {
   features: string[];
   includes?: string[];
   images?: string[];
+  imagesThumbnails?: Array<string | null>;
   deliveryUnit?: "inmediata" | "horas" | "dias";
   deliveryAmount?: number;
   createdAt: string;

@@ -103,6 +103,7 @@ export function ProductCard({
             seed={product.id}
             label={product.name}
             image={product.images?.[0]}
+            priority={index < 4}
             className="aspect-3/2"
           />
           <div className="absolute left-3 top-3 flex flex-col gap-2">
