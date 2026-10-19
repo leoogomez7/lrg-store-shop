@@ -44,7 +44,7 @@ Para ejecutar o modificar este proyecto localmente se recomienda contar con un e
 🚀 Instalación y Uso Local
 Clonar el repositorio:
 
-´´´Bash
+```Bash
 git clone https://github.com/leoogomez7/lrg-store-shop.git
 cd lrg-store-shop
 Instalar dependencias:
